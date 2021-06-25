@@ -1,8 +1,7 @@
-﻿using Phantasma.Core.Utils;
+﻿using System.Text;
+using System.Numerics;
+using Phantasma.Core.Utils;
 using Phantasma.Cryptography;
-using Phantasma.Numerics;
-using System.Text;
-using System.Linq;
 using Phantasma.Storage.Context;
 
 namespace Phantasma.Blockchain.Tokens
@@ -30,7 +29,7 @@ namespace Phantasma.Blockchain.Tokens
 
         private byte[] GetKeyForOwner(BigInteger tokenID)
         {
-            return ByteArrayUtils.ConcatBytes(_prefixOwner, tokenID.ToSignedByteArray());
+            return ByteArrayUtils.ConcatBytes(_prefixOwner, tokenID.ToByteArray());
         }
 
         public BigInteger[] Get(StorageContext storage, Address address)

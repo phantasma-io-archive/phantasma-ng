@@ -1,10 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+using System.Collections.Generic;
+using Phantasma.Numerics;
 using Phantasma.Core.Utils;
 using Phantasma.Cryptography;
 using Phantasma.Cryptography.ECC;
-using Phantasma.Numerics;
 
 namespace Phantasma.Pay.Chains
 {
@@ -118,11 +119,9 @@ namespace Phantasma.Pay.Chains
 
         protected override string DeriveAddress(PhantasmaKeys keys)
         {
-            ECPoint pKey = ECCurve.Secp256k1.G * keys.PrivateKey;
+            var publicKey = ECDsa.GetPublicKey(keys.PrivateKey, true, ECDsaCurve.Secp256k1);
 
-            var publicKey = pKey.EncodePoint(true);
-
-            var bytes = ByteArrayUtils.ConcatBytes(new byte[] { 0 }, publicKey.SHA256().RIPEMD160());
+            var bytes = ByteArrayUtils.ConcatBytes(new byte[] { 0 }, publicKey.Sha256().RIPEMD160());
 
             return bytes.Base58CheckEncode();
         }

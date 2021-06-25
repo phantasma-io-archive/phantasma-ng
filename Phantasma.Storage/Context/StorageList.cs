@@ -3,6 +3,7 @@ using Phantasma.Core.Utils;
 using Phantasma.Numerics;
 using System;
 using System.Text;
+using System.Numerics;
 
 namespace Phantasma.Storage.Context
 {
@@ -50,7 +51,7 @@ namespace Phantasma.Storage.Context
             }
             else
             {
-                right = ByteArrayUtils.ConcatBytes(element_begin_prefix, index.AsByteArray());
+                right = ByteArrayUtils.ConcatBytes(element_begin_prefix, index.ToByteArray());
             }
 
             right = ByteArrayUtils.ConcatBytes(right, element_end_prefix);
@@ -60,8 +61,9 @@ namespace Phantasma.Storage.Context
 
         public static BigInteger Count(this StorageList list)
         {
-            var result = list.Context.Get(CountKey(list.BaseKey)).AsBigInteger();
-            return result;
+            //var result = list.Context.Get(CountKey(list.BaseKey)).ToBigInteger();
+            var count = list.Context.Get(CountKey(list.BaseKey)).AsBigInteger();
+            return count;
         }
 
         public static BigInteger Add<T>(this StorageList list, T element)

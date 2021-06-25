@@ -1,8 +1,7 @@
-﻿using System.Text;
+﻿using System.Numerics;
 using Phantasma.Numerics;
 using Phantasma.Core.Utils;
 using Phantasma.Core;
-using Phantasma.Storage.Utils;
 using System.Collections.Generic;
 using System.Linq;
 using System;
@@ -38,6 +37,7 @@ namespace Phantasma.Storage.Context
 
         public static BigInteger Count(this StorageSet set)
         {
+            // TODO maintain a count var of type bigint instead of creating a new instance each time Count is called.
             return set.Context.Get(CountKey(set.BaseKey)).AsBigInteger();
         }
 

@@ -1,8 +1,8 @@
 ﻿using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Collections.Generic;
 using Phantasma.Cryptography;
-using Phantasma.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Storage;
 using Phantasma.Core;
@@ -136,7 +136,7 @@ namespace Phantasma.Blockchain
         internal void UpdateHash()
         {
             var data = ToByteArray(false);
-            var hashBytes = CryptoExtensions.SHA256(data);
+            var hashBytes = CryptoExtensions.Sha256(data);
             _hash = new Hash(hashBytes);
             _dirty = false;
         }

@@ -1,11 +1,11 @@
+using System;
+using System.Numerics;
 using Phantasma.Blockchain.Tokens;
 using Phantasma.Core.Types;
 using Phantasma.Cryptography;
 using Phantasma.Domain;
-using Phantasma.Numerics;
 using Phantasma.Storage.Context;
 using Phantasma.VM;
-using System;
 
 namespace Phantasma.Blockchain.Contracts
 {
@@ -306,7 +306,7 @@ namespace Phantasma.Blockchain.Contracts
                     var priceDiff = auction.Price - auction.EndPrice;
                     var timeDiff = auction.EndDate - auction.StartDate;
                     var timeSinceStart = Runtime.Time - auction.StartDate;
-                    var priceDiffSinceStart = new BigInteger(timeSinceStart * priceDiff / timeDiff);
+                    var priceDiffSinceStart = timeSinceStart * priceDiff / timeDiff;
                     var currentPrice = auction.Price - priceDiffSinceStart;
 
                     if (currentPrice < auction.EndPrice)

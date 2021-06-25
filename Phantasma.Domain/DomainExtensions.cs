@@ -1,8 +1,9 @@
-﻿using Phantasma.Cryptography;
+﻿using System;
+using System.Numerics;
+using Phantasma.Cryptography;
 using Phantasma.Numerics;
 using Phantasma.Storage;
 using Phantasma.VM;
-using System;
 
 namespace Phantasma.Domain
 {
@@ -142,7 +143,16 @@ namespace Phantasma.Domain
         {
             var url = GetOracleFeeURL(platform);
             var bytes = runtime.ReadOracle(url);
-            BigInteger fee = BigInteger.FromUnsignedArray(bytes, true);
+            BigInteger fee;
+            if (bytes == null)
+            {
+                fee = runtime.GetGovernanceValue("interop.fee");
+            }
+            else
+            {
+                fee = new BigInteger(bytes);
+            }
+            //fee = BigInteger.FromUnsignedArray(bytes, true);
             return fee;
         }
 

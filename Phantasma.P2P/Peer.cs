@@ -1,8 +1,8 @@
-﻿using Phantasma.Blockchain;
+﻿using System;
+using System.Numerics;
 using Phantasma.Cryptography;
 using Phantasma.Domain;
 using Phantasma.Numerics;
-using System;
 
 namespace Phantasma.Network.P2P
 {

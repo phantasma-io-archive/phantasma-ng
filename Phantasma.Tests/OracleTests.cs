@@ -1,21 +1,12 @@
 
 using System;
 using System.Linq;
+using System.Numerics;
 
 using Phantasma.Blockchain;
 using Phantasma.Storage.Context;
 using Phantasma.Cryptography;
-using Phantasma.Numerics;
 using Phantasma.Simulator;
-using Phantasma.VM.Utils;
-using Phantasma.Blockchain.Tokens;
-using Phantasma.CodeGen.Assembler;
-using Phantasma.Blockchain.Contracts;
-using Phantasma.Core.Types;
-using Phantasma.VM;
-using System.Collections.Generic;
-using Phantasma.Storage;
-using Phantasma.Pay.Chains;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Domain;
 

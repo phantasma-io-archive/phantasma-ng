@@ -1,5 +1,4 @@
 ﻿using Phantasma.Cryptography;
-using Phantasma.Neo.Cryptography;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -11,24 +10,6 @@ using System.Text;
 
 namespace Phantasma.Neo.Utils
 {
-    public class ByteArrayComparer : IEqualityComparer<byte[]>
-    {
-        public bool Equals(byte[] left, byte[] right)
-        {
-            if (left == null || right == null)
-            {
-                return left == right;
-            }
-            return left.SequenceEqual(right);
-        }
-        public int GetHashCode(byte[] key)
-        {
-            if (key == null)
-                throw new ArgumentNullException("key");
-            return key.Sum(b => b);
-        }
-    }
-
     public static class LuxUtils
     {
         public static BigInteger ToBigInteger(this decimal val, int places = 8)
@@ -122,46 +103,46 @@ namespace Phantasma.Neo.Utils
             return Encoding.UTF8.GetString(reader.ReadVarBytes());
         }
 
-        public static void WriteVarBytes(this BinaryWriter writer, byte[] value)
-        {
-            if (value == null)
-            {
-                writer.WriteVarInt(0);
-                return;
-            }
-            writer.WriteVarInt(value.Length);
-            writer.Write(value);
-        }
+        //public static void WriteVarBytes(this BinaryWriter writer, byte[] value)
+        //{
+        //    if (value == null)
+        //    {
+        //        writer.WriteVarInt(0);
+        //        return;
+        //    }
+        //    writer.WriteVarInt(value.Length);
+        //    writer.Write(value);
+        //}
 
-        public static void WriteVarInt(this BinaryWriter writer, long value)
-        {
-            if (value < 0)
-                throw new ArgumentOutOfRangeException();
-            if (value < 0xFD)
-            {
-                writer.Write((byte)value);
-            }
-            else if (value <= 0xFFFF)
-            {
-                writer.Write((byte)0xFD);
-                writer.Write((ushort)value);
-            }
-            else if (value <= 0xFFFFFFFF)
-            {
-                writer.Write((byte)0xFE);
-                writer.Write((uint)value);
-            }
-            else
-            {
-                writer.Write((byte)0xFF);
-                writer.Write(value);
-            }
-        }
+        //public static void WriteVarInt(this BinaryWriter writer, long value)
+        //{
+        //    if (value < 0)
+        //        throw new ArgumentOutOfRangeException();
+        //    if (value < 0xFD)
+        //    {
+        //        writer.Write((byte)value);
+        //    }
+        //    else if (value <= 0xFFFF)
+        //    {
+        //        writer.Write((byte)0xFD);
+        //        writer.Write((ushort)value);
+        //    }
+        //    else if (value <= 0xFFFFFFFF)
+        //    {
+        //        writer.Write((byte)0xFE);
+        //        writer.Write((uint)value);
+        //    }
+        //    else
+        //    {
+        //        writer.Write((byte)0xFF);
+        //        writer.Write(value);
+        //    }
+        //}
 
-        public static void WriteVarString(this BinaryWriter writer, string value)
-        {
-            writer.WriteVarBytes(value != null ? Encoding.UTF8.GetBytes(value) : null);
-        }
+        //public static void WriteVarString(this BinaryWriter writer, string value)
+        //{
+        //    writer.WriteVarBytes(value != null ? Encoding.UTF8.GetBytes(value) : null);
+        //}
 
         public static void WriteFixed(this BinaryWriter writer, decimal value)
         {
@@ -179,13 +160,6 @@ namespace Phantasma.Neo.Utils
             return r;
         }
 
-        public static byte[] GetScriptHashFromAddress(this string address)
-        {
-            var temp = address.Base58CheckDecode();
-            temp = temp.SubArray(1, 20);
-            return temp;
-        }
-
         public static string ByteToHex(this byte[] data)
         {
             string hex = BitConverter.ToString(data).Replace("-", "").ToLower();
@@ -195,21 +169,21 @@ namespace Phantasma.Neo.Utils
         private static int BitLen(int w)
         {
             return (w < 1 << 15 ? (w < 1 << 7
-                ? (w < 1 << 3 ? (w < 1 << 1
-                ? (w < 1 << 0 ? (w < 0 ? 32 : 0) : 1)
-                : (w < 1 << 2 ? 2 : 3)) : (w < 1 << 5
-                ? (w < 1 << 4 ? 4 : 5)
-                : (w < 1 << 6 ? 6 : 7)))
-                : (w < 1 << 11
-                ? (w < 1 << 9 ? (w < 1 << 8 ? 8 : 9) : (w < 1 << 10 ? 10 : 11))
-                : (w < 1 << 13 ? (w < 1 << 12 ? 12 : 13) : (w < 1 << 14 ? 14 : 15)))) : (w < 1 << 23 ? (w < 1 << 19
-                ? (w < 1 << 17 ? (w < 1 << 16 ? 16 : 17) : (w < 1 << 18 ? 18 : 19))
-                : (w < 1 << 21 ? (w < 1 << 20 ? 20 : 21) : (w < 1 << 22 ? 22 : 23))) : (w < 1 << 27
-                ? (w < 1 << 25 ? (w < 1 << 24 ? 24 : 25) : (w < 1 << 26 ? 26 : 27))
-                : (w < 1 << 29 ? (w < 1 << 28 ? 28 : 29) : (w < 1 << 30 ? 30 : 31)))));
+                        ? (w < 1 << 3 ? (w < 1 << 1
+                                ? (w < 1 << 0 ? (w < 0 ? 32 : 0) : 1)
+                                : (w < 1 << 2 ? 2 : 3)) : (w < 1 << 5
+                                ? (w < 1 << 4 ? 4 : 5)
+                                : (w < 1 << 6 ? 6 : 7)))
+                        : (w < 1 << 11
+                            ? (w < 1 << 9 ? (w < 1 << 8 ? 8 : 9) : (w < 1 << 10 ? 10 : 11))
+                            : (w < 1 << 13 ? (w < 1 << 12 ? 12 : 13) : (w < 1 << 14 ? 14 : 15)))) : (w < 1 << 23 ? (w < 1 << 19
+                            ? (w < 1 << 17 ? (w < 1 << 16 ? 16 : 17) : (w < 1 << 18 ? 18 : 19))
+                            : (w < 1 << 21 ? (w < 1 << 20 ? 20 : 21) : (w < 1 << 22 ? 22 : 23))) : (w < 1 << 27
+                            ? (w < 1 << 25 ? (w < 1 << 24 ? 24 : 25) : (w < 1 << 26 ? 26 : 27))
+                            : (w < 1 << 29 ? (w < 1 << 28 ? 28 : 29) : (w < 1 << 30 ? 30 : 31)))));
         }
 
-        public static byte[] AddressToScriptHash(string s)
+        public static byte[] AddressToScriptHash(this string s)
         {
             var bytes = s.Base58CheckDecode();
             var data = bytes.Skip(1).Take(20).ToArray();
@@ -281,14 +255,6 @@ namespace Phantasma.Neo.Utils
             return (i & (BigInteger.One << index)) > BigInteger.Zero;
         }
 
-        public static string ToHexString(this IEnumerable<byte> value)
-        {
-            StringBuilder sb = new StringBuilder();
-            foreach (byte b in value)
-                sb.AppendFormat("{0:x2}", b);
-            return sb.ToString();
-        }
-
         internal static long WeightedAverage<T>(this IEnumerable<T> source, Func<T, long> valueSelector, Func<T, long> weightSelector)
         {
             long sum_weight = 0;
@@ -325,23 +291,23 @@ namespace Phantasma.Neo.Utils
             return output;
         }
 
-        public static byte[] HexToBytes(this string value)
-        {
-            if (value == null || value.Length == 0)
-                return new byte[0];
-            if (value.Length % 2 == 1)
-                throw new FormatException();
+        //public static byte[] HexToBytes(this string value)
+        //{
+        //    if (value == null || value.Length == 0)
+        //        return new byte[0];
+        //    if (value.Length % 2 == 1)
+        //        throw new FormatException();
 
-            if (value.StartsWith("0x"))
-            {
-                value = value.Substring(2);
-            }
+        //    if (value.StartsWith("0x"))
+        //    {
+        //        value = value.Substring(2);
+        //    }
 
-            byte[] result = new byte[value.Length / 2];
-            for (int i = 0; i < result.Length; i++)
-                result[i] = byte.Parse(value.Substring(i * 2, 2), NumberStyles.AllowHexSpecifier);
-            return result;
-        }
+        //    byte[] result = new byte[value.Length / 2];
+        //    for (int i = 0; i < result.Length; i++)
+        //        result[i] = byte.Parse(value.Substring(i * 2, 2), NumberStyles.AllowHexSpecifier);
+        //    return result;
+        //}
 
         internal static BigInteger NextBigInteger(this RandomNumberGenerator rng, int sizeInBits)
         {
@@ -408,10 +374,6 @@ namespace Phantasma.Neo.Utils
             return unixEpoch.AddSeconds(timestamp);
         }
 
-        public static uint ToTimestamp(this DateTime time)
-        {
-            return (uint)(time.ToUniversalTime() - unixEpoch).TotalSeconds;
-        }
     }
 
 }

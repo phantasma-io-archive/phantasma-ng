@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Cryptography;
-using Phantasma.Numerics;
 using Phantasma.Storage;
 using Phantasma.Storage.Utils;
 
@@ -169,7 +169,7 @@ namespace Phantasma.Domain
             switch (mode)
             {
                 case TokenSeriesMode.Unique: bytes = ROM; break;
-                case TokenSeriesMode.Duplicated: bytes = ROM.Concat(SeriesID.ToUnsignedByteArray()).Concat(MintID.ToUnsignedByteArray()).ToArray(); break;
+                case TokenSeriesMode.Duplicated: bytes = ROM.Concat(SeriesID.ToByteArray()).Concat(MintID.ToByteArray()).ToArray(); break;
                 default:
                     throw new ChainException($"Generation of tokenID for Series with {mode} is not implemented");
             }

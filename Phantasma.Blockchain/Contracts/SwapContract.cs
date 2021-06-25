@@ -1,12 +1,13 @@
-﻿using Phantasma.Cryptography;
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Numerics;
+using System.Collections.Generic;
+using Phantasma.Cryptography;
 using Phantasma.Domain;
 using Phantasma.Numerics;
 using Phantasma.Storage;
 using Phantasma.Storage.Utils;
-using System.Collections.Generic;
-using System;
-using System.IO;
-using System.Linq;
 
 namespace Phantasma.Blockchain.Contracts
 {

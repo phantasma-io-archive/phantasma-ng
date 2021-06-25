@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Numerics;
 using Phantasma.VM;
 using Phantasma.Cryptography;
 using Phantasma.Numerics;
@@ -455,10 +456,8 @@ namespace Phantasma.Blockchain
 
             Core.Throw.If(Oracle == null, "cannot read price from null oracle");
             var bytes = Oracle.Read<byte[]>(this.Time, "price://" + symbol);
-
             Expect(bytes != null && bytes.Length > 0, $"Could not read price of {symbol} from oracle");
-
-            var value = BigInteger.FromUnsignedArray(bytes, true);
+            var value = new BigInteger(bytes);
 
             Expect(value > 0, "token price not available for " + symbol);
 
@@ -487,7 +486,7 @@ namespace Phantasma.Blockchain
         public void SetRandomSeed(BigInteger seed)
         {
             // calculates first initial pseudo random number seed
-            byte[] bytes = seed.ToSignedByteArray();
+            byte[] bytes = seed.ToByteArray();
 
             for (int i = 0; i < this.entryScript.Length; i++)
             {
@@ -502,7 +501,7 @@ namespace Phantasma.Blockchain
                 bytes[i] ^= time[i % time.Length];
             }
 
-            _randomSeed = BigInteger.FromUnsignedArray(bytes, true);
+            _randomSeed = new BigInteger(bytes);
         }
         #endregion
 

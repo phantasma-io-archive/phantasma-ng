@@ -1,3 +1,4 @@
+using System.Numerics;
 using Phantasma.Blockchain.Storage;
 using Phantasma.Cryptography;
 using Phantasma.Domain;

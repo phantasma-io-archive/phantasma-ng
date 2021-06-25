@@ -1,8 +1,7 @@
+using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Core;
 using Phantasma.Cryptography;
 using Phantasma.Domain;
-using Phantasma.Numerics;
 using Phantasma.Storage.Context;
 
 namespace Phantasma.Blockchain
@@ -156,12 +155,6 @@ namespace Phantasma.Blockchain
                 if (witnessCount >= majorityCount)
                 {
                     break; // dont waste time if we already reached a majority
-                }
-
-                //ring signature not supported yet here
-                if (sig.Kind == SignatureKind.Ring)
-                {
-                    continue;
                 }
 
                 foreach (var addr in members)
