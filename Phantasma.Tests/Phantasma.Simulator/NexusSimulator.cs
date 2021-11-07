@@ -75,7 +75,7 @@ namespace Phantasma.Simulator
 
             if (!Nexus.HasGenesis)
             {
-                if (!Nexus.CreateGenesisBlock(_owner, CurrentTime, 5))
+                if (!Nexus.CreateGenesisBlock(_owner, CurrentTime, 6))
                 {
                     throw new ChainException("Genesis block failure");
                 }
@@ -110,6 +110,11 @@ namespace Phantasma.Simulator
             var ethText = Phantasma.Ethereum.EthereumKey.FromWIF(ethKeys.ToWIF()).Address;
             var ethAddress = Phantasma.Pay.Chains.EthereumWallet.EncodeAddress(ethText);
 
+            var bscPlatform = Pay.Chains.BSCWallet.BSCPlatform;
+            var bscKeys = InteropUtils.GenerateInteropKeys(_owner, Nexus.GetGenesisHash(Nexus.RootStorage), bscPlatform);
+            var bscText = Phantasma.Ethereum.EthereumKey.FromWIF(bscKeys.ToWIF()).Address;
+            var bscAddress = Phantasma.Pay.Chains.BSCWallet.EncodeAddress(bscText);
+
             // only create all this stuff once
             if (!nexus.PlatformExists(nexus.RootStorage, neoPlatform))
             {
@@ -127,6 +132,7 @@ namespace Phantasma.Simulator
                 GenerateCustomTransaction(_owner, 0, () => new ScriptBuilder().AllowGas(_owner.Address, Address.Null, MinimumFee, 9999).
                     CallInterop("Nexus.CreatePlatform", _owner.Address, neoPlatform, neoText, neoAddress, "GAS").
                     CallInterop("Nexus.CreatePlatform", _owner.Address, ethPlatform, ethText, ethAddress, "ETH").
+                    CallInterop("Nexus.CreatePlatform", _owner.Address, bscPlatform, bscText, bscAddress, "BNB").
                 SpendGas(_owner.Address).EndScript());
 
                 var orgFunding = UnitConversion.ToBigInteger(1863626, DomainSettings.StakingTokenDecimals);

@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Numerics;
 using Phantasma.Core;
 using Phantasma.Core.Context;

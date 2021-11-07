@@ -731,7 +731,8 @@ namespace Phantasma.Business
 
             var nft = ReadNFT(Runtime, token.Symbol, tokenID);
             using (var m = new ProfileMarker("Nexus.WriteNFT"))
-                WriteNFT(Runtime, token.Symbol, tokenID, Runtime.Chain.Name, destination, nft.ROM, nft.RAM, nft.SeriesID, nft.Timestamp, nft.Infusion, !isSettlement);
+                WriteNFT(Runtime, token.Symbol, tokenID, Runtime.Chain.Name, source, destination, nft.ROM, nft.RAM,
+                        nft.SeriesID, nft.Timestamp, nft.Infusion, !isSettlement);
 
             using (var m = new ProfileMarker("Runtime.Notify"))
             if (isSettlement)
@@ -927,7 +928,8 @@ namespace Phantasma.Business
                 infusion[index] = new TokenInfusion(infuseToken.Symbol, value + temp.Value);
             }
 
-            WriteNFT(Runtime, token.Symbol, tokenID, nft.CurrentChain, nft.CurrentOwner, nft.ROM, nft.RAM, nft.SeriesID, nft.Timestamp, infusion, true);
+            WriteNFT(Runtime, token.Symbol, tokenID, nft.CurrentChain, nft.Creator, nft.CurrentOwner, nft.ROM, nft.RAM,
+                    nft.SeriesID, nft.Timestamp, infusion, true);
 
             Runtime.Notify(EventKind.Infusion, nft.CurrentOwner, new InfusionEventData(token.Symbol, tokenID, infuseToken.Symbol, value, nft.CurrentChain));
         }
@@ -1013,7 +1015,8 @@ namespace Phantasma.Business
 
             Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, AccountTrigger.OnReceive, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "account received trigger failed");
 
-            WriteNFT(Runtime, token.Symbol, tokenID, Runtime.Chain.Name, destination, nft.ROM, nft.RAM, nft.SeriesID, Runtime.Time, nft.Infusion, true);
+            WriteNFT(Runtime, token.Symbol, tokenID, Runtime.Chain.Name, nft.Creator, destination, nft.ROM, nft.RAM,
+                    nft.SeriesID, Runtime.Time, nft.Infusion, true);
 
             if (destination.IsSystem && (destination == Runtime.CurrentContext.Address || isInfusion))
             {
@@ -1213,7 +1216,9 @@ namespace Phantasma.Business
             Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.DeleteData), contractAddress, tokenKey);
         }
 
-        internal void WriteNFT(RuntimeVM Runtime, string symbol, BigInteger tokenID, string chainName, Address owner, byte[] rom, byte[] ram, BigInteger seriesID, Timestamp timestamp, IEnumerable<TokenInfusion> infusion, bool mustExist)
+        internal void WriteNFT(RuntimeVM Runtime, string symbol, BigInteger tokenID, string chainName, Address creator,
+                Address owner, byte[] rom, byte[] ram, BigInteger seriesID, Timestamp timestamp,
+                IEnumerable<TokenInfusion> infusion, bool mustExist)
         {
             Runtime.Expect(ram != null && ram.Length < TokenContent.MaxRAMSize, "invalid nft ram update");
 
@@ -1253,7 +1258,17 @@ namespace Phantasma.Business
             else
             {
                 Runtime.Expect(!mustExist, $"nft {symbol} {tokenID} does not exist");
-                var genID = GenerateNFT(Runtime, symbol, chainName, owner, rom, ram, seriesID);
+                Address _creator;
+                if (this.GetProtocolVersion(Runtime.RootStorage) >= 7)
+                {
+                    _creator = creator;
+                }
+                else
+                {
+                    _creator = owner;
+                }
+                
+                var genID = GenerateNFT(Runtime, symbol, chainName, _creator, rom, ram, seriesID);
                 Runtime.Expect(genID == tokenID, "failed to regenerate NFT");
             }
         }

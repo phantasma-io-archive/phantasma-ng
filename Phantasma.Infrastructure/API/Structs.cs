@@ -592,6 +592,15 @@ namespace Phantasma.Infrastructure
         public string script;
     }
 
+    public struct PortResult: IAPIResult
+    {
+        [APIDescription("Port description")]
+        public string name;
+
+        [APIDescription("Port number")]
+        public int port;
+    }
+
     public struct PeerResult: IAPIResult
     {
         [APIDescription("URL of peer")]
@@ -608,6 +617,9 @@ namespace Phantasma.Infrastructure
 
         [APIDescription("Minimum proof of work required by node")]
         public uint pow;
+
+        [APIDescription("List of exposed ports")]
+        public PortResult[] ports;
     }
 
     public struct ValidatorResult : IAPIResult

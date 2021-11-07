@@ -65,6 +65,7 @@ namespace Phantasma.Core
         Infusion = 57,
         Crowdsale = 58,
         OrderBid = 59,
+        ContractKill = 60,
         Custom = 64
     }
 

@@ -19,6 +19,7 @@ namespace Phantasma.Core
         OnWitness, // address
         OnUpgrade, // address
         OnMigrate, // from, to
+        OnKill, // address
     }
 
     public enum TokenTrigger
@@ -55,7 +56,7 @@ namespace Phantasma.Core
 
     public static class DomainSettings
     {
-        public const int LatestKnownProtocol = 6;
+        public const int LatestKnownProtocol = 7;
 
         public const int MaxTxPerBlock = 1024;
 
@@ -94,7 +95,7 @@ namespace Phantasma.Core
         public const string PhantomForceOrganizationName = "phantom_force";
 
         public static readonly BigInteger PlatformSupply = UnitConversion.ToBigInteger(100000000, FuelTokenDecimals);
-        public static readonly string PlatformName = "phantasma";
+        public const string PlatformName = "phantasma";
 
         public static readonly int ArchiveMinSize = 64; // in bytes
         public static readonly int ArchiveMaxSize = 104857600; //100mb

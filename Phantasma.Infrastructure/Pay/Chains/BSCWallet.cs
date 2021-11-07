@@ -1,24 +1,24 @@
-﻿using System;
-using System.Linq;
-using System.Numerics;
-using System.Collections.Generic;
+﻿using Phantasma.Core;
+using Phantasma.Core.Hashing;
+using Phantasma.Infrastructure;
 using Phantasma.Shared;
 using Phantasma.Shared.Utils;
-using Phantasma.Core;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Phantasma.Core.ECC;
-using Phantasma.Core.Hashing;
 
-namespace Phantasma.Infrastructure.Chains
+namespace Phantasma.Pay.Chains
 {
-    public class EthereumWallet : CryptoWallet
+    public class BSCWallet : CryptoWallet
     {
-        public const string EthereumPlatform = "ethereum";
-        public const byte EthereumID = 2;
-        public EthereumWallet(PhantasmaKeys keys) : base(keys)
+        public const string BSCPlatform = "bsc";
+        public const byte BSCID = 3;
+        public BSCWallet(PhantasmaKeys keys) : base(keys)
         {
         }
 
-        public override string Platform => EthereumPlatform;
+        public override string Platform => BSCPlatform;
 
         public override void MakePayment(string symbol, decimal amount, string targetAddress, Action<bool> callback)
         {
@@ -27,23 +27,7 @@ namespace Phantasma.Infrastructure.Chains
 
         public override void SyncBalances(Action<bool> callback)
         {
-            _balances.Clear();
-
-            var url = $"https://api.blockcypher.com/v1/eth/main/addrs/{this.Address}/balance";
-            JSONRequest(url, (root) =>
-            {
-                if (root == null)
-                {
-                    callback(false);
-                    return;
-                }
-
-                var temp = root.GetString("balance");
-                var n = BigInteger.Parse(temp);
-                var amount = UnitConversion.ToDecimal(n, 18);
-                _balances.Add(new WalletBalance("ETH", amount));
-                callback(true);
-            });
+            throw new NotImplementedException();
         }
 
         protected override string DeriveAddress(PhantasmaKeys keys)
@@ -54,15 +38,16 @@ namespace Phantasma.Infrastructure.Chains
             return "0x" + Base16.Encode(kak.Skip(12).ToArray());
         }
 
+
         public static Address EncodeAddress(string addressText)
         {
-            Throw.If(!IsValidAddress(addressText), "invalid ethereum address");
+            Throw.If(!IsValidAddress(addressText), "invalid bsc address");
             var input = addressText.Substring(2);
             var bytes = Base16.Decode(input);
 
             var pubKey = new byte[33];
             ByteArrayUtils.CopyBytes(bytes, 0, pubKey, 0, bytes.Length);
-            return Core.Address.FromInterop(EthereumID, pubKey);
+            return Core.Address.FromInterop(BSCID, pubKey);
         }
 
         public static bool IsValidAddress(string addressText)
@@ -81,9 +66,9 @@ namespace Phantasma.Infrastructure.Chains
             byte[] data;
             address.DecodeInterop(out platformID, out data);
 
-            if (platformID != EthereumID)
+            if (platformID != BSCID)
             {
-                throw new Exception("not a Ethereum interop address");
+                throw new Exception("not a BSC interop address");
             }
 
             return $"0x{Base16.Encode(data.Take(20).ToArray())}";
@@ -91,8 +76,7 @@ namespace Phantasma.Infrastructure.Chains
 
         public override IEnumerable<CryptoCurrencyInfo> GetCryptoCurrencyInfos()
         {
-            yield return new CryptoCurrencyInfo("ETH", "Ether", 8, EthereumPlatform, CryptoCurrencyCaps.Balance);
-            yield return new CryptoCurrencyInfo("DAI", "Dai", 8, EthereumPlatform, CryptoCurrencyCaps.Balance);
+            yield return new CryptoCurrencyInfo("BNB", "BNB", 8, BSCPlatform, CryptoCurrencyCaps.Balance);
             yield break;
         }
     }

@@ -7,7 +7,6 @@ using System.Reflection;
 using System.Text;
 using Phantasma.Shared;
 using Phantasma.Shared.Types;
-using Phantasma.Shared.Utils;
 
 namespace Phantasma.Core
 {
@@ -413,7 +412,5 @@ namespace Phantasma.Core
                 field.SetValue(target, val);
             }
         }
-
-
     }
 }

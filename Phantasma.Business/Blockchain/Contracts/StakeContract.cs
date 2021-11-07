@@ -487,7 +487,7 @@ namespace Phantasma.Business.Contracts
             }
 
             var stake = _stakeMap.Get<Address, EnergyStake>(from);
-            return SecondsInDay - (Runtime.Time - stake.stakeTime);
+            return (Runtime.Time - stake.stakeTime) % SecondsInDay;
         }
 
         public Timestamp GetStakeTimestamp(Address from)
