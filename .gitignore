@@ -6,3 +6,6 @@ Published/
 */bin/
 packages/
 .github/*
+
+**/obj/**
+**/bin/**

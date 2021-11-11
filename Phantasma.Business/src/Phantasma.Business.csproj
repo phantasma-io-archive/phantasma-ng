@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="Current">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Phantasma.Shared/src/Phantasma.Shared.csproj" />
+    <ProjectReference Include="../../Phantasma.Core/src/Phantasma.Core.csproj" />
+  </ItemGroup>
+</Project>

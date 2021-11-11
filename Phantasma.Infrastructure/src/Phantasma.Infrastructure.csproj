@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk" ToolsVersion="Current">
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <FileUpgradeFlags>40</FileUpgradeFlags>
   </PropertyGroup>
 
@@ -12,8 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Phantasma.Business\Phantasma.Business.csproj" />
-    <ProjectReference Include="..\Phantasma.Core\Phantasma.Core.csproj" />
-    <ProjectReference Include="..\Phantasma.Shared\Phantasma.Shared.csproj" />
+    <ProjectReference Include="../../Phantasma.Business/src/Phantasma.Business.csproj" />
+    <ProjectReference Include="../../Phantasma.Core/src/Phantasma.Core.csproj" />
+    <ProjectReference Include="../../Phantasma.Shared/src/Phantasma.Shared.csproj" />
   </ItemGroup>
 </Project>
