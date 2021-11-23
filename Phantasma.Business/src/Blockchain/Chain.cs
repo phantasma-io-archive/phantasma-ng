@@ -8,10 +8,11 @@ using Phantasma.Business.Tokens;
 using Phantasma.Core;
 using Phantasma.Core.Context;
 using Phantasma.Shared;
-using Phantasma.Shared.Log;
 using Phantasma.Shared.Types;
 using Phantasma.Shared.Utils;
 using Phantasma.Shared.Performance;
+using Serilog.Core;
+using Serilog;
 
 namespace Phantasma.Business
 {
@@ -34,14 +35,14 @@ namespace Phantasma.Business
 
         public BigInteger Height => GetBlockHeight();
 
-        public readonly Logger Log;
+        public readonly Logger Logger;
 
         public StorageContext Storage { get; private set; }
 
         public bool IsRoot => this.Name == DomainSettings.RootChainName;
         #endregion
 
-        public Chain(Nexus nexus, string name, Logger log = null)
+        public Chain(Nexus nexus, string name, Logger logger = null)
         {
             Throw.IfNull(nexus, "nexus required");
 
@@ -52,7 +53,15 @@ namespace Phantasma.Business
 
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
 
-            this.Log = Logger.Init(log);
+            if (logger == null)
+            {
+                // Dummy logger
+                this.Logger = new LoggerConfiguration().CreateLogger();
+            }
+            else
+            {
+                this.Logger = logger;
+            }
         }
 
         public IContract[] GetContracts(StorageContext storage)

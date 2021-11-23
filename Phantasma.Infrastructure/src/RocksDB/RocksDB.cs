@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using Phantasma.Core;
 using Phantasma.Shared;
-using Logger = Phantasma.Shared.Log.Logger;
 using RocksDbSharp;
+using Serilog.Core;
 
 namespace Phantasma.Infrastructure
 {
@@ -41,12 +41,12 @@ namespace Phantasma.Infrastructure
             // Create partition if it doesn't exist already
             try
             {
-                logger.Message("Getting partition: " + this.partitionName);
+                logger.Information("Getting partition: " + this.partitionName);
                 this.partition = this._db.GetColumnFamily(partitionName);
             }
             catch
             {
-                logger.Message("Partition not found, create it now: " + this.partitionName);
+                logger.Information("Partition not found, create it now: " + this.partitionName);
                 var cf = new ColumnFamilyOptions();
                 // TODO different partitions might need different options...
                 this.partition = this._db.CreateColumnFamily(cf, partitionName);
@@ -173,7 +173,7 @@ namespace Phantasma.Infrastructure
         {
             AppDomain.CurrentDomain.ProcessExit += (s, e) => Shutdown();
             this.logger = logger;
-            logger.Message("RocksDBStore: " + fileName);
+            logger.Information("RocksDBStore: " + fileName);
             this.fileName = fileName.Replace("\\", "/");
 
             var path = Path.GetDirectoryName(fileName);
@@ -206,7 +206,7 @@ namespace Phantasma.Infrastructure
                 logger.Warning("Inital start, no partitions created yet!");
             }
 
-            logger.Message("Opening database at: " + path);
+            logger.Information("Opening database at: " + path);
 	        _db.Add(fileName, RocksDb.Open(options, path, columnFamilies));
         }
 
@@ -227,7 +227,7 @@ namespace Phantasma.Infrastructure
             if (_db.Count > 0)
             {
                 var toRemove = new List<String>();
-                logger.Message($"Shutting down databases...");
+                logger.Information($"Shutting down databases...");
                 foreach (var db in _db)
                 {
                     db.Value.Dispose();
@@ -238,7 +238,7 @@ namespace Phantasma.Infrastructure
                 {
                     _db.Remove(key);
                 }
-                logger.Message("Databases shut down!");
+                logger.Information("Databases shut down!");
             }
         }
 

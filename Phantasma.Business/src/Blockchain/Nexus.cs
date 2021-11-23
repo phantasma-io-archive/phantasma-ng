@@ -4,7 +4,6 @@ using System.Text;
 using System.Numerics;
 using System.Collections.Generic;
 using Phantasma.Shared;
-using Phantasma.Shared.Log;
 using Phantasma.Shared.Types;
 using Phantasma.Shared.Performance;
 using Phantasma.Shared.Utils;
@@ -13,6 +12,7 @@ using Phantasma.Core.Context;
 using Phantasma.Business.Storage;
 using Phantasma.Business.Tokens;
 using Phantasma.Business.Contracts;
+using Serilog.Core;
 
 namespace Phantasma.Business
 {

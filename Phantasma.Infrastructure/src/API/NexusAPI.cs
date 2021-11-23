@@ -14,9 +14,9 @@ using Phantasma.Business.Storage;
 using Phantasma.Business.Contracts;
 using Phantasma.Shared.Types;
 using Phantasma.Shared.Utils;
-using Phantasma.Shared.Log;
 
 using LunarLabs.Parser.JSON;
+using Serilog.Core;
 
 namespace Phantasma.Infrastructure
 {
@@ -387,7 +387,7 @@ namespace Phantasma.Infrastructure
 
                     sb.Append(')');
 
-                    _api.logger?.Message(sb.ToString());
+                    _api.logger?.Information(sb.ToString());
                 }
 
                 return result;
@@ -439,7 +439,7 @@ namespace Phantasma.Infrastructure
                 }
             }
 
-            logger?.Message($"Phantasma API enabled. {_methods.Count} methods available.");
+            logger?.Information($"Phantasma API enabled. {_methods.Count} methods available.");
         }
 
         public string Execute(string methodName, object[] args)

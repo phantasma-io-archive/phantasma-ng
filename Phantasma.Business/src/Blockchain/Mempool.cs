@@ -5,11 +5,11 @@ using System.Numerics;
 using System.Threading;
 using System.Collections.Generic;
 using Phantasma.Shared;
-using Phantasma.Shared.Log;
 using Phantasma.Shared.Types;
 using Phantasma.Core;
 using Phantasma.Core.Context;
 using Phantasma.Shared.Performance;
+using Serilog.Core;
 
 namespace Phantasma.Business
 {
@@ -278,7 +278,7 @@ namespace Phantasma.Business
 
             var minFee = Mempool.MinimumFee;
 
-            Mempool.Logger.Message($"Minting new block with {transactions.Count} potential transactions");
+            Mempool.Logger.Information($"Minting new block with {transactions.Count} potential transactions");
 
             while (transactions.Count > 0)
             {
@@ -457,7 +457,7 @@ namespace Phantasma.Business
                 Logger?.Error("transaction submission handler not setup correctly for mempool");
             };
 
-            Logger?.Message($"Starting mempool with block time of {blockTime} seconds.");
+            Logger?.Information($"Starting mempool with block time of {blockTime} seconds.");
         }
 
         public void SetKeys(PhantasmaKeys keys)

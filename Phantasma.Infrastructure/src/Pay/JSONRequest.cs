@@ -1,5 +1,5 @@
 ﻿using Phantasma.Shared;
-using Phantasma.Shared.Log;
+using Serilog.Core;
 using System;
 using System.Net;
 using System.Threading;
