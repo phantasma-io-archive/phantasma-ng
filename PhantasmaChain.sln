@@ -1,15 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.6.30114.105
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Phantasma.Core", "Phantasma.Core/src/Phantasma.Core.csproj", "{D2212E28-7FF6-4E7C-AD28-CD22B4E92D5F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Core", "Phantasma.Core\src\Phantasma.Core.csproj", "{D2212E28-7FF6-4E7C-AD28-CD22B4E92D5F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Phantasma.Business", "Phantasma.Business/src/Phantasma.Business.csproj", "{31F2E65A-AD01-4BB3-8825-7E3B0042CB42}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Core.Tests", "Phantasma.Core.Tests\Phantasma.Core.Tests.csproj", "{5256A1AB-4AAC-4A61-8F95-D585859E6A57}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Phantasma.Infrastructure", "Phantasma.Infrastructure/src/Phantasma.Infrastructure.csproj", "{5D6951A4-57E6-4E2F-9E18-24666D122084}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Business", "Phantasma.Business\src\Phantasma.Business.csproj", "{31F2E65A-AD01-4BB3-8825-7E3B0042CB42}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Phantasma.Shared", "Phantasma.Shared/src/Phantasma.Shared.csproj", "{C27493A5-2295-4DD9-B3D0-5B72049634E8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Infrastructure", "Phantasma.Infrastructure\src\Phantasma.Infrastructure.csproj", "{5D6951A4-57E6-4E2F-9E18-24666D122084}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Shared", "Phantasma.Shared\src\Phantasma.Shared.csproj", "{C27493A5-2295-4DD9-B3D0-5B72049634E8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,9 +21,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{D2212E28-7FF6-4E7C-AD28-CD22B4E92D5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -36,6 +35,18 @@ Global
 		{D2212E28-7FF6-4E7C-AD28-CD22B4E92D5F}.Release|x64.Build.0 = Release|Any CPU
 		{D2212E28-7FF6-4E7C-AD28-CD22B4E92D5F}.Release|x86.ActiveCfg = Release|Any CPU
 		{D2212E28-7FF6-4E7C-AD28-CD22B4E92D5F}.Release|x86.Build.0 = Release|Any CPU
+		{5256A1AB-4AAC-4A61-8F95-D585859E6A57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5256A1AB-4AAC-4A61-8F95-D585859E6A57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5256A1AB-4AAC-4A61-8F95-D585859E6A57}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5256A1AB-4AAC-4A61-8F95-D585859E6A57}.Debug|x64.Build.0 = Debug|Any CPU
+		{5256A1AB-4AAC-4A61-8F95-D585859E6A57}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5256A1AB-4AAC-4A61-8F95-D585859E6A57}.Debug|x86.Build.0 = Debug|Any CPU
+		{5256A1AB-4AAC-4A61-8F95-D585859E6A57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5256A1AB-4AAC-4A61-8F95-D585859E6A57}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5256A1AB-4AAC-4A61-8F95-D585859E6A57}.Release|x64.ActiveCfg = Release|Any CPU
+		{5256A1AB-4AAC-4A61-8F95-D585859E6A57}.Release|x64.Build.0 = Release|Any CPU
+		{5256A1AB-4AAC-4A61-8F95-D585859E6A57}.Release|x86.ActiveCfg = Release|Any CPU
+		{5256A1AB-4AAC-4A61-8F95-D585859E6A57}.Release|x86.Build.0 = Release|Any CPU
 		{31F2E65A-AD01-4BB3-8825-7E3B0042CB42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{31F2E65A-AD01-4BB3-8825-7E3B0042CB42}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{31F2E65A-AD01-4BB3-8825-7E3B0042CB42}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -72,5 +83,11 @@ Global
 		{C27493A5-2295-4DD9-B3D0-5B72049634E8}.Release|x64.Build.0 = Release|Any CPU
 		{C27493A5-2295-4DD9-B3D0-5B72049634E8}.Release|x86.ActiveCfg = Release|Any CPU
 		{C27493A5-2295-4DD9-B3D0-5B72049634E8}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2118B4E7-09F1-45EA-A596-12BF1C492CA1}
 	EndGlobalSection
 EndGlobal
