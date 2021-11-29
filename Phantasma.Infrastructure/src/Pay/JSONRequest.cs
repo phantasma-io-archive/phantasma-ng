@@ -1,18 +1,18 @@
 ﻿using Phantasma.Shared;
 using Serilog.Core;
 using System;
-using System.Net;
+using System.Net.Http;
 using System.Threading;
 
 namespace LunarLabs.Parser.JSON
 {
     public class JSONRPC_Client
     {
-        private WebClient client;
+        private HttpClient client;
 
         public JSONRPC_Client()
         {
-            client = new WebClient() { Encoding = System.Text.Encoding.UTF8 }; 
+            client = new HttpClient(); 
         }
 
         public DataNode SendRequest(Logger logger, string url, string method, params object[] parameters)
@@ -37,7 +37,7 @@ namespace LunarLabs.Parser.JSON
             jsonRpcData.AddNode(paramData);
 
             int retries = 5;
-            string contents = null;
+            string response = null;
 
             int retryDelay = 500;
 
@@ -45,9 +45,10 @@ namespace LunarLabs.Parser.JSON
             {
                 try
                 {
-                    client.Headers.Add("Content-Type", "application/json-rpc");
                     var json = JSONWriter.WriteToString(jsonRpcData);
-                    contents = client.UploadString(url, json);
+                    var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json-rpc");
+                    var responseContent = client.PostAsync(url, content).Result.Content;
+                    response = responseContent.ReadAsStringAsync().Result;
                 }
                 catch (Exception e)
                 {
@@ -69,14 +70,14 @@ namespace LunarLabs.Parser.JSON
                 break;
             }
 
-            if (string.IsNullOrEmpty(contents))
+            if (string.IsNullOrEmpty(response))
             {
                 return null;
             }
 
             //File.WriteAllText("response.json", contents);
 
-            var root = JSONReader.ReadFromString(contents);
+            var root = JSONReader.ReadFromString(response);
 
             if (root == null)
             {

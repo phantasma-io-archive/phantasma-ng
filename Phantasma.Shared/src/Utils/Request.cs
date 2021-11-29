@@ -1,7 +1,6 @@
 using LunarLabs.Parser;
 using LunarLabs.Parser.JSON;
-using System;
-using System.Net;
+using System.Net.Http;
 
 namespace Phantasma.Shared.Utils
 {
@@ -62,19 +61,23 @@ namespace Phantasma.Shared.Utils
                 url = "http://" + url;
             }
 
-            using (var  client = new WebClient { Encoding = System.Text.Encoding.UTF8 })
+            using (var httpClient = new HttpClient())
             {
-				client.Headers.Add("Content-Type", "application/json-rpc");
-                return client.DownloadString(url);
+                var response = httpClient.GetAsync(url).Result;
+                using (var content = response.Content)
+                {
+                    return content.ReadAsStringAsync().Result;
+                }
             }
         }
 
         public static string PostWebRequest(string url, string paramData)
         {
-            using (var client = new WebClient { Encoding = System.Text.Encoding.UTF8 })
+            using (var httpClient = new HttpClient())
             {
-				client.Headers.Add("Content-Type", "application/json-rpc");
-                return client.UploadString(url, paramData);
+                var content = new StringContent(paramData, System.Text.Encoding.UTF8, "application/json-rpc");
+                var responseContent = httpClient.PostAsync(url, content).Result.Content;
+                return responseContent.ReadAsStringAsync().Result;
             }
         }
     }

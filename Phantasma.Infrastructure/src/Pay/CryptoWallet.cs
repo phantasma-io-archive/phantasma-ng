@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using LunarLabs.Parser;
 using LunarLabs.Parser.JSON;
 using Phantasma.Core;
@@ -66,11 +67,13 @@ namespace Phantasma.Infrastructure
         {
             try
             {
-                string json;
-                using (var wc = new System.Net.WebClient())
+                using (var httpClient = new HttpClient())
                 {
-                    json = wc.DownloadString(url);
-                    callback(json);
+                    var response = httpClient.GetAsync(url).Result;
+                    using (var content = response.Content)
+                    {
+                        callback(content.ReadAsStringAsync().Result);
+                    }
                 }
             }
             catch
