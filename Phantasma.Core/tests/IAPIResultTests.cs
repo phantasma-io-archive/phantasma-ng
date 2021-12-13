@@ -1,11 +1,11 @@
 using Phantasma.Core;
 using Shouldly;
-using System.Collections.Generic;
 using System.Text.Json.Nodes;
+using System.Collections.Generic;
 using Xunit;
 using static Phantasma.Core.WalletLink;
 
-namespace Phantasma.Core.Tests
+namespace GhostDevs.MP.Tests
 {
 
     public class apiResultSerializationTests
@@ -19,31 +19,23 @@ namespace Phantasma.Core.Tests
 
             var apiResults = new JsonNode[] {
                 APIUtils.FromAPIResult(new Error() { message = "Malformed request" }),
-                APIUtils.FromAPIResult("Single result string value"),
-                // Old: APIUtils.FromAPIResult(new SingleResult() { value = "Single result string value" }),
-                APIUtils.FromAPIResult(46),
-                // Old: APIUtils.FromAPIResult(new SingleResult() { value = 46 }),
-                APIUtils.FromAPIResult(authorization),
-                // Old: APIUtils.FromAPIResult(new SingleResult() { value = authorization }),
-                APIUtils.FromAPIResult(account),
-                // Old: APIUtils.FromAPIResult(new SingleResult() { value = account }),
-                APIUtils.FromAPIResult(new string[]{ "value1", "value2", "value3" }),
-                // Old: APIUtils.FromAPIResult(new ArrayResult() { values = new string[]{ "value1", "value2", "value3" } }),
-                APIUtils.FromAPIResult(new object[]{ "value1", "value2", "value3" }),
-                // Old: APIUtils.FromAPIResult(new ArrayResult() { values = new object[]{ "value1", "value2", "value3" } }),
-                APIUtils.FromAPIResult(new object[]{ 1, "value2", 3 }),
-                // Old: APIUtils.FromAPIResult(new ArrayResult() { values = new object[]{ 1, "value2", 3 } }),
+                APIUtils.FromAPIResult(new SingleResult() { value = "Single result string value" }),
+                APIUtils.FromAPIResult(new SingleResult() { value = 46 }),
+                APIUtils.FromAPIResult(new SingleResult() { value = authorization }),
+                APIUtils.FromAPIResult(new SingleResult() { value = account }),
+                APIUtils.FromAPIResult(new ArrayResult() { values = new string[]{ "value1", "value2", "value3" } }),
+                APIUtils.FromAPIResult(new ArrayResult() { values = new object[]{ "value1", "value2", "value3" } }),
+                APIUtils.FromAPIResult(new ArrayResult() { values = new object[]{ 1, "value2", 3 } }),
                 APIUtils.FromAPIResult(authorization),
                 APIUtils.FromAPIResult(account),
-                APIUtils.FromAPIResult(new object[]{ authorization, account, 3 })
-                // Old: APIUtils.FromAPIResult(new ArrayResult() { values = new object[]{ authorization, account, 3 } })
+                APIUtils.FromAPIResult(new ArrayResult() { values = new object[]{ authorization, account, 3 } }),
             };
 
             // Act
             var serializedResultsList = new List<string>();
             for(var i = 0; i < apiResults.Length; i++)
             {
-                serializedResultsList.Add(apiResults[i].ToJsonString());
+                serializedResultsList.Add(LunarLabs.Parser.DataFormats.SaveToString(LunarLabs.Parser.DataFormat.JSON, apiResults[i]));
             }
             var serializedResults = serializedResultsList.ToArray();
 
