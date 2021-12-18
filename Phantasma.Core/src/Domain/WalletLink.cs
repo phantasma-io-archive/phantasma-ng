@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
-using LunarLabs.Parser;
 using Phantasma.Shared;
 
 namespace Phantasma.Core

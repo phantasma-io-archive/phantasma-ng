@@ -1,7 +1,6 @@
 using System;
 using System.Text;
 using System.Linq;
-using System.Reflection;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -13,9 +12,9 @@ using Phantasma.Business.Tokens;
 using Phantasma.Business.Storage;
 using Phantasma.Business.Contracts;
 using Phantasma.Shared.Types;
-using Phantasma.Shared.Utils;
 
 using Serilog.Core;
+using Foundatio.Messaging;
 
 namespace Phantasma.Infrastructure
 {
@@ -23,7 +22,10 @@ namespace Phantasma.Infrastructure
     {
         public APIException(string msg) : base(msg)
         {
+        }
 
+        public APIException(string msg, Exception innerException) : base(msg, innerException)
+        {
         }
     }
 
@@ -48,7 +50,7 @@ namespace Phantasma.Infrastructure
         }
     }
 
-    [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = true)]
+    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property, AllowMultiple = true)]
     public class APIParameterAttribute : APIDescriptionAttribute
     {
         public readonly string Value;
@@ -64,333 +66,16 @@ namespace Phantasma.Infrastructure
         public readonly Type ReturnType;
         public readonly bool Paginated;
         public readonly int CacheDuration;
-        public readonly bool Relay;
+        public readonly string CacheTag;
+        public readonly bool InternalEndpoint;
 
-        public APIInfoAttribute(Type returnType, string description, bool paginated = false, int cacheDuration = 0, bool relay = false) : base(description)
+        public APIInfoAttribute(Type returnType, string description, bool paginated = false, int cacheDuration = 0, bool internalEndpoint = false, string cacheTag = null) : base(description)
         {
             ReturnType = returnType;
             Paginated = paginated;
             CacheDuration = cacheDuration;
-            Relay = relay;
-        }
-    }
-
-    public struct APIValue
-    {
-        public readonly Type Type;
-        public readonly string Name;
-        public readonly string Description;
-        public readonly string ExampleValue; // example value
-        public readonly object DefaultValue;
-        public readonly bool HasDefaultValue;
-
-        public APIValue(Type type, string name, string description, string exampleValue, object defaultValue, bool hasDefaultValue)
-        {
-            Type = type;
-            Name = name;
-            Description = description;
-            ExampleValue = exampleValue;
-            DefaultValue = defaultValue;
-            HasDefaultValue = hasDefaultValue;
-        }
-    }
-
-    public struct APIEntry
-    {
-        public readonly string Name;
-        public readonly List<APIValue> Parameters;
-
-        public readonly Type ReturnType;
-        public readonly string Description;
-
-        public readonly bool IsPaginated;
-
-        public readonly bool IsRelayed;
-
-        public readonly APIFailCaseAttribute[] FailCases;
-
-        private readonly NexusAPI _api;
-        private readonly MethodInfo _info;
-
-        private CacheDictionary<string, string> _cache;
-
-        public APIEntry(NexusAPI api, MethodInfo info)
-        {
-            _api = api;
-            _info = info;
-            _cache = null;
-            Name = info.Name;
-
-            var parameters = info.GetParameters();
-            Parameters = new List<APIValue>();
-            foreach (var entry in parameters)
-            {
-                string description;
-                string exampleValue;
-
-                var descAttr = entry.GetCustomAttribute<APIParameterAttribute>();
-                if (descAttr != null)
-                {
-                    description = descAttr.Description;
-                    exampleValue = descAttr.Value;
-                }
-                else
-                {
-                    description = "TODO document me";
-                    exampleValue = "TODO document me";
-                }
-
-                object defaultValue;
-
-                if (entry.HasDefaultValue)
-                {
-                    defaultValue = entry.DefaultValue;
-                }
-                else
-                {
-                    defaultValue = null;
-                }
-
-                Parameters.Add(new APIValue(entry.ParameterType, entry.Name, description, exampleValue, defaultValue, entry.HasDefaultValue));
-            }
-
-            try
-            {
-                FailCases = info.GetCustomAttributes<APIFailCaseAttribute>().ToArray();
-            }
-            catch
-            {
-                FailCases = new APIFailCaseAttribute[0];
-            }
-
-            try
-            {
-                var attr = info.GetCustomAttribute<APIInfoAttribute>();
-                ReturnType = attr.ReturnType;
-                Description = attr.Description;
-                IsPaginated = attr.Paginated;
-                IsRelayed = attr.Relay;
-
-                if (attr.CacheDuration != 0 && api.UseCache)
-                {
-                    _cache = new CacheDictionary<string, string>(256, TimeSpan.FromSeconds(attr.CacheDuration > 0 ? attr.CacheDuration : 0), attr.CacheDuration < 0);
-                }
-            }
-            catch
-            {
-                ReturnType = null;
-                Description = "TODO document me";
-                IsPaginated = false;
-                IsRelayed = false;
-            }
-        }
-
-        public override string ToString()
-        {
-            return Name;
-        }
-
-        public string Execute(string methodName, params object[] input)
-        {
-            if (input.Length != Parameters.Count)
-            {
-                throw new Exception("Unexpected number of arguments");
-            }
-
-            string key = null;
-            string result = null;
-
-            bool cacheHit = false;
-
-            //var proxyURL = _api.ProxyURL;
-
-            //if (string.IsNullOrEmpty(proxyURL) && _api.Node != null && !_api.Node.IsFullySynced)
-            //{
-            //    // NOTE this is a temporary hack until we improve this
-            //    proxyURL = _api.Node.ProxyURL;
-            //}
-
-            //if (IsRelayed && _api.Node != null)
-            //{
-            //    if (methodName == "WriteArchive" || methodName == "ReadArchive")
-            //    {
-            //        throw new APIException($"Method {methodName} only available through BP for now!");
-            //    }
-
-            //    if (methodName == "GetTransaction")
-            //    {
-            //        // TEMP quick and dirty getTransaction hack, if the transaction is available in local storage, we 
-            //        // return it immediately, if not, we proxy the call to the BP.
-            //        
-            //        var apiResult = _api.GetTransaction((string)input[0]);
-            //        if (!(apiResult is ErrorResult))
-            //        {
-            //            // convert to json string
-            //            var node = Core.APIUtils.FromAPIResult(apiResult);
-            //            return JSONWriter.WriteToString(node);
-            //        }
-            //    }
-            //    // If the method is marked as a relay method, we always proxy it
-            //    proxyURL = _api.ProxyURL;
-            //}
-
-            //if (!IsRelayed && _api.Node != null && _api.Node.IsFullySynced)
-            //{
-            //    // If the method is not relayed but the node is fully synced we query the nodes storage
-            //    proxyURL = null;
-            //}
-
-            lock (string.Intern(methodName))
-            {
-                //if (_cache != null || proxyURL != null)
-                //{
-                //    var sb = new StringBuilder();
-                //    foreach (var arg in input)
-                //    {
-                //        sb.Append('/');
-                //        sb.Append(arg.ToString());
-                //    }
-
-                //    key = sb.ToString();
-                //}
-
-                if (_cache != null && _cache.TryGet(key, out result))
-                {
-                    cacheHit = true;
-                }
-
-                if (!cacheHit)
-                {
-                    var args = new object[input.Length];
-                    for (int i = 0; i < args.Length; i++)
-                    {
-                        if (Parameters[i].Type == typeof(string))
-                        {
-                            args[i] = input[i] == null ? null : input[i].ToString();
-                            continue;
-                        }
-
-                        if (Parameters[i].Type == typeof(uint))
-                        {
-                            if (uint.TryParse(input[i].ToString(), out uint val))
-                            {
-                                args[i] = val;
-                                continue;
-                            }
-                        }
-
-                        if (Parameters[i].Type == typeof(int))
-                        {
-                            if (int.TryParse(input[i].ToString(), out int val))
-                            {
-                                args[i] = val;
-                                continue;
-                            }
-                        }
-
-                        if (Parameters[i].Type == typeof(bool))
-                        {
-                            if (bool.TryParse(input[i].ToString(), out bool val))
-                            {
-                                args[i] = val;
-                                continue;
-                            }
-                        }
-
-                        throw new APIException("invalid parameter type: " + Parameters[i].Name);
-                    }
-
-                    //if (proxyURL != null)
-                    //{
-                    //    methodName = char.ToLower(methodName[0]) + methodName.Substring(1);
-                    //    var url = $"{proxyURL}/{methodName}";
-                    //    if (!string.IsNullOrEmpty(key))
-                    //    {
-                    //        url = $"{url}{key}";
-                    //    }
-
-                    //    _api.logger?.Message("Proxy call: " + url);
-
-                    //    try
-                    //    {
-                    //        using (var wc = new System.Net.WebClient())
-                    //        {
-                    //            result = wc.DownloadString(url);
-                    //        }
-                    //    }
-                    //    catch (Exception e)
-                    //    {
-                    //        throw new APIException($"Proxy error: {e.Message}");
-                    //    }
-
-                    //    // Checking if it's a JSON with error inside.
-                    //    // If so, emulating same error response for Proxy sever as BP sends.
-                    //    LunarLabs.Parser.DataNode root = null;
-                    //    try
-                    //    {
-                    //        root = JSONReader.ReadFromString(result);
-                    //    }
-                    //    catch (Exception e)
-                    //    {
-                    //        // It's not JSON, do nothing.
-                    //    }
-
-                    //    if (root != null && root.HasNode("error"))
-                    //    {
-                    //        var errorDesc = root.GetString("error");
-                    //        throw new APIException(errorDesc);
-                    //    }
-                    //}
-                    //else
-                    //{
-                    var apiResult = _info.Invoke(_api, args);
-
-                    //if (apiResult is ErrorResult)
-                    //{
-                    //    var temp = (ErrorResult)apiResult;
-                    //    throw new APIException(temp.error);
-                    //}
-
-                    // convert to json string
-                    var node = Core.APIUtils.FromAPIResult(apiResult);
-                    result = node.ToJsonString();
-                    //}
-
-                    if (_cache != null)
-                    {
-                        _cache.Add(key, result);
-                    }
-                }
-
-                if (_api.logger != null)
-                {
-                    var sb = new StringBuilder();
-                    sb.Append("API request");
-
-                    if (cacheHit)
-                    {
-                        sb.Append(" [Cached]");
-                    }
-
-                    sb.Append($": {this.Name}(");
-
-                    for (int i = 0; i < input.Length; i++)
-                    {
-                        if (i > 0)
-                        {
-                            sb.Append(',');
-                            sb.Append(' ');
-                        }
-                        sb.Append(input[i].ToString());
-                    }
-
-                    sb.Append(')');
-
-                    _api.logger?.Information(sb.ToString());
-                }
-
-                return result;
-            }
+            InternalEndpoint = internalEndpoint;
+            CacheTag = cacheTag;
         }
     }
 
@@ -400,9 +85,6 @@ namespace Phantasma.Infrastructure
         public readonly Nexus Nexus;
         public ITokenSwapper TokenSwapper;
         public Mempool Mempool;
-        public IEnumerable<APIEntry> Methods => _methods.Values;
-
-        private readonly Dictionary<string, APIEntry> _methods = new Dictionary<string, APIEntry>(StringComparer.InvariantCultureIgnoreCase);
 
         private const int PaginationMaxResults = 99999;
 
@@ -417,34 +99,16 @@ namespace Phantasma.Infrastructure
             UseCache = useCache;
             this.logger = logger;
 
-            var methodInfo = GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance);
-
-            foreach (var entry in methodInfo)
-            {
-                if (entry.Name == nameof(Execute))
-                {
-                    continue;
-                }
-
-                var temp = new APIEntry(this, entry);
-                if (temp.ReturnType != null)
-                {
-                    _methods[entry.Name] = temp;
-                }
-            }
-
-            logger?.Information($"Phantasma API enabled. {_methods.Count} methods available.");
+            logger?.Information($"Phantasma API enabled");
         }
 
-        public string Execute(string methodName, object[] args)
+        public partial class Endpoints : ApiEndpointBase
         {
-            if (_methods.ContainsKey(methodName))
+            private readonly IMessagePublisher _publisher;
+
+            public Endpoints(IMessagePublisher publisher)
             {
-                return _methods[methodName].Execute(methodName, args);
-            }
-            else
-            {
-                throw new Exception("Unknown method: " + methodName);
+                _publisher = publisher;
             }
         }
 

@@ -3,6 +3,11 @@ using System.Text.Json.Nodes;
 
 namespace Phantasma.Core
 {
+    public struct ErrorResult
+    {
+        public string error;
+    }
+
     public static class APIUtils
     {
         public static JsonNode FromAPIResult(object input)
