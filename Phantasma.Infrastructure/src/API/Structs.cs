@@ -3,648 +3,648 @@ using Phantasma.Core;
 
 namespace Phantasma.Infrastructure
 {
-    public struct BalanceResult : IAPIResult
+    public class BalanceResult
     {
-        public string chain;
-        public string amount;
-        public string symbol;
-        public uint decimals;
-        public string[] ids;
+        public string chain { get; set; }
+        public string amount { get; set; }
+        public string symbol { get; set; }
+        public uint decimals { get; set; }
+        public string[] ids { get; set; }
     }
 
-    public struct InteropResult: IAPIResult
+    public class InteropResult
     {
-        public string local;
-        public string external;
+        public string local { get; set; }
+        public string external { get; set; }
     }
 
-    public struct PlatformResult : IAPIResult
+    public class PlatformResult
     {
-        public string platform;
-        public string chain;
-        public string fuel;
-        public string[] tokens;
-        public InteropResult[] interop;
+        public string platform { get; set; }
+        public string chain { get; set; }
+        public string fuel { get; set; }
+        public string[] tokens { get; set; }
+        public InteropResult[] interop { get; set; }
     }
 
-    public struct GovernanceResult : IAPIResult
+    public class GovernanceResult
     {
-        public string name;
-        public string value;
+        public string name { get; set; }
+        public string value { get; set; }
     }
 
-    public struct OrganizationResult : IAPIResult
+    public class OrganizationResult
     {
-        public string id;
-        public string name;
-        public string[] members;
+        public string id { get; set; }
+        public string name { get; set; }
+        public string[] members { get; set; }
     }
 
     // TODO add APIDescription tags
-    public struct CrowdsaleResult : IAPIResult
+    public class CrowdsaleResult
     {
-        public string hash;
-        public string name;
-        public string creator;
-        public string flags;
-        public uint startDate;
-        public uint endDate;
-        public string sellSymbol;
-        public string receiveSymbol;
-        public uint price;
-        public string globalSoftCap;
-        public string globalHardCap;
-        public string userSoftCap;
-        public string userHardCap;
+        public string hash { get; set; }
+        public string name { get; set; }
+        public string creator { get; set; }
+        public string flags { get; set; }
+        public uint startDate { get; set; }
+        public uint endDate { get; set; }
+        public string sellSymbol { get; set; }
+        public string receiveSymbol { get; set; }
+        public uint price { get; set; }
+        public string globalSoftCap { get; set; }
+        public string globalHardCap { get; set; }
+        public string userSoftCap { get; set; }
+        public string userHardCap { get; set; }
     }
 
-    public struct NexusResult : IAPIResult
+    public class NexusResult
     {
         [APIDescription("Name of the nexus")]
-        public string name;
+        public string name { get; set; }
 
         [APIDescription("Network protocol version")]
-        public uint protocol;
+        public uint protocol { get; set; }
 
         [APIDescription("List of platforms")]
-        public PlatformResult[] platforms;
+        public PlatformResult[] platforms { get; set; }
 
         [APIDescription("List of tokens")]
-        public TokenResult[] tokens;
+        public TokenResult[] tokens { get; set; }
 
         [APIDescription("List of chains")]
-        public ChainResult[] chains;
+        public ChainResult[] chains { get; set; }
 
         [APIDescription("List of governance values")]
-        public GovernanceResult[] governance;
+        public GovernanceResult[] governance { get; set; }
 
         [APIDescription("List of organizations")]
-        public string[] organizations;
+        public string[] organizations { get; set; }
     }
 
-    public struct StakeResult : IAPIResult
+    public class StakeResult
     {
         [APIDescription("Amount of staked SOUL")]
-        public string amount;
+        public string amount { get; set; }
 
         [APIDescription("Time of last stake")]
-        public uint time;
+        public uint time { get; set; }
 
         [APIDescription("Amount of claimable KCAL")]
-        public string unclaimed;
+        public string unclaimed { get; set; }
     }
 
-    public struct StorageResult : IAPIResult
+    public class StorageResult
     {
         [APIDescription("Amount of available storage bytes")]
-        public uint available;
+        public uint available { get; set; }
 
         [APIDescription("Amount of used storage bytes")]
-        public uint used;
+        public uint used { get; set; }
 
         [APIDescription("Avatar data")]
-        public string avatar;
+        public string avatar { get; set; }
 
         [APIDescription("List of stored files")]
-        public ArchiveResult[] archives;
+        public ArchiveResult[] archives { get; set; }
     }
 
-    public struct AccountResult : IAPIResult
+    public class AccountResult
     {
-        public string address;
-        public string name;
+        public string address { get; set; }
+        public string name { get; set; }
 
         [APIDescription("Info about staking if available")]
-        public StakeResult stakes;
+        public StakeResult stakes { get; set; }
 
-        public string stake; //Deprecated
-        public string unclaimed;//Deprecated
+        public string stake { get; set; } //Deprecated
+        public string unclaimed { get; set; }//Deprecated
 
         [APIDescription("Amount of available KCAL for relay channel")]
-        public string relay;
+        public string relay { get; set; }
 
         [APIDescription("Validator role")]
-        public string validator;
+        public string validator { get; set; }
 
         [APIDescription("Info about storage if available")]
-        public StorageResult storage;
+        public StorageResult storage { get; set; }
 
-        public BalanceResult[] balances;
+        public BalanceResult[] balances { get; set; }
 
-        public string[] txs;
+        public string[] txs { get; set; }
     }
 
-    public struct LeaderboardRowResult : IAPIResult
+    public class LeaderboardRowResult
     {
-        public string address;
-        public string value;
+        public string address { get; set; }
+        public string value { get; set; }
     }
 
-    public struct LeaderboardResult : IAPIResult
+    public class LeaderboardResult
     {
-        public string name;
-        public LeaderboardRowResult[] rows;
+        public string name { get; set; }
+        public LeaderboardRowResult[] rows { get; set; }
     }
 
-    public struct DappResult : IAPIResult
+    public class DappResult
     {
-        public string name;
-        public string address;
-        public string chain;
+        public string name { get; set; }
+        public string address { get; set; }
+        public string chain { get; set; }
     }
 
-    public struct ChainResult : IAPIResult
+    public class ChainResult
     {
-        public string name;
-        public string address;
+        public string name { get; set; }
+        public string address { get; set; }
 
         [APIDescription("Name of parent chain")]
-        public string parent;
+        public string parent { get; set; }
 
         [APIDescription("Current chain height")]
-        public uint height;
+        public uint height { get; set; }
 
         [APIDescription("Chain organization")]
-        public string organization;
+        public string organization { get; set; }
 
         [APIDescription("Contracts deployed in the chain")]
-        public string[] contracts;
+        public string[] contracts { get; set; }
 
         [APIDescription("Dapps deployed in the chain")]
-        public string[] dapps;
+        public string[] dapps { get; set; }
     }
 
-    public struct EventResult : IAPIResult
+    public class EventResult
     {
-        public string address;
-        public string contract;
-        public string kind;
+        public string address { get; set; }
+        public string contract { get; set; }
+        public string kind { get; set; }
 
         [APIDescription("Data in hexadecimal format, content depends on the event kind")]
-        public string data;
+        public string data { get; set; }
     }
 
-    public struct OracleResult : IAPIResult
+    public class OracleResult
     {
         [APIDescription("URL that was read by the oracle")]
-        public string url;
+        public string url { get; set; }
 
         [APIDescription("Byte array content read by the oracle, encoded as hex string")]
-        public string content;
+        public string content { get; set; }
     }
 
-    public struct SignatureResult: IAPIResult
+    public class SignatureResult
     {
         [APIDescription("Kind of signature")]
-        public string Kind;
+        public string Kind { get; set; }
 
         [APIDescription("Byte array containing signature data, encoded as hex string")]
-        public string Data;
+        public string Data { get; set; }
     }
 
-    public struct TransactionResult : IAPIResult
+    public class TransactionResult
     {
         [APIDescription("Hash of the transaction")]
-        public string hash;
+        public string hash { get; set; }
 
         [APIDescription("Transaction chain address")]
-        public string chainAddress;
+        public string chainAddress { get; set; }
 
         [APIDescription("Block time")]
-        public uint timestamp;
+        public uint timestamp { get; set; }
 
         [APIDescription("Block height at which the transaction was accepted")]
-        public int blockHeight;
+        public int blockHeight { get; set; }
 
         [APIDescription("Hash of the block")]
-        public string blockHash;
+        public string blockHash { get; set; }
 
         [APIDescription("Script content of the transaction, in hexadecimal format")]
-        public string script;
+        public string script { get; set; }
 
         [APIDescription("Payload content of the transaction, in hexadecimal format")]
-        public string payload;
+        public string payload { get; set; }
 
         [APIDescription("List of events that triggered in the transaction")]
-        public EventResult[] events;
+        public EventResult[] events { get; set; }
 
         [APIDescription("Result of the transaction, if any. Serialized, in hexadecimal format")]
-        public string result;
+        public string result { get; set; }
 
         [APIDescription("Fee of the transaction, in KCAL, fixed point")]
-        public string fee;
+        public string fee { get; set; }
 
         [APIDescription("List of signatures that signed the transaction")]
-        public SignatureResult[] signatures;
+        public SignatureResult[] signatures { get; set; }
 
         [APIDescription("Expiration time of the transaction")]
-        public uint expiration;
+        public uint expiration { get; set; }
     }
 
-    public struct AccountTransactionsResult : IAPIResult
+    public class AccountTransactionsResult
     {
-        public string address;
+        public string address { get; set; }
 
         [APIDescription("List of transactions")]
-        public TransactionResult[] txs;
+        public TransactionResult[] txs { get; set; }
     }
 
-    public struct PaginatedResult : IAPIResult
+    public class PaginatedResult
     {
-        public uint page;
-        public uint pageSize;
-        public uint total;
-        public uint totalPages;
+        public uint page { get; set; }
+        public uint pageSize { get; set; }
+        public uint total { get; set; }
+        public uint totalPages { get; set; }
 
-        public IAPIResult result;
+        public object result { get; set; }
     }
 
-    public struct BlockResult : IAPIResult
+    public class BlockResult
     {
-        public string hash;
+        public string hash { get; set; }
 
         [APIDescription("Hash of previous block")]
-        public string previousHash;
+        public string previousHash { get; set; }
 
-        public uint timestamp;
+        public uint timestamp { get; set; }
 
         // TODO support bigint here
-        public uint height;
+        public uint height { get; set; }
 
         [APIDescription("Address of chain where the block belongs")]
-        public string chainAddress;
+        public string chainAddress { get; set; }
 
         [APIDescription("Network protocol version")]
-        public uint protocol;
+        public uint protocol { get; set; }
 
         [APIDescription("List of transactions in block")]
-        public TransactionResult[] txs;
+        public TransactionResult[] txs { get; set; }
 
         [APIDescription("Address of validator who minted the block")]
-        public string validatorAddress;
+        public string validatorAddress { get; set; }
 
         [APIDescription("Amount of KCAL rewarded by this fees in this block")]
-        public string reward;
+        public string reward { get; set; }
 
         [APIDescription("Block events")]
-        public EventResult[] events;
+        public EventResult[] events { get; set; }
 
         [APIDescription("Block oracles")]
-        public OracleResult[] oracles;
+        public OracleResult[] oracles { get; set; }
     }
 
-    public struct TokenExternalResult: IAPIResult
+    public class TokenExternalResult
     {
         [APIDescription("Platform name")]
-        public string platform;
+        public string platform { get; set; }
 
         [APIDescription("External hash")]
-        public string hash;
+        public string hash { get; set; }
     }
 
-    public struct TokenPriceResult: IAPIResult
+    public class TokenPriceResult
     {
-        public uint Timestamp;
-        public string Open;
-        public string High;
-        public string Low;
-        public string Close;
+        public uint Timestamp { get; set; }
+        public string Open { get; set; }
+        public string High { get; set; }
+        public string Low { get; set; }
+        public string Close { get; set; }
     }
 
-    public struct TokenResult : IAPIResult
+    public class TokenResult
     {
         [APIDescription("Ticker symbol for the token")]
-        public string symbol;
+        public string symbol { get; set; }
 
-        public string name;
+        public string name { get; set; }
 
         [APIDescription("Amount of decimals when converting from fixed point format to decimal format")]
-        public int decimals;
+        public int decimals { get; set; }
 
         [APIDescription("Amount of minted tokens")]
-        public string currentSupply;
+        public string currentSupply { get; set; }
 
         [APIDescription("Max amount of tokens that can be minted")]
-        public string maxSupply;
+        public string maxSupply { get; set; }
 
         [APIDescription("Total amount of burned tokens")]
-        public string burnedSupply;
+        public string burnedSupply { get; set; }
 
         [APIDescription("Address of token contract")]
-        public string address;
+        public string address { get; set; }
 
         [APIDescription("Owner address")]
-        public string owner;
+        public string owner { get; set; }
 
-        public string flags;
+        public string flags { get; set; }
 
         [APIDescription("Script attached to token, in hex")]
-        public string script;
+        public string script { get; set; }
 
         [APIDescription("Series info. NFT only")]
-        public TokenSeriesResult[] series;
+        public TokenSeriesResult[] series { get; set; }
 
         [APIDescription("External platforms info")]
-        public TokenExternalResult[] external;
+        public TokenExternalResult[] external { get; set; }
 
         [APIDescription("Cosmic swap historic data")]
-        public TokenPriceResult[] price;
+        public TokenPriceResult[] price { get; set; }
     }
 
-    public struct TokenSeriesResult : IAPIResult
+    public class TokenSeriesResult
     {
-        public uint seriesID;
+        public uint seriesID { get; set; }
 
         [APIDescription("Current amount of tokens in circulation")]
-        public string currentSupply;
+        public string currentSupply { get; set; }
 
         [APIDescription("Maximum possible amount of tokens")]
-        public string maxSupply;
+        public string maxSupply { get; set; }
 
         [APIDescription("Total amount of burned tokens")]
-        public string burnedSupply;
+        public string burnedSupply { get; set; }
 
-        public TokenSeriesMode mode;
+        public TokenSeriesMode mode { get; set; }
 
-        public string script;
+        public string script { get; set; }
 
         [APIDescription("List of methods")]
-        public ABIMethodResult[] methods;
+        public ABIMethodResult[] methods { get; set; }
     }
 
-    public struct TokenPropertyResult : IAPIResult
+    public class TokenPropertyResult
     {
-        public string Key;
-        public string Value;
+        public string Key { get; set; }
+        public string Value { get; set; }
     }
 
-    public struct TokenDataResult : IAPIResult
+    public class TokenDataResult
     {
         [APIDescription("id of token")]
-        public string ID;
+        public string ID { get; set; }
 
         [APIDescription("series id of token")]
-        public string series;
+        public string series { get; set; }
 
         [APIDescription("mint number of token")]
-        public string mint;
+        public string mint { get; set; }
 
         [APIDescription("Chain where currently is stored")]
-        public string chainName;
+        public string chainName { get; set; }
 
         [APIDescription("Address who currently owns the token")]
-        public string ownerAddress;
+        public string ownerAddress { get; set; }
 
         [APIDescription("Address who minted the token")]
-        public string creatorAddress;
+        public string creatorAddress { get; set; }
 
         [APIDescription("Writable data of token, hex encoded")]
-        public string ram;
+        public string ram { get; set; }
 
         [APIDescription("Read-only data of token, hex encoded")]
-        public string rom;
+        public string rom { get; set; }
 
         [APIDescription("Status of nft")]
-        public string status;
+        public string status { get; set; }
 
-        public TokenPropertyResult[] infusion;
+        public TokenPropertyResult[] infusion { get; set; }
 
-        public TokenPropertyResult[] properties;
+        public TokenPropertyResult[] properties { get; set; }
     }
 
-    public struct SendRawTxResult : IAPIResult
+    public class SendRawTxResult
     {
         [APIDescription("Transaction hash")]
-        public string hash;
+        public string hash { get; set; }
 
         [APIDescription("Error message if transaction did not succeed")]
-        public string error;
+        public string error { get; set; }
     }
 
-    public struct AuctionResult : IAPIResult
+    public class AuctionResult
     {
         [APIDescription("Address of auction creator")]
-        public string creatorAddress;
+        public string creatorAddress { get; set; }
 
         [APIDescription("Address of auction chain")]
-        public string chainAddress;
-        public uint startDate;
-        public uint endDate;
-        public string baseSymbol;
-        public string quoteSymbol;
-        public string tokenId;
-        public string price;
-        public string endPrice;
-        public string extensionPeriod;
-        public string type; 
-        public string rom;
-        public string ram;
-        public string listingFee;
-        public string currentWinner;
+        public string chainAddress { get; set; }
+        public uint startDate { get; set; }
+        public uint endDate { get; set; }
+        public string baseSymbol { get; set; }
+        public string quoteSymbol { get; set; }
+        public string tokenId { get; set; }
+        public string price { get; set; }
+        public string endPrice { get; set; }
+        public string extensionPeriod { get; set; }
+        public string type { get; set; }
+        public string rom { get; set; }
+        public string ram { get; set; }
+        public string listingFee { get; set; }
+        public string currentWinner { get; set; }
     }
 
-    public struct ScriptResult : IAPIResult
+    public class ScriptResult
     {
         [APIDescription("List of events that triggered in the transaction")]
-        public EventResult[] events;
+        public EventResult[] events { get; set; }
 
-        public string result; // deprecated
+        public string result { get; set; } // deprecated
 
         [APIDescription("Results of the transaction, if any. Serialized, in hexadecimal format")]
-        public string[] results;
+        public string[] results { get; set; }
 
         [APIDescription("List of oracle reads that were triggered in the transaction")]
-        public OracleResult[] oracles;
+        public OracleResult[] oracles { get; set; }
     }
 
-    public struct ArchiveResult : IAPIResult
+    public class ArchiveResult
     {
         [APIDescription("File name")]
-        public string name;
+        public string name { get; set; }
 
         [APIDescription("Archive hash")]
-        public string hash;
+        public string hash { get; set; }
 
         [APIDescription("Time of creation")]
-        public uint time;
+        public uint time { get; set; }
 
         [APIDescription("Size of archive in bytes")]
-        public uint size;
+        public uint size { get; set; }
 
         [APIDescription("Encryption address")]
-        public string encryption;
+        public string encryption { get; set; }
 
         [APIDescription("Number of blocks")]
-        public int blockCount;
+        public int blockCount { get; set; }
 
         [APIDescription("Missing block indices")]
-        public int[] missingBlocks;
+        public int[] missingBlocks { get; set; }
 
         [APIDescription("List of addresses who own the file")]
-        public string[] owners;
+        public string[] owners { get; set; }
     }
 
-    public struct ABIParameterResult : IAPIResult
+    public class ABIParameterResult
     {
         [APIDescription("Name of method")]
-        public string name;
+        public string name { get; set; }
 
-        public string type;
+        public string type { get; set; }
     }
 
-    public struct ABIMethodResult : IAPIResult
+    public class ABIMethodResult
     {
         [APIDescription("Name of method")]
-        public string name;
+        public string name { get; set; }
 
-        public string returnType;
+        public string returnType { get; set; }
 
         [APIDescription("Type of parameters")]
-        public ABIParameterResult[] parameters;
+        public ABIParameterResult[] parameters { get; set; }
     }
 
-    public struct ABIEventResult : IAPIResult
+    public class ABIEventResult
     {
         [APIDescription("Value of event")]
-        public int value;
+        public int value { get; set; }
 
         [APIDescription("Name of event")]
-        public string name;
+        public string name { get; set; }
 
-        public string returnType;
+        public string returnType { get; set; }
 
         [APIDescription("Description script (base16 encoded)")]
-        public string description;
+        public string description { get; set; }
     }
 
-    public struct ContractResult : IAPIResult
+    public class ContractResult
     {
         [APIDescription("Name of contract")]
-        public string name;
+        public string name { get; set; }
 
         [APIDescription("Address of contract")]
-        public string address;
+        public string address { get; set; }
 
         [APIDescription("Script bytes, in hex format")]
-        public string script;
+        public string script { get; set; }
 
         [APIDescription("List of methods")]
-        public ABIMethodResult[] methods;
+        public ABIMethodResult[] methods { get; set; }
 
         [APIDescription("List of events")]
-        public ABIEventResult[] events;
+        public ABIEventResult[] events { get; set; }
     }
 
-    public struct ChannelResult : IAPIResult
+    public class ChannelResult
     {
         [APIDescription("Creator of channel")]
-        public string creatorAddress;
+        public string creatorAddress { get; set; }
 
         [APIDescription("Target of channel")]
-        public string targetAddress;
+        public string targetAddress { get; set; }
 
         [APIDescription("Name of channel")]
-        public string name;
+        public string name { get; set; }
 
         [APIDescription("Chain of channel")]
-        public string chain;
+        public string chain { get; set; }
 
         [APIDescription("Creation time")]
-        public uint creationTime;
+        public uint creationTime { get; set; }
 
         [APIDescription("Token symbol")]
-        public string symbol;
+        public string symbol { get; set; }
 
         [APIDescription("Fee of messages")]
-        public string fee;
+        public string fee { get; set; }
 
         [APIDescription("Estimated balance")]
-        public string balance;
+        public string balance { get; set; }
 
         [APIDescription("Channel status")]
-        public bool active;
+        public bool active { get; set; }
 
         [APIDescription("Message index")]
-        public int index;
+        public int index { get; set; }
     }
 
-    public struct ReceiptResult : IAPIResult
+    public class ReceiptResult
     {
         [APIDescription("Name of nexus")]
-        public string nexus;
+        public string nexus { get; set; }
 
         [APIDescription("Name of channel")]
-        public string channel;
+        public string channel { get; set; }
 
         [APIDescription("Index of message")]
-        public string index;
+        public string index { get; set; }
 
         [APIDescription("Date of message")]
-        public uint timestamp;
+        public uint timestamp { get; set; }
 
         [APIDescription("Sender address")]
-        public string sender;
+        public string sender { get; set; }
 
         [APIDescription("Receiver address")]
-        public string receiver;
+        public string receiver { get; set; }
 
         [APIDescription("Script of message, in hex")]
-        public string script;
+        public string script { get; set; }
     }
 
-    public struct PortResult: IAPIResult
+    public class PortResult
     {
         [APIDescription("Port description")]
-        public string name;
+        public string name { get; set; }
 
         [APIDescription("Port number")]
-        public int port;
+        public int port { get; set; }
     }
 
-    public struct PeerResult: IAPIResult
+    public class PeerResult
     {
         [APIDescription("URL of peer")]
-        public string url;
+        public string url { get; set; }
 
         [APIDescription("Software version of peer")]
-        public string version;
+        public string version { get; set; }
 
         [APIDescription("Features supported by peer")]
-        public string flags;
+        public string flags { get; set; }
 
         [APIDescription("Minimum fee required by node")]
-        public string fee;
+        public string fee { get; set; }
 
         [APIDescription("Minimum proof of work required by node")]
-        public uint pow;
+        public uint pow { get; set; }
 
         [APIDescription("List of exposed ports")]
-        public PortResult[] ports;
+        public PortResult[] ports { get; set; }
     }
 
-    public struct ValidatorResult : IAPIResult
+    public class ValidatorResult
     {
         [APIDescription("Address of validator")]
-        public string address;
+        public string address { get; set; }
 
         [APIDescription("Either primary or secondary")]
-        public string type;
+        public string type { get; set; }
     }
 
     // TODO document this
-    public struct SwapResult : IAPIResult
+    public class SwapResult
     {
-        public string sourcePlatform;
-        public string sourceChain;
-        public string sourceHash;
-        public string sourceAddress;
+        public string sourcePlatform { get; set; }
+        public string sourceChain { get; set; }
+        public string sourceHash { get; set; }
+        public string sourceAddress { get; set; }
 
-        public string destinationPlatform;
-        public string destinationChain;
-        public string destinationHash;
-        public string destinationAddress;
+        public string destinationPlatform { get; set; }
+        public string destinationChain { get; set; }
+        public string destinationHash { get; set; }
+        public string destinationAddress { get; set; }
 
-        public string symbol;
-        public string value;
+        public string symbol { get; set; }
+        public string value { get; set; }
     }
 }

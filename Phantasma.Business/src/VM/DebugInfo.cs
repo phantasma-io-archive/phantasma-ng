@@ -1,10 +1,8 @@
 ﻿using System.IO;
 using System.Linq;
 using System.Collections.Generic;
-using LunarLabs.Parser;
-using LunarLabs.Parser.JSON;
-using Phantasma.Shared;
 using Phantasma.Core;
+using System.Text.Json;
 
 namespace Phantasma.Business
 {
@@ -92,23 +90,7 @@ namespace Phantasma.Business
 
         public string ToJSON()
         {
-            var node = DataNode.CreateObject("debug");
-
-            node.AddField("file_name", FileName);
-
-            var array = DataNode.CreateArray("ranges");
-            node.AddNode(array);
-
-            foreach (var range in Ranges)
-            {
-                var temp = DataNode.CreateObject();
-                temp.AddField("source_line", range.SourceLine);
-                temp.AddField("start_ofs", range.StartOffset);
-                temp.AddField("end_ofs", range.EndOffset);
-                array.AddNode(temp);
-            }
-
-            return JSONWriter.WriteToString(node);
+            return JsonSerializer.Serialize(this);
         }
     }
 }

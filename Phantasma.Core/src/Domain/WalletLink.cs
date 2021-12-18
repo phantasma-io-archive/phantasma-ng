@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 using LunarLabs.Parser;
 using Phantasma.Shared;
-using Phantasma.Shared.Types;
-//using Phantasma.VM.Utils;
 
 namespace Phantasma.Core
 {
@@ -18,67 +17,67 @@ namespace Phantasma.Core
         public const int WebSocketPort = 7090;
         public const int LinkProtocol = 2;
 
-        public struct Error : IAPIResult
+        public class Error
         {
-            public string message;
+            public string message { get; set; }
         }
 
-        public struct Authorization : IAPIResult
+        public class Authorization
         {
-            public string wallet;
-            public string nexus;
-            public string dapp;
-            public string token;
-            public int version;
+            public string wallet { get; set; }
+            public string nexus { get; set; }
+            public string dapp { get; set; }
+            public string token { get; set; }
+            public int version { get; set; }
         }
 
-        public struct Balance : IAPIResult
+        public class Balance
         {
-            public string symbol;
-            public string value;
-            public int decimals;
+            public string symbol { get; set; }
+            public string value { get; set; }
+            public int decimals { get; set; }
         }
 
-        public struct File: IAPIResult
+        public class File
         {
-            public string name;
-            public int size;
-            public uint date;
-            public string hash;
+            public string name { get; set; }
+            public int size { get; set; }
+            public uint date { get; set; }
+            public string hash { get; set; }
         }
 
-        public struct Account : IAPIResult
+        public class Account
         {
-            public string alias;
-            public string address;
-            public string name;
-            public string avatar;
-            public string platform;
-            public string external;
-            public Balance[] balances;
-            public File[] files;
+            public string alias { get; set; }
+            public string address { get; set; }
+            public string name { get; set; }
+            public string avatar { get; set; }
+            public string platform { get; set; }
+            public string external { get; set; }
+            public Balance[] balances { get; set; }
+            public File[] files { get; set; }
         }
 
-        public struct Invocation : IAPIResult
+        public class Invocation
         {
-            public string result;
+            public string result { get; set; }
         }
 
-        public struct Transaction : IAPIResult
+        public class Transaction
         {
-            public string hash;
+            public string hash { get; set; }
         }
 
-        public struct Signature : IAPIResult
+        public class Signature
         {
-            public string signature;
-            public string random;
+            public string signature { get; set; }
+            public string random { get; set; }
         }
 
         public class Connection
         {
-            public readonly string Token;
-            public readonly int Version;
+            public string Token { get; }
+            public int Version { get; }
 
             public Connection(string token, int version)
             {
@@ -136,11 +135,11 @@ namespace Phantasma.Core
 
         protected abstract void WriteArchive(Hash hash, int blockIndex, byte[] data, Action<bool, string> callback);
 
-        public void Execute(string cmd, Action<int, DataNode, bool> callback)
+        public void Execute(string cmd, Action<int, JsonNode, bool> callback)
         {
             var args = cmd.Split(',');
 
-            DataNode answer;
+            JsonNode answer;
 
             int id = 0;
 

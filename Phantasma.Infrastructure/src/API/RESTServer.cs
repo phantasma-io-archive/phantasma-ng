@@ -71,7 +71,6 @@ namespace Phantasma.Infrastructure
                     {
                         var args = new object[apiMethod.Parameters.Count];
 
-                        IAPIResult result;
                         try
                         {
                             for (int i = 0; i < args.Length; i++)
@@ -97,10 +96,8 @@ namespace Phantasma.Infrastructure
                         }
                         catch (APIException e)
                         {
-                            result = new ErrorResult() { error = e.Message };
-                            var temp = (ErrorResult)result;
                             var error = DataNode.CreateObject();
-                            error.AddField("error", temp.error);
+                            error.AddField("error", e.Message);
                             return error;
                         }
                     });
