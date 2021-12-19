@@ -79,7 +79,7 @@ namespace Phantasma.Infrastructure
         }
     }
 
-    public class NexusAPI
+    public class NexusAPI : ApiEndpointBase
     {
         public readonly bool UseCache;
         public readonly Nexus Nexus;
@@ -100,16 +100,6 @@ namespace Phantasma.Infrastructure
             this.logger = logger;
 
             logger?.Information($"Phantasma API enabled");
-        }
-
-        public partial class Endpoints : ApiEndpointBase
-        {
-            private readonly IMessagePublisher _publisher;
-
-            public Endpoints(IMessagePublisher publisher)
-            {
-                _publisher = publisher;
-            }
         }
 
         #region UTILS
