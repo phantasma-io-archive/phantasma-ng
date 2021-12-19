@@ -32,26 +32,25 @@ namespace Phantasma.Infrastructure.Chains
             _balances.Clear();
 
             var url = $"{rpcURL}getAccount/{Address}"; 
-            JSONRequest(url, (root) =>
+            JSONRequest(url, (response) =>
             {
-                if (root == null)
+                if (response == null)
                 {
                     callback(false);
                     return;
                 }
 
-                this.Name = root.GetString("name");
+                this.Name = response.RootElement.GetProperty("name").GetString();
 
-                var balanceNode = root.GetNode("balances");
-                if (balanceNode != null)
+                if (response.RootElement.TryGetProperty("balances", out var balanceNode))
                 {
-                    foreach (var child in balanceNode.Children)
+                    foreach (var child in balanceNode.EnumerateArray())
                     {
-                        var symbol = child.GetString("symbol");
-                        var decimals = child.GetInt32("decimals");
-                        var chain = child.GetString("chain");
+                        var symbol = child.GetProperty("symbol").GetString();
+                        var decimals = child.GetProperty("decimals").GetInt32();
+                        var chain = child.GetProperty("chain").GetString();
 
-                        var temp = child.GetString("amount");
+                        var temp = child.GetProperty("amount").GetString();
                         var n = BigInteger.Parse(temp);
                         var amount = UnitConversion.ToDecimal(n, decimals);
 

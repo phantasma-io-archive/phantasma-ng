@@ -38,9 +38,9 @@ namespace Phantasma.Infrastructure.Chains
             _balances.Clear();
 
             var url = $"{neoscanURL}api/main_net/v1/get_balance/{Address}";
-            JSONRequest(url, (root) =>
+            JSONRequest(url, (response) =>
             {
-                if (root == null)
+                if (response == null)
                 {
                     callback(false);
                     return;
@@ -49,11 +49,11 @@ namespace Phantasma.Infrastructure.Chains
                 var temp = GetCryptoCurrencyInfos().Select(x => x.Symbol);
                 var symbols = new HashSet<string>(temp);
 
-                root = root.GetNode("balance");
-                foreach (var child in root.Children)
+                var root = response.RootElement.GetProperty("balance");
+                foreach (var child in root.EnumerateArray())
                 {
-                    var symbol = child.GetString("asset_symbol");
-                    var amount = child.GetDecimal("amount");
+                    var symbol = child.GetProperty("asset_symbol").GetString();
+                    var amount = child.GetProperty("amount").GetDecimal();
                     if (amount > 0 && symbols.Contains(symbol))
                     {
                         _balances.Add(new WalletBalance(symbol, amount));

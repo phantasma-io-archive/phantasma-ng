@@ -30,15 +30,15 @@ namespace Phantasma.Infrastructure.Chains
             _balances.Clear();
 
             var url = $"https://api.blockcypher.com/v1/eth/main/addrs/{this.Address}/balance";
-            JSONRequest(url, (root) =>
+            JSONRequest(url, (response) =>
             {
-                if (root == null)
+                if (response == null)
                 {
                     callback(false);
                     return;
                 }
 
-                var temp = root.GetString("balance");
+                var temp = response.RootElement.GetProperty("balance").GetString();
                 var n = BigInteger.Parse(temp);
                 var amount = UnitConversion.ToDecimal(n, 18);
                 _balances.Add(new WalletBalance("ETH", amount));

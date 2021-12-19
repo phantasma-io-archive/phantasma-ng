@@ -1,6 +1,9 @@
-using LunarLabs.Parser;
-using LunarLabs.Parser.JSON;
+using System;
 using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Phantasma.Shared.Utils
 {
@@ -12,73 +15,175 @@ namespace Phantasma.Shared.Utils
 
     public static class RequestUtils
     {
-        public static DataNode Request(RequestType kind, string url, DataNode data = null)
+        public static T Request<T>(RequestType requestType, string url, out string stringResponse, int timeoutInSeconds = 0, int maxAttempts = 1, string postString = "")
         {
-            string contents;
+            stringResponse = null;
 
-            if (!url.Contains("://"))
+            int max = maxAttempts;
+            for (int i = 1; i <= max; i++)
             {
-                url = "http://" + url;
-            }
-
-            try
-            {
-                switch (kind)
+                try
                 {
-                    case RequestType.GET:
+                    using (var httpClient = new HttpClient())
+                    {
+                        httpClient.Timeout = Timeout.InfiniteTimeSpan;
+                        using var cts = new CancellationTokenSource();
+                        cts.CancelAfter(TimeSpan.FromSeconds(timeoutInSeconds > 0 ? timeoutInSeconds : 100));
+
+                        switch (requestType)
                         {
-                            contents = GetWebRequest(url); break;
+                            case RequestType.GET:
+                                var response = httpClient.GetAsync(url, cts.Token).Result;
+                                using (var content = response.Content)
+                                {
+                                    stringResponse = content.ReadAsStringAsync().Result;
+                                }
+                                break;
+                            case RequestType.POST:
+                                {
+                                    var content = new StringContent(postString, System.Text.Encoding.UTF8, "application/json");
+                                    var responseContent = httpClient.PostAsync(url, content, cts.Token).Result.Content;
+                                    stringResponse = responseContent.ReadAsStringAsync().Result;
+                                    break;
+                                }
+                            default:
+                                throw new Exception("Unknown RequestType");
                         }
-                    case RequestType.POST:
-                        {
-                            var paramData = data != null ? JSONWriter.WriteToString(data) : "{}";
-                            contents = PostWebRequest(url, paramData);
-                            break;
-                        }
-                    default: return null;
+                    }
+
+                    if (String.IsNullOrEmpty(stringResponse))
+                        return default;
+
+                    if (typeof(T) == typeof(JsonDocument))
+                    {
+                        var node = JsonDocument.Parse(stringResponse);
+                        return (T)(object)node;
+                    }
+                    else if (typeof(T) == typeof(JsonNode))
+                    {
+                        var node = JsonNode.Parse(stringResponse);
+                        return (T)(object)node;
+                    }
+                    else if (typeof(T) == typeof(string))
+                    {
+                        return (T)(object)stringResponse;
+                    }
+                    else
+                    {
+                        throw new Exception($"Unsupported output type {typeof(T).FullName}");
+                    }
+                }
+                catch
+                {
+                    if (i < max)
+                    {
+                        Thread.Sleep(1000 * i);
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
             }
-            catch
-            {
-                return null;
-            }
 
-            if (string.IsNullOrEmpty(contents))
-            {
-                return null;
-            }
-
-            //File.WriteAllText("response.json", contents);
-
-            var root = JSONReader.ReadFromString(contents);
-            return root;
+            return default;
         }
 
-        public static string GetWebRequest(string url)
+        public static async Task<T> RequestAsync<T>(RequestType requestType, string url, int timeoutInSeconds = 0, int maxAttempts = 1, string postString = "")
         {
-            if (!url.Contains("://"))
-            {
-                url = "http://" + url;
-            }
+            string stringResponse = null;
 
-            using (var httpClient = new HttpClient())
+            int max = maxAttempts;
+            for (int i = 1; i <= max; i++)
             {
-                var response = httpClient.GetAsync(url).Result;
-                using (var content = response.Content)
+                try
                 {
-                    return content.ReadAsStringAsync().Result;
+                    using (var httpClient = new HttpClient())
+                    {
+                        httpClient.Timeout = Timeout.InfiniteTimeSpan;
+                        using var cts = new CancellationTokenSource();
+                        cts.CancelAfter(TimeSpan.FromSeconds(timeoutInSeconds > 0 ? timeoutInSeconds : 100));
+
+                        switch (requestType)
+                        {
+                            case RequestType.GET:
+                                var response = await httpClient.GetAsync(url, cts.Token);
+                                using (var content = response.Content)
+                                {
+                                    stringResponse = await content.ReadAsStringAsync();
+                                }
+                                break;
+                            case RequestType.POST:
+                                {
+                                    var content = new StringContent(postString, System.Text.Encoding.UTF8, "application/json");
+                                    var responseContent = (await httpClient.PostAsync(url, content, cts.Token)).Content;
+                                    stringResponse = await responseContent.ReadAsStringAsync();
+                                    break;
+                                }
+                            default:
+                                throw new Exception("Unknown RequestType");
+                        }
+                    }
+
+                    if (String.IsNullOrEmpty(stringResponse))
+                        return default;
+
+                    if (typeof(T) == typeof(JsonDocument))
+                    {
+                        var node = JsonDocument.Parse(stringResponse);
+                        return (T)(object)node;
+                    }
+                    else if (typeof(T) == typeof(JsonNode))
+                    {
+                        var node = JsonNode.Parse(stringResponse);
+                        return (T)(object)node;
+                    }
+                    else if (typeof(T) == typeof(string))
+                    {
+                        return (T)(object)stringResponse;
+                    }
+                    else
+                    {
+                        throw new Exception($"Unsupported output type {typeof(T).FullName}");
+                    }
+                }
+                catch
+                {
+                    if (i < max)
+                    {
+                        Thread.Sleep(1000 * i);
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
             }
+
+            return default;
         }
 
-        public static string PostWebRequest(string url, string paramData)
+        private class RpcRequest
         {
-            using (var httpClient = new HttpClient())
-            {
-                var content = new StringContent(paramData, System.Text.Encoding.UTF8, "application/json-rpc");
-                var responseContent = httpClient.PostAsync(url, content).Result.Content;
-                return responseContent.ReadAsStringAsync().Result;
-            }
+            public string jsonrpc { get; set; }
+            public string method { get; set; }
+            public string id { get; set; }
+            public object[] @params { get; set; }
         }
+        public static JsonDocument RPCRequest(string url, string method, out string stringResponse, int timeoutInSeconds = 0, int maxAttempts = 1, params object[] parameters)
+        {
+            var rpcRequest = new RpcRequest
+            {
+                jsonrpc = "2.0",
+                method = method,
+                id = "1",
+                @params = parameters
+            };
+
+            var json = JsonSerializer.Serialize(rpcRequest);
+
+            return Request<JsonDocument>(RequestType.POST, url, out stringResponse, timeoutInSeconds, maxAttempts, json);
+        }
+
     }
 }

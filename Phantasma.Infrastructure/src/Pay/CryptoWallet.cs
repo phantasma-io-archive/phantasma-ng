@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using LunarLabs.Parser;
-using LunarLabs.Parser.JSON;
+using System.Text.Json;
 using Phantasma.Core;
 
 namespace Phantasma.Infrastructure
@@ -89,7 +88,7 @@ namespace Phantasma.Infrastructure
 
         public abstract IEnumerable<CryptoCurrencyInfo> GetCryptoCurrencyInfos();
 
-        protected void JSONRequest(string url, Action<DataNode> callback)
+        protected void JSONRequest(string url, Action<JsonDocument> callback)
         {
             FetchURL(url, (json) =>
             {
@@ -101,7 +100,7 @@ namespace Phantasma.Infrastructure
                 {
                     try
                     {
-                        var root = JSONReader.ReadFromString(json);
+                        var root = JsonDocument.Parse(json);
                         callback(root);
                     }
                     catch
