@@ -130,6 +130,10 @@ namespace Phantasma.Spook
 
         protected override void OnStart()
         {
+            Logger.Information($"Starting Tendermint Engine");
+
+            SetupTendermint();
+
             Logger.Information($"Starting ABCI Application");
 
             var server = new Server()
@@ -270,6 +274,40 @@ namespace Phantasma.Spook
             //TODO wallet module?
 
             return nodeKeys;
+        }
+
+        private bool SetupTendermint()
+        {
+            // TODO: Platform-specific path
+            var tendermintPath = "tendermint";
+
+            if (!File.Exists(tendermintPath))
+            {
+                Logger.Error("Could not find Tendermint binary, make sure its next to Phantasma");
+                return false;
+            }
+
+            var launchArgs = new[]
+            {
+                "start",
+                "--abci grpc",
+                 "--proxy_app 127.0.0.1:44900"
+            };
+
+            _tendermintProcess = new Process();
+            _tendermintProcess.StartInfo = new ProcessStartInfo
+            {
+                FileName = tendermintPath,
+                Arguments = string.Join(' ', launchArgs),
+                RedirectStandardError = true,
+                RedirectStandardOutput = true
+            };
+            _tendermintProcess.OutputDataReceived += (sender, a) =>
+                Console.WriteLine(a.Data);
+            _tendermintProcess.Start();
+            _tendermintProcess.BeginOutputReadLine();
+
+            return true;
         }
 
         private bool SetupNexus()
