@@ -34,6 +34,7 @@ using Serilog.Events;
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -82,6 +83,7 @@ namespace Phantasma.Spook
         private TokenSwapper _tokenSwapper;
         private string _cryptoCompareAPIKey = null;
         private Thread _tokenSwapperThread;
+        private Process _tendermintProcess;
 
         public NexusAPI NexusAPI { get { return _nexusApi; } }
         public Nexus Nexus { get { return _nexus; } }
