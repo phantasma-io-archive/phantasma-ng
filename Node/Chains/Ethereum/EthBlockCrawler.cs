@@ -10,7 +10,6 @@ using Nethereum.StandardTokenEIP20.ContractDefinition;
 using Nethereum.Web3;
 
 using Phantasma.Core;
-using Phantasma.Business;
 
 using Phantasma.Infrastructure.Chains;
 
@@ -19,7 +18,6 @@ using Phantasma.Spook.Interop;
 using InteropTransfers = System.Collections.Generic.Dictionary<string,
       System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<Phantasma.Core.InteropTransfer>>>;
 using System.Linq;
-using Serilog.Core;
 using Serilog;
 
 namespace Phantasma.Spook.Chains

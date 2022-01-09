@@ -9,7 +9,6 @@ using Phantasma.Infrastructure;
 using Phantasma.Shared.Types;
 using Phantasma.Spook.Command;
 using Phantasma.Business.Storage;
-using Serilog.Core;
 using Serilog;
 
 namespace Phantasma.Spook.Modules

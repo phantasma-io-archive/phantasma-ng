@@ -18,7 +18,6 @@ using Neo.Network.P2P.Payloads;
 using NeoBlock = Neo.Network.P2P.Payloads.Block;
 using NeoTx = Neo.Network.P2P.Payloads.Transaction;
 using Neo;
-using Serilog.Core;
 using Serilog;
 
 namespace Phantasma.Spook.Interop

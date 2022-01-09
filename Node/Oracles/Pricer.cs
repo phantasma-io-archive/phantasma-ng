@@ -1,7 +1,5 @@
 ﻿using System;
-using Phantasma.Business;
 using Serilog;
-using Serilog.Core;
 
 namespace Phantasma.Spook.Oracles
 {

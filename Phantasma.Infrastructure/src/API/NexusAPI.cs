@@ -12,9 +12,6 @@ using Phantasma.Business.Tokens;
 using Phantasma.Business.Storage;
 using Phantasma.Business.Contracts;
 using Phantasma.Shared.Types;
-
-using Serilog.Core;
-using Foundatio.Messaging;
 using Serilog;
 
 namespace Phantasma.Infrastructure

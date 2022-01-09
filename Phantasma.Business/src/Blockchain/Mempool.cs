@@ -9,7 +9,6 @@ using Phantasma.Shared.Types;
 using Phantasma.Core;
 using Phantasma.Core.Context;
 using Phantasma.Shared.Performance;
-using Serilog.Core;
 using Serilog;
 
 namespace Phantasma.Business

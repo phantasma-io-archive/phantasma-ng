@@ -5,7 +5,6 @@ using System.Numerics;
 using Phantasma.Core;
 using Phantasma.Business;
 using Phantasma.Spook.Command;
-using Serilog.Core;
 using Serilog;
 
 namespace Phantasma.Spook.Modules

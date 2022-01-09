@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 
 using Phantasma.Business;
-using Phantasma.Business.Core;
 using Phantasma.Business.Assembler;
 using Phantasma.Spook.Command;
-using Serilog.Core;
 using Serilog;
 
 namespace Phantasma.Spook.Modules

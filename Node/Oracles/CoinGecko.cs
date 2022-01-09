@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Net.Http;
 using System.Text.Json;
 using Phantasma.Shared.Utils;
 using Serilog;
-using Serilog.Core;
 
 namespace Phantasma.Spook.Oracles
 {

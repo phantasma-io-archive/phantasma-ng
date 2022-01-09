@@ -8,14 +8,12 @@ using Phantasma.Core;
 using Phantasma.Shared.Types;
 using Phantasma.Infrastructure.Chains;
 using Phantasma.Core.Context;
-//using Phantasma.Neo.Utils;
 using Phantasma.Spook.Interop;
 using Phantasma.Spook.Chains;
 
 using NeoBlock = Neo.Network.P2P.Payloads.Block;
 using NeoTx = Neo.Network.P2P.Payloads.Transaction;
 using Neo;
-using Serilog.Core;
 using Serilog;
 
 namespace Phantasma.Spook.Oracles

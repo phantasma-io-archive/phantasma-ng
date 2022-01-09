@@ -7,14 +7,12 @@ using System.Threading.Tasks;
 
 using Phantasma.Core;
 using Phantasma.Core.Context;
-//using Phantasma.Core.Utils;
 using Phantasma.Shared.Types;
 using Phantasma.Business;
 using Phantasma.Business.Contracts;
 using Phantasma.Infrastructure.Chains;
 using Phantasma.Infrastructure;
 using Phantasma.Spook.Chains;
-using Serilog.Core;
 using Serilog;
 
 namespace Phantasma.Spook.Interop

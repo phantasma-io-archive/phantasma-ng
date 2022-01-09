@@ -10,7 +10,6 @@ using Nethereum.RPC.Eth.DTOs;
 using Nethereum.StandardTokenEIP20.ContractDefinition;
 
 using Phantasma.Core;
-using Serilog.Core;
 
 namespace Phantasma.Spook.Chains
 {

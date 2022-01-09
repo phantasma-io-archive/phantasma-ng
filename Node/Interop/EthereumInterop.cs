@@ -19,7 +19,6 @@ using Nethereum.Contracts;
 using Nethereum.StandardTokenEIP20.ContractDefinition;
 
 using EthereumKey = Phantasma.Spook.Chains.EthereumKey;
-using Serilog.Core;
 using System.Net.Http;
 using Serilog;
 

@@ -12,7 +12,6 @@ using Phantasma.Core.Context;
 using Phantasma.Business.Storage;
 using Phantasma.Business.Tokens;
 using Phantasma.Business.Contracts;
-using Serilog.Core;
 using Serilog;
 
 namespace Phantasma.Business

@@ -5,7 +5,6 @@ using Phantasma.Core;
 using Phantasma.Shared;
 using RocksDbSharp;
 using Serilog;
-using Serilog.Core;
 
 namespace Phantasma.Infrastructure
 {
