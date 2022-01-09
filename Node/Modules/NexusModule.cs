@@ -6,14 +6,13 @@ using Phantasma.Core;
 using Phantasma.Business;
 using Phantasma.Spook.Command;
 using Serilog.Core;
+using Serilog;
 
 namespace Phantasma.Spook.Modules
 {
     [Module("nexus")]
     public static class NexusModule
     {
-        public static Logger logger => Spook.Logger;
-
         public static void Rescan(Nexus oldNexus, PhantasmaKeys owner, string[] args)
         {
             /*if (args.Length != 1)
@@ -40,7 +39,7 @@ namespace Phantasma.Spook.Modules
             Hash previousHash = Hash.Null;
             for (int i=1; i<=height; i++)
             {
-                logger.Information($"Processing block {i} out of {height}");
+                Log.Information($"Processing block {i} out of {height}");
                 var oldBlockHash = oldRootChain.GetBlockHashAtHeight(i);
                 var oldBlock = oldRootChain.GetBlockByHash(oldBlockHash);
 

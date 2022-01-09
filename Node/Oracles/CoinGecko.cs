@@ -2,13 +2,14 @@
 using System.Net.Http;
 using System.Text.Json;
 using Phantasma.Shared.Utils;
+using Serilog;
 using Serilog.Core;
 
 namespace Phantasma.Spook.Oracles
 {
     public static class CoinGeckoUtils
     {
-        public static decimal GetCoinRate(string baseSymbol, string quoteSymbol, PricerSupportedToken[] supportedTokens, Logger logger)
+        public static decimal GetCoinRate(string baseSymbol, string quoteSymbol, PricerSupportedToken[] supportedTokens)
         {
 
             string json;
@@ -55,7 +56,7 @@ namespace Phantasma.Spook.Oracles
             catch (Exception ex)
             {
                 var errorMsg = ex.Message;
-                logger.Error($"Error while trying to query {baseticker} price from CoinGecko API: {errorMsg}");
+                Log.Error($"Error while trying to query {baseticker} price from CoinGecko API: {errorMsg}");
                 return 0;
             }
         }

@@ -172,6 +172,33 @@ namespace Phantasma.Spook
         public static void Load(string[] args, IConfigurationSection section)
         {
             Default = new Settings(args, section);
+
+            // Reinitialize logging using configuration that was just loaded
+            // TODO start using proper Serilog settings
+            var logPath = Settings.Default.Log.LogPath + Settings.Default.Log.LogName;
+
+            var levelSwitchConsole = new LoggingLevelSwitch
+            {
+                MinimumLevel = Settings.Default.Log.ShellLevel
+            };
+            var levelSwitchFile = new LoggingLevelSwitch
+            {
+                MinimumLevel = Settings.Default.Log.FileLevel
+            };
+
+            var logConfig = new LoggerConfiguration()
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+                .Enrich.WithThreadId()
+                .Destructure.ByTransforming<System.Text.Json.JsonDocument>(node => System.Text.Json.JsonSerializer.Serialize(node))
+                .WriteTo.Console(outputTemplate: "{Timestamp:u} {Timestamp:ffff} [{Level:u3}] <{ThreadId}> {Message:lj}{NewLine}{Exception}",
+                    levelSwitch: levelSwitchConsole)
+                .WriteTo.File(logPath,
+                    rollingInterval: RollingInterval.Day,
+                    outputTemplate: "{Timestamp:u} {Timestamp:ffff} [{Level:u3}] <{ThreadId}> {Message:lj}{NewLine}{Exception}",
+                    levelSwitch: levelSwitchFile);
+
+            Serilog.Log.Logger = logConfig.CreateLogger();
         }
 
         public string GetInteropWif(Nexus nexus, PhantasmaKeys nodeKeys, string platformName)

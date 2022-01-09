@@ -10,14 +10,13 @@ using Phantasma.Shared.Types;
 using Phantasma.Spook.Command;
 using Phantasma.Business.Storage;
 using Serilog.Core;
+using Serilog;
 
 namespace Phantasma.Spook.Modules
 {
     [Module("file")]
     public static class FileModule
     {
-        public static Logger logger => Spook.Logger;
-
         public static void Upload(string txIdentifier, PhantasmaKeys source, NexusAPI api, string[] args)
         {
             if (args.Length != 1)
@@ -46,7 +45,7 @@ namespace Phantasma.Spook.Modules
             tx.Sign(source);
             var rawTx = tx.ToByteArray(true);
 
-            logger.Information($"Uploading {fileName}...");
+            Log.Information($"Uploading {fileName}...");
             try
             {
                 api.SendRawTransaction(Base16.Encode(rawTx));
@@ -93,11 +92,11 @@ namespace Phantasma.Spook.Modules
                 var ofs = (int)(i * Archive.BlockSize);
                 var blockContent = fileContent.Skip(ofs).Take((int)Archive.BlockSize).ToArray();
 
-                logger.Information($"Writing block {i+1} out of {archive.blockCount}");
+                Log.Information($"Writing block {i+1} out of {archive.blockCount}");
                 api.WriteArchive(archiveHash, i, Base16.Encode(blockContent));
             }
 
-            logger.Information($"File uploaded successfully!");
+            Log.Information($"File uploaded successfully!");
         }
     }
 }

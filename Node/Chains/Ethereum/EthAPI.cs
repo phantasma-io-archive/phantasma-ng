@@ -60,13 +60,10 @@ namespace Phantasma.Spook.Chains
 
         private static Random rnd = new Random();
 
-        private readonly Logger Logger;
-
-        public EthAPI(Business.Nexus nexus, Account account, Logger logger)
+        public EthAPI(Business.Nexus nexus, Account account)
         {
             this.Nexus = nexus;
             this._account = account;
-            this.Logger = logger;
 
             this.urls = Settings.Default.Oracle.EthRpcNodes;
             if (this.urls.Count == 0)

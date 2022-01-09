@@ -12,6 +12,7 @@ using Phantasma.Infrastructure.Chains;
 
 using Phantasma.Shared.Types;
 using Phantasma.Spook.Oracles;
+using Serilog;
 
 namespace Phantasma.Spook.Command
 {
@@ -35,13 +36,13 @@ namespace Phantasma.Spook.Command
             Console.WriteLine($"---------------------------");
 
             if(pricerCGEnabled) { 
-                var cgprice = CoinGeckoUtils.GetCoinRate(args[0], DomainSettings.FiatTokenSymbol, pricerSupportedTokens, Spook.Logger);
+                var cgprice = CoinGeckoUtils.GetCoinRate(args[0], DomainSettings.FiatTokenSymbol, pricerSupportedTokens);
                 Console.WriteLine($"Oracle Coingecko Price for token {args[0]} is: {cgprice}");
             }
-            var price = CryptoCompareUtils.GetCoinRate(args[0], DomainSettings.FiatTokenSymbol, apiKey, pricerSupportedTokens, Spook.Logger);
+            var price = CryptoCompareUtils.GetCoinRate(args[0], DomainSettings.FiatTokenSymbol, apiKey, pricerSupportedTokens);
             Console.WriteLine($"Oracle CryptoCompare Price for token {args[0]} is: {price}");
 
-            var gprice = Pricer.GetCoinRate(args[0], DomainSettings.FiatTokenSymbol, apiKey, pricerCGEnabled, pricerSupportedTokens, Spook.Logger);
+            var gprice = Pricer.GetCoinRate(args[0], DomainSettings.FiatTokenSymbol, apiKey, pricerCGEnabled, pricerSupportedTokens);
             Console.WriteLine($"Oracle Global Price for token {args[0]} is: {gprice}");
         }
 
@@ -75,7 +76,7 @@ namespace Phantasma.Spook.Command
                 reader.SetCurrentHeight(args[0], args[1], args[2]);
 
                 Console.WriteLine($"Height {args[2]} is set for platform {args[0]}, chain {args[1]}");
-                Spook.Logger.Information($"Height {args[2]} is set for platform {args[0]}, chain {args[1]}");
+                Log.Information($"Height {args[2]} is set for platform {args[0]}, chain {args[1]}");
             }
         }
 
@@ -242,7 +243,7 @@ namespace Phantasma.Spook.Command
                 return;
             }
             Console.WriteLine($"Added address {externalAddress} to {platform}");
-            Spook.Logger.Information($"Added address {externalAddress} to {platform}");
+            Log.Information($"Added address {externalAddress} to {platform}");
         }
     }
 }

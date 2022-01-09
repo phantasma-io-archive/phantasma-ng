@@ -1,23 +1,24 @@
 ﻿using System;
 using Phantasma.Business;
+using Serilog;
 using Serilog.Core;
 
 namespace Phantasma.Spook.Oracles
 {
     public static class Pricer
     {
-        public static decimal GetCoinRate(string baseSymbol, string quoteSymbol, string cryptoCompApiKey, bool cgEnabled, PricerSupportedToken[] supportedTokens, Logger logger)
+        public static decimal GetCoinRate(string baseSymbol, string quoteSymbol, string cryptoCompApiKey, bool cgEnabled, PricerSupportedToken[] supportedTokens)
         {
             try
             {
                 Decimal cGeckoPrice = 0;
                 Decimal cComparePrice = 0;
 
-                cComparePrice = CryptoCompareUtils.GetCoinRate(baseSymbol, quoteSymbol, cryptoCompApiKey, supportedTokens, logger);
+                cComparePrice = CryptoCompareUtils.GetCoinRate(baseSymbol, quoteSymbol, cryptoCompApiKey, supportedTokens);
 
                 if (cgEnabled)
                 {
-                    cGeckoPrice = CoinGeckoUtils.GetCoinRate(baseSymbol, quoteSymbol, supportedTokens, logger);
+                    cGeckoPrice = CoinGeckoUtils.GetCoinRate(baseSymbol, quoteSymbol, supportedTokens);
                 }
 
                 if ((cGeckoPrice > 0) && (cComparePrice > 0))
@@ -38,7 +39,7 @@ namespace Phantasma.Spook.Oracles
             catch (Exception ex)
             {
                 var errorMsg = ex.ToString();
-                logger.Error($"Pricer error: {errorMsg}");
+                Log.Error($"Pricer error: {errorMsg}");
                 return 0;
             }
         }

@@ -20,6 +20,7 @@ using InteropTransfers = System.Collections.Generic.Dictionary<string,
       System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<Phantasma.Core.InteropTransfer>>>;
 using System.Linq;
 using Serilog.Core;
+using Serilog;
 
 namespace Phantasma.Spook.Chains
 {
@@ -42,15 +43,13 @@ namespace Phantasma.Spook.Chains
         private CancellationToken cancellationToken;
         private List<TransactionReceiptVO> transactions = new List<TransactionReceiptVO>();
         private Web3 web3;
-        private Logger logger;
 
         public List<TransactionReceiptVO> Result => transactions;
 
-        public EthBlockCrawler(Logger logger, string[] addresses, uint blockConfirmations, EthAPI api)
+        public EthBlockCrawler(string[] addresses, uint blockConfirmations, EthAPI api)
         {
             this.addressesToWatch = addresses;
             this.web3 = api.GetWeb3Client();
-            this.logger = logger;
 
             processor = web3.Processing.Blocks.CreateBlockProcessor(steps =>
                 {
@@ -85,7 +84,7 @@ namespace Phantasma.Spook.Chains
                     );
         }
 
-        public InteropTransfers ExtractInteropTransfers(Business.Nexus nexus, Logger logger, string[] swapAddresses)
+        public InteropTransfers ExtractInteropTransfers(Business.Nexus nexus, string[] swapAddresses)
         {
             var interopTransfers = new InteropTransfers();
             lock (transactions)
@@ -125,12 +124,12 @@ namespace Phantasma.Spook.Chains
                                 continue;
                             }
 
-                            logger.Information($"Found ERC20 swap: {blockId} hash: {hash} to: {evt.Event.To} from: {evt.Event.From} value: {evt.Event.Value}");
+                            Log.Information($"Found ERC20 swap: {blockId} hash: {hash} to: {evt.Event.To} from: {evt.Event.From} value: {evt.Event.Value}");
                             var asset = EthUtils.FindSymbolFromAsset(nexus, evt.Log.Address);
-                            logger.Information("asset: " + asset);
+                            Log.Information("asset: " + asset);
                             if (asset == null)
                             {
-                                logger.Information($"Asset [{evt.Log.Address}] not supported");
+                                Log.Information($"Asset [{evt.Log.Address}] not supported");
                                 continue;
                             }
 
@@ -139,9 +138,9 @@ namespace Phantasma.Spook.Chains
                             var amount = BigInteger.Parse(evt.Event.Value.ToString());
 
                             //logger.Message("nodeSwapAddress: " + nodeSwapAddress);
-                            logger.Information("sourceAddress: " + sourceAddress);
-                            logger.Information("targetAddress: " + targetAddress);
-                            logger.Information("amount: " + amount);
+                            Log.Information("sourceAddress: " + sourceAddress);
+                            Log.Information("targetAddress: " + targetAddress);
+                            Log.Information("amount: " + amount);
 
                             if (!interopTransfers[block.BlockHash].ContainsKey(evt.Log.TransactionHash))
                             {
@@ -166,12 +165,12 @@ namespace Phantasma.Spook.Chains
 
                     if (tx.Value != null && tx.Value.Value > 0)
                     {
-                        logger.Information("ETH:");
-                        logger.Information(block.Number.ToString());
-                        logger.Information(tx.TransactionHash);
-                        logger.Information(tx.To);
-                        logger.Information(tx.From);
-                        logger.Information(tx.Value.ToString());
+                        Log.Information("ETH:");
+                        Log.Information(block.Number.ToString());
+                        Log.Information(tx.TransactionHash);
+                        Log.Information(tx.To);
+                        Log.Information(tx.From);
+                        Log.Information(tx.Value.ToString());
 
                         var targetAddress = EthereumWallet.EncodeAddress(tx.To);
 

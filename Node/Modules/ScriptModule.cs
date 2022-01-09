@@ -7,14 +7,13 @@ using Phantasma.Business.Core;
 using Phantasma.Business.Assembler;
 using Phantasma.Spook.Command;
 using Serilog.Core;
+using Serilog;
 
 namespace Phantasma.Spook.Modules
 {
     [Module("script")]
     public static class ScriptModule
     {
-        public static Logger logger => Spook.Logger;
-
         public static readonly string ScriptExtension = ".pvm";
 
         [ConsoleCommand("disassemble file", "script", "Disassemble file")]
@@ -108,7 +107,7 @@ namespace Phantasma.Spook.Modules
             {
                 foreach (var entry in semantemes)
                 {
-                    logger.Information($"{entry}");
+                    Log.Information($"{entry}");
                     entry.Process(sb);
                 }
                 script = sb.ToScript();

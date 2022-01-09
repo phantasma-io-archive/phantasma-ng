@@ -15,6 +15,7 @@ using Phantasma.Infrastructure.Chains;
 using Phantasma.Infrastructure;
 using Phantasma.Spook.Chains;
 using Serilog.Core;
+using Serilog;
 
 namespace Phantasma.Spook.Interop
 {
@@ -91,7 +92,6 @@ namespace Phantasma.Spook.Interop
         public readonly TokenSwapper Swapper;
         public readonly string LocalAddress;
         public readonly string WIF;
-        public Logger Logger => Swapper.Logger;
         public Nexus Nexus => Swapper.Nexus;
         public OracleReader OracleReader => Swapper.OracleReader;
 
@@ -114,11 +114,11 @@ namespace Phantasma.Spook.Interop
             var localKeys = GetAvailableAddress(this.WIF);
             if (localKeys == LocalAddress)
             {
-                Swapper.Logger.Information($"Listening for {platformName} swaps at address {LocalAddress.ToLower()}");
+                Log.Information($"Listening for {platformName} swaps at address {LocalAddress.ToLower()}");
             }
             else
             {
-                Swapper.Logger.Error($"Expected {platformName} keys to {LocalAddress}, instead got keys to {localKeys}");
+                Log.Error($"Expected {platformName} keys to {LocalAddress}, instead got keys to {localKeys}");
             }
         }
 
@@ -132,7 +132,6 @@ namespace Phantasma.Spook.Interop
 
     public class TokenSwapper : ITokenSwapper
     {
-        public Logger Logger => Spook.Logger;
         public Dictionary<string, string[]> SwapAddresses = new Dictionary<string,string[]>();
 
         internal readonly PhantasmaKeys SwapKeys;
@@ -256,12 +255,12 @@ namespace Phantasma.Spook.Interop
             if (_swappers.TryGetValue(platform, out ChainSwapper finder) 
                     && System.Numerics.BigInteger.TryParse(blockId, out var bigIntBlock))
             {
-                Logger.Information($"TokenSwapper: Resync block {blockId} on platform {platform}");
+                Log.Information($"TokenSwapper: Resync block {blockId} on platform {platform}");
                 finder.ResyncBlock(bigIntBlock);
             }
             else
             {
-                Logger.Error($"TokenSwapper: Resync block {blockId} on platform {platform} failed.");
+                Log.Error($"TokenSwapper: Resync block {blockId} on platform {platform} failed.");
             }
         }
 
@@ -281,7 +280,7 @@ namespace Phantasma.Spook.Interop
 
                     if (this.platforms.Length == 0)
                     {
-                        Logger.Warning("No interop platforms found. Make sure that the Nexus was created correctly.");
+                        Log.Warning("No interop platforms found. Make sure that the Nexus was created correctly.");
                         return;
                     }
 
@@ -293,10 +292,10 @@ namespace Phantasma.Spook.Interop
                     platformInfo = Nexus.GetPlatformInfo(Nexus.RootStorage, "ethereum");
                     SwapAddresses["ethereum"] = platformInfo.InteropAddresses.Select(x => x.ExternalAddress).ToArray();
 
-                    Logger.Information("Available swap addresses:");
+                    Log.Information("Available swap addresses:");
                     foreach (var x in SwapAddresses)
                     {
-                        Logger.Information("platform: " + x.Key + " address: " + string.Join(", ", x.Value));
+                        Log.Information("platform: " + x.Key + " address: " + string.Join(", ", x.Value));
                     }
                 }
 
@@ -377,7 +376,7 @@ namespace Phantasma.Spook.Interop
                 }
                 logMessage += "\n\n" + e.StackTrace;
 
-                Logger.Error(logMessage);
+                Log.Error(logMessage);
             }
         }
 
@@ -404,11 +403,11 @@ namespace Phantasma.Spook.Interop
                                 if (_pendingSwaps.ContainsKey(swap.hash))
                                 {
 
-                                    Logger.Information($"Already known swap, ignore {swap.platform} swap: {swap.source} => {swap.destination}");
+                                    Log.Information($"Already known swap, ignore {swap.platform} swap: {swap.source} => {swap.destination}");
                                     continue;
                                 }
 
-                                Logger.Information($"Detected {swap.platform} swap: {swap.source} => {swap.destination} hash: {swap.hash}");
+                                Log.Information($"Detected {swap.platform} swap: {swap.source} => {swap.destination} hash: {swap.hash}");
                                 _pendingSwaps[swap.hash] = swap;
                                 MapSwap(swap.source, swap.hash);
                                 MapSwap(swap.destination, swap.hash);
@@ -422,9 +421,9 @@ namespace Phantasma.Spook.Interop
 
         public Hash SettleSwap(string sourcePlatform, string destPlatform, Hash sourceHash)
         {
-            Logger.Debug("settleSwap called " + sourceHash);
-            Logger.Debug("dest platform " + destPlatform);
-            Logger.Debug("src platform " + sourcePlatform);
+            Log.Debug("settleSwap called " + sourceHash);
+            Log.Debug("dest platform " + destPlatform);
+            Log.Debug("src platform " + sourcePlatform);
 
             // This code is preventing us from doing double swaps.
             // We must ensure that states (settled, pending, inprogress) are locked
@@ -436,14 +435,14 @@ namespace Phantasma.Spook.Interop
                 var inProgressMap = new StorageMap(InProgressTag, this.Storage);
                 if (inProgressMap.ContainsKey(sourceHash))
                 {
-                    Logger.Debug("Hash already known, swap currently in progress: " + sourceHash);
+                    Log.Debug("Hash already known, swap currently in progress: " + sourceHash);
 
                     var tx = inProgressMap.Get<Hash, string>(sourceHash);
 
                     if (string.IsNullOrEmpty(tx))
                     {
                         // no tx was created, so no reason to keep the entry, we can't verify anything anyway.
-                        Logger.Debug("No tx hash set, swap in progress: " + sourceHash);
+                        Log.Debug("No tx hash set, swap in progress: " + sourceHash);
                         return Hash.Null;
                     }
                     else
@@ -457,7 +456,7 @@ namespace Phantasma.Spook.Interop
                 else
                 {
                     var settleHash = GetSettleHash(sourcePlatform, sourceHash);
-                    Logger.Debug("settleHash in settleswap: " + settleHash);
+                    Log.Debug("settleHash in settleswap: " + settleHash);
 
                     if (settleHash != Hash.Null)
                     {
@@ -467,7 +466,7 @@ namespace Phantasma.Spook.Interop
                     {
                         // sourceHash not known, create an entry to store it, from here on,
                         // every call to SettleSwap will return Hash.Null until the swap is finished.
-                        Logger.Debug("Unknown hash, create in progress entry: " + sourceHash);
+                        Log.Debug("Unknown hash, create in progress entry: " + sourceHash);
                         inProgressMap.Set<Hash, string>(sourceHash, null);
                     }
                 }
@@ -538,7 +537,7 @@ namespace Phantasma.Spook.Interop
             }
             catch(Exception ex)
             {
-                Logger.Equals(ex, "Exception caught during transaction settling");
+                Log.Error(ex, "Exception caught during transaction settling");
                 return Hash.Null;
             }
 
@@ -547,12 +546,12 @@ namespace Phantasma.Spook.Interop
 
         public IEnumerable<ChainSwap> GetPendingSwaps(Address address)
         {
-            Logger.Debug($"Getting pending swaps for {address} now.");
+            Log.Debug($"Getting pending swaps for {address} now.");
             var dict = new Dictionary<Hash, ChainSwap>();
 
             if (_swapAddressMap.ContainsKey(address))
             {
-                Logger.Debug($"Address exists in swap address map");
+                Log.Debug($"Address exists in swap address map");
 
                 var swaps = _swapAddressMap[address].
                     Select(x => _pendingSwaps[x]).
@@ -560,7 +559,7 @@ namespace Phantasma.Spook.Interop
 
                 foreach (var entry in swaps)
                 {
-                    Logger.Debug($"Adding hash {entry.sourceHash} to dict.");
+                    Log.Debug($"Adding hash {entry.sourceHash} to dict.");
                     dict[entry.sourceHash] = entry;
                 }
 
@@ -573,7 +572,7 @@ namespace Phantasma.Spook.Interop
                         lock (StateModificationLock)
                         {
                             var settleHash = GetSettleHash(entry.sourcePlatform, hash);
-                            Logger.Debug($"settleHash: {settleHash}.");
+                            Log.Debug($"settleHash: {settleHash}.");
                             if (settleHash != Hash.Null)
                             {
                                 entry.destinationHash = settleHash;
@@ -586,19 +585,19 @@ namespace Phantasma.Spook.Interop
             }
 
             var hashes = Nexus.RootChain.GetSwapHashesForAddress(Nexus.RootChain.Storage, address);
-            Logger.Debug($"Have {hashes.Length} for address {address}.");
+            Log.Debug($"Have {hashes.Length} for address {address}.");
             foreach (var hash in hashes)
             {
                 if (dict.ContainsKey(hash))
                 {
-                    Logger.Debug($"Ignoring hash {hash}");
+                    Log.Debug($"Ignoring hash {hash}");
                     continue;
                 }
 
                 var swap = Nexus.RootChain.GetSwap(Nexus.RootChain.Storage, hash);
                 if (swap.destinationHash != Hash.Null)
                 {
-                    Logger.Debug($"Ignoring swap with hash {swap.sourceHash}");
+                    Log.Debug($"Ignoring swap with hash {swap.sourceHash}");
                     continue;
                 }
 
@@ -607,7 +606,7 @@ namespace Phantasma.Spook.Interop
                     var settleHash = GetSettleHash(DomainSettings.PlatformName, hash);
                     if (settleHash != Hash.Null)
                     {
-                        Logger.Debug($"settleHash null");
+                        Log.Debug($"settleHash null");
                         continue;
                     }
                 }
@@ -615,7 +614,7 @@ namespace Phantasma.Spook.Interop
                 dict[hash] = swap;
             }
 
-            Logger.Debug($"Getting pending swaps for {address} done, found {dict.Count()} swaps.");
+            Log.Debug($"Getting pending swaps for {address} done, found {dict.Count()} swaps.");
             return dict.Values;
         }
 
@@ -628,7 +627,7 @@ namespace Phantasma.Spook.Interop
             // TODO not support yet
             if (transfers.Length != 1)
             {
-                Logger.Warning($"Not implemented: Swap support for multiple transfers in a single transaction");
+                Log.Warning($"Not implemented: Swap support for multiple transfers in a single transaction");
                 return Hash.Null;
             }
 
@@ -639,7 +638,7 @@ namespace Phantasma.Spook.Interop
             lock (StateModificationLock)
             {
                 var destHash = GetSettleHash(DomainSettings.PlatformName, sourceHash);
-                Logger.Debug("settleHash in settleswap: " + destHash);
+                Log.Debug("settleHash in settleswap: " + destHash);
 
                 if (destHash != Hash.Null)
                 {

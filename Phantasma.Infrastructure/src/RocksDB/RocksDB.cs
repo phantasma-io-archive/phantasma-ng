@@ -4,6 +4,7 @@ using System.IO;
 using Phantasma.Core;
 using Phantasma.Shared;
 using RocksDbSharp;
+using Serilog;
 using Serilog.Core;
 
 namespace Phantasma.Infrastructure
@@ -14,15 +15,13 @@ namespace Phantasma.Infrastructure
         private ColumnFamilyHandle partition;
         private string partitionName;
         private string path;
-        private readonly Logger logger;
 
         public uint Count => GetCount();
 
-        public DBPartition(Logger logger, string fileName)
+        public DBPartition(string fileName)
         {
             this.partitionName = Path.GetFileName(fileName);
             this.path = Path.GetDirectoryName(fileName);
-            this.logger = logger;
 
             if (string.IsNullOrEmpty(path))
             {
@@ -36,17 +35,17 @@ namespace Phantasma.Infrastructure
 
             //logger.Message($"RocksDB partition path: {fileName}");
 
-            this._db = RocksDbStore.Instance(logger, path);
+            this._db = RocksDbStore.Instance(path);
 
             // Create partition if it doesn't exist already
             try
             {
-                logger.Information("Getting partition: " + this.partitionName);
+                Log.Information("Getting partition: " + this.partitionName);
                 this.partition = this._db.GetColumnFamily(partitionName);
             }
             catch
             {
-                logger.Information("Partition not found, create it now: " + this.partitionName);
+                Log.Information("Partition not found, create it now: " + this.partitionName);
                 var cf = new ColumnFamilyOptions();
                 // TODO different partitions might need different options...
                 this.partition = this._db.CreateColumnFamily(cf, partitionName);
@@ -165,15 +164,13 @@ namespace Phantasma.Infrastructure
     {
 	    private static Dictionary<string, RocksDb> _db = new Dictionary<string, RocksDb>();
 	    private static Dictionary<string, RocksDbStore> _rdb = new Dictionary<string, RocksDbStore>();
-        private readonly Logger logger;
 
         private string fileName;
 
-        private RocksDbStore(string fileName, Logger logger)
+        private RocksDbStore(string fileName)
         {
             AppDomain.CurrentDomain.ProcessExit += (s, e) => Shutdown();
-            this.logger = logger;
-            logger.Information("RocksDBStore: " + fileName);
+            Log.Information("RocksDBStore: " + fileName);
             this.fileName = fileName.Replace("\\", "/");
 
             var path = Path.GetDirectoryName(fileName);
@@ -203,20 +200,20 @@ namespace Phantasma.Infrastructure
             }
             catch
             {
-                logger.Warning("Inital start, no partitions created yet!");
+                Log.Warning("Inital start, no partitions created yet!");
             }
 
-            logger.Information("Opening database at: " + path);
+            Log.Information("Opening database at: " + path);
 	        _db.Add(fileName, RocksDb.Open(options, path, columnFamilies));
         }
 
-        public static RocksDb Instance(Logger logger, string name)
+        public static RocksDb Instance(string name)
         {
             if (!_db.ContainsKey(name))
             {
                 if (string.IsNullOrEmpty(name)) throw new System.ArgumentException("Parameter cannot be null", "name");
 
-                _rdb.Add(name, new RocksDbStore(name, logger));
+                _rdb.Add(name, new RocksDbStore(name));
             }
 
             return _db[name];
@@ -227,7 +224,7 @@ namespace Phantasma.Infrastructure
             if (_db.Count > 0)
             {
                 var toRemove = new List<String>();
-                logger.Information($"Shutting down databases...");
+                Log.Information($"Shutting down databases...");
                 foreach (var db in _db)
                 {
                     db.Value.Dispose();
@@ -238,7 +235,7 @@ namespace Phantasma.Infrastructure
                 {
                     _db.Remove(key);
                 }
-                logger.Information("Databases shut down!");
+                Log.Information("Databases shut down!");
             }
         }
 

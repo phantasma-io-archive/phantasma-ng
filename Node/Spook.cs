@@ -68,8 +68,6 @@ namespace Phantasma.Spook
         private static readonly string ConfigDirectory = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".");
         private static string ConfigFile => System.IO.Path.Combine(ConfigDirectory, "config.json");
 
-        public readonly string LogPath;
-
         public static string Version { get; private set; }
         public static string TxIdentifier => $"SPK{Version}";
 
@@ -95,48 +93,22 @@ namespace Phantasma.Spook
         public TokenSwapper TokenSwapper { get { return _tokenSwapper; } }
         public Mempool Mempool { get { return _mempool; } }
         public PhantasmaKeys NodeKeys { get { return _nodeKeys; } }
-        public static Logger Logger { get; private set; }
         public ABCIConnector ABCIConnector { get; private set; }
 
         public Spook(string[] args)
         {
             Settings.Load(args, new ConfigurationBuilder().AddJsonFile(ConfigFile, optional: false).AddEnvironmentVariables().Build().GetSection("ApplicationConfiguration"));
 
-            this.LogPath = Settings.Default.Log.LogPath + Settings.Default.Log.LogName;
-
-            var levelSwitchConsole = new LoggingLevelSwitch
-            {
-                MinimumLevel = Settings.Default.Log.ShellLevel
-            };
-            var levelSwitchFile = new LoggingLevelSwitch
-            {
-                MinimumLevel = Settings.Default.Log.FileLevel
-            };
-
-            var logConfig = new LoggerConfiguration()
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-                .Enrich.WithThreadId()
-                .Destructure.ByTransforming<JsonDocument>(node => JsonSerializer.Serialize(node))
-                .WriteTo.Console(outputTemplate: "{Timestamp:u} {Timestamp:ffff} [{Level:u3}] <{ThreadId}> {Message:lj}{NewLine}{Exception}",
-                    levelSwitch: levelSwitchConsole)
-                .WriteTo.File(this.LogPath,
-                    rollingInterval: RollingInterval.Day,
-                    outputTemplate: "{Timestamp:u} {Timestamp:ffff} [{Level:u3}] <{ThreadId}> {Message:lj}{NewLine}{Exception}",
-                    levelSwitch: levelSwitchFile);
-
-            Logger = logConfig.CreateLogger();
-
             this.ABCIConnector = new ABCIConnector();
         }
 
         protected override void OnStart()
         {
-            Logger.Information($"Starting Tendermint Engine");
+            Log.Information($"Starting Tendermint Engine");
 
             SetupTendermint();
 
-            Logger.Information($"Starting ABCI Application");
+            Log.Information($"Starting ABCI Application");
 
             var server = new Server()
             {
@@ -146,7 +118,7 @@ namespace Phantasma.Spook
 
             server.Start();
 
-            Logger.Information($"Server is up & running ()");
+            Log.Information($"Server is up & running ()");
 
             //ShutdownAwaiter();
 
@@ -202,10 +174,10 @@ namespace Phantasma.Spook
 
             _tokenSwapperThread = new Thread(() =>
             {
-                Logger.Information("Running token swapping service...");
+                Log.Information("Running token swapping service...");
                 while (Running)
                 {
-                    Logger.Debug("Update TokenSwapper now");
+                    Log.Debug("Update TokenSwapper now");
                     Task.Delay(5000).Wait();
                     if (_nodeReady)
                     {
@@ -221,9 +193,9 @@ namespace Phantasma.Spook
 
         private CommandDispatcher SetupCommandDispatcher()
         {
-            Logger.Information("Initializing command dispatcher...");
+            Log.Information("Initializing command dispatcher...");
             var dispatcher = new CommandDispatcher(this);
-            Logger.Information("Command dispatcher initialized successfully.");
+            Log.Information("Command dispatcher initialized successfully.");
             return dispatcher;
         }
 
@@ -235,7 +207,7 @@ namespace Phantasma.Spook
         public void MakeReady(CommandDispatcher dispatcher)
         {
             var nodeMode = Settings.Default.Node.Mode;
-            Logger.Information($"Node is now running in {nodeMode.ToString().ToLower()} mode!");
+            Log.Information($"Node is now running in {nodeMode.ToString().ToLower()} mode!");
             _nodeReady = true;
         }
 
@@ -251,22 +223,22 @@ namespace Phantasma.Spook
 
             var neoRpcList = Settings.Default.Oracle.NeoRpcNodes;
             this._neoAPI = new RemoteRPCNode(neoScanURL, neoRpcList.ToArray());
-            this._neoAPI.SetLogger((s) => Logger.Information(s));
+            this._neoAPI.SetLogger((s) => Log.Information(s));
 
             var ethRpcList = Settings.Default.Oracle.EthRpcNodes;
             
             var ethWIF = Settings.Default.GetInteropWif(Nexus, _nodeKeys, EthereumWallet.EthereumPlatform);
             var ethKeys = PhantasmaKeys.FromWIF("L4GcHJVrUPz6nW2EKJJGV2yxfa5UoaG8nfnaTAgzmWyuAmt3BYKg");
 
-            this._ethAPI = new EthAPI(this.Nexus, new EthAccount(ethKeys.PrivateKey.ToHex()), Logger);
+            this._ethAPI = new EthAPI(this.Nexus, new EthAccount(ethKeys.PrivateKey.ToHex()));
             this._cryptoCompareAPIKey = Settings.Default.Oracle.CryptoCompareAPIKey;
             if (!string.IsNullOrEmpty(this._cryptoCompareAPIKey))
             {
-                Logger.Information($"CryptoCompare API enabled.");
+                Log.Information($"CryptoCompare API enabled.");
             }
             else
             {
-                Logger.Warning($"CryptoCompare API key missing, oracles won't work properly...");
+                Log.Warning($"CryptoCompare API key missing, oracles won't work properly...");
             }
         }
 
@@ -285,7 +257,7 @@ namespace Phantasma.Spook
 
             if (!File.Exists(tendermintPath))
             {
-                Logger.Error("Could not find Tendermint binary, make sure its next to Phantasma");
+                Log.Error("Could not find Tendermint binary, make sure its next to Phantasma");
                 return false;
             }
 
@@ -314,7 +286,7 @@ namespace Phantasma.Spook
 
         private bool SetupNexus()
         {
-            Logger.Information("Setting up nexus...");
+            Log.Information("Setting up nexus...");
             var storagePath = Settings.Default.Node.StoragePath;
             var oraclePath = Settings.Default.Node.OraclePath;
             var nexusName = Settings.Default.Node.NexusName;
@@ -322,21 +294,21 @@ namespace Phantasma.Spook
             switch (Settings.Default.Node.StorageBackend)
             {
                 case StorageBackendType.CSV:
-                    Logger.Information("Setting CSV nexus...");
-                    _nexus = new Nexus(nexusName, Logger, (name) => new BasicDiskStore(storagePath + name + ".csv"));
+                    Log.Information("Setting CSV nexus...");
+                    _nexus = new Nexus(nexusName, (name) => new BasicDiskStore(storagePath + name + ".csv"));
                     break;
 
                 case StorageBackendType.RocksDB:
-                    Logger.Information("Setting RocksDB nexus...");
-                    _nexus = new Nexus(nexusName, Logger, (name) => new DBPartition(Logger, storagePath + name));
+                    Log.Information("Setting RocksDB nexus...");
+                    _nexus = new Nexus(nexusName, (name) => new DBPartition(storagePath + name));
                     break;
                 default:
                     throw new Exception("Backend has to be set to either \"db\" or \"file\"");
             }
 
-            Logger.Information("Nexus is set");
+            Log.Information("Nexus is set");
 
-            _nexus.SetOracleReader(new SpookOracle(this, _nexus, Logger));
+            _nexus.SetOracleReader(new SpookOracle(this, _nexus));
 
             return true;
         }
@@ -348,16 +320,15 @@ namespace Phantasma.Spook
                     , Settings.Default.Node.MinimumFee
                     , System.Text.Encoding.UTF8.GetBytes(TxIdentifier)
                     , 0
-                    , Logger
                     , Settings.Default.Node.ProfilerPath
                     );
 
             if (Settings.Default.Node.MempoolLog)
             {
                 mempool.OnTransactionFailed += Mempool_OnTransactionFailed;
-                mempool.OnTransactionAdded += (hash) => Logger.Information($"Received transaction {hash}");
-                mempool.OnTransactionCommitted += (hash) => Logger.Information($"Commited transaction {hash}");
-                mempool.OnTransactionDiscarded += (hash) => Logger.Information($"Discarded transaction {hash}");
+                mempool.OnTransactionAdded += (hash) => Log.Information($"Received transaction {hash}");
+                mempool.OnTransactionCommitted += (hash) => Log.Information($"Commited transaction {hash}");
+                mempool.OnTransactionDiscarded += (hash) => Log.Information($"Discarded transaction {hash}");
             }
             if (Settings.Default.App.NodeStart)
             {
@@ -375,12 +346,12 @@ namespace Phantasma.Spook
             }
 
             var status = _mempool.GetTransactionStatus(hash, out string reason);
-            Logger.Warning($"Rejected transaction {hash} => " + reason);
+            Log.Warning($"Rejected transaction {hash} => " + reason);
         }
 
         private NexusAPI SetupNexusApi()
         {
-            Logger.Information($"Initializing nexus API...");
+            Log.Information($"Initializing nexus API...");
 
             var apiCache = Settings.Default.Node.ApiCache;
             var apiLog = Settings.Default.Node.ApiLog;
@@ -389,7 +360,7 @@ namespace Phantasma.Spook
             var hasRPC = Settings.Default.Node.HasRpc;
             var hasREST = Settings.Default.Node.HasRest;
 
-            NexusAPI nexusApi = new NexusAPI(_nexus, apiCache, apiLog ? Logger : null);
+            NexusAPI nexusApi = new NexusAPI(_nexus, apiCache, apiLog);
 
             //if (apiProxyURL != null)
             //{
@@ -405,7 +376,7 @@ namespace Phantasma.Spook
 
             if (readOnlyMode)
             {
-                Logger.Warning($"Node will be running in read-only mode.");
+                Log.Warning($"Node will be running in read-only mode.");
             }
             else
             {
@@ -424,10 +395,10 @@ namespace Phantasma.Spook
             // REST setup
             if (hasREST)
             {
-                Logger.Information($"REST API enabled...");
+                Log.Information($"REST API enabled...");
                 var builder = WebApplication.CreateBuilder();
                 builder.Configuration.AddJsonFile(Settings.Default._configFile).AddEnvironmentVariables();
-                builder.WebHost.UseSerilog(Logger);
+                builder.WebHost.UseSerilog(Log.Logger);
                 builder.Services.AddAuthorization();
                 builder.Services.AddAuthentication().AddBasicAuthentication();
                 builder.Services.AddHttpContextAccessor();
@@ -449,14 +420,14 @@ namespace Phantasma.Spook
                         policyBuilder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
                     });
                 });
-                Logger.Information($"REST API: Initializing endpoints...");
+                Log.Information($"REST API: Initializing endpoints...");
                 builder.Services.AddTransient<IApiEndpoint, NexusAPI>();
 
-                Logger.Information($"REST API: Configuring cache...");
+                Log.Information($"REST API: Configuring cache...");
                 var redis = builder.Configuration.GetValue<string>("Redis");
                 if (!string.IsNullOrEmpty(redis))
                 {
-                    Logger.Information("Using Redis cache");
+                    Log.Information("Using Redis cache");
                     builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
                         ConnectionMultiplexer.Connect(ConfigurationOptions.Parse(redis)));
                     builder.Services.AddSingleton<ICacheClient>(sp => new RedisCacheClient(optionsBuilder =>
@@ -466,7 +437,7 @@ namespace Phantasma.Spook
                 }
                 else
                 {
-                    Logger.Information("Using in-memory cache");
+                    Log.Information("Using in-memory cache");
                     builder.Services.AddSingleton<ICacheClient>(sp => new InMemoryCacheClient(optionsBuilder =>
                         optionsBuilder.CloneValues(true).MaxItems(10000)
                             .LoggerFactory(sp.GetRequiredService<ILoggerFactory>()).Serializer(
@@ -550,7 +521,7 @@ namespace Phantasma.Spook
                     }
                 }
 
-                Logger.Information($"API enabled. {methods.Length} methods available.");
+                Log.Information($"API enabled. {methods.Length} methods available.");
 
                 app.UseSerilogRequestLogging();
                 app.UseCors();
@@ -641,7 +612,7 @@ namespace Phantasma.Spook
                     prompt = Settings.Default.App.Prompt;
                 }
 
-                var startupMsg = "Spook shell " + Version + "\nLogs are stored in " + LogPath + "\nTo exit use <ctrl-c> or \"exit\"!\n";
+                var startupMsg = "Spook shell " + Version + "\nLogs are stored in " + Settings.Default.Log.LogPath + "\nTo exit use <ctrl-c> or \"exit\"!\n";
 
                 Prompt.Run(
                     ((command, listCmd, list) =>
@@ -667,11 +638,11 @@ namespace Phantasma.Spook
 
         protected override void OnStop()
         {
-            Logger.Information("Termination started...");
+            Log.Information("Termination started...");
 
             if (_mempool != null && _mempool.IsRunning)
             {
-                Logger.Information("Stopping mempool...");
+                Log.Information("Stopping mempool...");
                 _mempool.Stop();
             }
 
@@ -686,7 +657,7 @@ namespace Phantasma.Spook
         {
             if (!Running)
             {
-                Logger.Information("Termination already in progress...");
+                Log.Information("Termination already in progress...");
             }
 
             if (Prompt.running)
@@ -701,8 +672,8 @@ namespace Phantasma.Spook
             {
                 Prompt.running = false;
             }
-            
-            Logger.Information("Termination complete...");
+
+            Log.Information("Termination complete...");
             Environment.Exit(0);
         }
 

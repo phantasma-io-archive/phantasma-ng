@@ -2,6 +2,7 @@
 using System.Net.Http;
 using System.Text.Json;
 using Phantasma.Shared.Utils;
+using Serilog;
 using Serilog.Core;
 
 namespace Phantasma.Spook.Oracles
@@ -9,7 +10,7 @@ namespace Phantasma.Spook.Oracles
     public static class CryptoCompareUtils
     {
         
-        public static decimal GetCoinRate(string baseSymbol, string quoteSymbol, string APIKey, PricerSupportedToken[] supportedTokens, Logger logger)
+        public static decimal GetCoinRate(string baseSymbol, string quoteSymbol, string APIKey, PricerSupportedToken[] supportedTokens)
         {
 
             string baseticker = "";
@@ -45,7 +46,7 @@ namespace Phantasma.Spook.Oracles
             catch (Exception ex)
             {
                 var errorMsg = ex.Message;
-                logger.Error($"Error while trying to query {baseticker} price from CryptoCompare API: {errorMsg}");
+                Log.Error($"Error while trying to query {baseticker} price from CryptoCompare API: {errorMsg}");
                 return 0;
             }
         }

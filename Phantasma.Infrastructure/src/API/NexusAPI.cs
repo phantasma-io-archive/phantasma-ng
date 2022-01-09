@@ -15,6 +15,7 @@ using Phantasma.Shared.Types;
 
 using Serilog.Core;
 using Foundatio.Messaging;
+using Serilog;
 
 namespace Phantasma.Infrastructure
 {
@@ -90,14 +91,14 @@ namespace Phantasma.Infrastructure
 
         public string ProxyURL = null;
 
-        internal readonly Logger logger;
+        private readonly ILogger logger;
 
         // NOTE - Nexus should be null only for proxy-mode
-        public NexusAPI(Nexus nexus = null, bool useCache = false, Logger logger = null)
+        public NexusAPI(Nexus nexus = null, bool useCache = false, bool apiLog = false)
         {
             Nexus = nexus;
             UseCache = useCache;
-            this.logger = logger;
+            this.logger = apiLog ? Log.Logger : null;
 
             logger?.Information($"Phantasma API enabled");
         }

@@ -5,6 +5,7 @@ using System.Reflection;
 using Newtonsoft.Json.Linq;
 using Phantasma.Spook.Modules;
 using Phantasma.Shared;
+using Serilog;
 
 namespace Phantasma.Spook.Command
 {
@@ -246,7 +247,7 @@ namespace Phantasma.Spook.Command
                             }
                             catch (Exception)
                             {
-                                Spook.Logger.Information("invalid api command");
+                                Log.Information("invalid api command");
                             }
 
                             return true;
@@ -260,7 +261,7 @@ namespace Phantasma.Spook.Command
                             catch (Exception e)
                             {
                                 e = e.ExpandInnerExceptions();
-                                Spook.Logger.Information(e.Message);
+                                Log.Information(e.Message);
                             }
                         }
 

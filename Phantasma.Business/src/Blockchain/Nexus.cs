@@ -13,6 +13,7 @@ using Phantasma.Business.Storage;
 using Phantasma.Business.Tokens;
 using Phantasma.Business.Contracts;
 using Serilog.Core;
+using Serilog;
 
 namespace Phantasma.Business
 {
@@ -67,8 +68,6 @@ namespace Phantasma.Business
 
         private readonly List<IChainPlugin> _plugins = new List<IChainPlugin>();
 
-        private readonly Logger _logger;
-
         private Func<string, IKeyValueStoreAdapter> _adapterFactory = null;
         private OracleReader _oracleReader = null;
         private List<IOracleObserver> _observers = new List<IOracleObserver>();
@@ -76,7 +75,7 @@ namespace Phantasma.Business
         /// <summary>
         /// The constructor bootstraps the main chain and all core side chains.
         /// </summary>
-        public Nexus(string name, Logger logger = null, Func<string, IKeyValueStoreAdapter> adapterFactory = null)
+        public Nexus(string name, Func<string, IKeyValueStoreAdapter> adapterFactory = null)
         {
             this._adapterFactory = adapterFactory;
 
@@ -108,8 +107,6 @@ namespace Phantasma.Business
             }
 
             _archiveContents = new KeyValueStore<Hash, byte[]>(CreateKeyStoreAdapter("contents"));
-
-            _logger = logger;
 
             this._oracleReader = null;
         }
@@ -382,7 +379,7 @@ namespace Phantasma.Business
                 return false;
             }
 
-            var chain = new Chain(this, name, _logger);
+            var chain = new Chain(this, name);
 
             // add to persistent list of chains
             var chainList = this.GetSystemList(ChainTag, storage);
@@ -2387,7 +2384,7 @@ namespace Phantasma.Business
                 }
             }
 
-            _logger.Warning($"Token hash {hash} doesn't exist!");
+            Log.Warning($"Token hash {hash} doesn't exist!");
             return null;
         }
 
@@ -2418,7 +2415,7 @@ namespace Phantasma.Business
             //should be updateable since a foreign token hash could change
             if (storage.Has(hashKey))
             {
-                _logger.Warning($"Token hash of {symbol} already set for platform {platform}, updating to {hash}");
+                Log.Warning($"Token hash of {symbol} already set for platform {platform}, updating to {hash}");
             }
 
             storage.Put<Hash>(hashKey, hash);

@@ -21,6 +21,7 @@ using Nethereum.StandardTokenEIP20.ContractDefinition;
 using EthereumKey = Phantasma.Spook.Chains.EthereumKey;
 using Serilog.Core;
 using System.Net.Http;
+using Serilog;
 
 namespace Phantasma.Spook.Interop
 {
@@ -39,7 +40,7 @@ namespace Phantasma.Spook.Interop
             if(string.IsNullOrEmpty(lastBlockHeight))
                 OracleReader.SetCurrentHeight(EthereumWallet.EthereumPlatform, EthereumWallet.EthereumPlatform, interopBlockHeight.ToString());
 
-            Logger.Information($"interopHeight: {OracleReader.GetCurrentHeight(EthereumWallet.EthereumPlatform, EthereumWallet.EthereumPlatform)}");
+            Log.Information($"interopHeight: {OracleReader.GetCurrentHeight(EthereumWallet.EthereumPlatform, EthereumWallet.EthereumPlatform)}");
 
             this.contracts = contracts.ToList();
 
@@ -69,10 +70,10 @@ namespace Phantasma.Spook.Interop
                     // initial start, we have to verify all processed swaps
                     if (initialStart)
                     {
-                        Logger.Debug($"Read all ethereum blocks now.");
+                        Log.Debug($"Read all ethereum blocks now.");
                         var allInteropBlocks = OracleReader.ReadAllBlocks(EthereumWallet.EthereumPlatform, EthereumWallet.EthereumPlatform);
 
-                        Logger.Debug($"Found {allInteropBlocks.Count} blocks");
+                        Log.Debug($"Found {allInteropBlocks.Count} blocks");
 
                         foreach (var block in allInteropBlocks)
                         {
@@ -87,7 +88,7 @@ namespace Phantasma.Spook.Interop
 
                     var currentHeight = ethAPI.GetBlockHeight();
                     var _interopBlockHeight = BigInteger.Parse(OracleReader.GetCurrentHeight(EthereumWallet.EthereumPlatform, EthereumWallet.EthereumPlatform));
-                    Logger.Debug($"Swaps: Current Eth chain height: {currentHeight}, interop: {_interopBlockHeight}, delta: {currentHeight - _interopBlockHeight}");
+                    Log.Debug($"Swaps: Current Eth chain height: {currentHeight}, interop: {_interopBlockHeight}, delta: {currentHeight - _interopBlockHeight}");
 
                     var blocksProcessedInOneBatch = 0;
                     while (blocksProcessedInOneBatch < 50)
@@ -99,20 +100,20 @@ namespace Phantasma.Spook.Interop
                                 var blockId = _resyncBlockIds.ElementAt(i);
                                 if (blockId > _interopBlockHeight)
                                 {
-                                    this.Logger.Warning($"EthInterop:Update() resync block {blockId} higher than current interop height, can't resync.");
+                                    Log.Warning($"EthInterop:Update() resync block {blockId} higher than current interop height, can't resync.");
                                     _resyncBlockIds.RemoveAt(i);
                                     continue;
                                 }
 
                                 try
                                 {
-                                    this.Logger.Debug($"EthInterop:Update() resync block {blockId} now.");
+                                    Log.Debug($"EthInterop:Update() resync block {blockId} now.");
                                     var block = GetInteropBlock(blockId);
                                     ProcessBlock(block, ref result);
                                 }
                                 catch (Exception e)
                                 {
-                                    this.Logger.Error($"EthInterop:Update() resync block {blockId} failed: " + e);
+                                    Log.Error($"EthInterop:Update() resync block {blockId} failed: " + e);
                                 }
                                 _resyncBlockIds.RemoveAt(i);
                             }
@@ -134,10 +135,10 @@ namespace Phantasma.Spook.Interop
 
                         //if (nextHeight > 1)
                         //{
-                        //    var blockCrawler = new EthBlockCrawler(logger, contracts.ToArray(), 0/*confirmations*/, ethAPI); //TODO settings confirmations
+                        //    var blockCrawler = new EthBlockCrawler(contracts.ToArray(), 0/*confirmations*/, ethAPI); //TODO settings confirmations
 
                         //    blockCrawler.Fetch(currentHeight, nextHeight);
-                        //    transfers = blockCrawler.ExtractInteropTransfers(logger, LocalAddress);
+                        //    transfers = blockCrawler.ExtractInteropTransfers(LocalAddress);
                         //    foreach (var entry in transfers)
                         //    {
                         //        foreach (var txInteropTransfer in entry.Value)
@@ -177,11 +178,11 @@ namespace Phantasma.Spook.Interop
                     var total = result.Count();
                     if (total > 0)
                     {
-                        Logger.Information($"found {total} ethereum swaps");
+                        Log.Information($"found {total} ethereum swaps");
                     }
                     else
                     {
-                        Logger.Debug($"did not find any ethereum swaps");
+                        Log.Debug($"did not find any ethereum swaps");
                     }
                     return result;
                 }
@@ -197,7 +198,7 @@ namespace Phantasma.Spook.Interop
                 }
                 logMessage += "\n\n" + e.StackTrace;
 
-                Logger.Error(logMessage);
+                Log.Error(logMessage);
 
                 return new List<PendingSwap>();
             }
@@ -277,7 +278,7 @@ namespace Phantasma.Spook.Interop
                                }
                                logMessage += "\n\n" + e.StackTrace;
 
-                               Logger.Error(logMessage.Contains("Ethereum block is null") ? "oracleReader.Read(): Ethereum block is null, possible connection failure" : logMessage);
+                               Log.Error(logMessage.Contains("Ethereum block is null") ? "oracleReader.Read(): Ethereum block is null, possible connection failure" : logMessage);
                            }
 
                            Thread.Sleep(delay);
@@ -317,7 +318,7 @@ namespace Phantasma.Spook.Interop
         }
 
 
-        public static Tuple<InteropBlock, InteropTransaction[]> MakeInteropBlock(Logger logger, BlockWithTransactions block, EthAPI api
+        public static Tuple<InteropBlock, InteropTransaction[]> MakeInteropBlock(BlockWithTransactions block, EthAPI api
                 , string[] swapAddress)
         {
             //TODO
@@ -356,7 +357,7 @@ namespace Phantasma.Spook.Interop
             return Address.FromBytes(bytes);
         }
 
-        public static Tuple<InteropBlock, InteropTransaction[]> MakeInteropBlock(Nexus nexus, Logger logger, EthAPI api
+        public static Tuple<InteropBlock, InteropTransaction[]> MakeInteropBlock(Nexus nexus, EthAPI api
                 , BigInteger height, string[] contracts, uint confirmations, string[] swapAddress)
         {
             Hash blockHash = Hash.Null;
@@ -369,14 +370,14 @@ namespace Phantasma.Spook.Interop
             Dictionary<string, Dictionary<string, List<InteropTransfer>>> transfers = new Dictionary<string, Dictionary<string, List<InteropTransfer>>>();
             try
             {
-                var crawler = new EthBlockCrawler(logger, combinedAddresses.ToArray(), confirmations, api);
+                var crawler = new EthBlockCrawler(combinedAddresses.ToArray(), confirmations, api);
                 // fetch blocks
                 crawler.Fetch(height);
-                transfers = crawler.ExtractInteropTransfers(nexus, logger, swapAddress);
+                transfers = crawler.ExtractInteropTransfers(nexus, swapAddress);
             }
             catch (Exception e)
             {
-                logger.Error("Failed to fetch eth blocks: " + e);
+                Log.Error("Failed to fetch eth blocks: " + e);
             }
 
             if (transfers.Count == 0)
@@ -392,7 +393,7 @@ namespace Phantasma.Spook.Interop
                 var txTransferDict  = block.Value;
                 foreach (var tx in txTransferDict)
                 {
-                    var interopTx = MakeInteropTx(logger, tx.Key, tx.Value);
+                    var interopTx = MakeInteropTx(tx.Key, tx.Value);
                     if (interopTx.Hash != Hash.Null)
                     {
                         interopTransactions.Add(interopTx);
@@ -422,10 +423,10 @@ namespace Phantasma.Spook.Interop
             return result;*/
         }
 
-        private static Dictionary<string, List<InteropTransfer>> GetInteropTransfers(Nexus nexus, Logger logger,
+        private static Dictionary<string, List<InteropTransfer>> GetInteropTransfers(Nexus nexus,
                 TransactionReceipt txr, EthAPI api, string[] swapAddresses)
         {
-            logger.Debug($"get interop transfers for tx {txr.TransactionHash}");
+            Log.Debug($"get interop transfers for tx {txr.TransactionHash}");
             var interopTransfers = new Dictionary<string, List<InteropTransfer>>();
 
             Nethereum.RPC.Eth.DTOs.Transaction tx = null;
@@ -436,14 +437,14 @@ namespace Phantasma.Spook.Interop
             }
             catch (Exception e)
             {
-                logger.Error("Getting eth tx failed: " + e.Message);
+                Log.Error("Getting eth tx failed: " + e.Message);
             }
 
-            logger.Debug("Transaction status: " + txr.Status.Value);
+            Log.Debug("Transaction status: " + txr.Status.Value);
             // check if tx has failed
             if (txr.Status.Value == 0)
             {
-                logger.Error($"tx {txr.TransactionHash} failed");
+                Log.Error($"tx {txr.TransactionHash} failed");
                 return interopTransfers;
             }
 
@@ -458,7 +459,7 @@ namespace Phantasma.Spook.Interop
                 var asset = EthUtils.FindSymbolFromAsset(nexus, evt.Log.Address);
                 if (asset == null)
                 {
-                    logger.Warning($"Asset [{evt.Log.Address}] not supported");
+                    Log.Warning($"Asset [{evt.Log.Address}] not supported");
                     continue;
                 }
 
@@ -499,7 +500,7 @@ namespace Phantasma.Spook.Interop
                 var asset = EthUtils.FindSymbolFromAsset(nexus, evt.Log.Address);
                 if (asset == null)
                 {
-                    logger.Warning($"Asset [{evt.Log.Address}] not supported");
+                    Log.Warning($"Asset [{evt.Log.Address}] not supported");
                     continue;
                 }
 
@@ -564,21 +565,21 @@ namespace Phantasma.Spook.Interop
             return interopTransfers;
         }
 
-        public static InteropTransaction MakeInteropTx(Logger logger, string txHash, List<InteropTransfer> transfers)
+        public static InteropTransaction MakeInteropTx(string txHash, List<InteropTransfer> transfers)
         {
             return ((transfers.Count() > 0)
                 ? new InteropTransaction(Hash.Parse(txHash), transfers.ToArray())
                 : new InteropTransaction(Hash.Null, transfers.ToArray()));
         }
 
-        public static InteropTransaction MakeInteropTx(Nexus nexus, Logger logger, TransactionReceipt txr, EthAPI api, string[] swapAddresses)
+        public static InteropTransaction MakeInteropTx(Nexus nexus, TransactionReceipt txr, EthAPI api, string[] swapAddresses)
         {
-            logger.Debug("checking tx: " + txr.TransactionHash);
+            Log.Debug("checking tx: " + txr.TransactionHash);
 
             IList<InteropTransfer> interopTransfers = new List<InteropTransfer>();
 
-            interopTransfers = GetInteropTransfers(nexus, logger, txr, api, swapAddresses).SelectMany(x => x.Value).ToList();
-            logger.Debug($"Found {interopTransfers.Count} interop transfers!");
+            interopTransfers = GetInteropTransfers(nexus, txr, api, swapAddresses).SelectMany(x => x.Value).ToList();
+            Log.Debug($"Found {interopTransfers.Count} interop transfers!");
 
             return ((interopTransfers.Count() > 0)
                 ? new InteropTransaction(Hash.Parse(txr.TransactionHash), interopTransfers.ToArray())
@@ -692,21 +693,21 @@ namespace Phantasma.Spook.Interop
 
                 if (txr == null)
                 {
-                    Logger.Error($"Ethereum transaction {txHash} not mined yet.");
+                    Log.Error($"Ethereum transaction {txHash} not mined yet.");
                     return Hash.Null;
                 }
             }
             catch (Exception e)
             {
-                Logger.Error($"Exception during polling for receipt: {e}");
+                Log.Error($"Exception during polling for receipt: {e}");
                 return Hash.Null;
             }
 
             if (txr.Status.Value == 0) // Status == 0 = error
             {
-                Logger.Error($"Possible failed eth swap sourceHash: {sourceHash} txHash: {txHash}");
+                Log.Error($"Possible failed eth swap sourceHash: {sourceHash} txHash: {txHash}");
 
-                Logger.Error($"EthAPI error, tx {txr.TransactionHash} ");
+                Log.Error($"EthAPI error, tx {txr.TransactionHash} ");
                 return Hash.Null;
             }
 
@@ -746,23 +747,23 @@ namespace Phantasma.Spook.Interop
 
             try
             {
-                Logger.Debug($"ETHSWAP: Trying transfer of {total} {token.Symbol} from {ethKeys.Address} to {destAddress}");
+                Log.Debug($"ETHSWAP: Trying transfer of {total} {token.Symbol} from {ethKeys.Address} to {destAddress}");
                 var transferResult = ethAPI.TryTransferAsset(token.Symbol, destAddress, total, token.Decimals, out tx);
 
                 if (transferResult == EthTransferResult.Success)
                 {
                     // persist resulting tx hash as in progress
                     inProgressMap.Set<Hash, string>(sourceHash, tx);
-                    Logger.Debug("broadcasted eth tx: " + tx);
+                    Log.Debug("broadcasted eth tx: " + tx);
                 }
                 else
                 {
-                    Logger.Error($"ETHSWAP: Transfer of {total} {token.Symbol} from {ethKeys.Address} to {destAddress} failed, no tx generated");
+                    Log.Error($"ETHSWAP: Transfer of {total} {token.Symbol} from {ethKeys.Address} to {destAddress} failed, no tx generated");
                 }
             }
             catch (Exception e)
             {
-                Logger.Error($"Exception during transfer: {e}");
+                Log.Error($"Exception during transfer: {e}");
                 // we don't know if the transfer happend or not, therefore can't delete from inProgressMap yet.
                 return Hash.Null;
             }

@@ -16,6 +16,7 @@ using NeoBlock = Neo.Network.P2P.Payloads.Block;
 using NeoTx = Neo.Network.P2P.Payloads.Transaction;
 using Neo;
 using Serilog.Core;
+using Serilog;
 
 namespace Phantasma.Spook.Oracles
 {
@@ -28,8 +29,6 @@ namespace Phantasma.Spook.Oracles
         private Dictionary<string, object> _keyValueStore = new Dictionary<string, object>();
         private KeyValueStore<string, string> platforms;
 
-        private Logger logger;
-
         enum StorageConst
         {
             CurrentHeight,
@@ -38,14 +37,13 @@ namespace Phantasma.Spook.Oracles
             Platform
         }
 
-        public SpookOracle(Spook cli, Nexus nexus, Logger logger) : base(nexus)
+        public SpookOracle(Spook cli, Nexus nexus) : base(nexus)
         {
             this._cli = cli;
             nexus.Attach(this);
             platforms = new KeyValueStore<string, string>(CreateKeyStoreAdapter(StorageConst.Platform.ToString()));
-            this.logger = logger;
 
-            logger.Information("Platform count: " + platforms.Count);
+            Log.Information("Platform count: " + platforms.Count);
 
             var nexusPlatforms = (nexus as Nexus).GetPlatforms(nexus.RootStorage);
             foreach (var nexusPlatform in nexusPlatforms)
@@ -105,7 +103,7 @@ namespace Phantasma.Spook.Oracles
             }
             catch (Exception e)
             {
-                logger.Error(e.ToString());
+                Log.Error(e.ToString());
                 return default(T);
             }
             return default(T);
@@ -156,7 +154,7 @@ namespace Phantasma.Spook.Oracles
             }
 
             keyStore.Set(storageKey, data);
-            logger.Error("storageKey " + storageKey + " updated!");
+            Log.Error("storageKey " + storageKey + " updated!");
             return false;
         }
 
@@ -177,7 +175,7 @@ namespace Phantasma.Spook.Oracles
                         if ((Timestamp.Now - fee.Time) < 60)
                         {
                             var logMessage = $"PullFee({platform}): Cached fee pulled: {fee.Value}, GAS limit: {Settings.Default.Oracle.EthGasLimit}, calculated fee: {fee.Value * Settings.Default.Oracle.EthGasLimit}";
-                            logger.Debug(logMessage);
+                            Log.Debug(logMessage);
 
                             return fee.Value * Settings.Default.Oracle.EthGasLimit;
                         }
@@ -188,7 +186,7 @@ namespace Phantasma.Spook.Oracles
                     _feeCache[platform] = fee;
 
                     var logMessage2 = $"PullFee({platform}): New fee pulled: {fee.Value}, GAS limit: {Settings.Default.Oracle.EthGasLimit}, calculated fee: {fee.Value * Settings.Default.Oracle.EthGasLimit}";
-                    logger.Debug(logMessage2);
+                    Log.Debug(logMessage2);
 
                     return fee.Value * Settings.Default.Oracle.EthGasLimit;
 
@@ -212,7 +210,7 @@ namespace Phantasma.Spook.Oracles
                 }
 
                 //var price = CryptoCompareUtils.GetCoinRate(symbol, DomainSettings.FiatTokenSymbol, apiKey);
-                var price = Pricer.GetCoinRate(symbol, DomainSettings.FiatTokenSymbol, apiKey, pricerCGEnabled, pricerSupportedTokens, logger);
+                var price = Pricer.GetCoinRate(symbol, DomainSettings.FiatTokenSymbol, apiKey, pricerCGEnabled, pricerSupportedTokens);
                 return price;
             }
 
@@ -255,14 +253,14 @@ namespace Phantasma.Spook.Oracles
                     }
 
                     var coldStorage = Settings.Default.Oracle.SwapColdStorageNeo;
-                    interopTuple = NeoInterop.MakeInteropBlock(logger, neoBlock, _cli.NeoAPI,
+                    interopTuple = NeoInterop.MakeInteropBlock(neoBlock, _cli.NeoAPI,
                             _cli.TokenSwapper.SwapAddresses[platformName], coldStorage);
                     break;
                 case EthereumWallet.EthereumPlatform:
                     var hashes = _cli.Nexus.GetPlatformTokenHashes(EthereumWallet.EthereumPlatform, _cli.Nexus.RootStorage)
                         .Select(x => x.ToString().Substring(0, 40)).ToArray();
                 
-                    interopTuple = EthereumInterop.MakeInteropBlock(_cli.Nexus, logger, _cli.EthAPI, height,
+                    interopTuple = EthereumInterop.MakeInteropBlock(_cli.Nexus, _cli.EthAPI, height,
                             hashes, Settings.Default.Oracle.EthConfirmations, _cli.TokenSwapper.SwapAddresses[platformName]);
                     break;
 
@@ -279,7 +277,7 @@ namespace Phantasma.Spook.Oracles
 
                 if (!initialStore)
                 {
-                    logger.Debug($"Oracle block { interopTuple.Item1.Hash } on platform { platformName } updated!");
+                    Log.Debug($"Oracle block { interopTuple.Item1.Hash } on platform { platformName } updated!");
                 }
 
                 foreach (var tx in transactions)
@@ -287,7 +285,7 @@ namespace Phantasma.Spook.Oracles
                     var txInitialStore = Persist<InteropTransaction>(platformName, chainName, tx.Hash, StorageConst.Transaction, tx);
                     if (!txInitialStore)
                     {
-                        logger.Debug($"Oracle block { interopTuple.Item1.Hash } on platform { platformName } updated!");
+                        Log.Debug($"Oracle block { interopTuple.Item1.Hash } on platform { platformName } updated!");
                     }
                 }
 
@@ -298,11 +296,11 @@ namespace Phantasma.Spook.Oracles
 
         protected override InteropTransaction PullPlatformTransaction(string platformName, string chainName, Hash hash)
         {
-            logger.Debug($"{platformName} pull tx: {hash}");
+            Log.Debug($"{platformName} pull tx: {hash}");
             InteropTransaction tx = Read<InteropTransaction>(platformName, chainName, hash, StorageConst.Transaction);
             if (tx != null && tx.Hash != Hash.Null)
             {
-                logger.Debug($"Found tx {hash} in oracle storage");
+                Log.Debug($"Found tx {hash} in oracle storage");
                 return tx;
             }
 
@@ -313,11 +311,11 @@ namespace Phantasma.Spook.Oracles
                     UInt256 uHash = new UInt256(NeoUtils.ReverseHex(hash.ToString()).HexToBytes());
                     neoTx = _cli.NeoAPI.GetTransaction(uHash);
                     var coldStorage = Settings.Default.Oracle.SwapColdStorageNeo;
-                    tx = NeoInterop.MakeInteropTx(logger, neoTx, _cli.NeoAPI, _cli.TokenSwapper.SwapAddresses[platformName], coldStorage);
+                    tx = NeoInterop.MakeInteropTx(neoTx, _cli.NeoAPI, _cli.TokenSwapper.SwapAddresses[platformName], coldStorage);
                     break;
                 case EthereumWallet.EthereumPlatform:
                     var txRcpt = _cli.EthAPI.GetTransactionReceipt(hash.ToString());
-                    tx = EthereumInterop.MakeInteropTx(_cli.Nexus, logger, txRcpt, _cli.EthAPI, _cli.TokenSwapper.SwapAddresses[platformName]);
+                    tx = EthereumInterop.MakeInteropTx(_cli.Nexus, txRcpt, _cli.EthAPI, _cli.TokenSwapper.SwapAddresses[platformName]);
                     break;
 
                 default:
@@ -326,7 +324,7 @@ namespace Phantasma.Spook.Oracles
 
             if (!Persist<InteropTransaction>(platformName, chainName, tx.Hash, StorageConst.Transaction, tx))
             {
-                logger.Error($"Oracle transaction { hash } on platform { platformName } updated!");
+                Log.Error($"Oracle transaction { hash } on platform { platformName } updated!");
             }
 
             return tx;

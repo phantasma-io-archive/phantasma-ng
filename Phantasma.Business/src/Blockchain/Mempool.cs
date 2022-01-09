@@ -10,6 +10,7 @@ using Phantasma.Core;
 using Phantasma.Core.Context;
 using Phantasma.Shared.Performance;
 using Serilog.Core;
+using Serilog;
 
 namespace Phantasma.Business
 {
@@ -266,7 +267,7 @@ namespace Phantasma.Business
         {
             if (Mempool.ValidatorAddress == Address.Null)
             {
-                Mempool.Logger.Error($"Validator keys not set for mempool");
+                Log.Error($"Validator keys not set for mempool");
                 return;
             }
 
@@ -278,7 +279,7 @@ namespace Phantasma.Business
 
             var minFee = Mempool.MinimumFee;
 
-            Mempool.Logger.Information($"Minting new block with {transactions.Count} potential transactions");
+            Log.Information($"Minting new block with {transactions.Count} potential transactions");
 
             while (transactions.Count > 0)
             {
@@ -349,7 +350,7 @@ namespace Phantasma.Business
                 }
                 catch (Exception e)
                 {
-                    Mempool.Logger.Error(e.ToString());
+                    Log.Error(e.ToString());
                 }
 
                 lock (_pending)
@@ -438,9 +439,7 @@ namespace Phantasma.Business
         public readonly int BlockTime; // in seconds
         public readonly uint DefaultPoW;
 
-        public Logger Logger { get; }
-
-        public Mempool(Nexus nexus, int blockTime, BigInteger minimumFee, byte[] payload, uint defaultPoW = 0, Logger logger = null, string profilerPath=null)
+        public Mempool(Nexus nexus, int blockTime, BigInteger minimumFee, byte[] payload, uint defaultPoW = 0, string profilerPath=null)
         {
             Throw.If(blockTime < MinimumBlockTime, "invalid block time");
 
@@ -450,14 +449,13 @@ namespace Phantasma.Business
             this.MinimumFee = minimumFee;
             this.DefaultPoW = defaultPoW;
             this.Payload = payload;
-            this.Logger = logger;
             this._profilerPath = profilerPath;
             this.SubmissionCallback = (tx, chain) =>
             {
-                Logger?.Error("transaction submission handler not setup correctly for mempool");
+                Log.Error("transaction submission handler not setup correctly for mempool");
             };
 
-            Logger?.Information($"Starting mempool with block time of {blockTime} seconds.");
+            Log.Information($"Starting mempool with block time of {blockTime} seconds.");
         }
 
         public void SetKeys(PhantasmaKeys keys)

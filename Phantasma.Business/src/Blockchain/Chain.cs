@@ -35,14 +35,12 @@ namespace Phantasma.Business
 
         public BigInteger Height => GetBlockHeight();
 
-        public readonly Logger Logger;
-
         public StorageContext Storage { get; private set; }
 
         public bool IsRoot => this.Name == DomainSettings.RootChainName;
         #endregion
 
-        public Chain(Nexus nexus, string name, Logger logger = null)
+        public Chain(Nexus nexus, string name)
         {
             Throw.IfNull(nexus, "nexus required");
 
@@ -52,16 +50,6 @@ namespace Phantasma.Business
             this.Address = Address.FromHash(this.Name);
 
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
-
-            if (logger == null)
-            {
-                // Dummy logger
-                this.Logger = new LoggerConfiguration().CreateLogger();
-            }
-            else
-            {
-                this.Logger = logger;
-            }
         }
 
         public IContract[] GetContracts(StorageContext storage)

@@ -14,6 +14,7 @@ using Phantasma.Infrastructure;
 using Phantasma.Infrastructure.Chains;
 using Phantasma.Spook.Interop;
 using Phantasma.Spook.Chains;
+using Serilog;
 
 namespace Phantasma.Spook.Command
 {
@@ -289,7 +290,7 @@ namespace Phantasma.Spook.Command
                 => new BasicDiskStore(fileStoragePath);
 
             Func<string, IKeyValueStoreAdapter> dbStorageFactory    = (name)
-                => new DBPartition(Spook.Logger, dbStoragePath);
+                => new DBPartition(dbStoragePath);
 
             Func<string, IKeyValueStoreAdapter> verificationStorageFactory = null;
             if (!string.IsNullOrEmpty(verificationPath))
@@ -318,7 +319,7 @@ namespace Phantasma.Spook.Command
 
             if (includeArchives > 0)
             {
-                Spook.Logger.Information("Starting copying archives...");
+                Log.Information("Starting copying archives...");
                 fileStorageArchives.Visit((key, value) =>
                 {
                     count++;
@@ -326,52 +327,52 @@ namespace Phantasma.Spook.Command
                     var val = dbStorageArchives.Get(key);
                     if (!CompareArchive(val, value))
                     {
-                        Spook.Logger.Information($"Archives: NewValue: {value.Hash} and oldValue: {val.Hash} differ, fail now!");
+                        Log.Information($"Archives: NewValue: {value.Hash} and oldValue: {val.Hash} differ, fail now!");
                         Environment.Exit(-1);
                     }
                 });
-                Spook.Logger.Information($"Finished copying {count} archives...");
+                Log.Information($"Finished copying {count} archives...");
                 count = 0;
             }
 
-            Spook.Logger.Information("Starting copying content items...");
+            Log.Information("Starting copying content items...");
             fileStorageContents.Visit((key, value) =>
             {
                 count++;
                 dbStorageContents.Set(key, value);
                 var val = dbStorageContents.Get(key);
-                Spook.Logger.Information("COUNT: " + count);
+                Log.Information("COUNT: " + count);
                 if (!CompareBA(val, value))
                 {
-                    Spook.Logger.Information($"CONTENTS: NewValue: {Encoding.UTF8.GetString(val)} and oldValue: {Encoding.UTF8.GetString(value)} differ, fail now!");
+                    Log.Information($"CONTENTS: NewValue: {Encoding.UTF8.GetString(val)} and oldValue: {Encoding.UTF8.GetString(value)} differ, fail now!");
                     Environment.Exit(-1);
                 }
             });
 
-            Spook.Logger.Information("Starting copying root...");
+            Log.Information("Starting copying root...");
             fileStorageRoot.Visit((key, value) =>
             {
                 count++;
                 StorageKey stKey = new StorageKey(key);
                 dbStorageRoot.Put(stKey, value);
-                Spook.Logger.Information("COUNT: " + count);
+                Log.Information("COUNT: " + count);
                 var val = dbStorageRoot.Get(stKey);
                 if (!CompareBA(val, value))
                 {
-                    Spook.Logger.Information($"ROOT: NewValue: {Encoding.UTF8.GetString(val)} and oldValue: {Encoding.UTF8.GetString(value)} differ, fail now!");
+                    Log.Information($"ROOT: NewValue: {Encoding.UTF8.GetString(val)} and oldValue: {Encoding.UTF8.GetString(value)} differ, fail now!");
                     Environment.Exit(-1);
                 }
             });
-            Spook.Logger.Information($"Finished copying {count} root items...");
+            Log.Information($"Finished copying {count} root items...");
             count = 0;
 
             if (!string.IsNullOrEmpty(verificationPath))
             {
-                Spook.Logger.Information($"Create verification stores");
+                Log.Information($"Create verification stores");
 
                 if (includeArchives > 0)
                 {
-                    Spook.Logger.Information("Start writing verify archives...");
+                    Log.Information("Start writing verify archives...");
                     dbStorageArchives.Visit((key, value) =>
                     {
                         count++;
@@ -386,29 +387,29 @@ namespace Phantasma.Spook.Command
                         value.SerializeData(bw);
                         fileStorageContentVerify.Set(key, ms.ToArray());
                     });
-                    Spook.Logger.Information($"Finished writing {count} archives...");
+                    Log.Information($"Finished writing {count} archives...");
                     count = 0;
                 }
 
-                Spook.Logger.Information("Start writing content items...");
+                Log.Information("Start writing content items...");
                 dbStorageContents.Visit((key, value) =>
                 {
                     count++;
-                    Spook.Logger.Information($"Content: {count}");
+                    Log.Information($"Content: {count}");
                     fileStorageContentVerify.Set(key, value);
                 });
-                Spook.Logger.Information($"Finished writing {count} content items...");
+                Log.Information($"Finished writing {count} content items...");
                 count = 0;
 
-                Spook.Logger.Information("Starting writing root...");
+                Log.Information("Starting writing root...");
                 dbStorageRoot.Visit((key, value) =>
                 {
                     count++;
                     StorageKey stKey = new StorageKey(key);
                     fileStorageRootVerify.Put(stKey, value);
-                    Spook.Logger.Information($"Wrote: {count}");
+                    Log.Information($"Wrote: {count}");
                 });
-                Spook.Logger.Information($"Finished writing {count} root items...");
+                Log.Information($"Finished writing {count} root items...");
             }
         }
 
