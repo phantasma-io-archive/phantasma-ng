@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using LunarLabs.Parser;
 
 namespace Phantasma.Shared.Utils
 {
@@ -40,35 +37,7 @@ namespace Phantasma.Shared.Utils
                 var key = temp[0];
                 var val = temp.Length > 1 ? temp[1] : null;
 
-                if (key == "config")
-                {
-                    if (File.Exists(val))
-                    {
-                        var root = DataFormats.LoadFromFile(val);
-                        if (root != null)
-                        {
-                            if (root.Name == "config")
-                            {
-                                root = root["config"];
-                            }
-
-                            var strings = root.Children.Select(x => $"{prefix}{x.Name}={x.Value} ").ToArray();
-                            LoadValues(strings, prefix);
-                        }
-                        else
-                        {
-                            throw new Exception($"Error loading config file: {val}");
-                        }
-                    }
-                    else
-                    {
-                        throw new Exception($"Could not find config file: {val}");
-                    }
-                }
-                else
-                {
-                    entries[key] = val;
-                }
+                entries[key] = val;
             }
         }
 

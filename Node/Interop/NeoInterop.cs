@@ -6,8 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
-using LunarLabs.Parser;
-
 using Phantasma.Core;
 using Phantasma.Infrastructure;
 using Phantasma.Infrastructure.Chains;

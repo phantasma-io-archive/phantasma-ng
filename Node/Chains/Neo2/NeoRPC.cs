@@ -1,6 +1,4 @@
-﻿using LunarLabs.Parser;
-using LunarLabs.Parser.JSON;
-using System;
+﻿using System;
 using System.Numerics;
 using System.Collections.Generic;
 using System.IO;
@@ -47,14 +45,6 @@ namespace Phantasma.Spook.Chains
         private static object rpcEndpointUpdateLocker = new object();
 
         protected abstract string GetRPCEndpoint();
-
-        private void LogData(DataNode node, int ident = 0)
-        {
-            var tabs = new string('\t', ident);
-            Logger($"{tabs}{node}");
-            foreach (DataNode child in node.Children)
-                LogData(child, ident + 1);
-        }
 
         public JsonDocument QueryRPC(string method, object[] _params, int id = 1, bool numeric = false, string node = null
                 , Action<string> chosenRpc = null)
@@ -476,7 +466,6 @@ namespace Phantasma.Spook.Chains
             var response = QueryRPC("getapplicationlog", new object[] { hash.ToString() });
             if (response.RootElement.TryGetProperty("result", out var resultProperty))
             {
-                //var json = LunarLabs.Parser.JSON.JSONReader.ReadFromString(response);
                 List<ApplicationLog> appLogList = new List<ApplicationLog>();
 
                 var executions = resultProperty.GetProperty("executions").EnumerateArray();
