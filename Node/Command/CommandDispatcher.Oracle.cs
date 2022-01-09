@@ -22,8 +22,8 @@ namespace Phantasma.Spook.Command
         protected void OnOracleGetPriceCommand(string[] args)
         {
             var apiKey = _cli.CryptoCompareAPIKey;
-            var pricerCGEnabled = _cli.Settings.Oracle.PricerCoinGeckoEnabled;
-            var pricerSupportedTokens = _cli.Settings.Oracle.PricerSupportedTokens.ToArray();
+            var pricerCGEnabled = Settings.Default.Oracle.PricerCoinGeckoEnabled;
+            var pricerSupportedTokens = Settings.Default.Oracle.PricerSupportedTokens.ToArray();
 
 
             Console.WriteLine($"Supported tokens:");
@@ -219,7 +219,7 @@ namespace Phantasma.Spook.Command
                     throw new Exception("Unknown platform: " + platform);
             }
 
-            var minimumFee = _cli.Settings.Node.MinimumFee;
+            var minimumFee = Settings.Default.Node.MinimumFee;
             var script = ScriptUtils.BeginScript()
                 .AllowGas(_cli.NodeKeys.Address, Address.Null, minimumFee, 1500)
                 .CallContract("interop", nameof(InteropContract.RegisterAddress), _cli.NodeKeys.Address, platform, localAddress, externalAddress)

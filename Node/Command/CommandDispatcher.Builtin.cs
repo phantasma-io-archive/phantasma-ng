@@ -100,12 +100,12 @@ namespace Phantasma.Spook.Command
                 if (file.Equals("history"))
                 {
 
-                    file = _cli.Settings.App.History;
+                    file = Settings.Default.App.History;
                 }
 
                 if (file.Equals("config"))
                 {
-                    file = _cli.Settings.App.Config;
+                    file = Settings.Default.App.Config;
 
                     if (string.IsNullOrEmpty(file))
                     {

@@ -99,7 +99,7 @@ namespace Phantasma.Spook.Interop
         {
             Swapper = swapper;
 
-            this.WIF = swapper.Settings.GetInteropWif(swapper.Nexus, swapper.SwapKeys, platformName);
+            this.WIF = Settings.Default.GetInteropWif(swapper.Nexus, swapper.SwapKeys, platformName);
             this.PlatformName = platformName;
             this.LocalAddress = swapper.FindAddress(platformName);
 
@@ -139,7 +139,6 @@ namespace Phantasma.Spook.Interop
         internal readonly OracleReader OracleReader;
 
         public readonly Spook Node;
-        public SpookSettings Settings => Node.Settings;
         public NexusAPI NexusAPI => Node.NexusAPI;
         public Nexus Nexus => Node.Nexus;
 
@@ -167,9 +166,9 @@ namespace Phantasma.Spook.Interop
 
             this.interopBlocks = new Dictionary<string, BigInteger>();
 
-            interopBlocks[DomainSettings.PlatformName] = BigInteger.Parse(Settings.Oracle.PhantasmaInteropHeight);
-            interopBlocks["neo"] = BigInteger.Parse(Settings.Oracle.NeoInteropHeight);
-            interopBlocks["ethereum"] = BigInteger.Parse(Settings.Oracle.EthInteropHeight);
+            interopBlocks[DomainSettings.PlatformName] = BigInteger.Parse(Settings.Default.Oracle.PhantasmaInteropHeight);
+            interopBlocks["neo"] = BigInteger.Parse(Settings.Default.Oracle.NeoInteropHeight);
+            interopBlocks["ethereum"] = BigInteger.Parse(Settings.Default.Oracle.EthInteropHeight);
 
             var inProgressMap = new StorageMap(InProgressTag, this.Storage);
 
@@ -286,11 +285,11 @@ namespace Phantasma.Spook.Interop
                         return;
                     }
 
-                    _swappers["neo"] = new NeoInterop(this, neoAPI, interopBlocks["neo"], Settings.Oracle.NeoQuickSync);
+                    _swappers["neo"] = new NeoInterop(this, neoAPI, interopBlocks["neo"], Settings.Default.Oracle.NeoQuickSync);
                     var platformInfo = Nexus.GetPlatformInfo(Nexus.RootStorage, "neo");
                     SwapAddresses["neo"] = platformInfo.InteropAddresses.Select(x => x.ExternalAddress).ToArray();
 
-                    _swappers["ethereum"] = new EthereumInterop(this, ethAPI, interopBlocks["ethereum"], Nexus.GetPlatformTokenHashes("ethereum", Nexus.RootStorage).Select(x => x.ToString().Substring(0, 40)).ToArray(), Settings.Oracle.EthConfirmations);
+                    _swappers["ethereum"] = new EthereumInterop(this, ethAPI, interopBlocks["ethereum"], Nexus.GetPlatformTokenHashes("ethereum", Nexus.RootStorage).Select(x => x.ToString().Substring(0, 40)).ToArray(), Settings.Default.Oracle.EthConfirmations);
                     platformInfo = Nexus.GetPlatformInfo(Nexus.RootStorage, "ethereum");
                     SwapAddresses["ethereum"] = platformInfo.InteropAddresses.Select(x => x.ExternalAddress).ToArray();
 

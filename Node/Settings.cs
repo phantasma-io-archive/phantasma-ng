@@ -7,15 +7,98 @@ using Phantasma.Business;
 using Phantasma.Shared.Types;
 using Phantasma.Shared.Utils;
 using Phantasma.Core;
-using LunarLabs.Parser;
-using LunarLabs.Parser.JSON;
 using Serilog.Events;
 using Serilog;
 using Serilog.Core;
+using Microsoft.Extensions.Configuration;
 
 namespace Phantasma.Spook
 {
-    public class SpookSettings
+    public static class ConfigurationBinder
+    {
+        public static T GetValueEx<T>(this IConfiguration configuration, string key, T defaultValue = default(T)) where T : struct, IConvertible
+        {
+            if (typeof(T) == typeof(Int32))
+            {
+                // If command line arguments are initialized,
+                // we try to get value from there, as it has a priority.
+                if (CliArgumets.Default != null && CliArgumets.Default.HasValue(key))
+                {
+                    return (T)(object)CliArgumets.Default.GetInt(key);
+                }
+
+                // Otherwise we proceed with configuration's data.
+                return (T)(object)configuration.GetValue<T>(key);
+            }
+
+            if (typeof(T) == typeof(UInt32))
+            {
+                // If command line arguments are initialized,
+                // we try to get value from there, as it has a priority.
+                if (CliArgumets.Default != null && CliArgumets.Default.HasValue(key))
+                {
+                    return (T)(object)CliArgumets.Default.GetUInt(key);
+                }
+
+                // Otherwise we proceed with configuration's data.
+                return (T)(object)configuration.GetValue<T>(key);
+            }
+
+            if (typeof(T) == typeof(bool))
+            {
+                // If command line arguments are initialized,
+                // we try to get value from there, as it has a priority.
+                if (CliArgumets.Default != null && CliArgumets.Default.HasValue(key))
+                {
+                    return (T)(object)CliArgumets.Default.GetBool(key);
+                }
+
+                // Otherwise we proceed with configuration's data.
+                return (T)(object)configuration.GetValue<T>(key);
+            }
+
+            if (typeof(T).IsEnum)
+            {
+                // If command line arguments are initialized,
+                // we try to get value from there, as it has a priority.
+                if (CliArgumets.Default != null && CliArgumets.Default.HasValue(key))
+                {
+                    var stringValue = CliArgumets.Default.GetString(key);
+                    Enum.Parse<T>(stringValue);
+                    return (T)(object)CliArgumets.Default.GetEnum<T>(key);
+                }
+
+                // Otherwise we proceed with configuration's data.
+                return (T)(object)configuration.GetValue<T>(key);
+            }
+
+            throw new Exception($"Type {typeof(T)} is not supported");
+        }
+        public static string GetString(this IConfiguration configuration, string key, string defaultValue = null)
+        {
+            // If command line arguments are initialized,
+            // we try to get value from there, as it has a priority.
+            if (CliArgumets.Default != null && CliArgumets.Default.HasValue(key))
+            {
+                return CliArgumets.Default.GetString(key);
+            }
+
+            // Otherwise we proceed with configuration's data.
+            return configuration.GetValue<string>(key, defaultValue);
+        }
+    }
+
+    internal class CliArgumets
+    {
+        public static Arguments Default { get; set; }
+
+        public CliArgumets(string[] args)
+        {
+            Default = new Arguments(args);
+        }
+    }
+
+    internal class Settings
     {
         public RPCSettings RPC { get; }
         public NodeSettings Node { get; }
@@ -24,12 +107,13 @@ namespace Phantasma.Spook
         public OracleSettings Oracle { get; }
         public SimulatorSettings Simulator { get; }
 
-        private Arguments _settings { get; }
         public string _configFile;
 
-        public SpookSettings(string[] args)
+        public static Settings Default { get; private set; }
+
+        private Settings(string[] args, IConfigurationSection section)
         {
-            _settings = new Arguments(args);
+            new CliArgumets(args);
 
             var levelSwitchConsole = new LoggingLevelSwitch
             {
@@ -40,19 +124,19 @@ namespace Phantasma.Spook
                 .WriteTo.Console(outputTemplate: "{Timestamp:u} {Timestamp:ffff} [{Level:u3}] <{ThreadId}> {Message:lj}{NewLine}{Exception}",
                     levelSwitch: levelSwitchConsole);
 
-            var logger = logConfig.CreateLogger();
+            Serilog.Log.Logger = logConfig.CreateLogger();
 
             var defaultConfigFile = "config.json";
 
-            this._configFile = _settings.GetString("conf", defaultConfigFile);
+            this._configFile = defaultConfigFile;
 
             if (!File.Exists(_configFile))
             {
-                logger.Error($"Expected configuration file to exist: {this._configFile}");
+                Serilog.Log.Error($"Expected configuration file to exist: {this._configFile}");
 
                 if (this._configFile == defaultConfigFile)
                 {
-                    logger.Warning($"Copy either config_mainnet.json or config_testnet.json and rename it to {this._configFile}");
+                    Serilog.Log.Warning($"Copy either config_mainnet.json or config_testnet.json and rename it to {this._configFile}");
                 }
 
                 Environment.Exit(-1);
@@ -60,16 +144,12 @@ namespace Phantasma.Spook
 
             try
             {
-                var json = File.ReadAllText(_configFile);
-                var root = JSONReader.ReadFromString(json);
-                root = root["ApplicationConfiguration"];
-
-                this.Node = new NodeSettings(_settings, FindSection(root, "Node", true));
-                this.Simulator = new SimulatorSettings(_settings, FindSection(root, "Simulator", false));
-                this.Oracle = new OracleSettings(_settings, FindSection(root, "Oracle", true));
-                this.App = new AppSettings(_settings, FindSection(root, "App", true));
-                this.Log = new LogSettings(_settings, FindSection(root, "Log", false));
-                this.RPC = new RPCSettings(_settings, FindSection(root, "RPC", true));
+                this.Node = new NodeSettings(section.GetSection("Node"));
+                this.Simulator = new SimulatorSettings(section.GetSection("Simulator"));
+                this.Oracle = new OracleSettings(section.GetSection("Oracle"));
+                this.App = new AppSettings(section.GetSection("App"));
+                this.Log = new LogSettings(section.GetSection("Log"));
+                this.RPC = new RPCSettings(section.GetSection("RPC"));
 
                 var usedPorts = new HashSet<int>();
                 int expected = 0;
@@ -84,28 +164,14 @@ namespace Phantasma.Spook
             }
             catch (Exception e)
             {
-                logger.Error(e.Message);
-                logger.Warning($"There were issues loading settings from {this._configFile}, aborting...");
+                Serilog.Log.Error(e, $"There were issues loading settings from {this._configFile}, aborting...");
                 Environment.Exit(-1);
             }
         }
 
-        private DataNode FindSection(DataNode root, string name, bool required)
+        public static void Load(string[] args, IConfigurationSection section)
         {
-            var section = root.GetNode(name);
-            if (section == null)
-            {
-                if (required)
-                {
-                    throw new Exception("Settings is missing section: " + name);
-                }
-                else
-                {
-                    section = DataNode.CreateObject(name);
-                }
-            }
-
-            return section;
+            Default = new Settings(args, section);
         }
 
         public string GetInteropWif(Nexus nexus, PhantasmaKeys nodeKeys, string platformName)
@@ -207,13 +273,13 @@ namespace Phantasma.Spook
 
         public bool WebLogs { get; }
 
-        public NodeSettings(Arguments settings, DataNode section)
+        public NodeSettings(IConfigurationSection section)
         {
-            this.WebLogs = settings.GetBool("web.log", section.GetBool("web.logs"));
+            this.WebLogs = section.GetValueEx<bool>("web.logs");
 
-            this.BlockTime = settings.GetInt("block.time", section.GetInt32("block.time"));
-            this.MinimumFee = settings.GetInt("minimum.fee", section.GetInt32("minimum.fee"));
-            this.MinimumPow = settings.GetInt("minimum.pow", section.GetInt32("minimum.pow"));
+            this.BlockTime = section.GetValueEx<Int32>("block.time");
+            this.MinimumFee = section.GetValueEx<Int32>("minimum.fee");
+            this.MinimumPow = section.GetValueEx<Int32>("minimum.pow");
 
             int maxPow = 5; // should be a constanct like MinimumBlockTime
             if (this.MinimumPow < 0 || this.MinimumPow > maxPow)
@@ -221,58 +287,61 @@ namespace Phantasma.Spook
                 throw new Exception("Proof-Of-Work difficulty has to be between 1 and 5");
             }
 
-            this.ApiProxyUrl = settings.GetString("api.proxy.url", section.GetString("api.proxy.url"));
+            this.ApiProxyUrl = section.GetString("api.proxy.url");
 
             if (string.IsNullOrEmpty(this.ApiProxyUrl))
             {
                 this.ApiProxyUrl = null;
             }
 
-            this.Seeds = section.GetNode("seeds").Children.Select(p => p.Value).ToList();
+            this.Seeds = section.GetSection("seeds").AsEnumerable()
+                .Where(p => p.Value != null)
+                .Select(p => p.Value)
+                .ToList();
 
-            this.Mode = settings.GetEnum<NodeMode>("node.mode", section.GetEnum<NodeMode>("node.mode", NodeMode.Invalid));
+            this.Mode = section.GetValueEx<NodeMode>("node.mode", NodeMode.Invalid);
             if (this.Mode == NodeMode.Invalid)
             {
                 throw new Exception("Unknown node mode specified");
             }
 
-            this.NexusName = settings.GetString("nexus.name", section.GetString("nexus.name"));
-            this.NodeWif = settings.GetString("node.wif", section.GetString("node.wif"));
-            this.StorageConversion = settings.GetBool("convert.storage", section.GetBool("convert.storage"));
-            this.ApiLog = settings.GetBool("api.log", section.GetBool("api.log"));
+            this.NexusName = section.GetString("nexus.name");
+            this.NodeWif = section.GetString("node.wif");
+            this.StorageConversion = section.GetValueEx<bool>("convert.storage");
+            this.ApiLog = section.GetValueEx<bool>("api.log");
 
-            this.NodePort = settings.GetInt("node.port", section.GetInt32("node.port"));
-            this.NodeHost = settings.GetString("node.host", section.GetString("node.host", "localhost"));
+            this.NodePort = section.GetValueEx<Int32>("node.port");
+            this.NodeHost = section.GetString("node.host", "localhost");
 
-            this.ProfilerPath = settings.GetString("profiler.path", section.GetString("profiler.path"));
+            this.ProfilerPath = section.GetString("profiler.path");
             if (string.IsNullOrEmpty(this.ProfilerPath)) this.ProfilerPath = null;
 
-            this.HasSync = settings.GetBool("has.sync", section.GetBool("has.sync"));
-            this.HasMempool = settings.GetBool("has.mempool", section.GetBool("has.mempool"));
-            this.MempoolLog = settings.GetBool("mempool.log", section.GetBool("mempool.log"));
-            this.HasEvents = settings.GetBool("has.events", section.GetBool("has.events"));
-            this.HasRelay = settings.GetBool("has.relay", section.GetBool("has.relay"));
-            this.HasArchive = settings.GetBool("has.archive", section.GetBool("has.archive"));
+            this.HasSync = section.GetValueEx<bool>("has.sync");
+            this.HasMempool = section.GetValueEx<bool>("has.mempool");
+            this.MempoolLog = section.GetValueEx<bool>("mempool.log");
+            this.HasEvents = section.GetValueEx<bool>("has.events");
+            this.HasRelay = section.GetValueEx<bool>("has.relay");
+            this.HasArchive = section.GetValueEx<bool>("has.archive");
 
-            this.HasRpc = settings.GetBool("has.rpc", section.GetBool("has.rpc"));
-            this.RpcPort = settings.GetInt("rpc.port", section.GetInt32("rpc.port"));
-            this.HasRest = settings.GetBool("has.rest", section.GetBool("has.rest"));
-            this.RestPort = settings.GetInt("rest.port", section.GetInt32("rest.port"));
+            this.HasRpc = section.GetValueEx<bool>("has.rpc");
+            this.RpcPort = section.GetValueEx<Int32>("rpc.port");
+            this.HasRest = section.GetValueEx<bool>("has.rest");
+            this.RestPort = section.GetValueEx<Int32>("rest.port");
 
-            this.NexusBootstrap = settings.GetBool("nexus.bootstrap", section.GetBool("nexus.bootstrap"));
-            this.GenesisTimestampUint = settings.GetUInt("genesis.timestamp", section.GetUInt32("genesis.timestamp"));
+            this.NexusBootstrap = section.GetValueEx<bool>("nexus.bootstrap");
+            this.GenesisTimestampUint = section.GetValueEx<UInt32>("genesis.timestamp");
             this.GenesisTimestamp = new Timestamp((this.GenesisTimestampUint == 0) ? Timestamp.Now.Value : this.GenesisTimestampUint);
-            this.ApiCache = settings.GetBool("api.cache", section.GetBool("api.cache"));
-            this.Readonly = settings.GetBool("readonly", section.GetBool("readonly"));
+            this.ApiCache = section.GetValueEx<bool>("api.cache");
+            this.Readonly = section.GetValueEx<bool>("readonly");
 
-            this.SenderHost = settings.GetString("sender.host", section.GetString("sender.host"));
-            this.SenderThreads = settings.GetUInt("sender.threads", section.GetUInt32("sender.threads"));
-            this.SenderAddressCount = settings.GetUInt("sender.address.count", section.GetUInt32("sender.address.count"));
+            this.SenderHost = section.GetString("sender.host");
+            this.SenderThreads = section.GetValueEx<UInt32>("sender.threads");
+            this.SenderAddressCount = section.GetValueEx<UInt32>("sender.address.count");
 
             var defaultStoragePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "/Storage/";
             var defaultOraclePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "/Oracle/";
 
-            this.StoragePath = settings.GetString("storage.path", section.GetString("storage.path"));
+            this.StoragePath = section.GetString("storage.path");
             if (string.IsNullOrEmpty(this.StoragePath))
             {
                 this.StoragePath = defaultStoragePath;
@@ -285,19 +354,19 @@ namespace Phantasma.Spook
 
             StoragePath = Path.GetFullPath(StoragePath);
 
-            this.VerifyStoragePath = settings.GetString("verify.storage.path", section.GetString("verify.storage.path"));
+            this.VerifyStoragePath = section.GetString("verify.storage.path");
             if (string.IsNullOrEmpty(this.VerifyStoragePath))
             {
                 this.VerifyStoragePath = defaultStoragePath;
             }
 
-            this.OraclePath = settings.GetString("oracle.path", section.GetString("oracle.path"));
+            this.OraclePath = section.GetString("oracle.path");
             if (string.IsNullOrEmpty(this.OraclePath))
             {
                 this.OraclePath = defaultOraclePath;
             }
 
-            var backend = settings.GetString("storage.backend", section.GetString("storage.backend"));
+            var backend = section.GetString("storage.backend");
             
             if (!Enum.TryParse<StorageBackendType>(backend, true, out this.StorageBackend))
             {
@@ -306,7 +375,7 @@ namespace Phantasma.Spook
 
             if (this.StorageConversion)
             {
-                this.RandomSwapData = section.GetBool("random.Swap.data");
+                this.RandomSwapData = section.GetValueEx<bool>("random.Swap.data");
             }
         }
     }
@@ -319,46 +388,16 @@ namespace Phantasma.Spook
 
     public class FeeUrl
     {
-        public FeeUrl(string url, string feeHeight, uint feeIncrease)
-        {
-            this.url = url;
-            this.feeHeight = feeHeight;
-            this.feeIncrease = feeIncrease;
-        }
-
         public string url { get; set; }
         public string feeHeight { get; set; }
         public uint feeIncrease { get; set; }
-
-        public static FeeUrl FromNode(DataNode node)
-        {
-            var url = node.GetString("url");
-            var feeHeight = node.GetString("feeHeight");
-            var feeIncrease = node.GetUInt32("feeIncrease");
-            return new FeeUrl(url, feeHeight, feeIncrease);
-        }
     }
 
     public class PricerSupportedToken
     {
-        public PricerSupportedToken(string ticker, string coingeckoId, string cryptocompareId)
-        {
-            this.ticker = ticker;
-            this.coingeckoId = coingeckoId;
-            this.cryptocompareId = cryptocompareId;
-        }
-
         public string ticker { get; set; }
         public string coingeckoId { get; set; }
         public string cryptocompareId { get; set; }
-
-        public static PricerSupportedToken FromNode(DataNode node)
-        {
-            var ticker = node.GetString("ticker");
-            var coingeckoId = node.GetString("coingeckoid");
-            var cryptocompareId = node.GetString("cryptocompareid");
-            return new PricerSupportedToken(ticker, coingeckoId, cryptocompareId);
-        }
     }
 
     public class OracleSettings
@@ -381,42 +420,39 @@ namespace Phantasma.Spook
         public uint EthGasLimit { get; }
         public bool NeoQuickSync { get; } = true;
         
-        public OracleSettings(Arguments settings, DataNode section)
+        public OracleSettings(IConfigurationSection section)
         {
-            this.NeoscanUrl = settings.GetString("neoscan.api", section.GetString("neoscan.api"));
-            this.NeoRpcNodes = section.GetNode("neo.rpc.specific.nodes").Children.Select(p => p.Value).ToList();
+            this.NeoscanUrl = section.GetString("neoscan.api");
+
+            this.NeoRpcNodes = section.GetSection("neo.rpc.specific.nodes").AsEnumerable().Where(x => x.Value != null).Select(x => x.Value).ToList();
 
             if (this.NeoRpcNodes.Count() == 0)
             {
-                this.NeoRpcNodes = section.GetNode("neo.rpc.nodes").Children
-                            .Select(p => p.Value)
-                            .ToList();
+                this.NeoRpcNodes = section.GetSection("neo.rpc.nodes").AsEnumerable().Where(x => x.Value != null).Select(x => x.Value).ToList();
                 this.NeoQuickSync = false;
             }
 
-            this.EthRpcNodes = section.GetNode("eth.rpc.nodes").Children
-                        .Select(p => p.Value)
-                        .ToList();
+            this.EthRpcNodes = section.GetSection("eth.rpc.nodes").AsEnumerable().Where(x => x.Value != null).Select(x => x.Value).ToList();
 
-            this.EthFeeURLs = section.GetNode("eth.fee.urls").Children.Select(x => FeeUrl.FromNode(x)).ToList();
+            this.EthFeeURLs = section.GetSection("eth.fee.urls").Get<FeeUrl[]>().ToList();
 
-            this.PricerCoinGeckoEnabled = settings.GetBool("pricer.coingecko.enabled", section.GetBool("pricer.coingecko.enabled"));
-            this.PricerSupportedTokens = section.GetNode("pricer.supportedtokens").Children.Select(x => PricerSupportedToken.FromNode(x)).ToList();
+            this.PricerCoinGeckoEnabled = section.GetValueEx<bool>("pricer.coingecko.enabled");
+            this.PricerSupportedTokens = section.GetSection("pricer.supportedtokens").Get<PricerSupportedToken[]>().ToList();
 
-            this.EthConfirmations = settings.GetUInt("eth.block.confirmations", section.GetUInt32("eth.block.confirmations"));
-            this.EthGasLimit = settings.GetUInt("eth.gas.limit", section.GetUInt32("eth.gas.limit"));
-            this.CryptoCompareAPIKey = settings.GetString("crypto.compare.key", section.GetString("crypto.compare.key"));
-            this.Swaps = settings.GetString("swap.platforms", section.GetString("swap.platforms"));
-            this.SwapColdStorageNeo = settings.GetString("swap.coldStorage.neo", section.GetString("swap.coldStorage.neo"));
-            this.PhantasmaInteropHeight = settings.GetString("phantasma.interop.height", section.GetString("phantasma.interop.height"));
-            this.NeoInteropHeight = settings.GetString("neo.interop.height", section.GetString("neo.interop.height"));
-            this.EthInteropHeight = settings.GetString("eth.interop.height", section.GetString("eth.interop.height"));
-            this.NeoWif = settings.GetString("neo.wif", section.GetString("neo.wif"));
+            this.EthConfirmations = section.GetValueEx<UInt32>("eth.block.confirmations");
+            this.EthGasLimit = section.GetValueEx<UInt32>("eth.gas.limit");
+            this.CryptoCompareAPIKey = section.GetString("crypto.compare.key");
+            this.Swaps = section.GetString("swap.platforms");
+            this.SwapColdStorageNeo = section.GetString("swap.coldStorage.neo");
+            this.PhantasmaInteropHeight = section.GetString("phantasma.interop.height");
+            this.NeoInteropHeight = section.GetString("neo.interop.height");
+            this.EthInteropHeight = section.GetString("eth.interop.height");
+            this.NeoWif = section.GetString("neo.wif");
             if (string.IsNullOrEmpty(this.NeoWif))
             {
                 this.NeoWif = null;
             }
-            this.EthWif = settings.GetString("eth.wif", section.GetString("eth.wif"));
+            this.EthWif = section.GetString("eth.wif");
             if (string.IsNullOrEmpty(this.EthWif))
             {
                 this.EthWif = null;
@@ -429,10 +465,10 @@ namespace Phantasma.Spook
         public bool Enabled { get; }
         public bool Blocks { get; }
 
-        public SimulatorSettings(Arguments settings, DataNode section)
+        public SimulatorSettings(IConfigurationSection section)
         {
-            this.Enabled = settings.GetBool("simulator.enabled", section.GetBool("simulator.enabled"));
-            this.Blocks = settings.GetBool("simulator.generate.blocks", section.GetBool("simulator.generate.blocks"));
+            this.Enabled = section.GetValueEx<bool>("simulator.enabled");
+            this.Blocks = section.GetValueEx<bool>("simulator.generate.blocks");
         }
     }
 
@@ -443,12 +479,12 @@ namespace Phantasma.Spook
         public LogEventLevel FileLevel { get; }
         public LogEventLevel ShellLevel { get; }
 
-        public LogSettings(Arguments settings, DataNode section)
+        public LogSettings(IConfigurationSection section)
         {
-            this.LogName = settings.GetString("file.name", section.GetString("file.name", "spook.log"));
-            this.LogPath = settings.GetString("file.path", section.GetString("file.path", Path.GetTempPath()));
-            this.FileLevel = settings.GetEnum<LogEventLevel>("file.level", section.GetEnum<LogEventLevel>("file.level", LogEventLevel.Verbose));
-            this.ShellLevel = settings.GetEnum<LogEventLevel>("shell.level", section.GetEnum<LogEventLevel>("shell.level", LogEventLevel.Information));
+            this.LogName = section.GetString("file.name", "spook.log");
+            this.LogPath = section.GetString("file.path", Path.GetTempPath());
+            this.FileLevel = section.GetValueEx<LogEventLevel>("file.level", LogEventLevel.Verbose);
+            this.ShellLevel = section.GetValueEx<LogEventLevel>("shell.level", LogEventLevel.Information);
         }
     }
 
@@ -461,14 +497,14 @@ namespace Phantasma.Spook
         public string Config { get; }
         public string Prompt { get; }
 
-        public AppSettings(Arguments settings, DataNode section)
+        public AppSettings(IConfigurationSection section)
         {
-            this.UseShell = settings.GetBool("shell.enabled", section.GetBool("shell.enabled"));
-            this.AppName = settings.GetString("app.name", section.GetString("app.name"));
-            this.NodeStart = settings.GetBool("node.start", section.GetBool("node.start"));
-            this.History = settings.GetString("history", section.GetString("history"));
-            this.Config = settings.GetString("config", section.GetString("config"));
-            this.Prompt = settings.GetString("prompt", section.GetString("prompt"));
+            this.UseShell = section.GetValueEx<bool>("shell.enabled");
+            this.AppName = section.GetString("app.name");
+            this.NodeStart = section.GetValueEx<bool>("node.start");
+            this.History = section.GetString("history");
+            this.Config = section.GetString("config");
+            this.Prompt = section.GetString("prompt");
         }
     }
 
@@ -477,10 +513,10 @@ namespace Phantasma.Spook
         public string Address { get; }
         public uint Port { get; }
 
-        public RPCSettings(Arguments settings, DataNode section)
+        public RPCSettings(IConfigurationSection section)
         {
-            this.Address = settings.GetString("rpc.address", section.GetString("rpc.address"));
-            this.Port = settings.GetUInt("rpc.port", section.GetUInt32("rpc.port"));
+            this.Address = section.GetString("rpc.address");
+            this.Port = section.GetValueEx<UInt32>("rpc.port");
         }
     }
 }

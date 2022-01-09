@@ -13,7 +13,7 @@ namespace Phantasma.Spook.Shell
     {
         private Spook _node;
 
-        public SpookShell(string[] args, SpookSettings conf, Spook node)
+        public SpookShell(string[] args, Spook node)
         {
             _node = node;
         }
