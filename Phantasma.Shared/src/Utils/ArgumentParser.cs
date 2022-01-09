@@ -129,7 +129,7 @@ namespace Phantasma.Shared.Utils
             return defaultVal;
         }
 
-        public bool GetBool(string key, bool defaultVal = false)
+        public bool GetBool(string key, bool defaultVal)
         {
             var temp = GetString(key, defaultVal.ToString());
             bool result;
@@ -137,17 +137,34 @@ namespace Phantasma.Shared.Utils
             return defaultVal;
         }
 
+        public bool GetBool(string key)
+        {
+            var temp = GetString(key, null, true);
+            return bool.Parse(temp);
+        }
+
         public T GetEnum<T>(string key, T defaultVal) where T : struct, IConvertible
         {
             if (!typeof(T).IsEnum)
             {
-                throw new ArgumentException("T must be an enumerated type");
+                throw new ArgumentException($"{typeof(T)} must be an enumerated type");
             }
 
             var temp = GetString(key, defaultVal.ToString());
             T result;
             if (Enum.TryParse<T>(temp, out result)) { return result; }
             return defaultVal;
+        }
+
+        public T GetEnum<T>(string key) where T : struct, IConvertible
+        {
+            if (!typeof(T).IsEnum)
+            {
+                throw new ArgumentException($"{typeof(T)} must be an enumerated type");
+            }
+
+            var temp = GetString(key);
+            return Enum.Parse<T>(temp);
         }
 
         public bool HasValue(string key)
