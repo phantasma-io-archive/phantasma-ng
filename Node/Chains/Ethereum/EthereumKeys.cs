@@ -47,15 +47,9 @@ namespace Phantasma.Spook.Chains
             return new EthereumKey(privateKey);
         }
 
-        private static System.Security.Cryptography.RNGCryptoServiceProvider rnd = new System.Security.Cryptography.RNGCryptoServiceProvider();
-
         public static EthereumKey Generate()
         {
-            var bytes = new byte[32];
-            lock (rnd)
-            {
-                rnd.GetBytes(bytes);
-            }
+            var bytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
             return new EthereumKey(bytes);
         }
 

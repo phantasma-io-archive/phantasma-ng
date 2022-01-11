@@ -9,8 +9,6 @@ namespace Phantasma.Spook.Oracles
     {
         public static decimal GetCoinRate(string baseSymbol, string quoteSymbol, PricerSupportedToken[] supportedTokens)
         {
-
-            string json;
             string baseticker = "";
 
             foreach (var token in supportedTokens)
