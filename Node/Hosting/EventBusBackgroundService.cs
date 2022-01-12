@@ -1,21 +1,34 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Hosting;
+using Foundatio.Extensions.Hosting.Startup;
 using Phantasma.Spook.Events;
+using Microsoft.Extensions.Hosting;
 
 namespace Phantasma.Spook.Hosting;
 
 public class EventBusBackgroundService : BackgroundService
 {
     private readonly IEventBus _bus;
+    private readonly StartupActionsContext _startupContext;
 
-    public EventBusBackgroundService(IEventBus bus)
+    public EventBusBackgroundService(
+        IEventBus bus,
+        StartupActionsContext startupContext
+    )
     {
         _bus = bus;
+        _startupContext = startupContext;
     }
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(
+        CancellationToken stoppingToken
+    )
     {
-        return _bus.Run(stoppingToken);
+        if (_startupContext != null)
+        {
+            await _startupContext.WaitForStartupAsync(stoppingToken);
+        }
+
+        await _bus.Run(stoppingToken);
     }
 }

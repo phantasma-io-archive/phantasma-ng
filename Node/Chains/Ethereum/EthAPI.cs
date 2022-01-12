@@ -10,6 +10,7 @@ using Nethereum.RPC.Eth.DTOs;
 using Nethereum.StandardTokenEIP20.ContractDefinition;
 
 using Phantasma.Core;
+using Phantasma.Infrastructure;
 
 namespace Phantasma.Spook.Chains
 {
@@ -54,14 +55,12 @@ namespace Phantasma.Spook.Chains
         public string LastError { get; protected set; }
         private List<string> urls = new List<string>();
         private List<Web3> web3Clients = new List<Web3>();
-        private Business.Nexus Nexus;
         private Account _account;
 
         private static Random rnd = new Random();
 
-        public EthAPI(Business.Nexus nexus, Account account)
+        public EthAPI(Account account)
         {
-            this.Nexus = nexus;
             this._account = account;
 
             this.urls = Settings.Default.Oracle.EthRpcNodes;
@@ -140,9 +139,11 @@ namespace Phantasma.Spook.Chains
 
         public EthTransferResult TryTransferAsset(string symbol, string toAddress, decimal amount, int decimals, out string result)
         {
+            var nexus = NexusAPI.GetNexus();
+
             if (symbol.Equals("ETH", StringComparison.InvariantCultureIgnoreCase))
             {
-                var bytes = Nexus.GetOracleReader().Read<byte[]>(DateTime.Now, DomainExtensions.GetOracleFeeURL("ethereum"));
+                var bytes = nexus.GetOracleReader().Read<byte[]>(DateTime.Now, DomainExtensions.GetOracleFeeURL("ethereum"));
                 var fees = new BigInteger(bytes);
                 var gasPrice = Core.UnitConversion.ToDecimal(fees / Settings.Default.Oracle.EthGasLimit, 9);
 
@@ -159,7 +160,7 @@ namespace Phantasma.Spook.Chains
                     nativeAsset = true;
                 }
 
-                var hash = Nexus.GetTokenPlatformHash(symbol, "ethereum", Nexus.RootStorage);
+                var hash = nexus.GetTokenPlatformHash(symbol, "ethereum", nexus.RootStorage);
 
                 if (hash.IsNull)
                 {
@@ -187,7 +188,7 @@ namespace Phantasma.Spook.Chains
                     var swapInHandler = GetWeb3Client().Eth.GetContractTransactionHandler<SwapInFunction>();
 
                     swapIn.Gas = Settings.Default.Oracle.EthGasLimit;
-                    var bytes = Nexus.GetOracleReader().Read<byte[]>(DateTime.Now, DomainExtensions.GetOracleFeeURL("ethereum"));
+                    var bytes = nexus.GetOracleReader().Read<byte[]>(DateTime.Now, DomainExtensions.GetOracleFeeURL("ethereum"));
                     var fees = new BigInteger(bytes);
                     swapIn.GasPrice = BigInteger.Parse(fees.ToString()) / swapIn.Gas;
 

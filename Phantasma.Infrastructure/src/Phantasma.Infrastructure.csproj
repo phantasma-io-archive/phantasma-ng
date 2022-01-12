@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Foundatio" Version="10.2.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
     <PackageReference Include="rocksdb" Version="6.17.3.16253" />
     <PackageReference Include="BouncyCastle.NetCore" Version="1.8.8" />
     <PackageReference Include="K4os.Compression.LZ4" Version="1.2.6" />

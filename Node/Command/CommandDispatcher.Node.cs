@@ -62,7 +62,9 @@ namespace Phantasma.Spook.Command
                 return;
             }
 
-            var genesisHash = _cli.Nexus.GetGenesisHash(_cli.Nexus.RootStorage);
+            var nexus = NexusAPI.GetNexus();
+
+            var genesisHash = nexus.GetGenesisHash(nexus.RootStorage);
             var interopKeys = InteropUtils.GenerateInteropKeys(PhantasmaKeys.FromWIF(wif), genesisHash, platformName);
 
             switch(platformName)
@@ -83,8 +85,10 @@ namespace Phantasma.Spook.Command
         [ConsoleCommand("get value", Category = "Node", Description = "Show governance value")]
         protected void OnGetValue(string[] args)
         {
+            var nexus = NexusAPI.GetNexus();
+
             var name = args[0];
-            var value = _cli.Nexus.GetGovernanceValue(_cli.Nexus.RootStorage, name);
+            var value = nexus.GetGovernanceValue(nexus.RootStorage, name);
 
             Console.WriteLine($"Value: {value}");
         }
@@ -92,8 +96,10 @@ namespace Phantasma.Spook.Command
         [ConsoleCommand("set value", Category = "Node", Description = "Set governance value")]
         protected void OnSetValue(string[] args)
         {
-            var chain = _cli.Nexus.GetChainByName(_cli.Nexus.RootChain.Name);
-            var fuelToken = _cli.Nexus.GetTokenInfo(_cli.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
+            var nexus = NexusAPI.GetNexus();
+
+            var chain = nexus.GetChainByName(nexus.RootChain.Name);
+            var fuelToken = nexus.GetTokenInfo(nexus.RootStorage, DomainSettings.FuelTokenSymbol);
             var balance = chain.GetTokenBalance(chain.Storage, fuelToken, _cli.NodeKeys.Address);
 
             if (balance == 0)
@@ -127,14 +133,16 @@ namespace Phantasma.Spook.Command
                 .SpendGas(_cli.NodeKeys.Address).EndScript();
 
             var expire = Timestamp.Now + TimeSpan.FromMinutes(2);
-            var tx = new Phantasma.Business.Transaction(_cli.Nexus.Name, _cli.Nexus.RootChain.Name, script, expire, Spook.TxIdentifier);
+            var tx = new Phantasma.Business.Transaction(nexus.Name, nexus.RootChain.Name, script, expire, Spook.TxIdentifier);
 
             tx.Mine((int)ProofOfWork.Minimal);
             tx.Sign(_cli.NodeKeys);
 
-            if (_cli.Mempool != null)
+            var mempool = NexusAPI.GetMempool(false);
+
+            if (mempool != null)
             {
-                _cli.Mempool.Submit(tx);
+                mempool.Submit(tx);
                 Console.WriteLine($"Transaction {tx.Hash} submitted to mempool.");
             }
             else
@@ -155,9 +163,11 @@ namespace Phantasma.Spook.Command
                 return;
             }
 
+            var tokenSwapper = NexusAPI.GetTokenSwapper();
+
             var sourceHash = Hash.Parse(args[0]);
 
-            var inProgressMap = new StorageMap(TokenSwapper.InProgressTag, _cli.TokenSwapper.Storage);
+            var inProgressMap = new StorageMap(TokenSwapper.InProgressTag, ((TokenSwapper)tokenSwapper).Storage);
 
             if (inProgressMap.ContainsKey<Hash>(sourceHash))
             {
@@ -170,9 +180,10 @@ namespace Phantasma.Spook.Command
         [ConsoleCommand("create token", Category = "Node", Description = "Create a token, foreign or native")]
         protected void OnCreatePlatformToken(string[] args)
         {
+            var nexus = NexusAPI.GetNexus();
 
-            var chain = _cli.Nexus.GetChainByName(_cli.Nexus.RootChain.Name);
-            var fuelToken = _cli.Nexus.GetTokenInfo(_cli.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
+            var chain = nexus.GetChainByName(nexus.RootChain.Name);
+            var fuelToken = nexus.GetTokenInfo(nexus.RootStorage, DomainSettings.FuelTokenSymbol);
             var balance = chain.GetTokenBalance(chain.Storage, fuelToken, _cli.NodeKeys.Address);
 
             if (balance == 0)
@@ -233,7 +244,7 @@ namespace Phantasma.Spook.Command
                     .SpendGas(_cli.NodeKeys.Address).EndScript();
 
                 var expire = Timestamp.Now + TimeSpan.FromMinutes(2);
-                tx = new Phantasma.Business.Transaction(_cli.Nexus.Name, _cli.Nexus.RootChain.Name, script, expire, Spook.TxIdentifier);
+                tx = new Phantasma.Business.Transaction(nexus.Name, nexus.RootChain.Name, script, expire, Spook.TxIdentifier);
             }
 
             if (tx != null)
@@ -241,9 +252,11 @@ namespace Phantasma.Spook.Command
                 tx.Mine((int)ProofOfWork.Minimal);
                 tx.Sign(_cli.NodeKeys);
 
-                if (_cli.Mempool != null)
+                var mompool = NexusAPI.GetMempool(false);
+
+                if (mompool != null)
                 {
-                    _cli.Mempool.Submit(tx);
+                    mompool.Submit(tx);
                 }
                 else
                 {

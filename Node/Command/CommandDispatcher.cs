@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using Phantasma.Spook.Modules;
 using Phantasma.Shared;
 using Serilog;
+using Phantasma.Infrastructure;
 
 namespace Phantasma.Spook.Command
 {
@@ -70,18 +71,26 @@ namespace Phantasma.Spook.Command
                 _instances.Add(name.ToLowerInvariant(), instance);
             }
 
-            var methodInfo = _cli.NexusAPI.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance);
-            foreach (var method in methodInfo)
+            var controllers = Assembly.GetExecutingAssembly().GetTypes()
+                .Where(type => typeof(Infrastructure.Controllers.BaseControllerV1).IsAssignableFrom(type));
+
+            MethodInfo[] methodInfo;
+
+            foreach (var controller in controllers)
             {
-                var attribute = new ConsoleCommandAttribute(method.Name.ToLower(), "NexusAPI", "api command");
-                var command = new ConsoleCommandMethod(instance, method, attribute);
-                if (!_verbs.TryGetValue(command.Key, out var commands))
+                methodInfo = controller.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+                foreach (var method in methodInfo)
                 {
-                    _verbs.Add(command.Key, new List<ConsoleCommandMethod>(new[] { command }));
-                }
-                else
-                {
-                    commands.Add(command);
+                    var attribute = new ConsoleCommandAttribute(method.Name.ToLower(), "NexusAPI", "api command");
+                    var command = new ConsoleCommandMethod(instance, method, attribute);
+                    if (!_verbs.TryGetValue(command.Key, out var commands))
+                    {
+                        _verbs.Add(command.Key, new List<ConsoleCommandMethod>(new[] { command }));
+                    }
+                    else
+                    {
+                        commands.Add(command);
+                    }
                 }
             }
 

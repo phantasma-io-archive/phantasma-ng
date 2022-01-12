@@ -1,50 +1,31 @@
-using Foundatio.Caching;
-using Foundatio.Messaging;
-using Foundatio.Serializer;
 using Grpc.Core;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.OpenApi.Models;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Phantasma.Business;
 using Phantasma.Core;
 using Phantasma.Infrastructure;
 using Phantasma.Infrastructure.Chains;
 using Phantasma.Shared;
-using Phantasma.Spook.Authentication;
-using Phantasma.Spook.Caching;
 using Phantasma.Spook.Chains;
 using Phantasma.Spook.Command;
 using Phantasma.Spook.Converters;
-using Phantasma.Spook.Events;
-using Phantasma.Spook.Hosting;
 using Phantasma.Spook.Interop;
-using Phantasma.Spook.Middleware;
 using Phantasma.Spook.Oracles;
 using Phantasma.Spook.Shell;
-using Phantasma.Spook.Swagger;
 using Phantasma.Spook.Utils;
 using Serilog;
-using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
-using System.Security.Principal;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Tendermint.Abci;
 using EthAccount = Nethereum.Web3.Accounts.Account;
-using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 using NeoAPI = Phantasma.Spook.Chains.NeoAPI;
 
 namespace Phantasma.Spook
@@ -62,40 +43,27 @@ namespace Phantasma.Spook
 
     public class Spook : Runnable
     {
-        private static readonly string ConfigDirectory = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".");
-        private static string ConfigFile => System.IO.Path.Combine(ConfigDirectory, "config.json");
-
         public static string Version { get; private set; }
         public static string TxIdentifier => $"SPK{Version}";
 
-        private Nexus _nexus;
-        private NexusAPI _nexusApi;
-        private Mempool _mempool = null;
         private PhantasmaKeys _nodeKeys;
         private bool _nodeReady = false;
         private List<string> _seeds = new List<string>();
         private NeoAPI _neoAPI;
         private EthAPI _ethAPI;
         private CommandDispatcher _commandDispatcher;
-        private TokenSwapper _tokenSwapper;
         private string _cryptoCompareAPIKey = null;
         private Thread _tokenSwapperThread;
         private Process _tendermintProcess;
 
-        public NexusAPI NexusAPI { get { return _nexusApi; } }
-        public Nexus Nexus { get { return _nexus; } }
         public NeoAPI NeoAPI { get { return _neoAPI; } }
         public EthAPI EthAPI { get { return _ethAPI; } }
         public string CryptoCompareAPIKey  { get { return _cryptoCompareAPIKey; } }
-        public TokenSwapper TokenSwapper { get { return _tokenSwapper; } }
-        public Mempool Mempool { get { return _mempool; } }
         public PhantasmaKeys NodeKeys { get { return _nodeKeys; } }
         public ABCIConnector ABCIConnector { get; private set; }
 
-        public Spook(string[] args)
+        public Spook()
         {
-            Settings.Load(args, new ConfigurationBuilder().AddJsonFile(ConfigFile, optional: false).AddEnvironmentVariables().Build().GetSection("ApplicationConfiguration"));
-
             this.ABCIConnector = new ABCIConnector();
         }
 
@@ -146,10 +114,10 @@ namespace Phantasma.Spook
 
             if (Settings.Default.Node.HasMempool && !Settings.Default.Node.Readonly)
             {
-                _mempool = SetupMempool();
+                SetupMempool();
             }
 
-            _nexusApi = SetupNexusApi();
+            SetupNexusApi();
 
             _commandDispatcher = SetupCommandDispatcher();
 
@@ -157,7 +125,7 @@ namespace Phantasma.Spook
 
             if (!string.IsNullOrEmpty(Settings.Default.Oracle.Swaps))
             {
-                _tokenSwapper = StartTokenSwapper();
+                StartTokenSwapper();
             }
         }
 
@@ -167,7 +135,7 @@ namespace Phantasma.Spook
             var minimumFee = Settings.Default.Node.MinimumFee;
             var oracleSettings = Settings.Default.Oracle;
             var tokenSwapper = new TokenSwapper(this, _nodeKeys, _neoAPI, _ethAPI, minimumFee, platforms);
-            _nexusApi.TokenSwapper = tokenSwapper;
+            NexusAPI.TokenSwapper = tokenSwapper;
 
             _tokenSwapperThread = new Thread(() =>
             {
@@ -224,10 +192,10 @@ namespace Phantasma.Spook
 
             var ethRpcList = Settings.Default.Oracle.EthRpcNodes;
             
-            var ethWIF = Settings.Default.GetInteropWif(Nexus, _nodeKeys, EthereumWallet.EthereumPlatform);
+            var ethWIF = Settings.Default.GetInteropWif(_nodeKeys, EthereumWallet.EthereumPlatform);
             var ethKeys = PhantasmaKeys.FromWIF("L4GcHJVrUPz6nW2EKJJGV2yxfa5UoaG8nfnaTAgzmWyuAmt3BYKg");
 
-            this._ethAPI = new EthAPI(this.Nexus, new EthAccount(ethKeys.PrivateKey.ToHex()));
+            this._ethAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()));
             this._cryptoCompareAPIKey = Settings.Default.Oracle.CryptoCompareAPIKey;
             if (!string.IsNullOrEmpty(this._cryptoCompareAPIKey))
             {
@@ -292,12 +260,12 @@ namespace Phantasma.Spook
             {
                 case StorageBackendType.CSV:
                     Log.Information("Setting CSV nexus...");
-                    _nexus = new Nexus(nexusName, (name) => new BasicDiskStore(storagePath + name + ".csv"));
+                    NexusAPI.Nexus = new Nexus(nexusName, (name) => new BasicDiskStore(storagePath + name + ".csv"));
                     break;
 
                 case StorageBackendType.RocksDB:
                     Log.Information("Setting RocksDB nexus...");
-                    _nexus = new Nexus(nexusName, (name) => new DBPartition(storagePath + name));
+                    NexusAPI.Nexus = new Nexus(nexusName, (name) => new DBPartition(storagePath + name));
                     break;
                 default:
                     throw new Exception("Backend has to be set to either \"db\" or \"file\"");
@@ -305,14 +273,14 @@ namespace Phantasma.Spook
 
             Log.Information("Nexus is set");
 
-            _nexus.SetOracleReader(new SpookOracle(this, _nexus));
+            NexusAPI.Nexus.SetOracleReader(new SpookOracle(this, NexusAPI.Nexus));
 
             return true;
         }
 
-        private Mempool SetupMempool()
+        private void SetupMempool()
         {
-            var mempool = new Mempool(_nexus
+            var mempool = new Mempool(NexusAPI.Nexus
                     , Settings.Default.Node.BlockTime
                     , Settings.Default.Node.MinimumFee
                     , System.Text.Encoding.UTF8.GetBytes(TxIdentifier)
@@ -331,220 +299,33 @@ namespace Phantasma.Spook
             {
                 mempool.StartInThread(ThreadPriority.AboveNormal);
             }
-            return mempool;
-
+            
+            NexusAPI.Mempool = mempool;
         }
 
         private void Mempool_OnTransactionFailed(Hash hash)
         {
-            if (!Running || _mempool == null)
+            if (!Running || NexusAPI.Mempool == null)
             {
                 return;
             }
 
-            var status = _mempool.GetTransactionStatus(hash, out string reason);
+            var status = NexusAPI.GetMempool().GetTransactionStatus(hash, out string reason);
             Log.Warning($"Rejected transaction {hash} => " + reason);
         }
 
-        private NexusAPI SetupNexusApi()
+        private void SetupNexusApi()
         {
             Log.Information($"Initializing nexus API...");
 
-            var apiCache = Settings.Default.Node.ApiCache;
-            var apiLog = Settings.Default.Node.ApiLog;
-            var apiProxyURL = Settings.Default.Node.ApiProxyUrl;
             var readOnlyMode = Settings.Default.Node.Readonly;
-            var hasRPC = Settings.Default.Node.HasRpc;
-            var hasREST = Settings.Default.Node.HasRest;
 
-            NexusAPI nexusApi = new NexusAPI(_nexus, apiCache, apiLog);
-
-            //if (apiProxyURL != null)
-            //{
-            //    nexusApi.ProxyURL = apiProxyURL;
-            //    // TEMP Normal node needs a proxy url set to relay transactions to the BPs
-            //    //nexusApi.Node = _node;
-            //    Logger.Message($"API will be acting as proxy for {apiProxyURL}");
-            //}
-            //else
-            //{
-            //    nexusApi.Node = _node;
-            //}
+            NexusAPI.ApiLog = Settings.Default.Node.ApiLog;
 
             if (readOnlyMode)
             {
                 Log.Warning($"Node will be running in read-only mode.");
             }
-            else
-            {
-                nexusApi.Mempool = _mempool;
-            }
-
-            // RPC setup
-            if (hasRPC)
-            {
-                //var rpcPort = Settings.Node.RpcPort;
-                //Logger.Information($"RPC server listening on port {rpcPort}...");
-                //var rpcServer = new RPCServer(nexusApi, "/rpc", rpcPort, (level, text) => WebLogMapper("rpc", level, text));
-                //rpcServer.StartInThread(ThreadPriority.AboveNormal);
-            }
-
-            // REST setup
-            if (hasREST)
-            {
-                Log.Information($"REST API enabled...");
-                var builder = WebApplication.CreateBuilder();
-                builder.Configuration.AddJsonFile(Settings.Default._configFile).AddEnvironmentVariables();
-                builder.WebHost.UseSerilog(Log.Logger);
-                builder.Services.AddAuthorization();
-                builder.Services.AddAuthentication().AddBasicAuthentication();
-                builder.Services.AddHttpContextAccessor();
-                builder.Services.AddTransient<IPrincipal>(sp =>
-                    sp.GetRequiredService<IHttpContextAccessor>().HttpContext?.User);
-                builder.Services.AddEndpointsApiExplorer();
-                builder.Services.AddHealthChecks();
-                builder.Services.Configure<JsonOptions>(options =>
-                {
-                    // Ensure settings here match GetDefaultSerializerOptions()
-                    options.SerializerOptions.IncludeFields = true;
-                    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-                    options.SerializerOptions.Converters.Add(new EnumerableJsonConverterFactory());
-                });
-                builder.Services.AddCors(options =>
-                {
-                    options.AddDefaultPolicy(policyBuilder =>
-                    {
-                        policyBuilder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-                    });
-                });
-                Log.Information($"REST API: Initializing endpoints...");
-                builder.Services.AddTransient<IApiEndpoint, NexusAPI>();
-
-                Log.Information($"REST API: Configuring cache...");
-                var redis = builder.Configuration.GetValue<string>("Redis");
-                if (!string.IsNullOrEmpty(redis))
-                {
-                    Log.Information("Using Redis cache");
-                    builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
-                        ConnectionMultiplexer.Connect(ConfigurationOptions.Parse(redis)));
-                    builder.Services.AddSingleton<ICacheClient>(sp => new RedisCacheClient(optionsBuilder =>
-                        optionsBuilder.ConnectionMultiplexer(sp.GetRequiredService<IConnectionMultiplexer>())
-                            .LoggerFactory(sp.GetRequiredService<ILoggerFactory>()).Serializer(
-                                new SystemTextJsonSerializer(GetDefaultSerializerOptions()))));
-                }
-                else
-                {
-                    Log.Information("Using in-memory cache");
-                    builder.Services.AddSingleton<ICacheClient>(sp => new InMemoryCacheClient(optionsBuilder =>
-                        optionsBuilder.CloneValues(true).MaxItems(10000)
-                            .LoggerFactory(sp.GetRequiredService<ILoggerFactory>()).Serializer(
-                                new SystemTextJsonSerializer(GetDefaultSerializerOptions()))));
-                }
-
-                builder.Services.AddSingleton<IMessageBus>(sp => new InMemoryMessageBus(optionsBuilder =>
-                    optionsBuilder.LoggerFactory(sp.GetRequiredService<ILoggerFactory>())));
-                builder.Services.AddSingleton<IMessagePublisher>(sp => sp.GetRequiredService<IMessageBus>());
-                builder.Services.AddSingleton<IMessageSubscriber>(sp => sp.GetRequiredService<IMessageBus>());
-                builder.Services.AddScoped<IEndpointCacheManager, EndpointCacheManager>();
-                builder.Services.AddSingleton<IEventBus, EventBus>();
-                builder.Services.AddHostedService<EventBusBackgroundService>();
-                builder.Services.AddSwaggerGen(c =>
-                {
-                    c.SwaggerDoc("v1",
-                        new OpenApiInfo
-                        {
-                            Title = "Phantasma API",
-                            Description = "",
-                            Version = "v1",
-                            Contact = new OpenApiContact
-                            {
-                                Name = "Phantasma",
-                                Url = new Uri("https://phantasma.io")
-                            }
-                        });
-                    c.SwaggerDoc("v1-internal",
-                        new OpenApiInfo { Title = "Phantasma API (Internal)", Version = "v1-internal" });
-                    c.DocumentFilter<InternalDocumentFilter>();
-                });
-                var app = builder.Build();
-
-                // Redirect home page to swagger documentation
-                app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
-
-                const string basePath = "/api/v1";
-                var httpMethods = new List<Type>
-                {
-                    typeof(HttpDeleteAttribute),
-                    typeof(HttpGetAttribute),
-                    //typeof(HttpHeadAttribute),
-                    //typeof(HttpOptionsAttribute),
-                    //typeof(HttpPatchAttribute),
-                    typeof(HttpPostAttribute),
-                    typeof(HttpPutAttribute)
-                };
-
-                var type = typeof(NexusAPI);
-                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance).Where(m =>
-                    m.GetCustomAttributes<APIInfoAttribute>().Any()).ToArray();
-
-                foreach (var method in methods)
-                {
-                    var attribute = method.GetCustomAttributes().FirstOrDefault(a => httpMethods.Contains(a.GetType())) ??
-                                    new HttpGetAttribute();
-
-                    var methodName = method.Name.ToLowerInvariant();
-                    var path = $"{basePath}/{methodName}";
-
-                    var handler = Delegate.CreateDelegate(
-                        Expression.GetDelegateType(method.GetParameters().Select(parameter => parameter.ParameterType)
-                            .Concat(new[] { method.ReturnType }).ToArray()),
-                        nexusApi, method);
-
-                    switch (attribute)
-                    {
-                        case HttpDeleteAttribute:
-                            app.MapDelete(path, handler);
-                            break;
-                        case HttpPostAttribute:
-                            app.MapPost(path, handler);
-                            break;
-                        case HttpPutAttribute:
-                            app.MapPut(path, handler);
-                            break;
-                        default:
-                            // Assume GET
-                            app.MapGet(path, handler);
-                            break;
-                    }
-                }
-
-                Log.Information($"API enabled. {methods.Length} methods available.");
-
-                app.UseSerilogRequestLogging();
-                app.UseCors();
-                app.UseAuthentication();
-                app.UseAuthorization();
-                app.UseMiddleware<SwaggerAuthorizationMiddleware>();
-                /*app.UseSwagger();
-                app.UseSwaggerUI(options =>
-                {
-                    options.RoutePrefix = "swagger";
-                    options.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
-                });
-                app.UseSwaggerUI(options =>
-                {
-                    options.RoutePrefix = "swagger-internal";
-                    options.SwaggerEndpoint("/swagger/v1-internal/swagger.json", "API v1 (Internal)");
-                });*/
-                app.UseMiddleware<ErrorLoggingMiddleware>();
-                app.UseMiddleware<CacheMiddleware>();
-                // TODO 20211123 RJ: Enabling this makes the Minimal API endpoints lose some middleware capabilities
-                //app.UseRouting();
-                //app.UseEndpoints(endpoints => { endpoints.MapHealthChecks("/health"); });
-                app.RunAsync();
-            }
-
-            return nexusApi;
         }
 
         private static JsonSerializerOptions GetDefaultSerializerOptions()
@@ -637,10 +418,10 @@ namespace Phantasma.Spook
         {
             Log.Information("Termination started...");
 
-            if (_mempool != null && _mempool.IsRunning)
+            if (NexusAPI.Mempool != null && NexusAPI.Mempool.IsRunning)
             {
                 Log.Information("Stopping mempool...");
-                _mempool.Stop();
+                NexusAPI.Mempool.Stop();
             }
 
             //if (_node != null && _node.IsRunning)

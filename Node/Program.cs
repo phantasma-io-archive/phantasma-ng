@@ -1,19 +1,69 @@
+﻿using System;
 using System.Globalization;
+using System.IO;
 using System.Threading;
-using Phantasma.Spook.Shell;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Phantasma.Spook;
+using Serilog;
+using Serilog.Events;
 
-namespace Phantasma.Spook
+namespace Phantasma.Spook;
+
+public class Program
 {
-    static class Program
+    public static IConfiguration Configuration { get; } = new ConfigurationBuilder()
+        .AddJsonFile("config.json", true, true)
+        .AddEnvironmentVariables()
+        .Build();
+
+    public static async Task<int> Main(
+        string[] args
+    )
     {
-        static void Main(string[] args)
+        Log.Logger = new LoggerConfiguration().MinimumLevel.Debug()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .CreateBootstrapLogger();
+
+        try
         {
             var culture = new CultureInfo("en-US");
             Thread.CurrentThread.CurrentCulture = culture;
             CultureInfo.DefaultThreadCurrentCulture = culture;
 
-            var node = new Spook(args);
-            node.Start();
+            Settings.Load(args, Configuration.GetSection("ApplicationConfiguration"));
+
+            Log.Information("Starting host");
+            await CreateHostBuilder(args).Build().RunAsync().ConfigureAwait(false);
+
+            return 0;
         }
+        catch (Exception e)
+        {
+            Log.Fatal(e, "Host terminated unexpectedly");
+
+            return 1;
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
+    }
+
+    public static IHostBuilder CreateHostBuilder(
+        string[] args
+    )
+    {
+        return Host.CreateDefaultBuilder(args)
+            .UseSerilog((
+                _,
+                _,
+                configuration
+            ) => configuration.ReadFrom.Configuration(Configuration.GetSection("ApplicationConfiguration")))
+            .ConfigureWebHostDefaults(webBuilder => webBuilder.UseConfiguration(Configuration).UseStartup<Startup>());
     }
 }

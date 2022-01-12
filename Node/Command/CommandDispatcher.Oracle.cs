@@ -13,6 +13,7 @@ using Phantasma.Infrastructure.Chains;
 using Phantasma.Shared.Types;
 using Phantasma.Spook.Oracles;
 using Serilog;
+using Phantasma.Infrastructure;
 
 namespace Phantasma.Spook.Command
 {
@@ -49,9 +50,11 @@ namespace Phantasma.Spook.Command
         [ConsoleCommand("oracle read", Category = "Oracle", Description="Read a transaction from an oracle")]
         protected void OnOracleReadCommand(string[] args)
         {
+            var nexus = NexusAPI.GetNexus();
+
             // currently neo only, revisit for eth 
             var hash = Hash.Parse(args[0]);
-            var reader = _cli.Nexus.GetOracleReader();
+            var reader = nexus.GetOracleReader();
             var tx = reader.ReadTransaction("neo", "neo", hash);
 
             // not sure if that's exactly what we want, probably needs more output...
@@ -61,7 +64,9 @@ namespace Phantasma.Spook.Command
         [ConsoleCommand("platform height get", Category = "Oracle", Description = "Get platform height")]
         protected void OnPlatformHeightGet(string[] args)
         {
-            var reader = _cli.Nexus.GetOracleReader();
+            var nexus = NexusAPI.GetNexus();
+
+            var reader = nexus.GetOracleReader();
 
             Console.WriteLine($"Platform {args[0]} [chain {args[1]}] current height: {reader.GetCurrentHeight(args[0], args[1])}");
         }
@@ -72,7 +77,9 @@ namespace Phantasma.Spook.Command
             Console.WriteLine($"Setting platform {args[0]} [chain {args[1]}] height {args[2]} ()...");
             lock (String.Intern("PendingSetCurrentHeight_" + args[0]))
             {
-                var reader = _cli.Nexus.GetOracleReader();
+                var nexus = NexusAPI.GetNexus();
+
+                var reader = nexus.GetOracleReader();
                 reader.SetCurrentHeight(args[0], args[1], args[2]);
 
                 Console.WriteLine($"Height {args[2]} is set for platform {args[0]}, chain {args[1]}");
@@ -83,7 +90,9 @@ namespace Phantasma.Spook.Command
         [ConsoleCommand("platform address list", Category = "Oracle", Description = "Get list of swap addresses for platform")]
         protected void OnPlatformAddressList(string[] args)
         {
-            var platform = _cli.Nexus.GetPlatformInfo(_cli.Nexus.RootStorage, args[0]);
+            var nexus = NexusAPI.GetNexus();
+
+            var platform = nexus.GetPlatformInfo(nexus.RootStorage, args[0]);
 
             for (int i=0; i<platform.InteropAddresses.Length; i++)
             {
@@ -112,7 +121,9 @@ namespace Phantasma.Spook.Command
                     continue;
                 }
 
-                _cli.TokenSwapper.ResyncBlockOnChain(platform, blockId);
+                var tokenSwapper = NexusAPI.GetTokenSwapper();
+
+                ((Interop.TokenSwapper)tokenSwapper).ResyncBlockOnChain(platform, blockId);
             }
         }
 
@@ -124,10 +135,12 @@ namespace Phantasma.Spook.Command
                 Console.WriteLine("File path needs to be given!");
             }
 
+            var nexus = NexusAPI.GetNexus();
+
             var filePath = args[0];
 
             var InProgressTag = ".inprogress";
-            var storage = new KeyStoreStorage(_cli.Nexus.CreateKeyStoreAdapter("swaps"));
+            var storage = new KeyStoreStorage(nexus.CreateKeyStoreAdapter("swaps"));
             var inProgressMap = new StorageMap(InProgressTag, storage);
             var csv = new StringBuilder();
 
@@ -146,8 +159,11 @@ namespace Phantasma.Spook.Command
             {
                 Console.WriteLine("File path needs to be given!");
             }
+
+            var nexus = NexusAPI.GetNexus();
+
             var InProgressTag = ".inprogress";
-            var storage = new KeyStoreStorage(_cli.Nexus.CreateKeyStoreAdapter("swaps"));
+            var storage = new KeyStoreStorage(nexus.CreateKeyStoreAdapter("swaps"));
             var inProgressMap = new StorageMap(InProgressTag, storage);
 
             var filePath = args[0];
@@ -183,8 +199,10 @@ namespace Phantasma.Spook.Command
 
             var sourceHash = Hash.Parse(sourceHashStr);
 
+            var nexus = NexusAPI.GetNexus();
+
             var InProgressTag = ".inprogress";
-            var storage = new KeyStoreStorage(_cli.Nexus.CreateKeyStoreAdapter("swaps"));
+            var storage = new KeyStoreStorage(nexus.CreateKeyStoreAdapter("swaps"));
             var inProgressMap = new StorageMap(InProgressTag, storage);
 
             if (inProgressMap.ContainsKey(sourceHash))
@@ -226,15 +244,18 @@ namespace Phantasma.Spook.Command
                 .CallContract("interop", nameof(InteropContract.RegisterAddress), _cli.NodeKeys.Address, platform, localAddress, externalAddress)
                 .SpendGas(_cli.NodeKeys.Address).EndScript();
 
+            var nexus = NexusAPI.GetNexus();
+            var mempool = NexusAPI.GetMempool(false);
+
             var expire = Timestamp.Now + TimeSpan.FromMinutes(2);
-            var tx = new Phantasma.Business.Transaction(_cli.Nexus.Name, _cli.Nexus.RootChain.Name, script, expire, Spook.TxIdentifier);
+            var tx = new Phantasma.Business.Transaction(nexus.Name, nexus.RootChain.Name, script, expire, Spook.TxIdentifier);
 
             tx.Mine((int)ProofOfWork.Minimal);
             tx.Sign(_cli.NodeKeys);
 
-            if (_cli.Mempool != null)
+            if (mempool != null)
             {
-                _cli.Mempool.Submit(tx);
+                mempool.Submit(tx);
                 Console.WriteLine($"Transaction {tx.Hash} submitted to mempool.");
             }
             else

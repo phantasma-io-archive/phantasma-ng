@@ -1,5 +1,46 @@
 {
+  "Kestrel": {
+    "Endpoints": {
+      "Http": {
+        "Url": "http://0.0.0.0:7078/"
+      }
+    }
+  },
   "ApplicationConfiguration": {
+    "Serilog": {
+      "Using": [ "Serilog.Sinks.Console", "Serilog.Sinks.File" ],
+      "MinimumLevel": {
+        "Default": "Information",
+        "Override": {
+          "Microsoft": "Warning"
+        }
+      },
+      "WriteTo": [
+        {
+          "Name": "Console",
+          "Args": {
+            "outputTemplate": "{Timestamp:u} {Timestamp:ffff} [{Level:u3}] <{ThreadId}> {Message:lj}{NewLine}{Exception}"
+          }
+        },
+        {
+          "Name": "File",
+          "Args": {
+            "path": "spook-.log",
+            "rollingInterval": "Day",
+            "outputTemplate": "{Timestamp:u} {Timestamp:ffff} [{Level:u3}] <{ThreadId}> {Message:lj}{NewLine}{Exception}"
+          }
+        }
+      ],
+      "Enrich": [ "FromLogContext", "WithMachineName", "WithThreadId" ],
+      "Properties": {
+        "Application": "GM API"
+      }
+    },
+    "PerformanceMetrics": {
+        "CountsEnabled": false,
+        "AveragesEnabled": false,
+        "LongRunningRequestThreshold": 500,
+    },
     "Node": {
       "web.logs": false,
       "block.time": 20,

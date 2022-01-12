@@ -11,6 +11,7 @@ using Serilog.Events;
 using Serilog;
 using Serilog.Core;
 using Microsoft.Extensions.Configuration;
+using Phantasma.Infrastructure;
 
 namespace Phantasma.Spook
 {
@@ -106,6 +107,7 @@ namespace Phantasma.Spook
         public LogSettings Log { get; }
         public OracleSettings Oracle { get; }
         public SimulatorSettings Simulator { get; }
+        public PerformanceMetricsSettings PerformanceMetrics { get; }
 
         public string _configFile;
 
@@ -150,6 +152,7 @@ namespace Phantasma.Spook
                 this.App = new AppSettings(section.GetSection("App"));
                 this.Log = new LogSettings(section.GetSection("Log"));
                 this.RPC = new RPCSettings(section.GetSection("RPC"));
+                this.PerformanceMetrics = section.GetSection("PerformanceMetrics").Get<PerformanceMetricsSettings>();
 
                 var usedPorts = new HashSet<int>();
                 int expected = 0;
@@ -172,37 +175,12 @@ namespace Phantasma.Spook
         public static void Load(string[] args, IConfigurationSection section)
         {
             Default = new Settings(args, section);
-
-            // Reinitialize logging using configuration that was just loaded
-            // TODO start using proper Serilog settings
-            var logPath = Settings.Default.Log.LogPath + Settings.Default.Log.LogName;
-
-            var levelSwitchConsole = new LoggingLevelSwitch
-            {
-                MinimumLevel = Settings.Default.Log.ShellLevel
-            };
-            var levelSwitchFile = new LoggingLevelSwitch
-            {
-                MinimumLevel = Settings.Default.Log.FileLevel
-            };
-
-            var logConfig = new LoggerConfiguration()
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-                .Enrich.WithThreadId()
-                .Destructure.ByTransforming<System.Text.Json.JsonDocument>(node => System.Text.Json.JsonSerializer.Serialize(node))
-                .WriteTo.Console(outputTemplate: "{Timestamp:u} {Timestamp:ffff} [{Level:u3}] <{ThreadId}> {Message:lj}{NewLine}{Exception}",
-                    levelSwitch: levelSwitchConsole)
-                .WriteTo.File(logPath,
-                    rollingInterval: RollingInterval.Day,
-                    outputTemplate: "{Timestamp:u} {Timestamp:ffff} [{Level:u3}] <{ThreadId}> {Message:lj}{NewLine}{Exception}",
-                    levelSwitch: levelSwitchFile);
-
-            Serilog.Log.Logger = logConfig.CreateLogger();
         }
 
-        public string GetInteropWif(Nexus nexus, PhantasmaKeys nodeKeys, string platformName)
+        public string GetInteropWif(PhantasmaKeys nodeKeys, string platformName)
         {
+            var nexus = NexusAPI.GetNexus();
+
             var genesisHash = nexus.GetGenesisHash(nexus.RootStorage);
             var interopKeys = InteropUtils.GenerateInteropKeys(nodeKeys, genesisHash, platformName);
             var defaultWif = interopKeys.ToWIF();
@@ -545,5 +523,12 @@ namespace Phantasma.Spook
             this.Address = section.GetString("rpc.address");
             this.Port = section.GetValueEx<UInt32>("rpc.port");
         }
+    }
+
+    public class PerformanceMetricsSettings
+    {
+        public bool CountsEnabled { get; set; }
+        public bool AveragesEnabled { get; set; }
+        public int LongRunningRequestThreshold { get; set; } = 500;
     }
 }

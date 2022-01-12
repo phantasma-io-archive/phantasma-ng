@@ -16,7 +16,7 @@ namespace Phantasma.Spook.Modules
     [Module("file")]
     public static class FileModule
     {
-        public static void Upload(string txIdentifier, PhantasmaKeys source, NexusAPI api, string[] args)
+        public static void Upload(string txIdentifier, PhantasmaKeys source, string[] args)
         {
             if (args.Length != 1)
             {
@@ -30,6 +30,8 @@ namespace Phantasma.Spook.Modules
                 throw new CommandException("File does not exist");
             }
 
+            var nexus = NexusAPI.GetNexus();
+
             var fileContent = File.ReadAllBytes(filePath);
             var contentMerkle = new MerkleTree(fileContent);
 
@@ -40,14 +42,16 @@ namespace Phantasma.Spook.Modules
                 CallContract("storage", "UploadFile", source.Address, fileName, fileContent.Length, contentMerkle, new byte[0]).
                 SpendGas(source.Address).
                 EndScript();
-            var tx = new Transaction(api.Nexus.Name, "main", script, Timestamp.Now + TimeSpan.FromMinutes(5), txIdentifier);
+            var tx = new Transaction(nexus.Name, "main", script, Timestamp.Now + TimeSpan.FromMinutes(5), txIdentifier);
             tx.Sign(source);
             var rawTx = tx.ToByteArray(true);
+
+            var transactionController = new Infrastructure.Controllers.TransactionController();
 
             Log.Information($"Uploading {fileName}...");
             try
             {
-                api.SendRawTransaction(Base16.Encode(rawTx));
+                transactionController.SendRawTransaction(Base16.Encode(rawTx));
             }
             catch (Exception e)
             {
@@ -60,7 +64,7 @@ namespace Phantasma.Spook.Modules
             {
                 try
                 {
-                    var result = api.GetTransaction(hash);
+                    var result = transactionController.GetTransaction(hash);
                 }
                 catch (Exception e)
                 {
@@ -85,14 +89,15 @@ namespace Phantasma.Spook.Modules
             } while (true);
 
             var archiveHash = contentMerkle.Root.ToString();
-            var archive = (ArchiveResult)api.GetArchive(archiveHash);
+            var storageController = new Infrastructure.Controllers.StorageController();
+            var archive = (ArchiveResult)storageController.GetArchive(archiveHash);
             for (int i = 0; i < archive.blockCount; i++)
             {
                 var ofs = (int)(i * Archive.BlockSize);
                 var blockContent = fileContent.Skip(ofs).Take((int)Archive.BlockSize).ToArray();
 
                 Log.Information($"Writing block {i+1} out of {archive.blockCount}");
-                api.WriteArchive(archiveHash, i, Base16.Encode(blockContent));
+                storageController.WriteArchive(archiveHash, i, Base16.Encode(blockContent));
             }
 
             Log.Information($"File uploaded successfully!");

@@ -1,3 +1,4 @@
+using Phantasma.Infrastructure;
 using System;
 
 namespace Phantasma.Spook.Command
@@ -7,7 +8,9 @@ namespace Phantasma.Spook.Command
         [ConsoleCommand("mempool list", Category = "Mempool", Description="List all transactions currently in mempool")]
         protected void OnMempoolListCommand(string[] args)
         {
-            foreach (var tx in _cli.Mempool.GetTransactions())
+            var mempool = NexusAPI.GetMempool();
+
+            foreach (var tx in mempool.GetTransactions())
             {
                 Console.WriteLine(tx.ToString());
             }

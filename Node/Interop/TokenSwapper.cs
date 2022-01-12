@@ -90,14 +90,13 @@ namespace Phantasma.Spook.Interop
         public readonly TokenSwapper Swapper;
         public readonly string LocalAddress;
         public readonly string WIF;
-        public Nexus Nexus => Swapper.Nexus;
         public OracleReader OracleReader => Swapper.OracleReader;
 
         protected ChainSwapper(TokenSwapper swapper, string platformName)
         {
             Swapper = swapper;
 
-            this.WIF = Settings.Default.GetInteropWif(swapper.Nexus, swapper.SwapKeys, platformName);
+            this.WIF = Settings.Default.GetInteropWif(swapper.SwapKeys, platformName);
             this.PlatformName = platformName;
             this.LocalAddress = swapper.FindAddress(platformName);
 
@@ -136,8 +135,6 @@ namespace Phantasma.Spook.Interop
         internal readonly OracleReader OracleReader;
 
         public readonly Spook Node;
-        public NexusAPI NexusAPI => Node.NexusAPI;
-        public Nexus Nexus => Node.Nexus;
 
         internal readonly StorageContext Storage;
         private readonly BigInteger MinimumFee;
@@ -152,14 +149,16 @@ namespace Phantasma.Spook.Interop
 
         public TokenSwapper(Spook node, PhantasmaKeys swapKey, NeoAPI neoAPI, EthAPI ethAPI, BigInteger minFee, string[] supportedPlatforms)
         {
+            var nexus = NexusAPI.GetNexus();
+
             this.Node = node;
             this.SwapKeys = swapKey;
-            this.OracleReader = Nexus.GetOracleReader();
+            this.OracleReader = nexus.GetOracleReader();
             this.MinimumFee = minFee;
             this.neoAPI = neoAPI;
             this.ethAPI = ethAPI;
 
-            this.Storage = new KeyStoreStorage(Nexus.CreateKeyStoreAdapter("swaps"));
+            this.Storage = new KeyStoreStorage(nexus.CreateKeyStoreAdapter("swaps"));
 
             this.interopBlocks = new Dictionary<string, BigInteger>();
 
@@ -197,15 +196,17 @@ namespace Phantasma.Spook.Interop
 
         internal IToken FindTokenByHash(string asset, string platform)
         {
+            var nexus = NexusAPI.GetNexus();
+
             var hash = Hash.FromUnpaddedHex(asset);
-            var symbols = Nexus.GetTokens(Nexus.RootStorage);
+            var symbols = nexus.GetTokens(nexus.RootStorage);
 
             foreach (var symbol in symbols)
             {
-                var otherHash = Nexus.GetTokenPlatformHash(symbol, platform, Nexus.RootStorage);
+                var otherHash = nexus.GetTokenPlatformHash(symbol, platform, nexus.RootStorage);
                 if (hash == otherHash)
                 {
-                    return Nexus.GetTokenInfo(Nexus.RootStorage, symbol);
+                    return nexus.GetTokenInfo(nexus.RootStorage, symbol);
                 }
             }
 
@@ -266,15 +267,17 @@ namespace Phantasma.Spook.Interop
         {
             try
             {
+                var nexus = NexusAPI.GetNexus();
+
                 if (this.platforms == null)
                 {
-                    if (!Nexus.HasGenesis)
+                    if (!nexus.HasGenesis)
                     {
                         return;
                     }
 
-                    var platforms = Nexus.GetPlatforms(Nexus.RootStorage);
-                    this.platforms = platforms.Select(x => Nexus.GetPlatformInfo(Nexus.RootStorage, x)).ToArray();
+                    var platforms = nexus.GetPlatforms(nexus.RootStorage);
+                    this.platforms = platforms.Select(x => nexus.GetPlatformInfo(nexus.RootStorage, x)).ToArray();
 
                     if (this.platforms.Length == 0)
                     {
@@ -283,11 +286,11 @@ namespace Phantasma.Spook.Interop
                     }
 
                     _swappers["neo"] = new NeoInterop(this, neoAPI, interopBlocks["neo"], Settings.Default.Oracle.NeoQuickSync);
-                    var platformInfo = Nexus.GetPlatformInfo(Nexus.RootStorage, "neo");
+                    var platformInfo = nexus.GetPlatformInfo(nexus.RootStorage, "neo");
                     SwapAddresses["neo"] = platformInfo.InteropAddresses.Select(x => x.ExternalAddress).ToArray();
 
-                    _swappers["ethereum"] = new EthereumInterop(this, ethAPI, interopBlocks["ethereum"], Nexus.GetPlatformTokenHashes("ethereum", Nexus.RootStorage).Select(x => x.ToString().Substring(0, 40)).ToArray(), Settings.Default.Oracle.EthConfirmations);
-                    platformInfo = Nexus.GetPlatformInfo(Nexus.RootStorage, "ethereum");
+                    _swappers["ethereum"] = new EthereumInterop(this, ethAPI, interopBlocks["ethereum"], nexus.GetPlatformTokenHashes("ethereum", nexus.RootStorage).Select(x => x.ToString().Substring(0, 40)).ToArray(), Settings.Default.Oracle.EthConfirmations);
+                    platformInfo = nexus.GetPlatformInfo(nexus.RootStorage, "ethereum");
                     SwapAddresses["ethereum"] = platformInfo.InteropAddresses.Select(x => x.ExternalAddress).ToArray();
 
                     Log.Information("Available swap addresses:");
@@ -505,7 +508,9 @@ namespace Phantasma.Spook.Interop
                 }
             }
 
-            var hash = (Hash)Nexus.RootChain.InvokeContract(Nexus.RootStorage, "interop", nameof(InteropContract.GetSettlement), sourcePlatform, sourceHash).ToObject();
+            var nexus = NexusAPI.GetNexus();
+
+            var hash = (Hash)nexus.RootChain.InvokeContract(nexus.RootStorage, "interop", nameof(InteropContract.GetSettlement), sourcePlatform, sourceHash).ToObject();
             if (hash != Hash.Null && !settlements.ContainsKey<Hash>(sourceHash))
             {
                 // This modification should be locked when GetSettleHash() is called from SettleSwap(),
@@ -523,7 +528,9 @@ namespace Phantasma.Spook.Interop
                 SpendGas(SwapKeys.Address).
                 EndScript();
 
-            var tx = new Business.Transaction(Nexus.Name, "main", script, Timestamp.Now + TimeSpan.FromMinutes(5), Spook.TxIdentifier);
+            var nexus = NexusAPI.GetNexus();
+
+            var tx = new Business.Transaction(nexus.Name, "main", script, Timestamp.Now + TimeSpan.FromMinutes(5), Spook.TxIdentifier);
             tx.Sign(SwapKeys);
 
             var bytes = tx.ToByteArray(true);
@@ -531,7 +538,8 @@ namespace Phantasma.Spook.Interop
             var txData = Base16.Encode(bytes);
             try
             {
-                this.NexusAPI.SendRawTransaction(txData);
+                var transactionController = new Infrastructure.Controllers.TransactionController();
+                transactionController.SendRawTransaction(txData);
             }
             catch(Exception ex)
             {
@@ -582,7 +590,9 @@ namespace Phantasma.Spook.Interop
 
             }
 
-            var hashes = Nexus.RootChain.GetSwapHashesForAddress(Nexus.RootChain.Storage, address);
+            var nexus = NexusAPI.GetNexus();
+
+            var hashes = nexus.RootChain.GetSwapHashesForAddress(nexus.RootChain.Storage, address);
             Log.Debug($"Have {hashes.Length} for address {address}.");
             foreach (var hash in hashes)
             {
@@ -592,7 +602,7 @@ namespace Phantasma.Spook.Interop
                     continue;
                 }
 
-                var swap = Nexus.RootChain.GetSwap(Nexus.RootChain.Storage, hash);
+                var swap = nexus.RootChain.GetSwap(nexus.RootChain.Storage, hash);
                 if (swap.destinationHash != Hash.Null)
                 {
                     Log.Debug($"Ignoring swap with hash {swap.sourceHash}");
@@ -631,7 +641,9 @@ namespace Phantasma.Spook.Interop
 
             var transfer = transfers[0];
 
-            var token = Nexus.GetTokenInfo(Nexus.RootStorage, transfer.Symbol);
+            var nexus = NexusAPI.GetNexus();
+
+            var token = nexus.GetTokenInfo(nexus.RootStorage, transfer.Symbol);
 
             lock (StateModificationLock)
             {
@@ -689,7 +701,8 @@ namespace Phantasma.Spook.Interop
                     {
                         try
                         {
-                            var result = this.NexusAPI.GetTransaction(swap.settleHash.ToString());
+                            var transactionController = new Infrastructure.Controllers.TransactionController();
+                            var result = transactionController.GetTransaction(swap.settleHash.ToString());
 
                             var tx = (TransactionResult)result;
                             swap.status = SwapStatus.Finished;

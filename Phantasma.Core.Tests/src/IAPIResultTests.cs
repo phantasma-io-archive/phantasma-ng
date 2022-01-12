@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 using Xunit;
 using static Phantasma.Core.WalletLink;
 
-namespace GhostDevs.MP.Tests
+namespace Phantasma.Core.Tests
 {
 
     public class apiResultSerializationTests

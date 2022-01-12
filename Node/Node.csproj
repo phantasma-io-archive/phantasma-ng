@@ -27,6 +27,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Foundatio" Version="10.2.5" />
+    <PackageReference Include="Foundatio.Extensions.Hosting" Version="10.2.5" />
     <PackageReference Include="Foundatio.Redis" Version="10.2.3" />
     <PackageReference Include="BouncyCastle" Version="1.8.9">
      <NoWarn>NU1701</NoWarn>

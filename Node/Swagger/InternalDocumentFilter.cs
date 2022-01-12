@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
@@ -43,9 +44,22 @@ public class InternalDocumentFilter : IDocumentFilter
             // Drop the entire route of there are no operations left
             if (!swaggerDoc.Paths[key].Operations.Any()) swaggerDoc.Paths.Remove(key);
 
-            var referenceSchema = swaggerDoc.Paths.SelectMany(p => p.Value.Operations.Values)
-                .SelectMany(o => o.Responses.Values).SelectMany(r => r.Content.Values).Select(c => c.Schema)
-                .SelectMany(x => x.EnumerateSchema(swaggerDoc.Components.Schemas)).ToArray();
+            var operations = swaggerDoc.Paths.SelectMany(p => p.Value.Operations.Values).ToArray();
+
+            var responses = operations.SelectMany(o => o.Responses.Values)
+                .SelectMany(r => r.Content.Values)
+                .Select(c => c.Schema)
+                .SelectMany(x => x.EnumerateSchema(swaggerDoc.Components.Schemas))
+                .ToArray();
+
+            var requests = operations.Where(o => o.RequestBody != null)
+                .SelectMany(o => o.RequestBody.Content.Values)
+                .Select(c => c.Schema)
+                .SelectMany(x => x.EnumerateSchema(swaggerDoc.Components.Schemas))
+                .ToArray();
+
+            var referenceSchema = new List<OpenApiSchema>(responses);
+            referenceSchema.AddRange(requests);
 
             var list1 = referenceSchema.Where(s => s.Reference != null).Select(s => s.Reference.Id).ToList();
             var list2 = referenceSchema.Where(s => s.Items?.Reference != null).Select(s => s.Items.Reference.Id)
