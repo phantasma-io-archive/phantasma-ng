@@ -23,15 +23,6 @@ namespace Phantasma.Infrastructure
 
         public const int PaginationMaxResults = 99999;
 
-        // NOTE - Nexus should be null only for proxy-mode
-        /*public NexusAPI(Nexus nexus = null, bool apiLog = false)
-        {
-            Nexus = nexus;
-            this.logger = apiLog ? Log.Logger : null;
-
-            logger?.Information($"Phantasma API enabled");
-        }*/
-
         public static string ExternalHashToString(string platform, Hash hash, string symbol)
         {
             var result = hash.ToString();

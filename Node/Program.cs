@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Globalization;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Phantasma.Spook;
 using Serilog;
 using Serilog.Events;
 
