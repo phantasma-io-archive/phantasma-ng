@@ -12,10 +12,10 @@ using Phantasma.Business;
 using Phantasma.Business.Contracts;
 using Phantasma.Infrastructure.Chains;
 using Phantasma.Infrastructure;
-using Phantasma.Spook.Chains;
+using Phantasma.Node.Chains;
 using Serilog;
 
-namespace Phantasma.Spook.Interop
+namespace Phantasma.Node.Interop
 {
     public enum SwapStatus
     {
@@ -134,7 +134,7 @@ namespace Phantasma.Spook.Interop
         internal readonly PhantasmaKeys SwapKeys;
         internal readonly OracleReader OracleReader;
 
-        public readonly Spook Node;
+        public readonly Node Node;
 
         internal readonly StorageContext Storage;
         private readonly BigInteger MinimumFee;
@@ -147,7 +147,7 @@ namespace Phantasma.Spook.Interop
 
         private HashSet<string> _supportedPlatforms = new HashSet<string>();
 
-        public TokenSwapper(Spook node, PhantasmaKeys swapKey, NeoAPI neoAPI, EthAPI ethAPI, BigInteger minFee, string[] supportedPlatforms)
+        public TokenSwapper(Node node, PhantasmaKeys swapKey, NeoAPI neoAPI, EthAPI ethAPI, BigInteger minFee, string[] supportedPlatforms)
         {
             var nexus = NexusAPI.GetNexus();
 
@@ -530,7 +530,7 @@ namespace Phantasma.Spook.Interop
 
             var nexus = NexusAPI.GetNexus();
 
-            var tx = new Business.Transaction(nexus.Name, "main", script, Timestamp.Now + TimeSpan.FromMinutes(5), Spook.TxIdentifier);
+            var tx = new Business.Transaction(nexus.Name, "main", script, Timestamp.Now + TimeSpan.FromMinutes(5), Node.TxIdentifier);
             tx.Sign(SwapKeys);
 
             var bytes = tx.ToByteArray(true);
@@ -704,7 +704,7 @@ namespace Phantasma.Spook.Interop
                             var transactionController = new Infrastructure.Controllers.TransactionController();
                             var result = transactionController.GetTransaction(swap.settleHash.ToString());
 
-                            var tx = (TransactionResult)result;
+                            var tx = (Phantasma.Infrastructure.TransactionResult)result;
                             swap.status = SwapStatus.Finished;
                         }
                         catch (Exception ex)

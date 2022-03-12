@@ -13,7 +13,7 @@ using Serilog.Core;
 using Microsoft.Extensions.Configuration;
 using Phantasma.Infrastructure;
 
-namespace Phantasma.Spook
+namespace Phantasma.Node
 {
     public static class ConfigurationBinder
     {
@@ -115,6 +115,7 @@ namespace Phantasma.Spook
 
         private Settings(string[] args, IConfigurationSection section)
         {
+            Console.WriteLine("args: " + string.Join(" ", args));
             new CliArgumets(args);
 
             var levelSwitchConsole = new LoggingLevelSwitch
@@ -278,15 +279,20 @@ namespace Phantasma.Spook
 
         public bool WebLogs { get; }
 
+        public int TendermintProxyPort { get; }
+
         public NodeSettings(IConfigurationSection section)
         {
             this.WebLogs = section.GetValueEx<bool>("web.logs");
+            this.TendermintProxyPort = section.GetValue<Int32>("tendermint.proxy");
+            Console.WriteLine("ttttttt" + this.TendermintProxyPort);
 
             this.BlockTime = section.GetValueEx<Int32>("block.time");
+            Console.WriteLine("bbbbbttttttt" + this.BlockTime);
             this.MinimumFee = section.GetValueEx<Int32>("minimum.fee");
             this.MinimumPow = section.GetValueEx<Int32>("minimum.pow");
 
-            int maxPow = 5; // should be a constanct like MinimumBlockTime
+            int maxPow = 5; // should be a constant like MinimumBlockTime
             if (this.MinimumPow < 0 || this.MinimumPow > maxPow)
             {
                 throw new Exception("Proof-Of-Work difficulty has to be between 1 and 5");

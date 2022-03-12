@@ -283,24 +283,23 @@ namespace Phantasma.Business
             while (transactions.Count > 0)
             {
                 var block = new Block(isFirstBlock ? 1 : (lastBlock.Height + 1)
-                            , Chain.Address
-                            , Timestamp.Now
-                            , transactions.Select(x => x.Hash)
-                            , isFirstBlock ? Hash.Null : lastBlock.Hash
-                            , protocol
-                            , Mempool.ValidatorAddress
-                            , Mempool.Payload);
+                    , Chain.Address
+                    , Timestamp.Now
+                    , isFirstBlock ? Hash.Null : lastBlock.Hash
+                    , protocol
+                    , Mempool.ValidatorAddress
+                    , new byte[0]);
 
 
                 try
                 {
-                    StorageChangeSetContext changeSet;
+                    StorageChangeSetContext changeSet = null;
                     try
                     {
                         using (var m = new ProfileMarker("Chain.ProcessBlock"))
                         {
 			                Transaction inflationTx = null;
-                            changeSet = Chain.ProcessBlock(block, transactions, minFee, out inflationTx, Mempool.ValidatorKeys);
+                            //changeSet = Chain.ProcessBlock(block, transactions, minFee, out inflationTx, Mempool.ValidatorKeys);
 
 			                if (inflationTx != null)
 		                    {

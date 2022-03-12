@@ -12,7 +12,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 
-namespace Phantasma.Spook.Authentication;
+namespace Phantasma.Node.Authentication;
 
 public class BasicAuthenticationHandler : AuthenticationHandler<BasicAuthenticationSchemeOptions>
 {

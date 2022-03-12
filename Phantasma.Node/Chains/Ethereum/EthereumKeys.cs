@@ -6,7 +6,7 @@ using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Linq;
 
-namespace Phantasma.Spook.Chains
+namespace Phantasma.Node.Chains
 {
     public class EthereumKey : IKeyPair
     {

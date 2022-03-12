@@ -1,10 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Threading.Tasks;
-using Phantasma.Spook.Metrics;
+using Phantasma.Node.Metrics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Phantasma.Spook.Middleware;
+namespace Phantasma.Node.Middleware;
 
 public class PerformanceMiddleware
 {

@@ -8,20 +8,19 @@ using Phantasma.Core;
 using Phantasma.Shared.Types;
 using Phantasma.Infrastructure.Chains;
 using Phantasma.Core.Context;
-using Phantasma.Spook.Interop;
-using Phantasma.Spook.Chains;
-
+using Phantasma.Node.Interop;
 using NeoBlock = Neo.Network.P2P.Payloads.Block;
 using NeoTx = Neo.Network.P2P.Payloads.Transaction;
 using Neo;
 using Serilog;
 using Phantasma.Infrastructure;
+using Phantasma.Node.Chains;
 
-namespace Phantasma.Spook.Oracles
+namespace Phantasma.Node.Oracles
 {
     public class SpookOracle : OracleReader, IOracleObserver
     {
-        private readonly Spook _cli;
+        private readonly Node _cli;
 
         private Dictionary<string, IKeyValueStoreAdapter> _keystoreCache = new Dictionary<string, IKeyValueStoreAdapter>();
         private Dictionary<string, CachedFee> _feeCache = new Dictionary<string, CachedFee>();
@@ -36,7 +35,7 @@ namespace Phantasma.Spook.Oracles
             Platform
         }
 
-        public SpookOracle(Spook cli, Nexus nexus) : base(nexus)
+        public SpookOracle(Node cli, Nexus nexus) : base(nexus)
         {
             this._cli = cli;
             nexus.Attach(this);

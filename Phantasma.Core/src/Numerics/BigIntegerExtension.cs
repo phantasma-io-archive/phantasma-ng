@@ -93,11 +93,5 @@ namespace System.Numerics
             }
             return true;
         }
-
-        public static string ToDecimal(this BigInteger a)
-        {
-            //TODO 
-            return "NYD!!";
-        }
     }
 }

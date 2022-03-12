@@ -54,7 +54,8 @@ namespace Phantasma.Business
 
             if (withSignature)
             {
-                writer.WriteVarInt(Signatures.Length);
+                Console.WriteLine("Serializing signatures " + this.Signatures);
+                writer.WriteVarInt(this.Signatures.Length);
                 foreach (var signature in this.Signatures)
                 {
                     writer.WriteSignature(signature);

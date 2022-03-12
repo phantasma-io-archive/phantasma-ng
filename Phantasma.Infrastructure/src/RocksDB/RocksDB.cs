@@ -32,9 +32,10 @@ namespace Phantasma.Infrastructure
                 path += '/';
             }
 
-            //logger.Message($"RocksDB partition path: {fileName}");
+            Log.Information($"RocksDB partition path: {fileName}");
 
             this._db = RocksDbStore.Instance(path);
+            Log.Information($"RocksDB partition path: {fileName}");
 
             // Create partition if it doesn't exist already
             try
@@ -169,7 +170,6 @@ namespace Phantasma.Infrastructure
         private RocksDbStore(string fileName)
         {
             AppDomain.CurrentDomain.ProcessExit += (s, e) => Shutdown();
-            Log.Information("RocksDBStore: " + fileName);
             this.fileName = fileName.Replace("\\", "/");
 
             var path = Path.GetDirectoryName(fileName);
@@ -203,11 +203,13 @@ namespace Phantasma.Infrastructure
             }
 
             Log.Information("Opening database at: " + path);
+            Console.WriteLine("sakdlfjklasdfjklasdfjklasdjfklasdfkl ");
 	        _db.Add(fileName, RocksDb.Open(options, path, columnFamilies));
         }
 
         public static RocksDb Instance(string name)
         {
+            Log.Information("sdkflklsdfdklsafjkl");
             if (!_db.ContainsKey(name))
             {
                 if (string.IsNullOrEmpty(name)) throw new System.ArgumentException("Parameter cannot be null", "name");

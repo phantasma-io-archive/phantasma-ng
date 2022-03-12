@@ -11,7 +11,7 @@ using Neo.Wallets;
 using Neo.Network.P2P.Payloads;
 using System.Text.Json;
 
-namespace Phantasma.Spook.Chains
+namespace Phantasma.Node.Chains
 {
     public class NeoBlockIterator
     {

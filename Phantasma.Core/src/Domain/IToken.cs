@@ -164,6 +164,9 @@ namespace Phantasma.Core
         public void UpdateTokenID(TokenSeriesMode mode)
         {
             byte[] bytes;
+            Console.WriteLine("rom: " + Base16.Encode(ROM));
+            Console.WriteLine("series: " + SeriesID);
+            Console.WriteLine("mint: " + MintID);
 
             switch (mode)
             {
@@ -173,6 +176,7 @@ namespace Phantasma.Core
                     throw new ChainException($"Generation of tokenID for Series with {mode} is not implemented");
             }
 
+            // TODO check this
             this.TokenID = Hash.FromBytes(bytes);
         }
 

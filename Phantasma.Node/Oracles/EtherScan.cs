@@ -6,7 +6,7 @@ using Phantasma.Core;
 using Phantasma.Infrastructure.Chains;
 using Phantasma.Shared;
 
-namespace Phantasma.Spook.Oracles
+namespace Phantasma.Node.Oracles
 {
     public class EtherScanAPI
     {

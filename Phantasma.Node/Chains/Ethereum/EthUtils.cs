@@ -8,7 +8,7 @@ using Phantasma.Core;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Org.BouncyCastle.Crypto.Digests;
 
-namespace Phantasma.Spook.Chains
+namespace Phantasma.Node.Chains
 {
     public static class EthUtils
     {

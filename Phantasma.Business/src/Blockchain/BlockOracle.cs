@@ -16,6 +16,8 @@ namespace Phantasma.Business
 
             foreach (var entry in block.OracleData)
             {
+                Console.WriteLine("url: " + entry.URL);
+
                 var oEntry = (OracleEntry)entry;
                 _entries[entry.URL] = oEntry;
             }
@@ -27,20 +29,15 @@ namespace Phantasma.Business
 
             //Console.WriteLine("read url " + url);
 
-            string tag;
-            if (ProtocolVersion >= 4)
-            {
-                tag = url;
-            }
-            else
-            {
-                tag = url.Substring(url.IndexOf("//")+2);
-            }
+            string tag = url;
+            Console.WriteLine("tag: " + tag);
 
             foreach(KeyValuePair<string, OracleEntry> entry in _entries)
             {
+                Console.WriteLine("content tag: " + entry.Key + " value: " + entry.Value.Content);
                 if (string.Equals(entry.Key, tag))
                 {
+                    Console.WriteLine("content !!!!!!!!!!!");
                     content = entry.Value.Content as T;
                     break;
                 }

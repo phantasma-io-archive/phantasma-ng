@@ -223,10 +223,12 @@ namespace Phantasma.Core
 
         public static implicit operator BigInteger(Hash val)
         {
-            var result = new byte[Hash.Length + 1];
+            var result = new byte[Hash.Length];
             ByteArrayUtils.CopyBytes(val.ToByteArray(), 0, result, 0, Hash.Length);
-            Console.WriteLine("biggi: " + new BigInteger(result));
-            return new BigInteger(result);
+            Console.WriteLine("biggi: " + new BigInteger(result, true));
+            Console.WriteLine("bytes result: " + Base16.Encode(result));
+            Console.WriteLine("bytes val: " + Base16.Encode(val.ToByteArray()));
+            return new BigInteger(val.ToByteArray(), true);
         }
 
         public static Hash MerkleCombine(Hash A, Hash B)

@@ -25,6 +25,7 @@ namespace Phantasma.Core
         Validator,
         Interop,
         Exchange,
+        Privacy,
         Relay,
         Ranking,
         Market,

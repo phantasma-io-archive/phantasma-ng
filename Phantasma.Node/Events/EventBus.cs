@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 using Foundatio.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Phantasma.Spook.Caching;
+using Phantasma.Node.Caching;
 
-namespace Phantasma.Spook.Events;
+namespace Phantasma.Node.Events;
 
 public class EventBus : IEventBus
 {

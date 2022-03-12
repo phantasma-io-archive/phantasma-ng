@@ -67,6 +67,8 @@ namespace Phantasma.Core
         public const int MaxEventsPerTx = 8096;
 
         public const int MAX_TOKEN_DECIMALS = 18;
+        
+        public const int MinimumFee = 100000;
 
         public const string FuelTokenSymbol = "KCAL";
         public const string FuelTokenName = "Phantasma Energy";

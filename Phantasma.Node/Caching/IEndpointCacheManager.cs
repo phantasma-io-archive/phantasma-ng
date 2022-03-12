@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.Primitives;
 
-namespace Phantasma.Spook.Caching;
+namespace Phantasma.Node.Caching;
 
 public interface IEndpointCacheManager
 {

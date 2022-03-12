@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 
-namespace Phantasma.Spook.Shell
+namespace Phantasma.Node.Shell
 {
     public static class Prompt
     {

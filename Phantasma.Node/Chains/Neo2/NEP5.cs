@@ -10,7 +10,7 @@ using Phantasma.Shared.Utils;
 //using Phantasma.Neo.Core;
 //using Phantasma.Neo.Utils;
 
-namespace Phantasma.Spook.Chains
+namespace Phantasma.Node.Chains
 {
     public class ApplicationLog
     {

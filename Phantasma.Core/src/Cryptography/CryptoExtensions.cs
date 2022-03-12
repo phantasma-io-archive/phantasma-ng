@@ -89,7 +89,6 @@ namespace Phantasma.Core
         public static byte[] Base58CheckDecode(this string input)
         {
             byte[] buffer = Base58.Decode(input);
-            Console.WriteLine("buffer: " + string.Join(" ", buffer));
             //if (buffer.Length > 4 && buffer[0] == 0)
             //{
             //    buffer = buffer.Skip(1).ToArray();
@@ -100,8 +99,6 @@ namespace Phantasma.Core
             expected_checksum = expected_checksum.Take(4).ToArray();
             var src_checksum = buffer.Skip(buffer.Length - 4).ToArray();
 
-            Console.WriteLine("src: " + string.Join(" ", src_checksum));
-            Console.WriteLine("exp: " + string.Join(" ", expected_checksum));
             Throw.If(!src_checksum.SequenceEqual(expected_checksum), "WIF checksum failed");
             return buffer.Take(buffer.Length - 4).ToArray();
         }

@@ -1,7 +1,7 @@
 ﻿using System;
 using Serilog;
 
-namespace Phantasma.Spook.Oracles
+namespace Phantasma.Node.Oracles
 {
     public static class Pricer
     {

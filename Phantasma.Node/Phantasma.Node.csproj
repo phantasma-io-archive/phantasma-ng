@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="Current">
   <PropertyGroup>
-    <Copyright>2018 - 2021 Phantasma.io</Copyright>
+    <Copyright>2018 - 2022 Phantasma.io</Copyright>
     <AssemblyTitle>Phantasma.Spook.CLI</AssemblyTitle>
-    <Version>1.4</Version>
+    <Version>2.0-alpha1</Version>
     <Authors>The Phantasma Team</Authors>
     <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>node-cli</AssemblyName>
@@ -67,5 +67,6 @@
     <ProjectReference Include="..\..\phantasma-ng\Phantasma.Core\src\Phantasma.Core.csproj" />
     <ProjectReference Include="..\..\phantasma-ng\Phantasma.Shared\src\Phantasma.Shared.csproj" />
     <ProjectReference Include="..\Tendermint\Tendermint.csproj" />
+    <ProjectReference Include="..\Tendermint.RPC\Tendermint.RPC.csproj" />
   </ItemGroup>
 </Project>

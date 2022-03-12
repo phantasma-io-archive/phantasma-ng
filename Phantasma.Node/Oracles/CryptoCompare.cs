@@ -3,7 +3,7 @@ using System.Text.Json;
 using Phantasma.Shared.Utils;
 using Serilog;
 
-namespace Phantasma.Spook.Oracles
+namespace Phantasma.Node.Oracles
 {
     public static class CryptoCompareUtils
     {

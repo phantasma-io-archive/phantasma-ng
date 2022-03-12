@@ -13,14 +13,14 @@ using Phantasma.Core;
 
 using Phantasma.Infrastructure.Chains;
 
-using Phantasma.Spook.Interop;
+using Phantasma.Node.Interop;
 
 using InteropTransfers = System.Collections.Generic.Dictionary<string,
       System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<Phantasma.Core.InteropTransfer>>>;
 using System.Linq;
 using Serilog;
 
-namespace Phantasma.Spook.Chains
+namespace Phantasma.Node.Chains
 {
     public class CrawledBlock
     {

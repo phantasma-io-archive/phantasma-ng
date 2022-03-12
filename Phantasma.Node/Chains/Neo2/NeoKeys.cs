@@ -8,7 +8,7 @@ using NeoSmartContractHelper = Neo.SmartContract.Helper;
 using NeoWallets = Neo.Wallets;
 using NeoWalletsHelper = Neo.Wallets.Helper;
 
-namespace Phantasma.Spook.Chains
+namespace Phantasma.Node.Chains
 {
     public class NeoKeys : IKeyPair
     {

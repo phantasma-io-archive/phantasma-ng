@@ -10,7 +10,7 @@ using Phantasma.Core;
 using Phantasma.Infrastructure;
 using Phantasma.Infrastructure.Chains;
 using Phantasma.Core.Context;
-using Phantasma.Spook.Chains;
+using Phantasma.Node.Chains;
 
 using Neo.Network.P2P.Payloads;
 using NeoBlock = Neo.Network.P2P.Payloads.Block;
@@ -18,7 +18,7 @@ using NeoTx = Neo.Network.P2P.Payloads.Transaction;
 using Neo;
 using Serilog;
 
-namespace Phantasma.Spook.Interop
+namespace Phantasma.Node.Interop
 {
     public class NeoInterop : ChainSwapper
     {

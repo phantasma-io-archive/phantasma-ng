@@ -6,14 +6,14 @@ using Foundatio.Caching;
 using Foundatio.Extensions.Hosting.Startup;
 using Foundatio.Messaging;
 using Foundatio.Serializer;
-using Phantasma.Spook.Authentication;
-using Phantasma.Spook.Caching;
-using Phantasma.Spook.Converters;
-using Phantasma.Spook.Events;
-using Phantasma.Spook.Hosting;
-using Phantasma.Spook.Metrics;
-using Phantasma.Spook.Middleware;
-using Phantasma.Spook.Swagger;
+using Phantasma.Node.Authentication;
+using Phantasma.Node.Caching;
+using Phantasma.Node.Converters;
+using Phantasma.Node.Events;
+using Phantasma.Node.Hosting;
+using Phantasma.Node.Metrics;
+using Phantasma.Node.Middleware;
+using Phantasma.Node.Swagger;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -27,7 +27,7 @@ using StackExchange.Redis;
 using System.Linq;
 using System.Threading;
 
-namespace Phantasma.Spook;
+namespace Phantasma.Node;
 
 public class Startup
 {
@@ -39,14 +39,14 @@ public class Startup
 
         Configuration = configuration;
 
-        Thread spookThread = new Thread(() =>
+        Thread nodeThread = new Thread(() =>
         {
-            Log.Information("Initialising spook");
-            var node = new Spook();
-            Log.Information("Starting spook");
+            Log.Information("Initialising Node");
+            var node = new Node();
+            Log.Information("Starting node");
             node.Start();
         });
-        spookThread.Start();
+        nodeThread.Start();
         Log.Information("Startup finished");
     }
 

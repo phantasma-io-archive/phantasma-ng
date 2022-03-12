@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Microsoft.OpenApi.Models;
 
-namespace Phantasma.Spook.Swagger;
+namespace Phantasma.Node.Swagger;
 
 public static class SwaggerExtensions
 {

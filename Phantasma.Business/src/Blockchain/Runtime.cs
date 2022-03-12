@@ -90,7 +90,9 @@ namespace Phantasma.Business
                 this.ParentChain = null;
             }
 
+            Console.WriteLine("before !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1");
             this.ProtocolVersion = Nexus.GetProtocolVersion(this.RootStorage);
+            Console.WriteLine("after !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1");
 
             ExtCalls.RegisterWithRuntime(this);
         }

@@ -1,6 +1,6 @@
 ﻿using Neo;
 
-namespace Phantasma.Spook.Chains
+namespace Phantasma.Node.Chains
 {
     public class Asset
     {

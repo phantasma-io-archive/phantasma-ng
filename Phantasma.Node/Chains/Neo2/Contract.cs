@@ -1,7 +1,7 @@
 ﻿using Neo.IO;
 using System.IO;
 
-namespace Phantasma.Spook.Chains
+namespace Phantasma.Node.Chains
 {
     public enum ContractProperties : byte
     {

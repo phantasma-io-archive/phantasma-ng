@@ -1,10 +1,10 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using Foundatio.Extensions.Hosting.Startup;
-using Phantasma.Spook.Events;
+using Phantasma.Node.Events;
 using Microsoft.Extensions.Hosting;
 
-namespace Phantasma.Spook.Hosting;
+namespace Phantasma.Node.Hosting;
 
 public class EventBusBackgroundService : BackgroundService
 {

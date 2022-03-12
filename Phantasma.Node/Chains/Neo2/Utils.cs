@@ -11,7 +11,7 @@ using Neo;
 using Neo.Wallets;
 using Neo.Network.P2P.Payloads;
 
-namespace Phantasma.Spook.Chains
+namespace Phantasma.Node.Chains
 {
     public static class NeoUtils
     {

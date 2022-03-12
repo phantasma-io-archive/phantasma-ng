@@ -4,8 +4,6 @@ using System.Linq;
 using System.Numerics;
 using Phantasma.Shared;
 using Phantasma.Shared.Utils;
-//using Phantasma.Storage;
-//using Phantasma.Storage.Utils;
 
 namespace Phantasma.Core
 {

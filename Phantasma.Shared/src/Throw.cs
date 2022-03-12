@@ -129,8 +129,10 @@ namespace Phantasma.Shared
 
         public static void If(bool constraint, string constraintName)
         {
+            //System.Diagnostics.StackTrace t = new System.Diagnostics.StackTrace();
             if (constraint)
             {
+                //Console.WriteLine(t);
                 throw new Exception("Constraint failed: " + constraintName);
             }
         }

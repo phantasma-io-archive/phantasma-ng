@@ -4,16 +4,15 @@ using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
 using Phantasma.Core;
-using Phantasma.Spook.Command;
-using Phantasma.Spook.Utils;
+using Phantasma.Node.Utils;
 
-namespace Phantasma.Spook.Shell
+namespace Phantasma.Node.Shell
 {
     class SpookShell
     {
-        private Spook _node;
+        private Node _node;
 
-        public SpookShell(string[] args, Spook node)
+        public SpookShell(string[] args, Node node)
         {
             _node = node;
         }

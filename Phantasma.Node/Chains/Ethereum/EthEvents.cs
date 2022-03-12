@@ -2,7 +2,7 @@
 using Nethereum.Contracts;
 using Nethereum.ABI.FunctionEncoding.Attributes;
 
-namespace Phantasma.Spook.Chains
+namespace Phantasma.Node.Chains
 {
     [Event("Swap")]
     public class SwapEventDTO : IEventDTO

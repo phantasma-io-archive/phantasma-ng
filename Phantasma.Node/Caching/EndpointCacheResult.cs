@@ -1,4 +1,4 @@
-﻿namespace Phantasma.Spook.Caching;
+﻿namespace Phantasma.Node.Caching;
 
 public class EndpointCacheResult
 {

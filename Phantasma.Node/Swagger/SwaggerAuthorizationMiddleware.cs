@@ -3,9 +3,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Phantasma.Spook.Authentication;
+using Phantasma.Node.Authentication;
 
-namespace Phantasma.Spook.Swagger;
+namespace Phantasma.Node.Swagger;
 
 public class SwaggerAuthorizationMiddleware
 {

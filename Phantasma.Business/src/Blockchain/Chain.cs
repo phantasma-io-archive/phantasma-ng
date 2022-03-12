@@ -3,6 +3,7 @@ using System.Text;
 using System.Linq;
 using System.Numerics;
 using System.Collections.Generic;
+using Google.Protobuf;
 using Phantasma.Business.Contracts;
 using Phantasma.Business.Tokens;
 using Phantasma.Core;
@@ -12,6 +13,9 @@ using Phantasma.Shared.Types;
 using Phantasma.Shared.Utils;
 using Phantasma.Shared.Performance;
 using Serilog;
+using Tendermint.Types;
+using Types;
+using TValidatorUpdate = Tendermint.Abci.ValidatorUpdate;
 
 namespace Phantasma.Business
 {
@@ -23,6 +27,8 @@ namespace Phantasma.Business
         private const string TxBlockHashMapTag = ".txblmp";
         private const string AddressTxHashMapTag = ".adblmp";
         private const string TaskListTag = ".tasks";
+        
+        private SortedSet<Transaction> CurrentTransactions = new SortedSet<Transaction>();
 
         #region PUBLIC
         public static readonly uint InitialHeight = 1;
@@ -32,23 +38,177 @@ namespace Phantasma.Business
         public string Name { get; private set; }
         public Address Address { get; private set; }
 
+        public Block CurrentBlock{ get; private set; }
+
+        public IEnumerable<Transaction> CurrentTxs{ get; private set; }
+        
+        public StorageChangeSetContext CurrentChangeSet { get; private set; }
+        
+        internal PhantasmaKeys ValidatorKeys { get; private set; }
+        public Address ValidatorAddress => ValidatorKeys != null ? ValidatorKeys.Address : Address.Null;
+        
         public BigInteger Height => GetBlockHeight();
 
         public StorageContext Storage { get; private set; }
 
         public bool IsRoot => this.Name == DomainSettings.RootChainName;
         #endregion
-
+        
         public Chain(Nexus nexus, string name)
         {
             Throw.IfNull(nexus, "nexus required");
 
             this.Name = name;
             this.Nexus = nexus;
+            this.ValidatorKeys = null;
 
             this.Address = Address.FromHash(this.Name);
 
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
+        }
+
+        public Chain(Nexus nexus, string name, PhantasmaKeys keys)
+        {
+            Throw.IfNull(nexus, "nexus required");
+
+            this.Name = name;
+            this.Nexus = nexus;
+            this.ValidatorKeys = keys;
+
+            this.Address = Address.FromHash(this.Name);
+
+            this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
+        }
+
+        public IEnumerable<Transaction> BeginBlock(Header header)
+        { 
+            // should never happen
+            if (this.CurrentBlock != null)
+            {
+                // TODO error message
+                throw new Exception("Cannot begin new block, current block has not been processed yet");
+            }
+            
+            var lastBlockHash = this.GetLastBlockHash();
+            var lastBlock = this.GetBlockByHash(lastBlockHash);
+            var isFirstBlock = lastBlock == null;
+
+            var protocol = Nexus.GetProtocolVersion(Nexus.RootStorage);
+
+        //public Block(BigInteger height, Address chainAddress, Timestamp timestamp, IEnumerable<Hash> hashes, Hash previousHash,
+                //uint protocol, Address validator, byte[] payload, IEnumerable<OracleEntry> oracleEntries = null)
+            this.CurrentBlock = new Block(header.Height
+                , this.Address
+                , Timestamp.Now
+                , isFirstBlock ? Hash.Null : lastBlock.Hash
+                , protocol
+                , this.ValidatorAddress
+                , new byte[0]);
+            
+            this.CurrentChangeSet = new StorageChangeSetContext(this.Storage);
+            List<Transaction> systemTransactions = new ();
+
+            if (this.IsRoot)
+            {
+                var inflationReady = NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
+                if (inflationReady)
+                {
+                    var script = new ScriptBuilder()
+                        .AllowGas(this.CurrentBlock.Validator, Address.Null, 1000000, 999999) // TODO hardcoded gas limit
+                        .CallContract(NativeContractKind.Gas, nameof(GasContract.ApplyInflation), this.CurrentBlock.Validator)
+                        .SpendGas(this.CurrentBlock.Validator)
+                        .EndScript();
+
+                    var transaction = new Transaction(this.Nexus.Name, this.Name, script, this.CurrentBlock.Timestamp.Value + 1, "SYSTEM");
+
+                    transaction.Sign(this.ValidatorKeys);
+                    systemTransactions.Add(transaction);
+                }
+            }
+
+            var oracle = Nexus.GetOracleReader();
+            systemTransactions.AddRange(ProcessPendingTasks(this.CurrentBlock, oracle, 100000 /*TODO hardcoded min fee */,
+                        this.CurrentChangeSet));
+            
+            // returns eventual system transactions that need to be broadcasted to tendermint to be included into the current block
+            return systemTransactions;
+        }
+        
+        public (CodeType, string) CheckTx(ByteString serializedTx)
+        {
+            var tx = Transaction.Unserialize(serializedTx.ToByteArray());
+            Log.Information("check tx " + tx.Hash);
+
+            if (tx.Expiration > Timestamp.Now)
+            {
+                return (CodeType.Expired, "Transaction is expired");
+            }
+            
+            if (tx.IsValid(this))
+            {
+                return (CodeType.InvalidChain, "Transaction is not meant to be executed on this chain");
+            }
+
+            if (tx.Signatures.Length == 0)
+            {
+                return (CodeType.UnsignedTx, "Transaction is not signed");
+            }
+
+            // TODO add replay protection
+
+            return (CodeType.Ok, "");
+        }
+    
+        public TransactionResult DeliverTx(ByteString serializedTx)
+        {
+            TransactionResult result = new();
+            try
+            {
+                var tx = Transaction.Unserialize(serializedTx.ToByteArray());
+                CurrentTransactions.Add(tx);
+                var txIndex = CurrentTransactions.Count - 1;
+                var oracle = Nexus.GetOracleReader();
+                using (var m = new ProfileMarker("ExecuteTransaction"))
+                {
+                    result = ExecuteTransaction(txIndex, tx, tx.Script, this.CurrentBlock.Validator,
+                        this.CurrentBlock.Timestamp, this.CurrentChangeSet, this.CurrentBlock.Notify, oracle,
+                        ChainTask.Null, 1000000); //TODO: hardcoded gas limit
+                    
+                    if (result.Code == 0)
+                    {
+                        if (result.Result != null)
+                        {
+                            var resultBytes = Serialization.Serialize(result.Result);
+                            this.CurrentBlock.SetResultForHash(tx.Hash, resultBytes);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                e = e.ExpandInnerExceptions();
+                // log original exception, throwing it again kills the call stack!
+                Log.Error("Exception was thrown while processing {} error: {}", result.Hash, e.Message);
+                result.Code = 1;
+                result.Codespace = e.Message;
+            }
+
+            return result;
+        }
+        
+        public IEnumerable<TValidatorUpdate> EndBlock()
+        {
+            // TODO validator update
+            
+            this.CurrentBlock.Sign(this.ValidatorKeys);
+            return new List<TValidatorUpdate>();
+        }
+        
+        public byte[] Commit()
+        {
+        //public void AddBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee, StorageChangeSetContext changeSet)
+            //AddBlock(this.CurrentBlock, )
+            return this.CurrentBlock.Hash.ToByteArray();
         }
 
         public IContract[] GetContracts(StorageContext storage)
@@ -100,6 +260,7 @@ namespace Phantasma.Business
             }
 
             var unsignedBytes = block.ToByteArray(false);
+            Console.WriteLine("block.Signature" + block.Signature);
             if (!block.Signature.Verify(unsignedBytes, block.Validator))
             {
                 throw new BlockGenerationException($"block signature does not match validator {block.Validator.Text}");
@@ -164,124 +325,10 @@ namespace Phantasma.Business
                         addressList.Add<Hash>(transaction.Hash);
                     }
                 }
-
-            using (var m = new ProfileMarker("Nexus.PluginTriggerBlock"))
-                Nexus.PluginTriggerBlock(this, block);
         }
 
-        // signingKeys should be null if the block should not be modified
-        public StorageChangeSetContext ProcessTransactions(Block block, IEnumerable<Transaction> transactions
-                , OracleReader oracle, BigInteger minimumFee, out Transaction inflationTx, PhantasmaKeys signingKeys)
+        public StorageChangeSetContext ProcessBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee)
         {
-            bool allowModify = signingKeys != null;
-
-            if (allowModify)
-            {
-                block.CleanUp();
-            }
-
-            var changeSet = new StorageChangeSetContext(this.Storage);
-
-            transactions = ProcessPendingTasks(block, oracle, minimumFee, changeSet, allowModify).Concat(transactions);
-
-            int txIndex = 0;
-            foreach (var tx in transactions)
-            {
-                VMObject vmResult;
-                try
-                {
-                    using (var m = new ProfileMarker("ExecuteTransaction"))
-                    {
-                        if (ExecuteTransaction(txIndex, tx, tx.Script, block.Validator, block.Timestamp, changeSet, block.Notify, oracle, ChainTask.Null, minimumFee, out vmResult, allowModify))
-                        {
-                            if (vmResult != null)
-                            {
-                                if (allowModify)
-                                {
-                                    var resultBytes = Serialization.Serialize(vmResult);
-                                    block.SetResultForHash(tx.Hash, resultBytes);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            throw new InvalidTransactionException(tx.Hash, "script execution failed");
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    e = e.ExpandInnerExceptions();
-
-                    // log original exception, throwing it again kills the call stack!
-                    Log.Error($"Exception while transactions of block {block.Height}: " + e);
-
-                    if (tx == null)
-                    {
-                        throw new BlockGenerationException(e.Message);
-                    }
-
-                    throw new InvalidTransactionException(tx.Hash, e.Message);
-                }
-
-                txIndex++;
-            }
-
-	        inflationTx = null;
-
-            if (this.IsRoot && allowModify)
-            {
-                var inflationReady = NativeContract.LoadFieldFromStorage<bool>(changeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
-                if (inflationReady)
-                {
-                    var script = new ScriptBuilder()
-                        .AllowGas(block.Validator, Address.Null, minimumFee, 999999)
-                        .CallContract(NativeContractKind.Gas, nameof(GasContract.ApplyInflation), block.Validator)
-                        .SpendGas(block.Validator)
-                        .EndScript();
-
-                    var transaction = new Transaction(this.Nexus.Name, this.Name, script, block.Timestamp.Value + 1, "SYSTEM");
-
-                    transaction.Sign(signingKeys);
-
-                    VMObject vmResult;
-
-                    if (!ExecuteTransaction(-1, transaction, transaction.Script, block.Validator, block.Timestamp, changeSet, block.Notify, oracle, ChainTask.Null, minimumFee, out vmResult, allowModify))
-                    {
-                        throw new ChainException("failed to execute inflation transaction");
-                    }
-
-		            inflationTx = transaction;
-                    block.AddTransactionHash(transaction.Hash);
-                }
-            }
-
-            if (block.Protocol > DomainSettings.LatestKnownProtocol)
-            {
-                throw new BlockGenerationException($"unexpected protocol number {block.Protocol}, maybe software update required?");
-            }
-
-            // Only check protocol version if block is created on this node, no need to check if it's a non validator node.
-            if (allowModify)
-            {
-                var expectedProtocol = Nexus.GetGovernanceValue(Nexus.RootStorage, Nexus.NexusProtocolVersionTag);
-                if (block.Protocol != expectedProtocol)
-                {
-                    throw new BlockGenerationException($"invalid protocol number {block.Protocol}, expected protocol {expectedProtocol}");
-                }
-
-                using (var m = new ProfileMarker("CloseBlock"))
-                {
-                    CloseBlock(block, changeSet);
-                }
-            }
-
-            return changeSet;
-        }
-
-        public StorageChangeSetContext ProcessBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee, out Transaction inflationTx, PhantasmaKeys signingKeys)
-        {
-
             if (!block.Validator.IsUser)
             {
                 throw new BlockGenerationException($"block validator must be user address");
@@ -370,10 +417,10 @@ namespace Phantasma.Business
 
             var oracle = Nexus.GetOracleReader();
 
-            block.CleanUp();
+            //block.CleanUp();
 
-            var changeSet = ProcessTransactions(block, transactions, oracle, minimumFee, out inflationTx, signingKeys);
-
+            var changeSet = ProcessTransactions(block, transactions, oracle, minimumFee);
+            //TODO: remove this
             Address expectedValidator;
             using (var m = new ProfileMarker("GetValidator"))
                 expectedValidator = Nexus.HasGenesis ? GetValidator(Nexus.RootStorage, block.Timestamp) : Nexus.GetGenesisAddress(Nexus.RootStorage);
@@ -415,24 +462,86 @@ namespace Phantasma.Business
                 }
             }
 
-            if (oracle.Entries.Any())
+            //if (oracle.Entries.Any())
+            //{
+            //    block.MergeOracle(oracle);
+            //    oracle.Clear();
+            //}
+
+            return changeSet;
+        }
+
+        public StorageChangeSetContext ProcessTransactions(Block block, IEnumerable<Transaction> transactions
+                , OracleReader oracle, BigInteger minimumFee)
+        {
+            //block.CleanUp();
+
+
+            var changeSet = new StorageChangeSetContext(this.Storage);
+
+            int txIndex = 0;
+            foreach (var tx in transactions)
             {
-                block.MergeOracle(oracle);
-                oracle.Clear();
+                try
+                {
+                    using (var m = new ProfileMarker("ExecuteTransaction"))
+                    {
+                        Console.WriteLine("exec tx: " + tx.Hash);
+                        Console.WriteLine("step 1 block : " + block.ToByteArray(false).Length);
+                        var result = ExecuteTransaction(txIndex, tx, tx.Script, block.Validator, block.Timestamp, changeSet,
+                                block.Notify, oracle, ChainTask.Null, minimumFee);
+
+                        if (result.Code == 0)
+                        {
+                            if (result.Result != null)
+                            {
+                                var resultBytes = Serialization.Serialize(result.Result);
+                                //(this.CurrentBlock == null ? block : this.CurrentBlock).SetResultForHash(tx.Hash, resultBytes);
+                            }
+                        }
+                        else
+                        {
+                            throw new InvalidTransactionException(tx.Hash, "script execution failed");
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    e = e.ExpandInnerExceptions();
+
+                    // log original exception, throwing it again kills the call stack!
+                    Log.Error($"Exception while transactions of block {block.Height}: " + e);
+
+                    if (tx == null)
+                    {
+                        throw new BlockGenerationException(e.Message);
+                    }
+
+                    throw new InvalidTransactionException(tx.Hash, e.Message);
+                }
+
+                txIndex++;
+            }
+
+            if (block.Protocol > DomainSettings.LatestKnownProtocol)
+            {
+                throw new BlockGenerationException($"unexpected protocol number {block.Protocol}, maybe software update required?");
             }
 
             return changeSet;
         }
 
-        private bool ExecuteTransaction(int index, Transaction transaction, byte[] script, Address validator, Timestamp time, StorageChangeSetContext changeSet
-                , Action<Hash, Event> onNotify, OracleReader oracle, ITask task, BigInteger minimumFee, out VMObject result, bool allowModify = true)
+        private TransactionResult ExecuteTransaction(int index, Transaction transaction, byte[] script, Address validator, Timestamp time, StorageChangeSetContext changeSet
+                , Action<Hash, Event> onNotify, OracleReader oracle, ITask task, BigInteger minimumFee, bool allowModify = true)
         {
             if (!transaction.HasSignatures)
             {
                 throw new ChainException("Cannot execute unsigned transaction");
             }
 
-            result = null;
+            var result = new TransactionResult();
+
+            result.Hash = transaction.Hash;
 
             uint offset = 0;
 
@@ -449,32 +558,34 @@ namespace Phantasma.Business
 
             if (state != ExecutionState.Halt)
             {
-                return false;
+                result.Code = 1;
+                result.Codespace = "Execution Failed";
+                return result;
             }
 
-            //var cost = runtime.UsedGas;
-
+            result.Events = runtime.Events.ToArray();
+            result.GasUsed = (long)runtime.UsedGas;
+            
             using (var m = new ProfileMarker("runtime.Events"))
             {
                 foreach (var evt in runtime.Events)
                 {
-                    using (var m2 = new ProfileMarker(evt.ToString()))
-                        if (allowModify)
-                        {
-                            onNotify(transaction.Hash, evt);
-                        }
+                    //using (var m2 = new ProfileMarker(evt.ToString()))
+                    //    onNotify(transaction.Hash, evt);
                 }
             }
 
             if (runtime.Stack.Count > 0)
             {
-                result = runtime.Stack.Pop();
+                result.Result = runtime.Stack.Pop();
             }
 
             // merge transaction oracle data 
             oracle.MergeTxData();
 
-            return true;
+            result.Code = 0;
+            result.Codespace = "Execution Successful";
+            return result;
         }
 
         // NOTE should never be used directly from a contract, instead use Runtime.GetBalance!
@@ -1116,7 +1227,7 @@ namespace Phantasma.Business
 
         }
 
-        private IEnumerable<Transaction> ProcessPendingTasks(Block block, OracleReader oracle, BigInteger minimumFee, StorageChangeSetContext changeSet, bool allowModify)
+        private IEnumerable<Transaction> ProcessPendingTasks(Block block, OracleReader oracle, BigInteger minimumFee, StorageChangeSetContext changeSet)
         {
             var taskList = new StorageList(TaskListTag, changeSet);
             var taskCount = taskList.Count();
@@ -1131,7 +1242,7 @@ namespace Phantasma.Business
 
                 Transaction tx;
 
-                var taskResult = ProcessPendingTask(block, oracle, minimumFee, changeSet, allowModify, task, out tx);
+                var taskResult = ProcessPendingTask(block, oracle, minimumFee, changeSet, task, out tx);
                 if (taskResult == TaskResult.Running) 
                 {
                     i++;
@@ -1179,7 +1290,8 @@ namespace Phantasma.Business
             }
         }
 
-        private TaskResult ProcessPendingTask(Block block, OracleReader oracle, BigInteger minimumFee, StorageChangeSetContext changeSet, bool allowModify, ChainTask task, out Transaction transaction)
+        private TaskResult ProcessPendingTask(Block block, OracleReader oracle, BigInteger minimumFee,
+                StorageChangeSetContext changeSet, ChainTask task, out Transaction transaction)
         {
             transaction = null;
 
@@ -1228,11 +1340,11 @@ namespace Phantasma.Business
 
                 transaction = new Transaction(this.Nexus.Name, this.Name, taskScript, block.Timestamp.Value + 1, "TASK");
 
-                VMObject vmResult;
-
-                if (ExecuteTransaction(-1, transaction, transaction.Script, block.Validator, block.Timestamp, changeSet, block.Notify, oracle, task, minimumFee, out vmResult, allowModify))
+                var txResult = ExecuteTransaction(-1, transaction, transaction.Script, block.Validator, block.Timestamp, changeSet,
+                            block.Notify, oracle, task, minimumFee);
+                if (txResult.Code == 0)
                 {
-                    var resultBytes = Serialization.Serialize(vmResult);
+                    var resultBytes = Serialization.Serialize(txResult.Result);
                     block.SetResultForHash(transaction.Hash, resultBytes);
 
                     // update last_run value in storage
@@ -1241,14 +1353,12 @@ namespace Phantasma.Business
                         changeSet.Put<BigInteger>(taskKey, currentRun);
                     }
 
-                    var shouldStop = vmResult.AsBool();
+                    var shouldStop = txResult.Result.AsBool();
                     return shouldStop ? TaskResult.Halted : TaskResult.Running;
                 }
-                else
-                {
-                    transaction = null;
-                    return TaskResult.Crashed;
-                }
+
+                transaction = null;
+                return TaskResult.Crashed;
             }
         }
         #endregion

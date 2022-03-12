@@ -1,4 +1,4 @@
-﻿namespace Phantasma.Spook.Authentication;
+﻿namespace Phantasma.Node.Authentication;
 
 public class BasicAuthenticationDefaults
 {

@@ -1,11 +1,11 @@
 ﻿using System;
 using System.IO;
 using System.Text;
-using System.Linq;
 using System.Collections.Generic;
 using Phantasma.Shared;
 using Phantasma.Shared.Utils;
 using Phantasma.Core.Hashing;
+using System.Linq;
 
 namespace Phantasma.Core
 {
@@ -28,13 +28,16 @@ namespace Phantasma.Core
         public const int LengthInBytes = 34;
         public const int MaxPlatformNameLength = 10;
 
-        public AddressKind Kind => IsNull ? AddressKind.System : (_bytes[0] >= 3) ? AddressKind.Interop : (AddressKind)_bytes[0];
+        public AddressKind Kind => IsNull ? AddressKind.System : (_bytes[0] >= 3) ? AddressKind.Interop 
+            : (AddressKind)_bytes[0];
 
         public bool IsSystem => Kind == AddressKind.System;
 
         public bool IsInterop => Kind == AddressKind.Interop;
 
         public bool IsUser => Kind == AddressKind.User;
+
+        public string TendermintAddress => Base16.Encode(_bytes[2..].Sha256()[..20]);
 
         public bool IsNull
         {

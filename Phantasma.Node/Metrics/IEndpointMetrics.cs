@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Phantasma.Spook.Metrics;
+namespace Phantasma.Node.Metrics;
 
 public interface IEndpointMetrics
 {

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using Phantasma.Core;
 using Phantasma.Infrastructure;
 
-namespace Phantasma.Spook.Middleware;
+namespace Phantasma.Node.Middleware;
 
 public class ErrorLoggingMiddleware
 {

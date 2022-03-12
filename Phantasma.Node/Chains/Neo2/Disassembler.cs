@@ -5,7 +5,7 @@ using System.Linq;
 using Neo.VM;
 
 // copied from https://github.com/CityOfZion/neo-plugins-coz/tree/master/LocalDebugger
-namespace Phantasma.Spook.Chains
+namespace Phantasma.Node.Chains
 {
     public class DisassembleEntry
     {

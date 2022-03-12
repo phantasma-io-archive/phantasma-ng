@@ -15,17 +15,17 @@ namespace Types
 
             public static ResponseCheckTx Ok() => new ResponseCheckTx() { Code = (uint) CodeType.Ok };
 
-            public static ResponseCheckTx Unauthorized() => new ResponseCheckTx()
-            {
-                Code = (uint) CodeType.Unauthorized,
-                Log = "Unauthorized request"
-            };
+            //public static ResponseCheckTx Unauthorized() => new ResponseCheckTx()
+            //{
+            //    Code = (uint) CodeType.Unauthorized,
+            //    Log = "Unauthorized request"
+            //};
 
-            public static ResponseCheckTx NoPayload() => new ResponseCheckTx()
-            {
-                Code = (uint) CodeType.NoPayload,
-                Log = "No payload received."
-            };
+            //public static ResponseCheckTx NoPayload() => new ResponseCheckTx()
+            //{
+            //    Code = (uint) CodeType.NoPayload,
+            //    Log = "No payload received."
+            //};
         }
 
         public static class Deliver
@@ -38,17 +38,17 @@ namespace Types
                 Log = log
             };
 
-            public static ResponseDeliverTx Unauthorized() => new ResponseDeliverTx()
-            {
-                Code = (uint) CodeType.Unauthorized,
-                Log = "Unauthorized request"
-            };
+            //public static ResponseDeliverTx Unauthorized() => new ResponseDeliverTx()
+            //{
+            //    Code = (uint) CodeType.Unauthorized,
+            //    Log = "Unauthorized request"
+            //};
 
-            public static ResponseDeliverTx NoPayload() => new ResponseDeliverTx()
-            {
-                Code = (uint) CodeType.NoPayload,
-                Log = "No payload received."
-            };
+            //public static ResponseDeliverTx NoPayload() => new ResponseDeliverTx()
+            //{
+            //    Code = (uint) CodeType.NoPayload,
+            //    Log = "No payload received."
+            //};
         }
 
         public static class Query

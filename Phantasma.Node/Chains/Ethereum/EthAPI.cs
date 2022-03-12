@@ -12,7 +12,7 @@ using Nethereum.StandardTokenEIP20.ContractDefinition;
 using Phantasma.Core;
 using Phantasma.Infrastructure;
 
-namespace Phantasma.Spook.Chains
+namespace Phantasma.Node.Chains
 {
     public enum EthTransferResult
     {
@@ -205,6 +205,8 @@ namespace Phantasma.Spook.Chains
                     };
                     outTransactionHash = EthUtils.RunSync(() => transferHandler
                             .SendRequestAndWaitForReceiptAsync(contractAddress, transfer)).TransactionHash;
+                    var a = transferHandler.Serialize();
+
                 }
 
                 result = outTransactionHash;

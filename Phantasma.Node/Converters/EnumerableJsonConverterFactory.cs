@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Phantasma.Spook.Converters;
+namespace Phantasma.Node.Converters;
 
 public class EnumerableJsonConverterFactory : JsonConverterFactory
 {

@@ -80,6 +80,7 @@ namespace Phantasma.Business.Contracts
                 balance = Runtime.GetBalance(DomainSettings.FuelTokenSymbol, from);
             }
 
+            System.Console.WriteLine("balance: " + balance);
             if (maxAmount > balance)
             {
                 var diff = maxAmount - balance;

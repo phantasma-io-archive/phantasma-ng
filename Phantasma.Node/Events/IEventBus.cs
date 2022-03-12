@@ -1,7 +1,7 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 
-namespace Phantasma.Spook.Events;
+namespace Phantasma.Node.Events;
 
 public interface IEventBus
 {

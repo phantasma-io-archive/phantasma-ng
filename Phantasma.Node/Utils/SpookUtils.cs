@@ -6,10 +6,10 @@ using System.Reflection;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 
-namespace Phantasma.Spook.Utils
+namespace Phantasma.Node.Utils
 {
 
-    public static class SpookUtils
+    public static class NodeUtils
     {
         public static string FixPath(string path)
         {

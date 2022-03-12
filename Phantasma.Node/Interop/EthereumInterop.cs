@@ -12,17 +12,17 @@ using Phantasma.Infrastructure.Chains;
 using Phantasma.Core;
 using Phantasma.Core.Context;
 using Phantasma.Shared.Utils;
-using Phantasma.Spook.Chains;
+using Phantasma.Node.Chains;
 
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Contracts;
 using Nethereum.StandardTokenEIP20.ContractDefinition;
 
-using EthereumKey = Phantasma.Spook.Chains.EthereumKey;
+using EthereumKey = Phantasma.Node.Chains.EthereumKey;
 using System.Net.Http;
 using Serilog;
 
-namespace Phantasma.Spook.Interop
+namespace Phantasma.Node.Interop
 {
     public class EthereumInterop: ChainSwapper
     {

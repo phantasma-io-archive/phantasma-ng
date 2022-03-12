@@ -27,9 +27,8 @@ namespace Phantasma.Business
             {
                 var temp = new Instruction();
                 temp.Offset = _instructionPointer;
-                temp.Opcode = (Opcode)Read8();
-
-                //System.Console.WriteLine("disasm => " + temp.Opcode);
+                var opByte = Read8();
+                temp.Opcode = (Opcode)opByte;
 
                 switch (temp.Opcode)
                 {

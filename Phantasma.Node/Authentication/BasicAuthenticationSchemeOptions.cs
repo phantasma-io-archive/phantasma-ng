@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 
-namespace Phantasma.Spook.Authentication;
+namespace Phantasma.Node.Authentication;
 
 public class BasicAuthenticationSchemeOptions : AuthenticationSchemeOptions
 {

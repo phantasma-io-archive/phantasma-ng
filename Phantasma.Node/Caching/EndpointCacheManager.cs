@@ -7,7 +7,7 @@ using Foundatio.Caching;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 
-namespace Phantasma.Spook.Caching;
+namespace Phantasma.Node.Caching;
 
 public class EndpointCacheManager : IEndpointCacheManager
 {

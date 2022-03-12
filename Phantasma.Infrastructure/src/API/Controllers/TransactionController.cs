@@ -152,55 +152,22 @@ namespace Phantasma.Infrastructure.Controllers
             return count;
         }
 
+        [APIInfo(typeof(string), "Allows to broadcast a signed operation on the network, but it's required to build it manually. Does not wait on CheckTx or DeliverTx, returns instant", false, 0, true)]
+        [APIFailCase("script is invalid", "")]
+        [APIFailCase("failed to decoded transaction", "0000")]
+        [HttpGet("SendRawTransaction")]
+        public string SendRawTransactionAsync([APIParameter("Serialized transaction bytes, in hexadecimal format", "0000000000")] string txData)
+        {
+            return "";
+        }
+        
         [APIInfo(typeof(string), "Allows to broadcast a signed operation on the network, but it's required to build it manually.", false, 0, true)]
-        [APIFailCase("rejected by mempool", "0000")] // TODO not correct
         [APIFailCase("script is invalid", "")]
         [APIFailCase("failed to decoded transaction", "0000")]
         [HttpGet("SendRawTransaction")]
         public string SendRawTransaction([APIParameter("Serialized transaction bytes, in hexadecimal format", "0000000000")] string txData)
         {
-            var mempool = NexusAPI.GetMempool();
-
-            byte[] bytes;
-            try
-            {
-                bytes = Base16.Decode(txData);
-            }
-            catch
-            {
-                throw new APIException("Failed to decode script");
-            }
-
-            if (bytes.Length == 0)
-            {
-                throw new APIException("Invalid transaction script");
-            }
-
-            var tx = Transaction.Unserialize(bytes);
-            if (tx == null)
-            {
-                throw new APIException("Failed to deserialize transaction");
-            }
-
-            try
-            {
-                mempool.Submit(tx);
-            }
-            catch (MempoolSubmissionException e)
-            {
-                var errorMessage = "Mempool submission rejected: " + e.Message;
-                if (NexusAPI.ApiLog)
-                {
-                    Log.Warning(errorMessage);
-                }
-                throw new APIException(errorMessage);
-            }
-            catch (Exception)
-            {
-                throw new APIException("Mempool submission rejected: internal error");
-            }
-
-            return tx.Hash.ToString();
+            return "";
         }
 
         [APIInfo(typeof(ScriptResult), "Allows to invoke script based on network state, without state changes.", false, 5, true)]
@@ -294,62 +261,15 @@ namespace Phantasma.Infrastructure.Controllers
             }
 
             var nexus = NexusAPI.GetNexus();
-            var mempool = NexusAPI.GetMempool(false);
 
             var tx = nexus.FindTransactionByHash(hash);
 
             if (tx == null)
             {
-                if (mempool != null)
-                {
-                    var status = mempool.GetTransactionStatus(hash, out string reason);
-                    switch (status)
-                    {
-                        case MempoolTransactionStatus.Pending:
-                            throw new APIException("pending");
-
-                        case MempoolTransactionStatus.Rejected:
-                            throw new APIException("rejected: " + reason);
-                    }
-                }
-
                 throw new APIException("Transaction not found");
             }
 
             return NexusAPI.FillTransaction(tx);
-        }
-
-        [APIInfo(typeof(string), "Removes a pending transaction from the mempool.")]
-        [APIFailCase("hash is invalid", "43242342")]
-        [HttpGet("CancelTransaction")]
-        public string CancelTransaction([APIParameter("Hash of transaction", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText)
-        {
-            var nexus = NexusAPI.GetNexus();
-            var mempool = NexusAPI.GetMempool();
-
-            Hash hash;
-            if (!Hash.TryParse(hashText, out hash))
-            {
-                throw new APIException("Invalid hash");
-            }
-
-            var tx = nexus.FindTransactionByHash(hash);
-
-            if (tx != null)
-            {
-                throw new APIException("already in chain");
-            }
-
-            var status = mempool.GetTransactionStatus(hash, out string reason);
-            if (status == MempoolTransactionStatus.Pending)
-            {
-                if (mempool.Discard(hash))
-                {
-                    return hash.ToString();
-                }
-            }
-
-            throw new APIException("Transaction not found");
         }
     }
 }

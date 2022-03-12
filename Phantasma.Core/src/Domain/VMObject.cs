@@ -89,6 +89,7 @@ namespace Phantasma.Core
                 case VMType.Bytes:
                     {
                         var bytes = (byte[])Data;
+                        Console.WriteLine("asnumber bytes: " + Base16.Encode(bytes));
                         var num = new BigInteger(bytes);
                         return num;
                     }
@@ -293,7 +294,7 @@ namespace Phantasma.Core
                 case VMType.Number:
                     {
                         var num = AsNumber();
-                        return num.ToByteArray();
+                        return num.ToByteArray(true, true);
                     }
 
                 case VMType.Enum:
@@ -663,7 +664,7 @@ namespace Phantasma.Core
         {
             this.Type = VMType.Number;
             this.Data = val;
-            this._localSize = val.ToByteArray().Length;
+            this._localSize = val.ToByteArray(true, true).Length;
             return this;
         }
 
@@ -895,7 +896,7 @@ namespace Phantasma.Core
             }
         }
 
-        internal void Copy(VMObject other)
+        public void Copy(VMObject other)
         {
             if (other == null || other.Type == VMType.None)
             {

@@ -2,7 +2,7 @@
 using Nethereum.Contracts;
 using Nethereum.ABI.FunctionEncoding.Attributes;
 
-namespace Phantasma.Spook.Chains
+namespace Phantasma.Node.Chains
 {
     [Function("balanceOf", "uint256")]
     public class BalanceOfFunction : FunctionMessage

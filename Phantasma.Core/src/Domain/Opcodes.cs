@@ -24,7 +24,6 @@ namespace Phantasma.Core
         LOAD,
         CAST,
         CAT,
-        SUBSTR,
         RANGE,
         LEFT,
         RIGHT,
@@ -71,6 +70,9 @@ namespace Phantasma.Core
         PACK, // unused for now
 
         //  debugger
-        DEBUG
+        DEBUG,
+
+        // add
+        SUBSTR
     }
 }

@@ -386,31 +386,31 @@ namespace Phantasma.Core
             return serializable;
         }
 
-        // only works in structs and classes
-        public static void Copy(this object target, object source)
-        {
-            var type = target.GetType();
+        //// only works in structs and classes
+        //public static void Copy(this object target, object source)
+        //{
+        //    var type = target.GetType();
 
-            Throw.IfNot(type.IsStructOrClass(), "invalid type");
+        //    Throw.IfNot(type.IsStructOrClass(), "invalid type");
 
-            var fields = type.GetFields();
+        //    var fields = type.GetFields();
 
-            foreach (var field in fields)
-            {
-                var fieldType = field.FieldType;
+        //    foreach (var field in fields)
+        //    {
+        //        var fieldType = field.FieldType;
 
-                object val;
-                if (fieldType.IsStructOrClass())
-                {
-                    val = Activator.CreateInstance(fieldType);
-                    val.Copy(field.GetValue(source));
-                }
-                else
-                {
-                    val = field.GetValue(source);
-                }
-                field.SetValue(target, val);
-            }
-        }
+        //        object val;
+        //        if (fieldType.IsStructOrClass())
+        //        {
+        //            val = Activator.CreateInstance(fieldType);
+        //            val.Copy(field.GetValue(source));
+        //        }
+        //        else
+        //        {
+        //            val = field.GetValue(source);
+        //        }
+        //        field.SetValue(target, val);
+        //    }
+        //}
     }
 }

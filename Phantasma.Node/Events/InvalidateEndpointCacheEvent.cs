@@ -1,4 +1,4 @@
-﻿namespace Phantasma.Spook.Events;
+﻿namespace Phantasma.Node.Events;
 
 public class InvalidateEndpointCacheEvent
 {

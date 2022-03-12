@@ -8,7 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
 
-namespace Phantasma.Spook;
+namespace Phantasma.Node;
 
 public class Program
 {
@@ -61,7 +61,7 @@ public class Program
                 _,
                 _,
                 configuration
-            ) => configuration.ReadFrom.Configuration(Configuration.GetSection("ApplicationConfiguration")))
+            ) => configuration.ReadFrom.Configuration(Configuration.GetSection("ApplicationConfiguration")), true)
             .ConfigureWebHostDefaults(webBuilder => webBuilder.UseConfiguration(Configuration).UseStartup<Startup>());
     }
 }

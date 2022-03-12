@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Phantasma.Core;
 using Phantasma.Shared;
 using Phantasma.Shared.Types;
+using System;
 
 namespace Phantasma.Business
 {
@@ -58,13 +59,13 @@ namespace Phantasma.Business
         // required for unserialization
         public Block()
         {
-
         }
 
         /// <summary>
         /// Note: When creating the genesis block of a new side chain, the previous block would be the block that contained the CreateChain call
         /// </summary>
-        public Block(BigInteger height, Address chainAddress, Timestamp timestamp, IEnumerable<Hash> hashes, Hash previousHash, uint protocol, Address validator, byte[] payload, IEnumerable<OracleEntry> oracleEntries = null)
+        public Block(BigInteger height, Address chainAddress, Timestamp timestamp, Hash previousHash,
+                uint protocol, Address validator, byte[] payload, IEnumerable<OracleEntry> oracleEntries = null)
         {
             this.ChainAddress = chainAddress;
             this.Timestamp = timestamp;
@@ -74,10 +75,6 @@ namespace Phantasma.Business
             this.PreviousHash = previousHash;
 
             _transactionHashes = new List<Hash>();
-            foreach (var hash in hashes)
-            {
-                _transactionHashes.Add(hash);
-            }
 
             this.Payload = payload;
             this.Validator = validator;
@@ -95,6 +92,12 @@ namespace Phantasma.Business
             this._dirty = true;
         }
 
+        public void AddAllTransactionHashes(IEnumerable<Hash> hashes)
+        {
+            _transactionHashes.AddRange(hashes);
+            this._dirty = true;
+        }
+        
         public void AddTransactionHash(Hash hash)
         {
             _transactionHashes.Add(hash);
@@ -352,7 +355,7 @@ namespace Phantasma.Business
 
                 Signature = reader.ReadSignature();
             }
-            catch
+            catch (Exception e)
             {
                 Payload = null;
                 Validator = Address.Null;

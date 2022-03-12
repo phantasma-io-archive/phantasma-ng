@@ -22,12 +22,17 @@ namespace Phantasma.Core
         public byte[] PublicKey { get; private set; }
 
         public readonly Address Address;
-
+        
         public const int PrivateKeyLength = 32;
 
         public PhantasmaKeys(byte[] privateKey)
         {
-            Throw.If(privateKey.Length != PrivateKeyLength, $"privateKey should have length {PrivateKeyLength}");
+            if (privateKey.Length == 64)
+            {
+                privateKey = privateKey.Take(32).ToArray();
+            }
+
+            Throw.If(privateKey.Length != PrivateKeyLength, $"privateKey should have length {PrivateKeyLength} but has {privateKey.Length}");
 
             this.PrivateKey = new byte[PrivateKeyLength];
             ByteArrayUtils.CopyBytes(privateKey, 0, PrivateKey, 0, PrivateKeyLength); 

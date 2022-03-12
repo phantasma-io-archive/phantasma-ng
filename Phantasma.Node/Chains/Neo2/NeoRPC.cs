@@ -14,7 +14,7 @@ using System.Linq;
 //using Phantasma.Neo.Utils;
 //using Phantasma.Storage;
 
-namespace Phantasma.Spook.Chains
+namespace Phantasma.Node.Chains
 {
     public abstract class NeoRPC : NeoAPI
     {

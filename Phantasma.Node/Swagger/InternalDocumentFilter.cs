@@ -6,7 +6,7 @@ using Microsoft.OpenApi.Models;
 using Phantasma.Infrastructure;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace Phantasma.Spook.Swagger;
+namespace Phantasma.Node.Swagger;
 
 public class InternalDocumentFilter : IDocumentFilter
 {
