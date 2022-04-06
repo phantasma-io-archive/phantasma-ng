@@ -463,6 +463,13 @@ namespace Phantasma.Core
                     fieldValue = entry.Value.ToObject();
                 }
 
+                if (fieldValue == null && entry.Value.Type == VMType.String)
+                {
+                    fieldValue = string.Empty;
+                }
+
+                Throw.If(fieldValue == null, "could not instantiate properly field value: " + fieldName);
+
                 fieldValue = ConvertObjectInternal(fieldValue, fi.FieldType);
 
                 fi.SetValueDirect(reference, fieldValue);
