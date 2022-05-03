@@ -2,6 +2,7 @@ using System.IO;
 using System.Numerics;
 using System.Collections.Generic;
 using Phantasma.Core;
+using System;
 
 namespace Phantasma.Business;
 
