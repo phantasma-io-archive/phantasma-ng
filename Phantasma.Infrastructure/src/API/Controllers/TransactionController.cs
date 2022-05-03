@@ -155,7 +155,7 @@ namespace Phantasma.Infrastructure.Controllers
         [APIInfo(typeof(string), "Allows to broadcast a signed operation on the network, but it's required to build it manually. Does not wait on CheckTx or DeliverTx, returns instant", false, 0, true)]
         [APIFailCase("script is invalid", "")]
         [APIFailCase("failed to decoded transaction", "0000")]
-        [HttpGet("SendRawTransaction")]
+        [HttpGet("SendRawTransactionAsync")]
         public string SendRawTransactionAsync([APIParameter("Serialized transaction bytes, in hexadecimal format", "0000000000")] string txData)
         {
             return "";
