@@ -58,7 +58,7 @@ namespace Phantasma.Core.Context
             return Serialization.Unserialize(bytes, type);
         }
 
-        public void Put(byte[] key, BigInteger value) { Put(key, value.ToByteArray()); }
+        public void Put(byte[] key, BigInteger value) { Put(key, value.ToSignedByteArray()); }
 
         public void Put<T>(byte[] key, T obj)
         {

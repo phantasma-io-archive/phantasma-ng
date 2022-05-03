@@ -203,7 +203,6 @@ namespace Phantasma.Infrastructure
             }
 
             Log.Information("Opening database at: " + path);
-            Console.WriteLine("sakdlfjklasdfjklasdfjklasdjfklasdfkl ");
 	        _db.Add(fileName, RocksDb.Open(options, path, columnFamilies));
         }
 

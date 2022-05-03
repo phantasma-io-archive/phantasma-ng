@@ -28,7 +28,7 @@ namespace Phantasma.Business
         private const string AddressTxHashMapTag = ".adblmp";
         private const string TaskListTag = ".tasks";
         
-        private SortedSet<Transaction> CurrentTransactions = new SortedSet<Transaction>();
+        private Dictionary<int, Transaction> CurrentTransactions = new Dictionary<int, Transaction>();
 
         #region PUBLIC
         public static readonly uint InitialHeight = 1;
@@ -40,11 +40,9 @@ namespace Phantasma.Business
 
         public Block CurrentBlock{ get; private set; }
 
-        public IEnumerable<Transaction> CurrentTxs{ get; private set; }
-        
         public StorageChangeSetContext CurrentChangeSet { get; private set; }
         
-        internal PhantasmaKeys ValidatorKeys { get; private set; }
+        public PhantasmaKeys ValidatorKeys { get; set; }
         public Address ValidatorAddress => ValidatorKeys != null ? ValidatorKeys.Address : Address.Null;
         
         public BigInteger Height => GetBlockHeight();
@@ -136,36 +134,42 @@ namespace Phantasma.Business
         
         public (CodeType, string) CheckTx(ByteString serializedTx)
         {
-            var tx = Transaction.Unserialize(serializedTx.ToByteArray());
+            var txString = serializedTx.ToStringUtf8();
+            var tx = Transaction.Unserialize(Base16.Decode(txString));
             Log.Information("check tx " + tx.Hash);
 
-            if (tx.Expiration > Timestamp.Now)
+            if (tx.Expiration < Timestamp.Now)
             {
+                Log.Information("check tx 1 " + tx.Hash);
                 return (CodeType.Expired, "Transaction is expired");
             }
             
-            if (tx.IsValid(this))
+            if (!tx.IsValid(this))
             {
+                Log.Information("check tx 2 " + tx.Hash);
                 return (CodeType.InvalidChain, "Transaction is not meant to be executed on this chain");
             }
 
             if (tx.Signatures.Length == 0)
             {
+                Log.Information("check tx 3 " + tx.Hash);
                 return (CodeType.UnsignedTx, "Transaction is not signed");
             }
 
-            // TODO add replay protection
-
+            Log.Information("check tx 4 " + tx.Hash);
             return (CodeType.Ok, "");
         }
     
         public TransactionResult DeliverTx(ByteString serializedTx)
         {
             TransactionResult result = new();
+            var txString = serializedTx.ToStringUtf8();
+            var tx = Transaction.Unserialize(Base16.Decode(txString));
+
+            Log.Information($"deliver tx {tx}");
             try
             {
-                var tx = Transaction.Unserialize(serializedTx.ToByteArray());
-                CurrentTransactions.Add(tx);
+                CurrentTransactions.Add(CurrentTransactions.Count, tx);
                 var txIndex = CurrentTransactions.Count - 1;
                 var oracle = Nexus.GetOracleReader();
                 using (var m = new ProfileMarker("ExecuteTransaction"))
@@ -186,6 +190,7 @@ namespace Phantasma.Business
             }
             catch (Exception e)
             {
+                Console.WriteLine("exception " + e);
                 e = e.ExpandInnerExceptions();
                 // log original exception, throwing it again kills the call stack!
                 Log.Error("Exception was thrown while processing {} error: {}", result.Hash, e.Message);
@@ -206,9 +211,20 @@ namespace Phantasma.Business
         
         public byte[] Commit()
         {
-        //public void AddBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee, StorageChangeSetContext changeSet)
-            //AddBlock(this.CurrentBlock, )
-            return this.CurrentBlock.Hash.ToByteArray();
+            Block lastBlock = null;
+            try
+            {
+                AddBlock(this.CurrentBlock, this.CurrentTransactions.Values, 0, this.CurrentChangeSet);
+                lastBlock = this.CurrentBlock;
+                Log.Information($"Committed block {lastBlock.Height}");
+                this.CurrentBlock = null;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
+            return lastBlock.Hash.ToByteArray();
         }
 
         public IContract[] GetContracts(StorageContext storage)
@@ -260,7 +276,6 @@ namespace Phantasma.Business
             }
 
             var unsignedBytes = block.ToByteArray(false);
-            Console.WriteLine("block.Signature" + block.Signature);
             if (!block.Signature.Verify(unsignedBytes, block.Validator))
             {
                 throw new BlockGenerationException($"block signature does not match validator {block.Validator.Text}");
@@ -486,8 +501,6 @@ namespace Phantasma.Business
                 {
                     using (var m = new ProfileMarker("ExecuteTransaction"))
                     {
-                        Console.WriteLine("exec tx: " + tx.Hash);
-                        Console.WriteLine("step 1 block : " + block.ToByteArray(false).Length);
                         var result = ExecuteTransaction(txIndex, tx, tx.Script, block.Validator, block.Timestamp, changeSet,
                                 block.Notify, oracle, ChainTask.Null, minimumFee);
 
@@ -526,6 +539,11 @@ namespace Phantasma.Business
             if (block.Protocol > DomainSettings.LatestKnownProtocol)
             {
                 throw new BlockGenerationException($"unexpected protocol number {block.Protocol}, maybe software update required?");
+            }
+
+            using (var m = new ProfileMarker("CloseBlock"))
+            {
+                CloseBlock(block, changeSet);
             }
 
             return changeSet;
@@ -1166,7 +1184,7 @@ namespace Phantasma.Business
         private byte[] GetTaskKey(BigInteger taskID, string field)
         {
             var bytes = Encoding.ASCII.GetBytes(field);
-            var key = ByteArrayUtils.ConcatBytes(bytes, taskID.ToByteArray());
+            var key = ByteArrayUtils.ConcatBytes(bytes, taskID.ToUnsignedByteArray());
             return key;
         }
 

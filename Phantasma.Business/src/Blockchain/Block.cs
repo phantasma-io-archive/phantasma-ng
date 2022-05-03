@@ -44,7 +44,7 @@ namespace Phantasma.Business
         private Dictionary<Hash, byte[]> _resultMap = new Dictionary<Hash, byte[]>();
 
         // stores the results of oracles
-        private List<OracleEntry> _oracleData = new List<OracleEntry>();
+        public List<OracleEntry> _oracleData = new List<OracleEntry>();
         public IOracleEntry[] OracleData => _oracleData.Select(x => (IOracleEntry)x).ToArray();
 
         public Address Validator { get; private set; }

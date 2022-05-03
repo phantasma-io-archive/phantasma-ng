@@ -76,8 +76,7 @@ namespace Phantasma.Core
         // * Making `b` an int avoids unnecessary conversions from and to byte.
         public static string Encode(this byte[] input)
         {
-            Throw.IfNull(input, "input");
-
+            if (input == null) return "";
             char[] c = new char[input.Length * 2];
             int b;
 

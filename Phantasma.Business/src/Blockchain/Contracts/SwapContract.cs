@@ -87,6 +87,7 @@ namespace Phantasma.Business.Contracts
             var fromPrice = Runtime.GetTokenPrice(fromSymbol);
             var toPrice = Runtime.GetTokenPrice(toSymbol);
 
+
             var feeTag = fromPrice > toPrice ? SwapMakerFeePercentTag : SwapTakerFeePercentTag; 
 
             var feePercent = Runtime.GetGovernanceValue(feeTag);
@@ -137,7 +138,8 @@ namespace Phantasma.Business.Contracts
 
         private BigInteger GetAvailableForSymbol(string symbol)
         {
-            return Runtime.GetBalance(symbol, this.Address);
+            var balance = Runtime.GetBalance(symbol, this.Address);
+            return balance;
         }
 
         // TODO optimize this method without using .NET native stuff
@@ -340,7 +342,7 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(toPotBalance >= total, $"insufficient balance in pot, have {(double)toPotBalance/toSymbolDecimals} {toSymbol} in pot, need {(double)total/toSymbolDecimals} {toSymbol}, have {(double)fromBalance/fromSymbolDecimals} {fromSymbol} to convert from");
 
             var half = toPotBalance / 2;
-            Runtime.Expect(total < half, $"taking too much {toSymbol} from pot at once");
+            Runtime.Expect(total < half, $"taking too much {toSymbol} from pot at once {toPotBalance} {total}");
 
             Runtime.TransferTokens(fromSymbol, from, this.Address, amount);
             Runtime.TransferTokens(toSymbol, this.Address, from, total);

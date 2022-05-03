@@ -123,7 +123,6 @@ namespace Phantasma.Core
         {
             var url = GetOracleTransactionURL(platform, chain, hash);
             var bytes = runtime.ReadOracle(url);
-            Console.WriteLine("bytes: " + string.Join(" ", bytes));
             var tx = Serialization.Unserialize<InteropTransaction>(bytes);
             return tx;
         }

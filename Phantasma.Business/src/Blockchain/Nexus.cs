@@ -1326,7 +1326,6 @@ public class Nexus : INexus
     private Transaction BeginNexusCreateTx(PhantasmaKeys owner)
     {
         var sb = ScriptUtils.BeginScript();
-        Console.WriteLine("owner: " + owner);
         sb.CallInterop("Nexus.BeginInit", owner.Address);
 
         var deployInterop = "Runtime.DeployContract";
@@ -1470,19 +1469,19 @@ public class Nexus : INexus
         }
     }
 
-    public bool CreateGenesisBlock(Timestamp timestamp, int version, PhantasmaKeys owner)
+    public Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, int version, PhantasmaKeys owner)
     {
         if (this.HasGenesis)
         {
-            return false;
+            return new Dictionary<int, Transaction>();
         }
 
         // create genesis transactions
-        var transactions = new List<Transaction>
+        var transactions = new Dictionary<int, Transaction>
         {
-            BeginNexusCreateTx(owner),
+            {1, BeginNexusCreateTx(owner)},
 
-            ValueCreateTx(owner,
+            {2, ValueCreateTx(owner,
              new Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>>() {
                  {
                      NexusProtocolVersionTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
@@ -1628,21 +1627,21 @@ public class Nexus : INexus
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = UnitConversion.ToBigInteger(1000, DomainSettings.FiatTokenDecimals)},
                      })
                  },
-             }),
+             })},
             
             //ChainCreateTx(owner, "sale", "sale"),
 
-            EndNexusCreateTx(owner)
+            {3,EndNexusCreateTx(owner)}
         };
 
-        var rootChain = GetChainByName(DomainSettings.RootChainName);
+        //var rootChain = GetChainByName(DomainSettings.RootChainName);
 
-        var payload = Encoding.UTF8.GetBytes("A Phantasma was born...");
-        var block = new Block(Chain.InitialHeight, rootChain.Address, timestamp, Hash.Null, 0, owner.Address, payload);
-        block.AddAllTransactionHashes(transactions.Select(tx => tx.Hash));
+        //var payload = Encoding.UTF8.GetBytes("A Phantasma was born...");
+        //var block = new Block(Chain.InitialHeight, rootChain.Address, timestamp, Hash.Null, 0, owner.Address, payload);
+        //block.AddAllTransactionHashes(transactions.Select(tx => tx.Hash));
 
-	    Transaction inflationTx = null;
-	    Console.WriteLine("tx cnt: " + transactions.Count);
+	    //Transaction inflationTx = null;
+	    //Console.WriteLine("tx cnt: " + transactions.Count);
         //var changeSet = rootChain.ProcessBlock(block, transactions, 1, out inflationTx, owner);
 	    //if (inflationTx != null)
  	    //{
@@ -1655,8 +1654,8 @@ public class Nexus : INexus
         //var storage = RootStorage;
         //storage.Put(GetNexusKey("hash"), block.Hash);
 
-        this.HasGenesis = true;
-        return true;
+        //this.HasGenesis = true;
+        return transactions;
     }
 
     #endregion
@@ -2154,7 +2153,6 @@ public class Nexus : INexus
         var valueMapKey = Encoding.UTF8.GetBytes($".{Nexus.GovernanceContractName}._valueMap");
         var valueMap = new StorageMap(valueMapKey, storage);
 
-        Console.WriteLine("name:::: " + name);
         Throw.If(valueMap.ContainsKey(name) == false, "invalid value name");
 
         var value = valueMap.Get<string, BigInteger>(name);

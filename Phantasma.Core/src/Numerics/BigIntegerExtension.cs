@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 
 namespace System.Numerics
 {
@@ -92,6 +93,66 @@ namespace System.Numerics
                 return false;
             }
             return true;
+        }
+
+        public static byte[] ToUnsignedByteArray(this BigInteger a)
+        {
+            if (a == BigInteger.Zero)
+            {
+                return new byte[0];
+            }
+
+            var arr = a.ToByteArray();
+            if (a.Sign == -1)
+            {
+                var b = a*(-1);
+                arr = b.ToByteArray();
+                if (arr[arr.Length-1] == 0x00)
+                {
+                    arr = arr.Take(arr.Length-1).ToArray();
+                }
+            }
+
+            if (arr[arr.Length-1] == 0x00)
+            {
+                arr = arr.Take(arr.Length-1).ToArray();
+            }
+            return arr;
+        }
+
+        public static byte[] ToSignedByteArray(this BigInteger a)
+        {
+            if (a == BigInteger.Zero)
+            {
+                return new byte[]{0x00};
+            }
+
+            var arr = a.ToByteArray();
+            if (a.Sign == -1)
+            {
+                if (arr.Length == 1)
+                {
+                    Array.Resize(ref arr, arr.Length + 2);
+                    arr[arr.Length-1] = 0xff;
+                    arr[arr.Length-2] = 0xff;
+                }
+                else if (arr.Length > 1 && (arr[arr.Length-1] == 0xff))
+                {
+                    Array.Resize(ref arr, arr.Length + 1);
+                    arr[arr.Length-1] = 0xff;
+                }
+            }
+            else
+            {
+                if (arr[arr.Length-1] != 0x00)
+                {
+                    Array.Resize(ref arr, arr.Length + 1);
+                    arr[arr.Length-1] = 0x00;
+                }
+            }
+
+            //&& !(arr[arr.Length-1] == 0xff && arr[arr.Length-2] == 0xff)
+            return arr;
         }
     }
 }

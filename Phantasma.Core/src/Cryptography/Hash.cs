@@ -193,7 +193,7 @@ namespace Phantasma.Core
         // If necessary pads the number to 32 bytes with zeros 
         public static implicit operator Hash(BigInteger val)
         {
-            var src = val.ToByteArray();
+            var src = val.ToUnsignedByteArray();
             Throw.If(src.Length > Length, "number is too large");
 
             return FromBytes(src);
@@ -225,9 +225,6 @@ namespace Phantasma.Core
         {
             var result = new byte[Hash.Length];
             ByteArrayUtils.CopyBytes(val.ToByteArray(), 0, result, 0, Hash.Length);
-            Console.WriteLine("biggi: " + new BigInteger(result, true));
-            Console.WriteLine("bytes result: " + Base16.Encode(result));
-            Console.WriteLine("bytes val: " + Base16.Encode(val.ToByteArray()));
             return new BigInteger(val.ToByteArray(), true);
         }
 

@@ -8,7 +8,7 @@ namespace Phantasma.Business;
 public class SerializedBlockList {
 
     public Dictionary<BigInteger, Block> Blocks { get; set; }
-    public Dictionary<BigInteger, Dictionary<int, Transaction>> BlockTransactions { get; set; }
+    public Dictionary<BigInteger,List<Transaction>> BlockTransactions { get; set; }
 
 
     public SerializedBlockList() {
@@ -32,20 +32,25 @@ public class SerializedBlockList {
     internal void Serialize(BinaryWriter writer)
     {
         writer.WriteVarInt(this.Blocks.Count);
+        //Console.WriteLine("================================ start +++++++++++++++++++++++++++++++++++++++++++++++");
+        //Console.WriteLine($"DEBUG: serialize {this.Blocks.Count} blocks");
         foreach (var pair in this.Blocks)
         {
             var height = pair.Key;
             var block = pair.Value;
+            Console.WriteLine($"DEBUG: serialize {block.Height}");
 
             writer.WriteByteArray(block.ToByteArray(true));
 
             var txs = this.BlockTransactions[height];
+            Console.WriteLine($"DEBUG: serialize {txs.Count} transactions in block {block.Height}");
             writer.WriteVarInt(txs.Count);
-            for(var i = 0; i < txs.Count; i++)
+            foreach (var tx in txs)
             {
-                writer.WriteByteArray(txs[i].ToByteArray(true));
+                writer.WriteByteArray(tx.ToByteArray(true));
             }
         }
+        //Console.WriteLine("================================ end +++++++++++++++++++++++++++++++++++++++++++++++");
     }
 
     public static SerializedBlockList Deserialize(byte[] bytes)
@@ -76,12 +81,12 @@ public class SerializedBlockList {
             this.Blocks[i] = block;
 
             var txCount = (int)reader.ReadVarInt();
-            Dictionary<int, Transaction> txs = new ();
+            List<Transaction> txs = new ();
             for (int j = 0; j < txCount; j++)
             {
                 var serializedTx = reader.ReadByteArray();
                 var tx = Transaction.Unserialize(serializedTx);
-                txs.Add(j, tx);
+                txs.Add(tx);
             }
             this.BlockTransactions[block.Height] = txs;
         }

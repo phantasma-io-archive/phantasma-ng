@@ -38,7 +38,7 @@ namespace Phantasma.Core
 
         public static void WriteBigInteger(this BinaryWriter writer, BigInteger n)
         {
-            var bytes = n.ToByteArray();
+            var bytes = n.ToSignedByteArray();
             writer.Write((byte)bytes.Length);
             writer.Write(bytes);
         }

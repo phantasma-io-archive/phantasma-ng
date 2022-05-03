@@ -205,7 +205,7 @@ namespace Phantasma.Business
                         }
                         else
                         {
-                            content = val.ToByteArray() as T;
+                            content = val.ToUnsignedByteArray() as T;
                             soulPriceBi = new BigInteger(cachedContent);
                         }
 
@@ -216,7 +216,9 @@ namespace Phantasma.Business
                         soulPriceDec = PullPrice(time, DomainSettings.StakingTokenSymbol);
                         var soulPriceBi = UnitConversion.ToBigInteger(soulPriceDec, DomainSettings.FiatTokenDecimals);
 
-                        CacheOracleData<T>(url, soulPriceBi.ToByteArray() as T);
+                        CacheOracleData<T>(url, (ProtocolVersion >= 3) 
+                                ? soulPriceBi.ToSignedByteArray() as T
+                                : soulPriceBi.ToUnsignedByteArray() as T);
 
                     }
 
@@ -228,7 +230,14 @@ namespace Phantasma.Business
                     val = UnitConversion.ToBigInteger(price, DomainSettings.FiatTokenDecimals);
                 }
 
-                    content = val.ToByteArray() as T;
+                if (ProtocolVersion >= 3)
+                {
+                    content = val.ToSignedByteArray() as T;
+                }
+                else
+                {
+                    content = val.ToUnsignedByteArray() as T;
+                }
             }
             else
             if (url.StartsWith(feeTag))
@@ -246,7 +255,14 @@ namespace Phantasma.Business
                 }
 
                 var val = PullFee(time, platform);
-                content = val.ToByteArray() as T;
+                if (ProtocolVersion >= 3)
+                {
+                    content = val.ToSignedByteArray() as T;
+                }
+                else
+                {
+                    content = val.ToUnsignedByteArray() as T;
+                }
             }
             else
             {

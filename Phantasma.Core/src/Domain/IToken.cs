@@ -79,10 +79,25 @@ namespace Phantasma.Core
 
     public struct TokenContent : ISerializable
     {
+        public BigInteger SeriesID { get; private set; }
+        public BigInteger MintID { get; private set; }
+        public string CurrentChain { get; private set; }
+        public Address Creator { get; private set; }
+        public Address CurrentOwner { get; private set; }
+        public byte[] ROM { get; private set; }
+        public byte[] RAM { get; private set; }
+        public Timestamp Timestamp { get; private set; }
+        public TokenInfusion[] Infusion { get; private set; }
+
+        public BigInteger TokenID { get; private set; }
+
         // sizes in bytes
         // TODO find optimal values for this
         public static readonly int MaxROMSize = 1024;
         public static readonly int MaxRAMSize = 1024;
+
+
+
 
         public TokenContent(BigInteger seriesID, BigInteger mintID, string currentChain, Address creator, Address currentOwner,
                 byte[] ROM, byte[] RAM, Timestamp timestamp, IEnumerable<TokenInfusion> infusion, TokenSeriesMode mode) : this()
@@ -99,21 +114,6 @@ namespace Phantasma.Core
 
             UpdateTokenID(mode);
         }
-
-        public string CurrentChain { get; private set; }
-        public Address CurrentOwner { get; private set; }
-        public Address Creator { get; private set; }
-        public byte[] ROM { get; private set; }
-        public byte[] RAM { get; private set; }
-
-        public BigInteger SeriesID { get; private set; }
-        public BigInteger MintID { get; private set; }
-
-        public BigInteger TokenID { get; private set; }
-
-        public TokenInfusion[] Infusion { get; private set; }
-
-        public Timestamp Timestamp { get; private set; }
 
         public void SerializeData(BinaryWriter writer)
         {
@@ -164,14 +164,12 @@ namespace Phantasma.Core
         public void UpdateTokenID(TokenSeriesMode mode)
         {
             byte[] bytes;
-            Console.WriteLine("rom: " + Base16.Encode(ROM));
-            Console.WriteLine("series: " + SeriesID);
-            Console.WriteLine("mint: " + MintID);
 
             switch (mode)
             {
                 case TokenSeriesMode.Unique: bytes = ROM; break;
-                case TokenSeriesMode.Duplicated: bytes = ROM.Concat(SeriesID.ToByteArray()).Concat(MintID.ToByteArray()).ToArray(); break;
+                case TokenSeriesMode.Duplicated: bytes = ROM.Concat(SeriesID.ToUnsignedByteArray())
+                                                 .Concat(MintID.ToUnsignedByteArray()).ToArray(); break;
                 default:
                     throw new ChainException($"Generation of tokenID for Series with {mode} is not implemented");
             }

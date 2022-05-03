@@ -89,7 +89,6 @@ namespace Phantasma.Core
                 case VMType.Bytes:
                     {
                         var bytes = (byte[])Data;
-                        Console.WriteLine("asnumber bytes: " + Base16.Encode(bytes));
                         var num = new BigInteger(bytes);
                         return num;
                     }
@@ -294,7 +293,7 @@ namespace Phantasma.Core
                 case VMType.Number:
                     {
                         var num = AsNumber();
-                        return num.ToByteArray(true, true);
+                        return num.ToSignedByteArray();
                     }
 
                 case VMType.Enum:
@@ -664,7 +663,7 @@ namespace Phantasma.Core
         {
             this.Type = VMType.Number;
             this.Data = val;
-            this._localSize = val.ToByteArray(true, true).Length;
+            this._localSize = val.ToSignedByteArray().Length;
             return this;
         }
 
@@ -940,7 +939,18 @@ namespace Phantasma.Core
                 case VMType.Timestamp: return $"[Time] => {((DateTime)((Timestamp)Data)).ToString(TimeFormat)}";
                 case VMType.String: return $"[String] => {((string)Data)}";
                 case VMType.Bool: return $"[Bool] => {((bool)Data)}";
-                case VMType.Enum: return $"[Enum] => {((uint)Data)}";
+                case VMType.Enum: 
+                                  uint res = 0;
+                                  try
+                                  {
+                                      res = (uint)Data;
+
+                                  }
+                                  catch
+                                  {
+                                      Console.WriteLine("failed cast");
+                                  }
+                    return $"[Enum] => {res}";
                 case VMType.Object: return $"[Object] => {(Data == null? "null" : Data.GetType().Name)}";
                 default: return "Unknown";
             }

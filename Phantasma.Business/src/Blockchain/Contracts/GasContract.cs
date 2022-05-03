@@ -51,7 +51,7 @@ namespace Phantasma.Business.Contracts
 
             Runtime.Expect(from.IsUser, "must be a user address");
             Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName, "must be entry context");
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(Runtime.IsWitness(from), $"invalid witness -> {from}");
             Runtime.Expect(target.IsSystem, "destination must be system address");
 
             Runtime.Expect(price > 0, "price must be positive amount");
@@ -80,7 +80,6 @@ namespace Phantasma.Business.Contracts
                 balance = Runtime.GetBalance(DomainSettings.FuelTokenSymbol, from);
             }
 
-            System.Console.WriteLine("balance: " + balance);
             if (maxAmount > balance)
             {
                 var diff = maxAmount - balance;

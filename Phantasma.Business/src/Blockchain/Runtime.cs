@@ -90,9 +90,7 @@ namespace Phantasma.Business
                 this.ParentChain = null;
             }
 
-            Console.WriteLine("before !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1");
             this.ProtocolVersion = Nexus.GetProtocolVersion(this.RootStorage);
-            Console.WriteLine("after !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1");
 
             ExtCalls.RegisterWithRuntime(this);
         }
@@ -485,7 +483,7 @@ namespace Phantasma.Business
         public void SetRandomSeed(BigInteger seed)
         {
             // calculates first initial pseudo random number seed
-            byte[] bytes = seed.ToByteArray();
+            byte[] bytes = seed.ToSignedByteArray();
 
             for (int i = 0; i < this.EntryScript.Length; i++)
             {
@@ -500,7 +498,7 @@ namespace Phantasma.Business
                 bytes[i] ^= time[i % time.Length];
             }
 
-            _randomSeed = new BigInteger(bytes);
+            _randomSeed = new BigInteger(bytes, true);
         }
         #endregion
 
@@ -795,7 +793,6 @@ namespace Phantasma.Business
                     throw new ChainException("IsWitness is being called from some weird context, possible bug?");
                 }
             }
-
             // workaround for supporting txs done in older nodes
             if (!accountResult && this.IsRootChain() && this.ProtocolVersion < 5 && this.NexusName == DomainSettings.NexusMainnet)
             {

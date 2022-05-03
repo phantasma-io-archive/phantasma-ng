@@ -130,7 +130,6 @@ namespace Phantasma.Business.Contracts
 
         public void CreateValue(string name, BigInteger initial, byte[] serializedConstraints)
         {
-            System.Console.WriteLine("CreateValue: " + name);
             Runtime.Expect(!HasName(name), "name already exists");
             Runtime.Expect(Runtime.IsWitness(Runtime.GenesisAddress), "genesis must be witness");
 

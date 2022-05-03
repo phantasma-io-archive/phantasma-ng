@@ -277,8 +277,9 @@ namespace Tendermint.RPC
         public ResultBroadcastTx BroadcastTxAsync(string tx)
         {
             RestRequest request = new RestRequest("broadcast_tx_async", Method.GET);
-            request.AddQueryParameter("tx", "\"0x" + tx + "\"");
-            return Execute<ResultBroadcastTx>(request);
+            request.AddQueryParameter("tx", "\"" + tx + "\"");
+            var result = Execute<ResultBroadcastTx>(request);
+            return result;
         }
 
         /// <summary>
@@ -289,7 +290,7 @@ namespace Tendermint.RPC
         public ResultBroadcastTxCommit BroadcastTxCommit(string tx)
         {
             RestRequest request = new RestRequest("broadcast_tx_commit", Method.GET);
-            request.AddQueryParameter("tx", "\"0x" + tx + "\"");
+            request.AddQueryParameter("tx", "\"" + tx + "\"");
             return Execute<ResultBroadcastTxCommit>(request);
         }
 
@@ -301,7 +302,7 @@ namespace Tendermint.RPC
         public ResultBroadcastTx BroadcastTxSync(string tx)
         {
             RestRequest request = new RestRequest("broadcast_tx_sync", Method.GET);
-            request.AddQueryParameter("tx", "\"0x" + tx + "\"");
+            request.AddQueryParameter("tx", "\"" + tx + "\"");
             return Execute<ResultBroadcastTx>(request);
         }
     }

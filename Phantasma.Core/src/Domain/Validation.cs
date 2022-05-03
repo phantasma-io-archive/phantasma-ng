@@ -60,13 +60,11 @@ namespace Phantasma.Core
                 return true;
             }
 
-            //System.Console.WriteLine("Trying to register: " + name);
             bool isReserved = false;
             for (int i = 0; i < prefixNames.Length; i++)
             {
                 if (name.StartsWith(prefixNames[i]))
                 {
-                    //System.Console.WriteLine("Starts with : " + prefixNames[i]+ " at index " +i);
                     isReserved = true;
                     break;
                 }
@@ -76,7 +74,6 @@ namespace Phantasma.Core
             {
                 if (name == reservedNames[i])
                 {
-                    //System.Console.WriteLine("Reserved with : " + reservedNames[i]);
                     isReserved = true;
                     break;
                 }

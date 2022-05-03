@@ -29,7 +29,7 @@ namespace Phantasma.Business.Tokens
 
         private byte[] GetKeyForOwner(BigInteger tokenID)
         {
-            return ByteArrayUtils.ConcatBytes(_prefixOwner, tokenID.ToByteArray());
+            return ByteArrayUtils.ConcatBytes(_prefixOwner, tokenID.ToSignedByteArray());
         }
 
         public BigInteger[] Get(StorageContext storage, Address address)

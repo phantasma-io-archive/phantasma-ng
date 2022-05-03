@@ -134,10 +134,8 @@ namespace Phantasma.Business
             {
                 opcode = (Opcode)Read8();
 
-                VirtualMachine vm = frame.VM as VirtualMachine;
-                vm.ValidateOpcode(opcode);
+                frame.VM.ValidateOpcode(opcode);
 
-                //Console.WriteLine("exec opcode: " + opcode + " byte: " + (byte)opcode);
                 switch (opcode)
                 {
                     case Opcode.NOP:
@@ -182,8 +180,6 @@ namespace Phantasma.Business
                             Expect(dst < frame.Registers.Length, "invalid dst register");
 
                             var bytes = ReadBytes(len);
-                            Console.WriteLine("read byest len: " + len);
-                            Console.WriteLine("read byest: " + Base16.Encode(bytes));
                             frame.Registers[dst].SetValue(bytes, type);
 
                             break;
@@ -229,7 +225,6 @@ namespace Phantasma.Business
                             Expect(dst < frame.Registers.Length, "invalid dst register");
 
                             var val = stack.Pop();
-                            Console.WriteLine($"pop {val} into {dst}");
                             frame.Registers[dst] = val;
                             break;
                         }
@@ -363,12 +358,9 @@ namespace Phantasma.Business
                     // args: byte src_a_reg, byte src_b_reg, byte dest_reg
                     case Opcode.CAT:
                         {
-                            Console.WriteLine("cat now");
                             var srcA = Read8();
                             var srcB = Read8();
                             var dst = Read8();
-
-                            Console.WriteLine($"regs: {srcA} + {srcB} = {dst}");
 
                             Expect(srcA < frame.Registers.Length, "invalid srcA register");
                             Expect(srcB < frame.Registers.Length, "invalid srcB register");
@@ -376,7 +368,6 @@ namespace Phantasma.Business
 
                             var A = frame.Registers[srcA];
                             var B = frame.Registers[srcB];
-                            Console.WriteLine($"regs val: {A} {B}");
 
                             if (!A.IsEmpty)
                             {
@@ -742,7 +733,6 @@ namespace Phantasma.Business
                             Expect(dst < frame.Registers.Length, "invalid dst register");
 
                             var val = frame.Registers[dst].AsNumber();
-                            Console.WriteLine($"INC {val}");
                             frame.Registers[dst].SetValue(val + 1);
 
                             break;

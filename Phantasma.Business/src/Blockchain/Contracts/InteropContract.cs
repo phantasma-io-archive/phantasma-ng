@@ -290,7 +290,6 @@ namespace Phantasma.Business.Contracts
             else
             {
                 var basePrice = Runtime.ReadFeeFromOracle(platform.Name);
-                System.Console.WriteLine("base prive: " + basePrice);
                 feeAmount = Runtime.GetTokenQuote(DomainSettings.FiatTokenSymbol, feeSymbol, basePrice);
             }
 

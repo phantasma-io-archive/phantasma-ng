@@ -96,7 +96,7 @@ namespace Phantasma.Node
 
             //var options = new ChannelOption(ChannelOptions.MaxReceiveMessageLength, 100*1024*1024);
             var options = new ChannelOption[] {
-                new ChannelOption(ChannelOptions.MaxReceiveMessageLength, 300*1024*1024)
+                new ChannelOption(ChannelOptions.MaxReceiveMessageLength, 1500*1024*1024)
             };
 
             var server = new Server(options)
@@ -119,9 +119,9 @@ namespace Phantasma.Node
             // NEW NEW NEW NEW NEW 
 
 
-            ////SetupOracleApis();
+            //SetupOracleApis();
 
-            //SetupNexusApi();
+            SetupNexusApi();
 
             //if (!string.IsNullOrEmpty(Settings.Default.Oracle.Swaps))
             //{
@@ -198,6 +198,7 @@ namespace Phantasma.Node
 
         private PhantasmaKeys SetupNodeKeys()
         {
+            Console.WriteLine("wif: " + Settings.Default.Node.NodeWif);
             PhantasmaKeys nodeKeys = PhantasmaKeys.FromWIF(Settings.Default.Node.NodeWif);;
             //TODO wallet module?
 

@@ -146,7 +146,7 @@ namespace Phantasma.Business.Contracts
 
             var nft = Runtime.ReadToken(baseSymbol, tokenID);
             Runtime.Expect(nft.CurrentChain == Runtime.Chain.Name, "token not currently in this chain");
-            Runtime.Expect(nft.CurrentOwner == from, "invalid owner");
+            Runtime.Expect(nft.CurrentOwner == from, $"invalid owner {nft.CurrentOwner} {from} {tokenID}");
 
             Runtime.Expect(price >= 0, "price has to be >= 0");
 

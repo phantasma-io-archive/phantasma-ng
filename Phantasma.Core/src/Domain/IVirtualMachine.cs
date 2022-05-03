@@ -25,7 +25,7 @@ namespace Phantasma.Core
 
         public ExecutionState ExecuteInterop(string method);
 
-        //public abstract IExecutionContext LoadContext(string contextName);
+        public abstract IExecutionContext LoadContext(string contextName);
 
         public ExecutionState Execute();
 
@@ -39,7 +39,7 @@ namespace Phantasma.Core
 
         public IExecutionContext FindContext(string contextName);
 
-        //public ExecutionState ValidateOpcode(Opcode opcode);
+        public ExecutionState ValidateOpcode(Opcode opcode);
 
         public ExecutionState SwitchContext(IExecutionContext context, uint instructionPointer);
 

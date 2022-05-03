@@ -101,7 +101,7 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        public new ExecutionState ValidateOpcode(Opcode opcode)
+        public override ExecutionState ValidateOpcode(Opcode opcode)
         {
             var gasCost = GetGasCostForOpcode(opcode);
             return ConsumeGas(gasCost);

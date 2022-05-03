@@ -90,7 +90,9 @@ namespace Phantasma.Business.Contracts
             return false;
         }
 
-        public Hash CreateSale(Address from, string name, SaleFlags flags, Timestamp startDate, Timestamp endDate, string sellSymbol, string receiveSymbol, BigInteger price, BigInteger globalSoftCap, BigInteger globalHardCap, BigInteger userSoftCap, BigInteger userHardCap)
+        public Hash CreateSale(Address from, string name, SaleFlags flags, Timestamp startDate, Timestamp endDate,
+                string sellSymbol, string receiveSymbol, BigInteger price, BigInteger globalSoftCap,
+                BigInteger globalHardCap, BigInteger userSoftCap, BigInteger userHardCap)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
@@ -405,7 +407,7 @@ namespace Phantasma.Business.Contracts
 
         public void EditSalePrice(Hash saleHash, BigInteger price)
         {
-            Runtime.Expect(_saleMap.ContainsKey(saleHash), "sale does not exist or already closed");
+            Runtime.Expect(_saleMap.ContainsKey(saleHash), $"sale does not exist or already closed {saleHash}");
 
             var sale = _saleMap.Get<Hash, SaleInfo>(saleHash);
 

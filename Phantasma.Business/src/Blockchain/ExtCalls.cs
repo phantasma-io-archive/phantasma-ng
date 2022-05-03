@@ -1000,7 +1000,6 @@ namespace Phantasma.Business
             var symbol = vm.PopString("symbol");
 
             var rom = vm.PopBytes("rom");
-            Console.WriteLine("popped rom: " + Base16.Encode(rom));
             var ram = vm.PopBytes("ram");
 
             BigInteger seriesID;
@@ -1262,7 +1261,6 @@ namespace Phantasma.Business
             vm.Expect(vm.IsWitness(from), "invalid witness");
 
             var contractName = vm.PopString("contractName");
-            Console.WriteLine("Deploy contract " + contractName);
 
             var contractAddress = SmartContract.GetAddressForName(contractName);
             var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
@@ -1291,7 +1289,6 @@ namespace Phantasma.Business
 
                 script = new byte[] { (byte)Opcode.RET };
 
-                Console.WriteLine("native contract address: " + contractAddress);
                 var contractInstance = vm.Nexus.GetNativeContractByAddress(contractAddress);
                 abi = contractInstance.ABI;
             }
@@ -1522,7 +1519,7 @@ namespace Phantasma.Business
 
         private static ExecutionState Nexus_BeginInit(RuntimeVM vm)
         {
-            vm.Expect(vm.Chain == null || vm.Chain.Height == 0, "nexus already initialized");
+            //vm.Expect(vm.Chain == null, "nexus already initialized");
 
             vm.ExpectStackSize(1);
 
@@ -1535,7 +1532,7 @@ namespace Phantasma.Business
 
         private static ExecutionState Nexus_EndInit(RuntimeVM vm)
         {
-            vm.Expect(vm.Chain == null || vm.Chain.Height == 0, "nexus already initialized");
+            //vm.Expect(vm.Chain == null, "nexus already initialized");
 
             vm.ExpectStackSize(1);
 
