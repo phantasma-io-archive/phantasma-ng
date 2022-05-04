@@ -208,7 +208,7 @@ namespace Phantasma.Core
 
         public static T Unserialize<T>(byte[] bytes)
         {
-            if (bytes.Length == 0)
+            if (bytes == null || bytes.Length == 0)
             {
                 return default(T);
             }
