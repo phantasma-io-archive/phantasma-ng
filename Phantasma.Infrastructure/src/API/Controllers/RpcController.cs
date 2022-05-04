@@ -15,6 +15,11 @@ namespace Phantasma.Infrastructure.Controllers
             public string method { get; set; }
             public string id { get; set; }
             public object[] @params { get; set; }
+
+            public override string ToString()
+            {
+                return $"RPC request '{method}' with {@params.Length} params";
+            }
         }
 
         [APIInfo(typeof(object), "Returns query result.", false, 300)]
@@ -86,6 +91,14 @@ namespace Phantasma.Infrastructure.Controllers
                             }
 
                             var instance = controller.GetConstructors().First().Invoke(null);
+                            
+                            for(int j = processedParams.Count; j < methodParameters.Length; j++)
+                            {
+                                // We should add method's optional params as Type.Missing
+                                // for reflection call to work
+                                processedParams.Add(Type.Missing);
+                            }
+
                             result = method.Invoke(instance, processedParams.ToArray());
                             break;
                         }
@@ -98,7 +111,7 @@ namespace Phantasma.Infrastructure.Controllers
             }
             catch (Exception e)
             {
-                throw new APIException("RPC call exception", e);
+                throw new APIException($"RPC call exception for {req}", e);
             }
 
             return result;
