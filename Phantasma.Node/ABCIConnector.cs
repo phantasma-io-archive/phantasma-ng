@@ -197,6 +197,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     {
         var echo = new ResponseEcho();
         echo.Message = request.Message;
+        Log.Information("Echo " + echo.Message);
         return Task.FromResult(echo);
     }
 
@@ -211,6 +212,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         Hash lastBlockHash;
         Block lastBlock = null;
         ResponseInfo response = null;
+        Log.Information("Info called");
         try 
         {
             lastBlockHash = _nexus.RootChain.GetLastBlockHash();

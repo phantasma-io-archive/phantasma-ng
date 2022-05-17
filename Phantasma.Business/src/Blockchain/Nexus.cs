@@ -1323,7 +1323,7 @@ public class Nexus : INexus
     #endregion
 
     #region GENESIS
-    private Transaction BeginNexusCreateTx(PhantasmaKeys owner)
+    private Transaction NexusCreateTx(PhantasmaKeys owner, Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>> values)
     {
         var sb = ScriptUtils.BeginScript();
         sb.CallInterop("Nexus.BeginInit", owner.Address);
@@ -1353,6 +1353,19 @@ public class Nexus : INexus
 
         sb.CallInterop("Nexus.EndInit", owner.Address);
 
+        foreach (var entry in values)
+        {
+            var name = entry.Key;
+            var initial = entry.Value.Key;
+            var constraints = entry.Value.Value;
+            var bytes = Serialization.Serialize(constraints);
+            sb.CallContract(NativeContractKind.Governance, nameof(GovernanceContract.CreateValue), name, initial, bytes);
+        }
+
+        sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), owner.Address, new BigInteger(0), ValidatorType.Primary).
+        CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals)).
+        CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100, DomainSettings.FuelTokenDecimals));
+
         sb.Emit(Opcode.RET);
 
         var script = sb.EndScript();
@@ -1381,44 +1394,6 @@ public class Nexus : INexus
 
         var tx = new Transaction(Name, DomainSettings.RootChainName, script, Timestamp.Now + TimeSpan.FromDays(300));
         tx.Mine((int)ProofOfWork.Moderate);
-        tx.Sign(owner);
-        return tx;
-    }
-
-    private Transaction ValueCreateTx(PhantasmaKeys owner, Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>> values)
-    {
-        Log.Debug("ValueCreateTx");
-        var sb = ScriptUtils.
-            BeginScript();
-        //AllowGas(owner.Address, Address.Null, 1, 9999).
-        foreach (var entry in values)
-        {
-            var name = entry.Key;
-            var initial = entry.Value.Key;
-            var constraints = entry.Value.Value;
-            var bytes = Serialization.Serialize(constraints);
-            sb.CallContract(NativeContractKind.Governance, nameof(GovernanceContract.CreateValue), name, initial, bytes);
-        }
-        //SpendGas(owner.Address).
-        var script = sb.EndScript();
-
-        var tx = new Transaction(Name, DomainSettings.RootChainName, script, Timestamp.Now + TimeSpan.FromDays(300));
-        tx.Sign(owner);
-        return tx;
-    }
-
-    private Transaction EndNexusCreateTx(PhantasmaKeys owner)
-    {
-        var script = ScriptUtils.
-            BeginScript().
-            //AllowGas(owner.Address, Address.Null, 1, 9999).
-            CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), owner.Address, new BigInteger(0), ValidatorType.Primary).
-            CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals)).
-            CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100, DomainSettings.FuelTokenDecimals)).
-            //SpendGas(owner.Address).
-            EndScript();
-
-        var tx = new Transaction(Name, DomainSettings.RootChainName, script, Timestamp.Now + TimeSpan.FromDays(300));
         tx.Sign(owner);
         return tx;
     }
@@ -1479,9 +1454,8 @@ public class Nexus : INexus
         // create genesis transactions
         var transactions = new Dictionary<int, Transaction>
         {
-            {1, BeginNexusCreateTx(owner)},
 
-            {2, ValueCreateTx(owner,
+            {1, NexusCreateTx(owner,
              new Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>>() {
                  {
                      NexusProtocolVersionTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
@@ -1628,10 +1602,6 @@ public class Nexus : INexus
                      })
                  },
              })},
-            
-            //ChainCreateTx(owner, "sale", "sale"),
-
-            {3,EndNexusCreateTx(owner)}
         };
 
         //var rootChain = GetChainByName(DomainSettings.RootChainName);

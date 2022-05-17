@@ -65,7 +65,5 @@ namespace Phantasma.Core
 
             return Encoding.UTF8.GetBytes($"{prefix}{contractName}.{fieldName}");
         }
-
-
     }
 }

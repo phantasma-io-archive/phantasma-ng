@@ -581,7 +581,7 @@ public static class NexusAPI
             }
         }
 
-        result.relay = Nexus.GetRelayBalance(address).ToString();
+        //result.relay = Nexus.GetRelayBalance(address).ToString();
         result.balances = balanceList.ToArray();
         result.validator = validator.ToString();
 

@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Phantasma.Core\src\Phantasma.Core.csproj" />
+    <ProjectReference Include="..\src\Phantasma.Core.csproj" />
   </ItemGroup>
 
 </Project>

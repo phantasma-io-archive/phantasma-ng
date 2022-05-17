@@ -1,11 +1,4 @@
-using System;
-using System.Linq;
 using System.Numerics;
-
-/*
- * Implementation of BigIntegerOld class, written for Phantasma project
- * Author: Simão Pavlovich and Bernardo Pinho
- */
 
 namespace Phantasma.Core
 {

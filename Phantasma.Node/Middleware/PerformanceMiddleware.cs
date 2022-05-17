@@ -44,20 +44,20 @@ public class PerformanceMiddleware
             return;
         }
 
-        if (Settings.Default.PerformanceMetrics.CountsEnabled)
-        {
-            await _metrics.Count(request.Path);
-        }
+        //if (Settings.Default.PerformanceMetrics.CountsEnabled)
+        //{
+        //    await _metrics.Count(request.Path);
+        //}
 
-        if (Settings.Default.PerformanceMetrics.AveragesEnabled)
-        {
-            await _metrics.Average(request.Path, timer.ElapsedMilliseconds);
-        }
+        //if (Settings.Default.PerformanceMetrics.AveragesEnabled)
+        //{
+        //    await _metrics.Average(request.Path, timer.ElapsedMilliseconds);
+        //}
 
-        if (timer.ElapsedMilliseconds <= Settings.Default.PerformanceMetrics.LongRunningRequestThreshold)
-        {
-            return;
-        }
+        //if (timer.ElapsedMilliseconds <= Settings.Default.PerformanceMetrics.LongRunningRequestThreshold)
+        //{
+        //    return;
+        //}
 
         _logger.LogWarning("Long Running Request: Duration: {Duration}ms; Path: {Path}; Query: {@Query}",
             timer.ElapsedMilliseconds, request.Path, request.Query);

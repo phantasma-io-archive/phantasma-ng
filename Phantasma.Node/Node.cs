@@ -82,6 +82,7 @@ namespace Phantasma.Node
             Version = Assembly.GetAssembly(typeof(Node)).GetVersion();
 
             _nodeKeys = SetupNodeKeys();
+            Console.WriteLine("keys: " + _nodeKeys);
 
             if (!SetupNexus())
             {
@@ -198,7 +199,6 @@ namespace Phantasma.Node
 
         private PhantasmaKeys SetupNodeKeys()
         {
-            Console.WriteLine("wif: " + Settings.Default.Node.NodeWif);
             PhantasmaKeys nodeKeys = PhantasmaKeys.FromWIF(Settings.Default.Node.NodeWif);;
             //TODO wallet module?
 
