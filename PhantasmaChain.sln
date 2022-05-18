@@ -5,8 +5,6 @@ VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Core", "Phantasma.Core\src\Phantasma.Core.csproj", "{D2212E28-7FF6-4E7C-AD28-CD22B4E92D5F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Core.Tests", "Phantasma.Core.Tests\Phantasma.Core.Tests.csproj", "{5256A1AB-4AAC-4A61-8F95-D585859E6A57}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Business", "Phantasma.Business\src\Phantasma.Business.csproj", "{31F2E65A-AD01-4BB3-8825-7E3B0042CB42}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Infrastructure", "Phantasma.Infrastructure\src\Phantasma.Infrastructure.csproj", "{5D6951A4-57E6-4E2F-9E18-24666D122084}"
@@ -18,6 +16,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Node", "Phantasma.Node\Phantasma.Node.csproj", "{D25C9B91-42E8-42AD-932D-CA3CEEB2BE93}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tendermint.RPC", "Tendermint.RPC\Tendermint.RPC.csproj", "{D4A25ABA-2945-4671-B250-D92965E5A2E8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Phantasma.Core", "Phantasma.Core", "{F7CCB749-3D6F-4224-9044-4665CB3E6ED5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Phantasma.Core.Tests", "Phantasma.Core\tests\Phantasma.Core.Tests.csproj", "{F4749737-2E38-47B4-A5E2-436E99DB672C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -125,11 +127,26 @@ Global
 		{D4A25ABA-2945-4671-B250-D92965E5A2E8}.Release|x64.Build.0 = Release|Any CPU
 		{D4A25ABA-2945-4671-B250-D92965E5A2E8}.Release|x86.ActiveCfg = Release|Any CPU
 		{D4A25ABA-2945-4671-B250-D92965E5A2E8}.Release|x86.Build.0 = Release|Any CPU
+		{F4749737-2E38-47B4-A5E2-436E99DB672C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4749737-2E38-47B4-A5E2-436E99DB672C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4749737-2E38-47B4-A5E2-436E99DB672C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F4749737-2E38-47B4-A5E2-436E99DB672C}.Debug|x64.Build.0 = Debug|Any CPU
+		{F4749737-2E38-47B4-A5E2-436E99DB672C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F4749737-2E38-47B4-A5E2-436E99DB672C}.Debug|x86.Build.0 = Debug|Any CPU
+		{F4749737-2E38-47B4-A5E2-436E99DB672C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4749737-2E38-47B4-A5E2-436E99DB672C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4749737-2E38-47B4-A5E2-436E99DB672C}.Release|x64.ActiveCfg = Release|Any CPU
+		{F4749737-2E38-47B4-A5E2-436E99DB672C}.Release|x64.Build.0 = Release|Any CPU
+		{F4749737-2E38-47B4-A5E2-436E99DB672C}.Release|x86.ActiveCfg = Release|Any CPU
+		{F4749737-2E38-47B4-A5E2-436E99DB672C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2118B4E7-09F1-45EA-A596-12BF1C492CA1}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F4749737-2E38-47B4-A5E2-436E99DB672C} = {F7CCB749-3D6F-4224-9044-4665CB3E6ED5}
 	EndGlobalSection
 EndGlobal
