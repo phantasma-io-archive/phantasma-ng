@@ -16,8 +16,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Node", "Phantasma
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tendermint.RPC", "Tendermint.RPC\Tendermint.RPC.csproj", "{D4A25ABA-2945-4671-B250-D92965E5A2E8}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Phantasma.Core", "Phantasma.Core", "{F7CCB749-3D6F-4224-9044-4665CB3E6ED5}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Phantasma.Core.Tests", "Phantasma.Core\tests\Phantasma.Core.Tests.csproj", "{F4749737-2E38-47B4-A5E2-436E99DB672C}"
 EndProject
 Global
