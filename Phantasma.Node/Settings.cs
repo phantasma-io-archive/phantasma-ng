@@ -273,7 +273,7 @@ namespace Phantasma.Node
         public uint SenderThreads { get; } = 8;
         public uint SenderAddressCount { get; } = 100;
 
-        public int BlockTime { get; } = Mempool.MinimumBlockTime;
+        public int BlockTime { get; } = 0;
         public int MinimumFee { get; } = 100000;
         public int MinimumPow { get; } = 0;
 
@@ -378,7 +378,7 @@ namespace Phantasma.Node
             }
 
             var backend = section.GetString("storage.backend");
-            
+
             if (!Enum.TryParse<StorageBackendType>(backend, true, out this.StorageBackend))
             {
                 throw new Exception("Unknown storage backend: " + backend);
@@ -430,7 +430,7 @@ namespace Phantasma.Node
         public uint EthConfirmations { get; }
         public uint EthGasLimit { get; }
         public bool NeoQuickSync { get; } = true;
-        
+
         public OracleSettings(IConfigurationSection section)
         {
             this.NeoscanUrl = section.GetString("neoscan.api");

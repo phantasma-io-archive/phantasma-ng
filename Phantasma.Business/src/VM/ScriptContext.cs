@@ -8,7 +8,7 @@ using Phantasma.Shared.Performance;
 
 namespace Phantasma.Business
 {
-    public class ScriptContext : ExecutionContext
+    public class ScriptContext : Phantasma.Core.ExecutionContext
     {
         public static readonly byte[] EmptyScript = new byte[] { (byte)Opcode.RET };
 
@@ -32,7 +32,7 @@ namespace Phantasma.Business
             this.opcode = Opcode.NOP;
         }
 
-        public override ExecutionState Execute(IExecutionFrame frame, Stack<VMObject> stack)
+        public override ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack)
         {
             while (_state == ExecutionState.Running)
             {
@@ -128,7 +128,7 @@ namespace Phantasma.Business
             this._state = state;
         }
 
-        public void Step(ref IExecutionFrame frame, Stack<VMObject> stack)
+        public void Step(ref ExecutionFrame frame, Stack<VMObject> stack)
         {
             try
             {
@@ -929,7 +929,7 @@ namespace Phantasma.Business
 
                             var contextName = frame.Registers[src].AsString();
 
-                            IExecutionContext context = frame.VM.FindContext(contextName);
+                            Phantasma.Core.ExecutionContext context = frame.VM.FindContext(contextName);
 
                             if (context == null)
                             {
@@ -948,7 +948,7 @@ namespace Phantasma.Business
                             var src = Read8();
                             Expect(src < frame.Registers.Length, "invalid src register");
 
-                            var context = frame.Registers[src].AsInterop<ExecutionContext>();
+                            var context = frame.Registers[src].AsInterop<Phantasma.Core.ExecutionContext>();
 
                             _state = frame.VM.SwitchContext(context, InstructionPointer);
 

@@ -33,7 +33,7 @@ namespace Phantasma.Business
         public Organization(string name, StorageContext storage)
         {
             this.Storage = storage;
- 
+
             this.ID = name;
 
             var key = GetKey("script");
@@ -91,7 +91,7 @@ namespace Phantasma.Business
             return list.Contains<Address>(address);
         }
 
-        public bool AddMember(RuntimeVM Runtime, Address from, Address target)
+        public bool AddMember(IRuntime Runtime, Address from, Address target)
         {
             if (from.IsSystem)
             {
@@ -113,7 +113,7 @@ namespace Phantasma.Business
             return true;
         }
 
-        public bool RemoveMember(RuntimeVM Runtime, Address from, Address target)
+        public bool RemoveMember(IRuntime Runtime, Address from, Address target)
         {
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
@@ -170,7 +170,7 @@ namespace Phantasma.Business
             return witnessCount >= majorityCount;
         }
 
-        public bool MigrateMember(RuntimeVM Runtime, Address admin, Address from, Address to)
+        public bool MigrateMember(IRuntime Runtime, Address admin, Address from, Address to)
         {
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
@@ -189,7 +189,7 @@ namespace Phantasma.Business
             Runtime.Expect(!list.Contains<Address>(to), "target address is already a member of organization");
 
             list.Remove<Address>(from);
-            list.Add<Address>(to);         
+            list.Add<Address>(to);
 
             Runtime.Notify(EventKind.OrganizationRemove, admin, new OrganizationEventData(this.ID, from));
             Runtime.Notify(EventKind.OrganizationAdd, admin, new OrganizationEventData(this.ID, to));

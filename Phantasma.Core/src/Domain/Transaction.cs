@@ -10,9 +10,9 @@ using Phantasma.Shared.Types;
 using Phantasma.Core.EdDSA;
 using Phantasma.Core.ECC;
 
-namespace Phantasma.Business
+namespace Phantasma.Core
 {
-    public sealed class Transaction : ITransaction, ISerializable
+    public sealed class Transaction : ISerializable
     {
         public byte[] Script { get; private set; }
 
@@ -150,11 +150,6 @@ namespace Phantasma.Business
             }
 
             return false;
-        }
-
-        public bool IsValid(Chain chain)
-        {
-            return (chain.Name == this.ChainName && chain.Nexus.Name == this.NexusName);
         }
 
         private void UpdateHash()

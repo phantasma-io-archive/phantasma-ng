@@ -1,9 +1,10 @@
-﻿using Phantasma.Core;
+﻿using System.Numerics;
+using Phantasma.Core;
 using Phantasma.Shared;
 
 namespace Phantasma.Business
 {
-    public sealed class CustomContract : SmartContract
+    public sealed class CustomContract : SmartContract, ICustomContract
     {
         private string _name;
         public override string Name => _name;

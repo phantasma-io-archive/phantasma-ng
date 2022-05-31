@@ -75,6 +75,9 @@ namespace Phantasma.Core
         byte[] Script { get;  }
         ContractInterface ABI { get; }
         byte[] ROM { get; }
+
+        BigInteger GenerateMintID();
+        void SetROM(byte[] ROM);
     }
 
     public struct TokenContent : ISerializable

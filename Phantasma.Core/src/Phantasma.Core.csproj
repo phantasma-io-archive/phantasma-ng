@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk" ToolsVersion="Current">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -15,5 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../Phantasma.Shared/src/Phantasma.Shared.csproj" />
+    <ProjectReference Include="../../Tendermint/Tendermint.csproj" />
   </ItemGroup>
 </Project>

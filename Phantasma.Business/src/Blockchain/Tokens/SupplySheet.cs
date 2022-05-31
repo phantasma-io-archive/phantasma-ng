@@ -16,7 +16,7 @@ namespace Phantasma.Business.Tokens
         private string _localName;
         private string _parentName;
 
-        public SupplySheet(string symbol, Chain chain, Nexus nexus)
+        public SupplySheet(string symbol, IChain chain, INexus nexus)
         {
             var parentName = nexus.GetParentChainByName(chain.Name);
             this._parentName = parentName;

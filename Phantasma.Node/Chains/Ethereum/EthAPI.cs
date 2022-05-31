@@ -11,6 +11,7 @@ using Nethereum.StandardTokenEIP20.ContractDefinition;
 
 using Phantasma.Core;
 using Phantasma.Infrastructure;
+using Transaction = Nethereum.RPC.Eth.DTOs.Transaction;
 
 namespace Phantasma.Node.Chains
 {
@@ -90,7 +91,7 @@ namespace Phantasma.Node.Chains
         {
             return EthUtils.RunSync(() => GetWeb3Client().Eth.Blocks.GetBlockWithTransactionsByNumber
                     .SendRequestAsync(new BlockParameter(height)));
-                    
+
         }
 
         public BlockWithTransactions GetBlock(string hash)

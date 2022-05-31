@@ -5,7 +5,7 @@ using Phantasma.Core;
 
 namespace Phantasma.Business
 {
-    internal class DummyExecutionContext : ExecutionContext
+    internal class DummyExecutionContext : Phantasma.Core.ExecutionContext
     {
         public override string Name => _name;
 
@@ -16,7 +16,7 @@ namespace Phantasma.Business
             this._name = name;
         }
 
-        public override ExecutionState Execute(IExecutionFrame frame, Stack<VMObject> stack)
+        public override ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack)
         {
             return ExecutionState.Halt;
         }
@@ -36,7 +36,7 @@ namespace Phantasma.Business
             throw new NotImplementedException();
         }
 
-        public override ExecutionContext LoadContext(string contextName)
+        public override Phantasma.Core.ExecutionContext LoadContext(string contextName)
         {
             return new DummyExecutionContext(contextName);
         }

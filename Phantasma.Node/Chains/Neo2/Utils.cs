@@ -10,6 +10,7 @@ using Phantasma.Core;
 using Neo;
 using Neo.Wallets;
 using Neo.Network.P2P.Payloads;
+using Transaction = Neo.Network.P2P.Payloads.Transaction;
 
 namespace Phantasma.Node.Chains
 {

@@ -1279,7 +1279,7 @@ namespace Phantasma.Business
             byte[] script;
             ContractInterface abi;
 
-            bool isNative = Nexus.IsNativeContract(contractName);
+            bool isNative = Nexus.IsNativeContractStatic(contractName);
             if (isNative)
             {
                 /*if (contractName == "validator" && vm.GenesisAddress == Address.Null)
@@ -1317,7 +1317,7 @@ namespace Phantasma.Business
                 var abiBytes = vm.PopBytes("contractABI");
                 abi = ContractInterface.FromBytes(abiBytes);
 
-                var fuelCost = vm.GetGovernanceValue(Nexus.FuelPerContractDeployTag);
+                var fuelCost = vm.GetGovernanceValue(vm.Nexus.FuelPerContractDeployTag);
                 // governance value is in usd fiat, here convert from fiat to fuel amount
                 fuelCost = vm.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
 
@@ -1370,7 +1370,7 @@ namespace Phantasma.Business
             byte[] script;
             ContractInterface abi;
 
-            bool isNative = Nexus.IsNativeContract(contractName);
+            bool isNative = Nexus.IsNativeContractStatic(contractName);
             vm.Expect(!isNative, "cannot upgrade native contract");
 
             bool isToken = ValidationUtils.IsValidTicker(contractName);
@@ -1380,7 +1380,7 @@ namespace Phantasma.Business
             var abiBytes = vm.PopBytes("contractABI");
             abi = ContractInterface.FromBytes(abiBytes);
 
-            var fuelCost = vm.GetGovernanceValue(Nexus.FuelPerContractDeployTag);
+            var fuelCost = vm.GetGovernanceValue(vm.Nexus.FuelPerContractDeployTag);
             // governance value is in usd fiat, here convert from fiat to fuel amount
             fuelCost = vm.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
 
@@ -1444,7 +1444,7 @@ namespace Phantasma.Business
 
             vm.Expect(deployed, $"{contractName} does not exist");
 
-            bool isNative = Nexus.IsNativeContract(contractName);
+            bool isNative = Nexus.IsNativeContractStatic(contractName);
             vm.Expect(!isNative, "cannot kill native contract");
 
             bool isToken = ValidationUtils.IsValidTicker(contractName);

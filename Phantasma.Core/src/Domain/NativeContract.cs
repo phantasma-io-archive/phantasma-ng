@@ -6,17 +6,16 @@ using System.Numerics;
 using System.Reflection;
 using System.Collections.Generic;
 using Phantasma.Shared;
-using Phantasma.Core;
 using Phantasma.Core.Context;
 
-namespace Phantasma.Business
+namespace Phantasma.Core
 {
     public static class ContractPatch
     {
         public static readonly uint UnstakePatch = 1578238531;
     }
 
-    public abstract class NativeContract : SmartContract
+    public abstract class NativeContract : SmartContract, INativeContract
     {
         public override string Name => Kind.GetContractName();
 
@@ -41,7 +40,7 @@ namespace Phantasma.Business
 
         // here we auto-initialize any fields from storage
         public void LoadFromStorage(StorageContext storage)
-        { 
+        {
             var contractType = this.GetType();
             FieldInfo[] fields = contractType.GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
 

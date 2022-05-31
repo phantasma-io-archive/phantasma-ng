@@ -1,16 +1,14 @@
-using System;
 using System.Text;
-using System.Linq;
 using System.Numerics;
-using System.Collections.Generic;
 using Phantasma.Core;
 using Phantasma.Core.Context;
-using Phantasma.Shared;
 using Phantasma.Shared.Types;
 using Phantasma.Shared.Performance;
 using Phantasma.Business.Storage;
 using Phantasma.Business.Tokens;
 using Phantasma.Business.Contracts;
+using System.Collections.Generic;
+using System;
 
 namespace Phantasma.Business
 {
@@ -18,10 +16,10 @@ namespace Phantasma.Business
     {
         public Timestamp Time { get; private set; }
         public Transaction Transaction { get; private set; }
-        public Chain Chain { get; private set; }
-        public Chain ParentChain { get; private set; }
-        public OracleReader Oracle { get; private set; }
-        public Nexus Nexus => Chain.Nexus;
+        public IChain Chain { get; private set; }
+        public IChain ParentChain { get; private set; }
+        public IOracleReader Oracle { get; private set; }
+        public INexus Nexus => Chain.Nexus;
 
         private List<Event> _events = new List<Event>();
         public IEnumerable<Event> Events => _events;
@@ -39,17 +37,20 @@ namespace Phantasma.Business
 
         public Address Validator { get; private set; }
 
-        public ITask CurrentTask { get; private set; }
+        public IChainTask CurrentTask { get; private set; }
 
 
         private readonly StorageChangeSetContext changeSet;
         private int _baseChangeSetCount;
 
-        internal StorageContext RootStorage => this.IsRootChain() ? this.Storage : Nexus.RootStorage;
+        public StorageContext RootStorage => this.IsRootChain() ? this.Storage : Nexus.RootStorage;
 
         private readonly RuntimeVM _parentMachine;
 
-        public RuntimeVM(int index, byte[] script, uint offset, Chain chain, Address validator, Timestamp time, Transaction transaction, StorageChangeSetContext changeSet, OracleReader oracle, ITask currentTask, bool readOnlyMode, bool delayPayment = false, string contextName = null, RuntimeVM parentMachine = null) : base(script, offset, contextName)
+        public RuntimeVM(int index, byte[] script, uint offset, IChain chain, Address validator, Timestamp time,
+                Transaction transaction, StorageChangeSetContext changeSet, IOracleReader oracle, IChainTask currentTask,
+                bool readOnlyMode, bool delayPayment = false, string contextName = null, RuntimeVM parentMachine = null)
+            : base(script, offset, contextName)
         {
             Shared.Throw.IfNull(chain, nameof(chain));
             Shared.Throw.IfNull(changeSet, nameof(changeSet));
@@ -74,7 +75,7 @@ namespace Phantasma.Business
             this._randomSeed = 0;
 
             this.Time = time;
-            this.Chain = chain;
+            this.Chain = (Chain)chain;
             this.Transaction = transaction;
             this.Oracle = oracle;
             this.changeSet = changeSet;
@@ -82,8 +83,8 @@ namespace Phantasma.Business
 
             if (this.Chain != null && !Chain.IsRoot)
             {
-                var parentName = chain.Nexus.GetParentChainByName(chain.Name);
-                this.ParentChain = chain.Nexus.GetChainByName(parentName);
+                var parentName = this.Chain.Nexus.GetParentChainByName(chain.Name);
+                this.ParentChain = this.Chain.Nexus.GetChainByName(parentName);
             }
             else
             {
@@ -99,7 +100,7 @@ namespace Phantasma.Business
 
         IChain IRuntime.Chain => this.Chain;
 
-        ITransaction IRuntime.Transaction => this.Transaction;
+        Transaction IRuntime.Transaction => this.Transaction;
 
         public StorageContext Storage => this.changeSet;
 
@@ -170,7 +171,7 @@ namespace Phantasma.Business
             return result;
         }
 
-        public override ExecutionContext LoadContext(string contextName)
+        public override Phantasma.Core.ExecutionContext LoadContext(string contextName)
         {
             if (contextName.Contains("#"))
             {
@@ -272,7 +273,7 @@ namespace Phantasma.Business
             {
                 case EventKind.GasEscrow:
                     {
-                        Expect(contract == Nexus.GasContractName, $"event kind only in {Nexus.GasContractName} contract");
+                        Expect(contract == ContractNames.GasContractName, $"event kind only in {ContractNames.GasContractName} contract");
 
                         var gasInfo = Serialization.Unserialize<GasEventData>(bytes);
                         Expect(gasInfo.price >= this.MinimumFee, "gas fee is too low");
@@ -284,7 +285,7 @@ namespace Phantasma.Business
 
                 case EventKind.GasPayment:
                     {
-                        Expect(contract == Nexus.GasContractName, $"event kind only in {Nexus.GasContractName} contract");
+                        Expect(contract == ContractNames.GasContractName, $"event kind only in {ContractNames.GasContractName} contract");
 
                         Expect(!address.IsNull, "invalid gas payment address");
                         var gasInfo = Serialization.Unserialize<GasEventData>(bytes);
@@ -294,13 +295,13 @@ namespace Phantasma.Business
                     }
 
                 case EventKind.ValidatorSwitch:
-                    Expect(contract == Nexus.BlockContractName, $"event kind only in {Nexus.BlockContractName} contract");
+                    Expect(contract == ContractNames.BlockContractName, $"event kind only in {ContractNames.BlockContractName} contract");
                     break;
 
                 case EventKind.PollCreated:
                 case EventKind.PollClosed:
                 case EventKind.PollVote:
-                    Expect(contract == Nexus.ConsensusContractName, $"event kind only in {Nexus.ConsensusContractName} contract");
+                    Expect(contract == ContractNames.ConsensusContractName, $"event kind only in {ContractNames.ConsensusContractName} contract");
                     break;
 
                 case EventKind.ChainCreate:
@@ -311,18 +312,18 @@ namespace Phantasma.Business
 
                 case EventKind.FileCreate:
                 case EventKind.FileDelete:
-                    Expect(contract == Nexus.StorageContractName, $"event kind only in {Nexus.StorageContractName } contract");
+                    Expect(contract == ContractNames.StorageContractName, $"event kind only in {ContractNames.StorageContractName } contract");
                     break;
 
                 case EventKind.ValidatorPropose:
                 case EventKind.ValidatorElect:
                 case EventKind.ValidatorRemove:
-                    Expect(contract == Nexus.ValidatorContractName, $"event kind only in {Nexus.ValidatorContractName} contract");
+                    Expect(contract == ContractNames.ValidatorContractName, $"event kind only in {ContractNames.ValidatorContractName} contract");
                     break;
 
                 case EventKind.ValueCreate:
                 case EventKind.ValueUpdate:
-                    Expect(contract == Nexus.GovernanceContractName, $"event kind only in {Nexus.GovernanceContractName} contract");
+                    Expect(contract == ContractNames.GovernanceContractName, $"event kind only in {ContractNames.GovernanceContractName} contract");
                     break;
 
                 case EventKind.Inflation:
@@ -331,7 +332,7 @@ namespace Phantasma.Business
 
                     if (inflationSymbol == DomainSettings.StakingTokenSymbol)
                     {
-                        Expect(contract == Nexus.GasContractName, $"event kind only in {Nexus.GasContractName} contract");
+                        Expect(contract == ContractNames.GasContractName, $"event kind only in {ContractNames.GasContractName} contract");
                     }
                     else
                     {
@@ -340,7 +341,7 @@ namespace Phantasma.Business
 
                     break;
                 case EventKind.CrownRewards:
-                    Expect(contract == Nexus.GasContractName, $"event kind only in {Nexus.GasContractName} contract");
+                    Expect(contract == ContractNames.GasContractName, $"event kind only in {ContractNames.GasContractName} contract");
                     break;
             }
 
@@ -363,7 +364,7 @@ namespace Phantasma.Business
                 {
                     return true;
                 }
-                
+
                 if (info.Owner == this.GenesisAddress)
                 {
                     if (address.IsSystem)
@@ -569,7 +570,7 @@ namespace Phantasma.Business
                             ValidateTriggerGuard($"{contract.Name}.{triggerName}");
 
                             try
-                            {                                
+                            {
                                 this.CallNativeContext(native.Kind,  triggerName, args);
                                 return TriggerResult.Success;
                             }
@@ -598,7 +599,7 @@ namespace Phantasma.Business
 
         private byte[] OptimizedAddressScriptLookup(Address target)
         {
-            var scriptMapKey = Encoding.UTF8.GetBytes($".{Nexus.AccountContractName}._scriptMap");
+            var scriptMapKey = Encoding.UTF8.GetBytes($".{ContractNames.AccountContractName}._scriptMap");
 
             var scriptMap = new StorageMap(scriptMapKey, RootStorage);
 
@@ -611,7 +612,7 @@ namespace Phantasma.Business
 
         private ContractInterface OptimizedAddressABILookup(Address target)
         {
-            var abiMapKey = Encoding.UTF8.GetBytes($".{Nexus.AccountContractName}._abiMap");
+            var abiMapKey = Encoding.UTF8.GetBytes($".{ContractNames.AccountContractName}._abiMap");
 
             var abiMap = new StorageMap(abiMapKey, RootStorage);
 
@@ -644,7 +645,7 @@ namespace Phantasma.Business
             }
 
             var runtime = new RuntimeVM(-1, script, (uint)method.offset, this.Chain, this.Validator, this.Time, this.Transaction, this.changeSet, this.Oracle, ChainTask.Null, false, true, contextName, this);
-            
+
             for (int i = args.Length - 1; i >= 0; i--)
             {
                 var obj = VMObject.FromObject(args[i]);
@@ -655,8 +656,8 @@ namespace Phantasma.Business
 			try {
 				state = runtime.Execute();
 				// TODO catch VM exceptions?
-			} 
-			catch (VMException) 
+			}
+			catch (VMException)
             {
                 if (allowThrow)
                 {
@@ -809,7 +810,7 @@ namespace Phantasma.Business
 
         bool OptimizedHasAddressScript(StorageContext context, Address address)
         {
-            var scriptMapKey = Encoding.UTF8.GetBytes($".{Nexus.AccountContractName}._scriptMap");
+            var scriptMapKey = Encoding.UTF8.GetBytes($".{ContractNames.AccountContractName}._scriptMap");
 
             var scriptMap = new StorageMap(scriptMapKey, context);
 
@@ -822,18 +823,18 @@ namespace Phantasma.Business
 
         }
 
-        public IBlock GetBlockByHash(Hash hash)
+        public Block GetBlockByHash(Hash hash)
         {
             return this.Chain.GetBlockByHash(hash);
         }
 
-        public IBlock GetBlockByHeight(BigInteger height)
+        public Block GetBlockByHeight(BigInteger height)
         {
             var hash = this.Chain.GetBlockHashAtHeight(height);
             return GetBlockByHash(hash);
         }
 
-        public ITransaction GetTransaction(Hash hash)
+        public Transaction GetTransaction(Hash hash)
         {
             return this.Chain.GetTransactionByHash(hash);
         }
@@ -1033,7 +1034,7 @@ namespace Phantasma.Business
         }
 
         public BigInteger GenerateUID()
-        {            
+        {
             return this.Chain.GenerateUID(this.Storage);
         }
 
@@ -1270,7 +1271,7 @@ namespace Phantasma.Business
             var blockCount = (int)archive.GetBlockCount();
             if (blockIndex < 0 || blockIndex >= blockCount)
             {
-                return false; 
+                return false;
             }
 
             Nexus.WriteArchiveBlock((Archive)archive, blockIndex, content);
@@ -1426,7 +1427,7 @@ namespace Phantasma.Business
             var Runtime = this;
 
             Runtime.Expect(seriesID >= 0, "invalid series ID");
-            
+
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
             Runtime.Expect(Runtime.TokenExists(symbol), "invalid token");
@@ -1435,7 +1436,7 @@ namespace Phantasma.Business
             Runtime.Expect(!token.IsFungible(), "token must be non-fungible");
 
             Runtime.Expect(IsWitness(from), "invalid witness");
-            Runtime.Expect(InvokeTriggerOnToken(false, token, TokenTrigger.OnSeries, from) != TriggerResult.Failure, $"trigger {TokenTrigger.OnSeries} on token {symbol} failed for {from}"); 
+            Runtime.Expect(InvokeTriggerOnToken(false, token, TokenTrigger.OnSeries, from) != TriggerResult.Failure, $"trigger {TokenTrigger.OnSeries} on token {symbol} failed for {from}");
 
             return Nexus.CreateSeries(this.RootStorage, token, seriesID, maxSupply, mode, script, abi);
         }
@@ -1780,7 +1781,7 @@ namespace Phantasma.Business
         }
 
         #region TASKS
-        public ITask StartTask(Address from, string contractName, ContractMethod method, uint frequency, uint delay, TaskFrequencyMode mode, BigInteger gasLimit)
+        public IChainTask StartTask(Address from, string contractName, ContractMethod method, uint frequency, uint delay, TaskFrequencyMode mode, BigInteger gasLimit)
         {
             var vm = this;
 
@@ -1797,7 +1798,7 @@ namespace Phantasma.Business
             vm.Expect(contract is CustomContract, "contract used for task must be custom");
             vm.Expect(contract.ABI.Implements(method), "contract abi does not implement method: " + method.name);
 
-            if (mode != TaskFrequencyMode.Always) 
+            if (mode != TaskFrequencyMode.Always)
             {
                 vm.Expect(frequency > 0, "invalid frequency");
             }
@@ -1816,7 +1817,7 @@ namespace Phantasma.Business
             return result;
         }
 
-        public void StopTask(ITask task)
+        public void StopTask(IChainTask task)
         {
             var vm = this;
 
@@ -1829,7 +1830,7 @@ namespace Phantasma.Business
             this.Notify(EventKind.TaskStop, task.Owner, task.ID);
         }
 
-        public ITask GetTask(BigInteger taskID)
+        public IChainTask GetTask(BigInteger taskID)
         {
             if (taskID <= 0)
             {

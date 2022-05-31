@@ -1,8 +1,7 @@
 ﻿using System.IO;
 using System.Collections.Generic;
-using Phantasma.Core;
 
-namespace Phantasma.Business
+namespace Phantasma.Core
 {
     public enum BrokerResult
     {
@@ -11,7 +10,7 @@ namespace Phantasma.Business
         Error
     }
 
-    public struct ChainSwap: ISerializable
+    public struct ChainSwap: ISerializable, IChainSwap
     {
         public string sourcePlatform;
         public string sourceChain;

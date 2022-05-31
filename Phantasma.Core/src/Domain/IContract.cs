@@ -7,8 +7,8 @@ namespace Phantasma.Core
 {
     public interface IContract
     {
-        string Name { get; }
-        ContractInterface ABI { get; }
+        public string Name { get; }
+        public ContractInterface ABI { get; }
     }
 
     public enum NativeContractKind

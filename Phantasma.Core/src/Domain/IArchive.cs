@@ -1,34 +1,29 @@
+using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using Phantasma.Shared.Types;
 
-namespace Phantasma.Core
+namespace Phantasma.Core;
+
+public interface IArchive
 {
-    public enum ArchiveEncryptionMode
-    {
-        None,
-        Private,
-        Shared
-    }
-
-    public interface IArchiveEncryption: ISerializable
-    {
-        ArchiveEncryptionMode Mode { get; }
-
-        string EncryptName(string name, PhantasmaKeys keys);
-        string DecryptName(string name, PhantasmaKeys keys);
-        byte[] Encrypt(byte[] chunk, PhantasmaKeys keys);
-        byte[] Decrypt(byte[] chunk, PhantasmaKeys keys);
-    }
-
-    public interface IArchive
-    {
-        MerkleTree MerkleTree { get; }
-        string Name { get; }
-        Hash Hash { get; }
-        BigInteger Size { get; }
-        Timestamp Time{ get; }
-        IArchiveEncryption Encryption { get; }
-        bool IsOwner(Address address);
-    }
-
+    string Name { get; }
+    Hash Hash { get; }
+    MerkleTree MerkleTree { get; }
+    BigInteger Size { get; }
+    Timestamp Time { get; }
+    IArchiveEncryption Encryption { get; }
+    BigInteger BlockCount { get; }
+    IEnumerable<Address> Owners { get; }
+    int OwnerCount { get; }
+    IEnumerable<int> MissingBlockIndices { get; }
+    int MissingBlockCount { get; }
+    IEnumerable<Hash> BlockHashes { get; }
+    void SerializeData(BinaryWriter writer);
+    byte[] ToByteArray();
+    void UnserializeData(BinaryReader reader);
+    void AddOwner(Address address);
+    void RemoveOwner(Address address);
+    bool IsOwner(Address address);
+    void AddMissingBlock(int blockIndex);
 }

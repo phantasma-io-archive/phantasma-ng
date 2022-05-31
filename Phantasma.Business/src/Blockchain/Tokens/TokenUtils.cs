@@ -105,7 +105,7 @@ namespace Phantasma.Business.Tokens
 
             sb.AppendLine($"@{propName}: NOP");
             sb.AppendLine("POP r0 // tokenID");
-            sb.AppendLine("CAST r0 r0 #String");            
+            sb.AppendLine("CAST r0 r0 #String");
 
             if (!string.IsNullOrEmpty(left))
             {
@@ -180,7 +180,7 @@ namespace Phantasma.Business.Tokens
             abi = new ContractInterface(methods, Enumerable.Empty<ContractEvent>());
         }
 
-        private static VMObject ExecuteScript(StorageContext storage, Chain chain, byte[] script, ContractInterface abi, string methodName, params object[] args)
+        private static VMObject ExecuteScript(StorageContext storage, IChain chain, byte[] script, ContractInterface abi, string methodName, params object[] args)
         {
             var method = abi.FindMethod(methodName);
 
@@ -216,7 +216,7 @@ namespace Phantasma.Business.Tokens
             throw new Exception("Script execution failed for: " + method.name);
         }
 
-        public static void FetchProperty(StorageContext storage, Chain chain, string methodName, ITokenSeries series, BigInteger tokenID, Action<string, VMObject> callback)
+        public static void FetchProperty(StorageContext storage, IChain chain, string methodName, ITokenSeries series, BigInteger tokenID, Action<string, VMObject> callback)
         {
             if (series.ABI.HasMethod(methodName))
             {
@@ -238,12 +238,12 @@ namespace Phantasma.Business.Tokens
             }
         }
 
-        public static void FetchProperty(StorageContext storage, Chain chain, string methodName, IToken token, Action<string, VMObject> callback)
+        public static void FetchProperty(StorageContext storage, IChain chain, string methodName, IToken token, Action<string, VMObject> callback)
         {
             FetchProperty(storage, chain, methodName, token.Script, token.ABI, callback);
         }
 
-        public static void FetchProperty(StorageContext storage, Chain chain, string methodName, byte[] script, ContractInterface abi, Action<string, VMObject> callback)
+        public static void FetchProperty(StorageContext storage, IChain chain, string methodName, byte[] script, ContractInterface abi, Action<string, VMObject> callback)
         {
             if (abi.HasMethod(methodName))
             {

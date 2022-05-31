@@ -7,7 +7,7 @@ using Phantasma.Shared.Performance;
 
 namespace Phantasma.Business
 {
-    public class ChainExecutionContext : ExecutionContext
+    public class ChainExecutionContext : Phantasma.Core.ExecutionContext
     {
         public readonly SmartContract Contract;
 
@@ -18,7 +18,7 @@ namespace Phantasma.Business
             this.Contract = contract;
         }
 
-        public override ExecutionState Execute(IExecutionFrame frame, Stack<VMObject> stack)
+        public override ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack)
         {
             if (this.Contract.ABI == null)
             {
@@ -39,7 +39,7 @@ namespace Phantasma.Business
             {
                 BigInteger usedQuota;
                 
-                if (Nexus.IsNativeContract(Contract.Name)) 
+                if (Nexus.IsNativeContractStatic(Contract.Name)) 
                 {
                     usedQuota = 1024; // does not matter what number, just than its greater than 0
                 }
@@ -133,7 +133,7 @@ namespace Phantasma.Business
             return result;
         }
 
-        private ExecutionState InternalCall(NativeContract contract, ContractMethod method, IExecutionFrame frame, Stack<VMObject> stack)
+        private ExecutionState InternalCall(NativeContract contract, ContractMethod method, ExecutionFrame frame, Stack<VMObject> stack)
         {
             var args = new object[method.parameters.Length];
             for (int i = 0; i < args.Length; i++)

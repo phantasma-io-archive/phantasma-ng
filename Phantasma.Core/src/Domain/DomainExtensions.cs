@@ -64,7 +64,7 @@ namespace Phantasma.Core
             return Address.FromHash(platform.Name);
         }
 
-        public static IBlock GetLastBlock(this IRuntime runtime)
+        public static Block GetLastBlock(this IRuntime runtime)
         {
             if (runtime.Chain.Height < 1)
             {

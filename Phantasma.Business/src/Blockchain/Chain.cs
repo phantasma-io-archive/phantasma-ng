@@ -1,8 +1,5 @@
-using System;
 using System.Text;
-using System.Linq;
 using System.Numerics;
-using System.Collections.Generic;
 using Google.Protobuf;
 using Phantasma.Business.Contracts;
 using Phantasma.Business.Tokens;
@@ -16,6 +13,9 @@ using Serilog;
 using Tendermint.Types;
 using Types;
 using TValidatorUpdate = Tendermint.Abci.ValidatorUpdate;
+using System.Collections.Generic;
+using System;
+using System.Linq;
 
 namespace Phantasma.Business
 {
@@ -27,13 +27,13 @@ namespace Phantasma.Business
         private const string TxBlockHashMapTag = ".txblmp";
         private const string AddressTxHashMapTag = ".adblmp";
         private const string TaskListTag = ".tasks";
-        
+
         private Dictionary<int, Transaction> CurrentTransactions = new Dictionary<int, Transaction>();
 
         #region PUBLIC
         public static readonly uint InitialHeight = 1;
 
-        public Nexus Nexus { get; private set; }
+        public INexus Nexus { get; private set; }
 
         public string Name { get; private set; }
         public Address Address { get; private set; }
@@ -41,17 +41,17 @@ namespace Phantasma.Business
         public Block CurrentBlock{ get; private set; }
 
         public StorageChangeSetContext CurrentChangeSet { get; private set; }
-        
+
         public PhantasmaKeys ValidatorKeys { get; set; }
         public Address ValidatorAddress => ValidatorKeys != null ? ValidatorKeys.Address : Address.Null;
-        
+
         public BigInteger Height => GetBlockHeight();
 
         public StorageContext Storage { get; private set; }
 
         public bool IsRoot => this.Name == DomainSettings.RootChainName;
         #endregion
-        
+
         public Chain(Nexus nexus, string name)
         {
             Throw.IfNull(nexus, "nexus required");
@@ -79,14 +79,14 @@ namespace Phantasma.Business
         }
 
         public IEnumerable<Transaction> BeginBlock(Header header)
-        { 
+        {
             // should never happen
             if (this.CurrentBlock != null)
             {
                 // TODO error message
                 throw new Exception("Cannot begin new block, current block has not been processed yet");
             }
-            
+
             var lastBlockHash = this.GetLastBlockHash();
             var lastBlock = this.GetBlockByHash(lastBlockHash);
             var isFirstBlock = lastBlock == null;
@@ -102,7 +102,7 @@ namespace Phantasma.Business
                 , protocol
                 , this.ValidatorAddress
                 , new byte[0]);
-            
+
             this.CurrentChangeSet = new StorageChangeSetContext(this.Storage);
             List<Transaction> systemTransactions = new ();
 
@@ -127,11 +127,11 @@ namespace Phantasma.Business
             var oracle = Nexus.GetOracleReader();
             systemTransactions.AddRange(ProcessPendingTasks(this.CurrentBlock, oracle, 100000 /*TODO hardcoded min fee */,
                         this.CurrentChangeSet));
-            
+
             // returns eventual system transactions that need to be broadcasted to tendermint to be included into the current block
             return systemTransactions;
         }
-        
+
         public (CodeType, string) CheckTx(ByteString serializedTx)
         {
             var txString = serializedTx.ToStringUtf8();
@@ -143,7 +143,7 @@ namespace Phantasma.Business
                 Log.Information("check tx 1 " + tx.Hash);
                 return (CodeType.Expired, "Transaction is expired");
             }
-            
+
             if (!tx.IsValid(this))
             {
                 Log.Information("check tx 2 " + tx.Hash);
@@ -159,7 +159,7 @@ namespace Phantasma.Business
             Log.Information("check tx 4 " + tx.Hash);
             return (CodeType.Ok, "");
         }
-    
+
         public TransactionResult DeliverTx(ByteString serializedTx)
         {
             TransactionResult result = new();
@@ -177,7 +177,7 @@ namespace Phantasma.Business
                     result = ExecuteTransaction(txIndex, tx, tx.Script, this.CurrentBlock.Validator,
                         this.CurrentBlock.Timestamp, this.CurrentChangeSet, this.CurrentBlock.Notify, oracle,
                         ChainTask.Null, 1000000); //TODO: hardcoded gas limit
-                    
+
                     if (result.Code == 0)
                     {
                         if (result.Result != null)
@@ -200,15 +200,15 @@ namespace Phantasma.Business
 
             return result;
         }
-        
+
         public IEnumerable<TValidatorUpdate> EndBlock()
         {
             // TODO validator update
-            
+
             this.CurrentBlock.Sign(this.ValidatorKeys);
             return new List<TValidatorUpdate>();
         }
-        
+
         public byte[] Commit()
         {
             Block lastBlock = null;
@@ -399,7 +399,7 @@ namespace Phantasma.Business
 
                         temp.Add(tx.Hash);
                     }
-                }                
+                }
             }
 
             foreach (var hash in block.TransactionHashes)
@@ -487,7 +487,7 @@ namespace Phantasma.Business
         }
 
         public StorageChangeSetContext ProcessTransactions(Block block, IEnumerable<Transaction> transactions
-                , OracleReader oracle, BigInteger minimumFee)
+                , IOracleReader oracle, BigInteger minimumFee)
         {
             //block.CleanUp();
 
@@ -550,7 +550,7 @@ namespace Phantasma.Business
         }
 
         private TransactionResult ExecuteTransaction(int index, Transaction transaction, byte[] script, Address validator, Timestamp time, StorageChangeSetContext changeSet
-                , Action<Hash, Event> onNotify, OracleReader oracle, ITask task, BigInteger minimumFee, bool allowModify = true)
+                , Action<Hash, Event> onNotify, IOracleReader oracle, IChainTask task, BigInteger minimumFee, bool allowModify = true)
         {
             if (!transaction.HasSignatures)
             {
@@ -583,7 +583,7 @@ namespace Phantasma.Business
 
             result.Events = runtime.Events.ToArray();
             result.GasUsed = (long)runtime.UsedGas;
-            
+
             using (var m = new ProfileMarker("runtime.Events"))
             {
                 foreach (var evt in runtime.Events)
@@ -598,7 +598,7 @@ namespace Phantasma.Business
                 result.Result = runtime.Stack.Pop();
             }
 
-            // merge transaction oracle data 
+            // merge transaction oracle data
             oracle.MergeTxData();
 
             result.Code = 0;
@@ -671,7 +671,7 @@ namespace Phantasma.Business
             }
         }*/
 
-        internal ExecutionContext GetContractContext(StorageContext storage, SmartContract contract)
+        public ExecutionContext GetContractContext(StorageContext storage, SmartContract contract)
         {
             if (!IsContractDeployed(storage, contract.Address))
             {
@@ -827,12 +827,12 @@ namespace Phantasma.Business
 
         public bool IsContractDeployed(StorageContext storage, Address contractAddress)
         {
-            if (contractAddress == SmartContract.GetAddressForName(Nexus.GasContractName))
+            if (contractAddress == SmartContract.GetAddressForName(ContractNames.GasContractName))
             {
                 return true;
             }
 
-            if (contractAddress == SmartContract.GetAddressForName(Nexus.BlockContractName))
+            if (contractAddress == SmartContract.GetAddressForName(ContractNames.BlockContractName))
             {
                 return true;
             }
@@ -1188,7 +1188,7 @@ namespace Phantasma.Business
             return key;
         }
 
-        public ITask StartTask(StorageContext storage, Address from, string contractName, ContractMethod method, uint frequency, uint delay, TaskFrequencyMode mode, BigInteger gasLimit)
+        public IChainTask StartTask(StorageContext storage, Address from, string contractName, ContractMethod method, uint frequency, uint delay, TaskFrequencyMode mode, BigInteger gasLimit)
         {
             if (!IsContractDeployed(storage, contractName))
             {
@@ -1233,7 +1233,7 @@ namespace Phantasma.Business
             return false;
         }
 
-        public ChainTask GetTask(StorageContext storage, BigInteger taskID)
+        public IChainTask GetTask(StorageContext storage, BigInteger taskID)
         {
             var taskKey = GetTaskKey(taskID, "task_info");
 
@@ -1245,7 +1245,7 @@ namespace Phantasma.Business
 
         }
 
-        private IEnumerable<Transaction> ProcessPendingTasks(Block block, OracleReader oracle, BigInteger minimumFee, StorageChangeSetContext changeSet)
+        private IEnumerable<Transaction> ProcessPendingTasks(Block block, IOracleReader oracle, BigInteger minimumFee, StorageChangeSetContext changeSet)
         {
             var taskList = new StorageList(TaskListTag, changeSet);
             var taskCount = taskList.Count();
@@ -1261,7 +1261,7 @@ namespace Phantasma.Business
                 Transaction tx;
 
                 var taskResult = ProcessPendingTask(block, oracle, minimumFee, changeSet, task, out tx);
-                if (taskResult == TaskResult.Running) 
+                if (taskResult == TaskResult.Running)
                 {
                     i++;
                 }
@@ -1308,8 +1308,8 @@ namespace Phantasma.Business
             }
         }
 
-        private TaskResult ProcessPendingTask(Block block, OracleReader oracle, BigInteger minimumFee,
-                StorageChangeSetContext changeSet, ChainTask task, out Transaction transaction)
+        private TaskResult ProcessPendingTask(Block block, IOracleReader oracle, BigInteger minimumFee,
+                StorageChangeSetContext changeSet, IChainTask task, out Transaction transaction)
         {
             transaction = null;
 
@@ -1318,7 +1318,7 @@ namespace Phantasma.Business
 
             if (task.Mode != TaskFrequencyMode.Always)
             {
-                bool isFirstRun = !changeSet.Has(taskKey);                
+                bool isFirstRun = !changeSet.Has(taskKey);
 
                 if (isFirstRun)
                 {
@@ -1557,7 +1557,7 @@ namespace Phantasma.Business
                 }
             }
 
-            return Nexus.RootChain.InvokeContract(storage, Nexus.AccountContractName, nameof(AccountContract.LookUpAddress), address).AsString();
+            return Nexus.RootChain.InvokeContract(storage, ContractNames.AccountContractName, nameof(AccountContract.LookUpAddress), address).AsString();
         }
 
     }
