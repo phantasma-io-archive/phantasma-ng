@@ -1306,8 +1306,7 @@ namespace Phantasma.Business
         {
             var Runtime = this;
 
-            // TODO should not be necessary, verified by trigger
-            //Runtime.Expect(IsWitness(from), "invalid witness");
+            Runtime.Expect(IsWitness(from), "must be from a valid witness");
 
             Runtime.Expect(amount > 0, "amount must be positive and greater than zero");
 
@@ -1332,7 +1331,8 @@ namespace Phantasma.Business
             Runtime.Expect(!token.IsFungible(), "token must be non-fungible");
             // TODO should not be necessary, verified by trigger
             //Runtime.Expect(IsWitness(target), "invalid witness");
-
+            
+            Runtime.Expect(IsWitness(from), "must be from a valid witness");
             Runtime.Expect(Runtime.IsRootChain(), "can only mint nft in root chain");
 
             Runtime.Expect(rom.Length <= TokenContent.MaxROMSize, "ROM size exceeds maximum allowed, received: " + rom.Length + ", maximum: " + TokenContent.MaxROMSize);
