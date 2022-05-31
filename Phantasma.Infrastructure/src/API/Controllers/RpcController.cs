@@ -22,11 +22,18 @@ namespace Phantasma.Infrastructure.Controllers
             }
         }
 
+        public class RpcResponse
+        {
+            public string jsonrpc { get; set; } = "2.0";
+            public object result { get; set; }
+            public int id { get; set; } = 1;
+        }
+
         [APIInfo(typeof(object), "Returns query result.", false, 300)]
         [HttpPost("rpc")]
-        public object Rpc(RpcRequest req)
+        public RpcResponse Rpc(RpcRequest req)
         {
-            object result = null;
+            RpcResponse rpcResponse = null;
 
             try
             {
@@ -99,7 +106,8 @@ namespace Phantasma.Infrastructure.Controllers
                                 processedParams.Add(Type.Missing);
                             }
 
-                            result = method.Invoke(instance, processedParams.ToArray());
+                            rpcResponse = new RpcResponse();
+                            rpcResponse.result = method.Invoke(instance, processedParams.ToArray());
                             break;
                         }
                     }
@@ -114,7 +122,7 @@ namespace Phantasma.Infrastructure.Controllers
                 throw new APIException($"RPC call exception for {req}", e);
             }
 
-            return result;
+            return rpcResponse;
         }
     }
 }
