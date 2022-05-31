@@ -57,52 +57,7 @@ namespace Phantasma.Business.Contracts
         public const string SwapTakerFeePercentTag = "swap.fee.taker";
 
         // returns how many tokens would be obtained by trading from one type of another
-        public BigInteger GetRate(string fromSymbol, string toSymbol, BigInteger amount)
-        {
-            if (Runtime.ProtocolVersion >= 3)
-            {
-                return GetRateV2(fromSymbol, toSymbol, amount);
-            }
-            else
-            {
-                return GetRateV1(fromSymbol, toSymbol, amount);
-            }
-        }
-
-        private BigInteger GetRateV1(string fromSymbol, string toSymbol, BigInteger amount)
-        {
-            Runtime.Expect(fromSymbol != toSymbol, "invalid pair");
-
-            Runtime.Expect(IsSupportedToken(fromSymbol), "unsupported from symbol");
-            Runtime.Expect(IsSupportedToken(toSymbol), "unsupported to symbol");
-
-            var fromInfo = Runtime.GetToken(fromSymbol);
-            Runtime.Expect(fromInfo.IsFungible(), "must be fungible");
-
-            var toInfo = Runtime.GetToken(toSymbol);
-            Runtime.Expect(toInfo.IsFungible(), "must be fungible");
-
-            var rate = Runtime.GetTokenQuote(fromSymbol, toSymbol, amount);
-
-            var fromPrice = Runtime.GetTokenPrice(fromSymbol);
-            var toPrice = Runtime.GetTokenPrice(toSymbol);
-
-
-            var feeTag = fromPrice > toPrice ? SwapMakerFeePercentTag : SwapTakerFeePercentTag; 
-
-            var feePercent = Runtime.GetGovernanceValue(feeTag);
-            var fee = (rate * feePercent) / 100;
-            rate -= fee;
-
-            if (rate < 0)
-            {
-                rate = 0;
-            }
-
-            return rate;
-        }
-
-        private BigInteger GetRateV2(string fromSymbol, string toSymbol, BigInteger amount)
+        private BigInteger GetRate(string fromSymbol, string toSymbol, BigInteger amount)
         {
             Runtime.Expect(fromSymbol != toSymbol, "invalid pair");
 
@@ -199,19 +154,7 @@ namespace Phantasma.Business.Contracts
             return result.ToArray();
         }
 
-        public void SwapFee(Address from, string fromSymbol, BigInteger feeAmount)
-        {
-            if (Runtime.ProtocolVersion >= 3)
-            {
-                SwapFeeV2(from, fromSymbol, feeAmount);
-            }
-            else
-            {
-                SwapFeeV1(from, fromSymbol, feeAmount);
-            }
-        }
-
-        private void SwapFeeV2(Address from, string fromSymbol, BigInteger feeAmount)
+        private void SwapFee(Address from, string fromSymbol, BigInteger feeAmount)
         {
             var feeSymbol = DomainSettings.FuelTokenSymbol;
             var feeBalance = Runtime.GetBalance(feeSymbol, from);
@@ -256,29 +199,6 @@ namespace Phantasma.Business.Contracts
 
             var finalFeeBalance = Runtime.GetBalance(feeSymbol, from);
             Runtime.Expect(finalFeeBalance >= feeAmount, $"something went wrong in swapfee finalFeeBalance: {finalFeeBalance} feeAmount: {feeAmount}");
-        }
-
-        private void SwapFeeV1(Address from, string fromSymbol, BigInteger feeAmount)
-        {
-            var toSymbol = DomainSettings.FuelTokenSymbol;
-            var amount = GetRate(toSymbol, fromSymbol, feeAmount);
-            var token = Runtime.GetToken(fromSymbol);
-            if (token.Decimals == 0 && amount < 1)
-            {
-                amount = 1;
-            }
-            else
-            {
-                Runtime.Expect(amount > 0, $"cannot swap {fromSymbol} as a fee");
-
-                var balance = Runtime.GetBalance(toSymbol, from);
-                amount -= balance;
-            }
-
-            if (amount > 0)
-            {
-                SwapTokens(from, fromSymbol, toSymbol, amount);
-            }
         }
 
         public void SwapReverse(Address from, string fromSymbol, string toSymbol, BigInteger total)

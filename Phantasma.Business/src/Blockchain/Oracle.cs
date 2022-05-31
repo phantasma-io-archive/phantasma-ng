@@ -112,16 +112,7 @@ namespace Phantasma.Business
                     if (TryGetOracleCache(stakingURL, out byte[] cachedContent))
                     {
                         BigInteger soulPriceBi;
-                        if (ProtocolVersion >= 3)
-                        {
-                            soulPriceBi = new BigInteger(cachedContent);
-                        }
-                        else
-                        {
-                            content = val.ToUnsignedByteArray() as T;
-                            soulPriceBi = new BigInteger(cachedContent);
-                        }
-
+                        soulPriceBi = new BigInteger(cachedContent);
                         soulPriceDec = UnitConversion.ToDecimal(soulPriceBi, DomainSettings.FiatTokenDecimals);
                     }
                     else
@@ -129,9 +120,7 @@ namespace Phantasma.Business
                         soulPriceDec = PullPrice(time, DomainSettings.StakingTokenSymbol);
                         var soulPriceBi = UnitConversion.ToBigInteger(soulPriceDec, DomainSettings.FiatTokenDecimals);
 
-                        CacheOracleData<T>(url, (ProtocolVersion >= 3)
-                                ? soulPriceBi.ToSignedByteArray() as T
-                                : soulPriceBi.ToUnsignedByteArray() as T);
+                        CacheOracleData<T>(url, soulPriceBi.ToSignedByteArray() as T);
 
                     }
 
@@ -143,14 +132,7 @@ namespace Phantasma.Business
                     val = UnitConversion.ToBigInteger(price, DomainSettings.FiatTokenDecimals);
                 }
 
-                if (ProtocolVersion >= 3)
-                {
-                    content = val.ToSignedByteArray() as T;
-                }
-                else
-                {
-                    content = val.ToUnsignedByteArray() as T;
-                }
+                content = val.ToSignedByteArray() as T;
             }
             else
             if (url.StartsWith(feeTag))
@@ -168,14 +150,7 @@ namespace Phantasma.Business
                 }
 
                 var val = PullFee(time, platform);
-                if (ProtocolVersion >= 3)
-                {
-                    content = val.ToSignedByteArray() as T;
-                }
-                else
-                {
-                    content = val.ToUnsignedByteArray() as T;
-                }
+                content = val.ToSignedByteArray() as T;
             }
             else
             {

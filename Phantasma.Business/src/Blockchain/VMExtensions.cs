@@ -79,7 +79,7 @@ namespace Phantasma.Business
                 case VMType.String:
                     {
                         var text = temp.AsString();
-                        if (Address.IsValidAddress(text) && vm.ProtocolVersion >= 2)
+                        if (Address.IsValidAddress(text))
                         {
                             return Address.FromText(text);
                         }

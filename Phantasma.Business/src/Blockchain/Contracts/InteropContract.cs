@@ -116,21 +116,13 @@ namespace Phantasma.Business.Contracts
                     Runtime.Expect(Runtime.TokenExists(transfer.Symbol), "invalid token");
                     var token = this.Runtime.GetToken(transfer.Symbol);
 
-                    if (Runtime.ProtocolVersion >= 4)
+                    if (token.Flags.HasFlag(TokenFlags.Fungible))
                     {
-                        if (token.Flags.HasFlag(TokenFlags.Fungible))
-                        {
-                            Runtime.Expect(transfer.Value > 0, "amount must be positive and greater than zero");
-                        }
-                        else
-                        {
-                            Runtime.Expect(Runtime.NFTExists(transfer.Symbol, transfer.Value), $"nft {transfer.Value} must exist");
-                        }
+                        Runtime.Expect(transfer.Value > 0, "amount must be positive and greater than zero");
                     }
                     else
                     {
-                        Runtime.Expect(transfer.Value > 0, "amount must be positive and greater than zero");
-                        Runtime.Expect(token.Flags.HasFlag(TokenFlags.Fungible), "token must be fungible");
+                        Runtime.Expect(Runtime.NFTExists(transfer.Symbol, transfer.Value), $"nft {transfer.Value} must exist");
                     }
 
                     Runtime.Expect(token.Flags.HasFlag(TokenFlags.Transferable), "token must be transferable");
@@ -139,16 +131,9 @@ namespace Phantasma.Business.Contracts
                     var withdraw = _withdraws.Get<InteropWithdraw>(index);
                     _withdraws.RemoveAt(index);
 
-                    if (Runtime.ProtocolVersion >= 3)
-                    {
-                        var org = Runtime.GetOrganization(DomainSettings.ValidatorsOrganizationName);
-                        Runtime.Expect(org.IsMember(from), $"{from.Text} is not a validator node");
-                        Runtime.TransferTokens(withdraw.feeSymbol, this.Address, from, withdraw.feeAmount);
-                    }
-                    else
-                    {
-                        Runtime.TransferTokens(withdraw.feeSymbol, this.Address, transfer.sourceAddress, withdraw.feeAmount);
-                    }
+                    var org = Runtime.GetOrganization(DomainSettings.ValidatorsOrganizationName);
+                    Runtime.Expect(org.IsMember(from), $"{from.Text} is not a validator node");
+                    Runtime.TransferTokens(withdraw.feeSymbol, this.Address, from, withdraw.feeAmount);
 
                     RegisterHistory(hash, withdraw.hash, DomainSettings.PlatformName, Runtime.Chain.Name, transfer.sourceAddress, hash, platform, chain, withdraw.destination, transfer.Symbol, transfer.Value);
                     swapCount++;
@@ -170,21 +155,13 @@ namespace Phantasma.Business.Contracts
                                 Runtime.Expect(Runtime.TokenExists(transfer.Symbol), "invalid token");
                                 var token = this.Runtime.GetToken(transfer.Symbol);
 
-                                if (Runtime.ProtocolVersion >= 4)
+                                if (token.Flags.HasFlag(TokenFlags.Fungible))
                                 {
-                                    if (token.Flags.HasFlag(TokenFlags.Fungible))
-                                    {
-                                        Runtime.Expect(transfer.Value > 0, "amount must be positive and greater than zero");
-                                    }
-                                    else
-                                    {
-                                        Runtime.Expect(Runtime.NFTExists(transfer.Symbol, transfer.Value), $"nft {transfer.Value} must exist");
-                                    }
+                                    Runtime.Expect(transfer.Value > 0, "amount must be positive and greater than zero");
                                 }
                                 else
                                 {
-                                    Runtime.Expect(transfer.Value > 0, "amount must be positive and greater than zero");
-                                    Runtime.Expect(token.Flags.HasFlag(TokenFlags.Fungible), "token must be fungible");
+                                    Runtime.Expect(Runtime.NFTExists(transfer.Symbol, transfer.Value), $"nft {transfer.Value} must exist");
                                 }
 
                                 
@@ -196,7 +173,7 @@ namespace Phantasma.Business.Contracts
                                 Runtime.SwapTokens(platform, transfer.sourceAddress, Runtime.Chain.Name, transfer.interopAddress, transfer.Symbol, transfer.Value);
 
 
-                                if (Runtime.ProtocolVersion >= 4 && !token.Flags.HasFlag(TokenFlags.Fungible))
+                                if (!token.Flags.HasFlag(TokenFlags.Fungible))
                                 {
                                     var externalNft = Runtime.ReadNFTFromOracle(platform, transfer.Symbol, transfer.Value);
                                     var ram = Serialization.Serialize(externalNft);
@@ -236,21 +213,13 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(transferTokenInfo.Flags.HasFlag(TokenFlags.Transferable), "transfer token must be transferable");
             Runtime.Expect(transferTokenInfo.Flags.HasFlag(TokenFlags.Swappable), "transfer token must be swappable");
 
-            if (Runtime.ProtocolVersion >= 4)
+            if (transferTokenInfo.Flags.HasFlag(TokenFlags.Fungible))
             {
-                if (transferTokenInfo.Flags.HasFlag(TokenFlags.Fungible))
-                {
-                    Runtime.Expect(value > 0, "amount must be positive and greater than zero");
-                }
-                else
-                {
-                    Runtime.Expect(Runtime.NFTExists(symbol, value), $"nft {value} must be exist");
-                }
+                Runtime.Expect(value > 0, "amount must be positive and greater than zero");
             }
             else
             {
-                Runtime.Expect(value > 0, "amount must be positive and greater than zero");
-                Runtime.Expect(transferTokenInfo.Flags.HasFlag(TokenFlags.Fungible), "transfer token must be fungible");
+                Runtime.Expect(Runtime.NFTExists(symbol, value), $"nft {value} must be exist");
             }
 
             byte platformID;
@@ -283,15 +252,7 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(feeTokenInfo.Flags.HasFlag(TokenFlags.Transferable), "fee token must be transferable");
 
             BigInteger feeAmount;
-            if (Runtime.ProtocolVersion >= 3)
-            {
-                feeAmount = Runtime.ReadFeeFromOracle(platform.Name); // fee is in fee currency (gwei for eth, gas for neo)
-            }
-            else
-            {
-                var basePrice = Runtime.ReadFeeFromOracle(platform.Name);
-                feeAmount = Runtime.GetTokenQuote(DomainSettings.FiatTokenSymbol, feeSymbol, basePrice);
-            }
+            feeAmount = Runtime.ReadFeeFromOracle(platform.Name); // fee is in fee currency (gwei for eth, gas for neo)
 
             Runtime.Expect(feeAmount > 0, "fee is too small");
 

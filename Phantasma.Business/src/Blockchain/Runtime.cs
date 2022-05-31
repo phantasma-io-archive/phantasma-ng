@@ -351,10 +351,10 @@ namespace Phantasma.Business
 
         public bool IsMintingAddress(Address address, string symbol)
         {
-            if (ProtocolVersion < 3 && address == GenesisAddress)
-            {
-                return true;
-            }
+            //if (ProtocolVersion < 3 && address == GenesisAddress)
+            //{
+            //    return true;
+            //}
 
             if (TokenExists(symbol))
             {
@@ -794,11 +794,6 @@ namespace Phantasma.Business
                     throw new ChainException("IsWitness is being called from some weird context, possible bug?");
                 }
             }
-            // workaround for supporting txs done in older nodes
-            if (!accountResult && this.IsRootChain() && this.ProtocolVersion < 5 && this.NexusName == DomainSettings.NexusMainnet)
-            {
-                accountResult = this.Transaction.IsSignedBy(this.GenesisAddress);
-            }
 
             if (accountResult)
             {
@@ -1146,27 +1141,21 @@ namespace Phantasma.Business
                 Runtime.CallContext(symbol, constructor, owner);
             }
 
-            if (this.ProtocolVersion >= 6)
+            var rootChain = (Chain)this.GetRootChain();
+            var currentOwner = owner;
+            TokenUtils.FetchProperty(RootStorage, rootChain, "getOwner", script, abi, (prop, value) =>
             {
-                var rootChain = (Chain)this.GetRootChain();
-                var currentOwner = owner;
-                TokenUtils.FetchProperty(RootStorage, rootChain, "getOwner", script, abi, (prop, value) =>
-                {
-                    currentOwner = value.AsAddress();
-                });
+                currentOwner = value.AsAddress();
+            });
 
-                Expect(!currentOwner.IsNull, "missing or invalid token owner");
-                Expect(currentOwner == owner, "token owner constructor failure");
-            }
+            Expect(!currentOwner.IsNull, "missing or invalid token owner");
+            Expect(currentOwner == owner, "token owner constructor failure");
 
-            if (Runtime.ProtocolVersion >= 4)
-            {
-                var fuelCost = Runtime.GetGovernanceValue(Nexus.FuelPerTokenDeployTag);
-                // governance value is in usd fiat, here convert from fiat to fuel amount
-                fuelCost = Runtime.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
-                // burn the "cost" tokens
-                Runtime.BurnTokens(DomainSettings.FuelTokenSymbol, owner, fuelCost);
-            }
+            var fuelCost = Runtime.GetGovernanceValue(Nexus.FuelPerTokenDeployTag);
+            // governance value is in usd fiat, here convert from fiat to fuel amount
+            fuelCost = Runtime.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
+            // burn the "cost" tokens
+            Runtime.BurnTokens(DomainSettings.FuelTokenSymbol, owner, fuelCost);
 
             Runtime.Notify(EventKind.TokenCreate, owner, symbol);
         }
@@ -1349,15 +1338,7 @@ namespace Phantasma.Business
             Runtime.Expect(rom.Length <= TokenContent.MaxROMSize, "ROM size exceeds maximum allowed, received: " + rom.Length + ", maximum: " + TokenContent.MaxROMSize);
             Runtime.Expect(ram.Length <= TokenContent.MaxRAMSize, "RAM size exceeds maximum allowed, received: " + ram.Length + ", maximum: " + TokenContent.MaxRAMSize);
 
-            Address creator;
-            if (ProtocolVersion >= 7)
-            {
-                creator = from;
-            }
-            else
-            {
-                creator = target;
-            }
+            Address creator = from;
 
             BigInteger tokenID;
             using (var m = new ProfileMarker("Nexus.CreateNFT"))
@@ -1444,10 +1425,7 @@ namespace Phantasma.Business
         public void TransferTokens(string symbol, Address source, Address destination, BigInteger amount)
         {
             var Runtime = this;
-            if (ProtocolVersion >= 3)
-            {
-                Runtime.Expect(!source.IsNull, "invalid source");
-            }
+            Runtime.Expect(!source.IsNull, "invalid source");
 
             if (source == destination || amount == 0)
             {
@@ -1582,10 +1560,7 @@ namespace Phantasma.Business
             var Runtime = this;
             var token = Runtime.GetToken(tokenSymbol);
 
-            if (Runtime.ProtocolVersion >= 6)
-            {
-                Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnWrite, from, ram, tokenID) != TriggerResult.Failure, "token write trigger failed");
-            }
+            Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnWrite, from, ram, tokenID) != TriggerResult.Failure, "token write trigger failed");
 
             Nexus.WriteNFT(this, tokenSymbol, tokenID, nft.CurrentChain, nft.Creator, nft.CurrentOwner, nft.ROM, ram,
                     nft.SeriesID, nft.Timestamp, nft.Infusion, true);

@@ -358,11 +358,6 @@ namespace Phantasma.Business.Contracts
 
                     Runtime.Notify(EventKind.Crowdsale, buyer, new SaleEventData() { kind = SaleEventKind.Distribution, saleHash = saleHash });
 
-                    if (Runtime.ProtocolVersion <= 5)
-                    {
-                        buyer = sale.Creator;
-                    }
-
                     Runtime.TransferTokens(sale.SellSymbol, this.Address, buyer, amount);
                 }
 

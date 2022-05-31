@@ -1199,15 +1199,7 @@ public class Nexus : INexus
         else
         {
             Runtime.Expect(!mustExist, $"nft {symbol} {tokenID} does not exist");
-            Address _creator;
-            if (this.GetProtocolVersion(Runtime.RootStorage) >= 7)
-            {
-                _creator = creator;
-            }
-            else
-            {
-                _creator = owner;
-            }
+            Address _creator = creator;
 
             var genID = GenerateNFT(Runtime, symbol, chainName, _creator, rom, ram, seriesID);
             Runtime.Expect(genID == tokenID, "failed to regenerate NFT");
