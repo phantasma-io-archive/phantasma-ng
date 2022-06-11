@@ -130,6 +130,7 @@ namespace Phantasma.Business.Contracts
 
         public void CreateValue(string name, BigInteger initial, byte[] serializedConstraints)
         {
+            System.Console.WriteLine($"create value {name} {initial}");
             Runtime.Expect(!HasName(name), "name already exists");
             Runtime.Expect(Runtime.IsWitness(Runtime.GenesisAddress), "genesis must be witness");
 
@@ -138,7 +139,7 @@ namespace Phantasma.Business.Contracts
 
             if (name == ValidatorContract.ValidatorCountTag)
             {
-                Runtime.Expect(initial == 1, "initial number of validators must always be one");
+                Runtime.Expect(initial == 5, "initial number of validators must always be one");
             }
 
             _valueMap.Set<string, BigInteger>(name, initial);

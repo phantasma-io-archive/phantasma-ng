@@ -1,18 +1,18 @@
-using System;
 using System.Text;
-using System.Linq;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text.Json;
-using System.Threading;
 using Phantasma.Shared;
 using Phantasma.Core;
 using Phantasma.Business;
 using Phantasma.Business.Tokens;
 using Phantasma.Business.Storage;
 using Phantasma.Business.Contracts;
-using Phantasma.Infrastructure;
 using Phantasma.Shared.Utils;
+using Tendermint.RPC;
+using System;
+using System.Linq;
+using System.Threading;
 
 namespace Phantasma.Infrastructure;
 
@@ -20,6 +20,7 @@ public static class NexusAPI
 {
     public static Nexus Nexus;
     public static ITokenSwapper TokenSwapper;
+    public static NodeRpcClient TRPC;
 
     public static bool ApiLog;
 

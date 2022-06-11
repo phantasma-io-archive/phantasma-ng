@@ -28,7 +28,7 @@ namespace Phantasma.Business
         private const string AddressTxHashMapTag = ".adblmp";
         private const string TaskListTag = ".tasks";
 
-        private Dictionary<int, Transaction> CurrentTransactions = new Dictionary<int, Transaction>();
+        private List<Transaction> CurrentTransactions = new();
 
         #region PUBLIC
         public static readonly uint InitialHeight = 1;
@@ -112,7 +112,7 @@ namespace Phantasma.Business
                 if (inflationReady)
                 {
                     var script = new ScriptBuilder()
-                        .AllowGas(this.CurrentBlock.Validator, Address.Null, 1000000, 999999) // TODO hardcoded gas limit
+                        .AllowGas(this.CurrentBlock.Validator, Address.Null, 100000, 999999) // TODO hardcoded gas limit
                         .CallContract(NativeContractKind.Gas, nameof(GasContract.ApplyInflation), this.CurrentBlock.Validator)
                         .SpendGas(this.CurrentBlock.Validator)
                         .EndScript();
@@ -169,14 +169,14 @@ namespace Phantasma.Business
             Log.Information($"deliver tx {tx}");
             try
             {
-                CurrentTransactions.Add(CurrentTransactions.Count, tx);
+                CurrentTransactions.Add(tx);
                 var txIndex = CurrentTransactions.Count - 1;
                 var oracle = Nexus.GetOracleReader();
                 using (var m = new ProfileMarker("ExecuteTransaction"))
                 {
                     result = ExecuteTransaction(txIndex, tx, tx.Script, this.CurrentBlock.Validator,
                         this.CurrentBlock.Timestamp, this.CurrentChangeSet, this.CurrentBlock.Notify, oracle,
-                        ChainTask.Null, 1000000); //TODO: hardcoded gas limit
+                        ChainTask.Null, 100000); //TODO: hardcoded gas limit
 
                     if (result.Code == 0)
                     {
@@ -191,9 +191,10 @@ namespace Phantasma.Business
             catch (Exception e)
             {
                 Console.WriteLine("exception " + e);
-                e = e.ExpandInnerExceptions();
                 // log original exception, throwing it again kills the call stack!
-                Log.Error("Exception was thrown while processing {} error: {}", result.Hash, e.Message);
+                Log.Error("Exception was thrown while processing {0} error: {1}", result.Hash, e.Message);
+                this.CurrentTransactions.Remove(tx);
+                this.CurrentChangeSet.Clear();
                 result.Code = 1;
                 result.Codespace = e.Message;
             }
@@ -214,10 +215,13 @@ namespace Phantasma.Business
             Block lastBlock = null;
             try
             {
-                AddBlock(this.CurrentBlock, this.CurrentTransactions.Values, 0, this.CurrentChangeSet);
+                Console.WriteLine("before block hashes: " + this.CurrentBlock.TransactionHashes.Length);
+                AddBlock(this.CurrentBlock, this.CurrentTransactions, 0, this.CurrentChangeSet);
+                Console.WriteLine("block hashes: " + this.CurrentBlock.TransactionHashes.Length);
                 lastBlock = this.CurrentBlock;
-                Log.Information($"Committed block {lastBlock.Height}");
                 this.CurrentBlock = null;
+                this.CurrentTransactions.Clear();
+                Log.Information($"Committed block {lastBlock.Height}");
             }
             catch (Exception e)
             {
@@ -270,6 +274,7 @@ namespace Phantasma.Business
 
         public void AddBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee, StorageChangeSetContext changeSet)
         {
+            Console.WriteLine("before1: " + block.TransactionCount);
             if (!block.IsSigned)
             {
                 throw new BlockGenerationException($"block must be signed");
@@ -286,6 +291,8 @@ namespace Phantasma.Business
                 throw new BlockGenerationException($"block verification failed, would have overflown, hash:{block.Hash}");
             }
 
+            block.AddAllTransactionHashes(transactions.Select (x => x.Hash).ToArray());
+
             var hashList = new StorageList(BlockHeightListTag, this.Storage);
             var expectedBlockHeight = hashList.Count() + 1;
             if (expectedBlockHeight != block.Height)
@@ -299,10 +306,24 @@ namespace Phantasma.Business
 
             hashList.Add<Hash>(block.Hash);
 
+            // persist genesis hash at height 2 for height 1
+            if (block.Height == 2)
+            {
+                var genesisHash = GetBlockHashAtHeight(1);
+                var storage = Nexus.RootStorage;
+                storage.Put(".nexus.hash", genesisHash);
+                Nexus.HasGenesis = true;
+            }
+
             using (var m = new ProfileMarker("Compress"))
             {
                 var blockMap = new StorageMap(BlockHashMapTag, this.Storage);
+                Console.WriteLine("before: " + block.TransactionCount);
+
                 var blockBytes = block.ToByteArray(true);
+
+                var blk = Block.Unserialize(blockBytes);
+                Console.WriteLine("unserialized: " + blk.TransactionCount);
                 blockBytes = CompressionUtils.Compress(blockBytes);
                 blockMap.Set<Hash, byte[]>(block.Hash, blockBytes);
 
@@ -588,8 +609,8 @@ namespace Phantasma.Business
             {
                 foreach (var evt in runtime.Events)
                 {
-                    //using (var m2 = new ProfileMarker(evt.ToString()))
-                    //    onNotify(transaction.Hash, evt);
+                    using (var m2 = new ProfileMarker(evt.ToString()))
+                        onNotify(transaction.Hash, evt);
                 }
             }
 
@@ -756,6 +777,12 @@ namespace Phantasma.Business
         #region FEES
         public BigInteger GetBlockReward(Block block)
         {
+            Console.WriteLine(block.Height + " txcnt: " + block.TransactionCount);
+            if (block.TransactionCount == 0)
+            {
+                return 0;
+            }
+
             var lastTxHash = block.TransactionHashes[block.TransactionHashes.Length - 1];
             var evts = block.GetEventsForTransaction(lastTxHash);
 

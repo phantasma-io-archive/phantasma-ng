@@ -1256,7 +1256,7 @@ public class Nexus : INexus
     #endregion
 
     #region GENESIS
-    private Transaction NexusCreateTx(PhantasmaKeys owner, Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>> values)
+    private Transaction NexusCreateTx(PhantasmaKeys owner, Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>> values, IEnumerable<Address> initialValidators)
     {
         var sb = ScriptUtils.BeginScript();
         sb.CallInterop("Nexus.BeginInit", owner.Address);
@@ -1270,6 +1270,7 @@ public class Nexus : INexus
         sb.CallInterop(deployInterop, owner.Address, ContractNames.InteropContractName);
         sb.CallInterop(deployInterop, owner.Address, ContractNames.StakeContractName);
         sb.CallInterop(deployInterop, owner.Address, ContractNames.StorageContractName);
+        sb.CallInterop(deployInterop, owner.Address, ContractNames.ConsensusContractName);
         sb.CallInterop(deployInterop, owner.Address, "market");
 
         var orgInterop = "Nexus.CreateOrganization";
@@ -1278,8 +1279,15 @@ public class Nexus : INexus
         sb.CallInterop(orgInterop, owner.Address, DomainSettings.MastersOrganizationName, "Soul Masters", orgScript);
         sb.CallInterop(orgInterop, owner.Address, DomainSettings.StakersOrganizationName, "Soul Stakers", orgScript);
 
-        sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(2863626, DomainSettings.StakingTokenDecimals));
-        sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(1000000, DomainSettings.FuelTokenDecimals));
+        // initial SOUL distribution to validators
+        foreach (var validator in initialValidators)
+        {
+            sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(60000, DomainSettings.StakingTokenDecimals));
+            sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals));
+        }
+        //sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(2863626, DomainSettings.StakingTokenDecimals));
+        //sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(1000000, DomainSettings.FuelTokenDecimals));
+
         // requires staking token to be created previously
         sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), owner.Address, StakeContract.DefaultMasterThreshold);
         sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), owner.Address, owner.Address);
@@ -1295,8 +1303,16 @@ public class Nexus : INexus
             sb.CallContract(NativeContractKind.Governance, nameof(GovernanceContract.CreateValue), name, initial, bytes);
         }
 
-        sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), owner.Address, new BigInteger(0), ValidatorType.Primary).
-        CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals)).
+        sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), owner.Address, new BigInteger(0), ValidatorType.Primary);
+
+        var index = 1;
+        foreach (var validator in initialValidators.Where(x => x != owner.Address))
+        {
+            sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), validator, new BigInteger(index), ValidatorType.Primary);
+            index++;
+        }
+
+        sb.CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals)).
         CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100, DomainSettings.FuelTokenDecimals));
 
         sb.Emit(Opcode.RET);
@@ -1377,7 +1393,7 @@ public class Nexus : INexus
         }
     }
 
-    public Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, int version, PhantasmaKeys owner)
+    public Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, int version, PhantasmaKeys owner, IEnumerable<Address> initialValidators)
     {
         if (this.HasGenesis)
         {
@@ -1400,7 +1416,7 @@ public class Nexus : INexus
 
                  {
                      ValidatorContract.ValidatorCountTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         1, new ChainConstraint[]
+                         5, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MustIncrease}
                      })
@@ -1534,7 +1550,7 @@ public class Nexus : INexus
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = UnitConversion.ToBigInteger(1000, DomainSettings.FiatTokenDecimals)},
                      })
                  },
-             })},
+             }, initialValidators)},
         };
 
         //var rootChain = GetChainByName(DomainSettings.RootChainName);
@@ -2169,7 +2185,7 @@ public class Nexus : INexus
         return list.All<string>();
     }
 
-    private byte[] GetNexusKey(string key)
+    public byte[] GetNexusKey(string key)
     {
         var bytes = System.Text.Encoding.UTF8.GetBytes($".nexus.{key}");
         return bytes;

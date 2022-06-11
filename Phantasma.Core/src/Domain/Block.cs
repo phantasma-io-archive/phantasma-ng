@@ -33,7 +33,7 @@ namespace Phantasma.Core
             }
         }
 
-        private List<Hash> _transactionHashes;
+        private List<Hash> _transactionHashes = new List<Hash>();
         public Hash[] TransactionHashes => _transactionHashes.ToArray();
         public int TransactionCount => _transactionHashes.Count;
 
@@ -73,8 +73,6 @@ namespace Phantasma.Core
 
             this.Height = height;
             this.PreviousHash = previousHash;
-
-            _transactionHashes = new List<Hash>();
 
             this.Payload = payload;
             this.Validator = validator;

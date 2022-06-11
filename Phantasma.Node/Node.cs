@@ -11,20 +11,21 @@ using Phantasma.Node.Oracles;
 using Phantasma.Node.Shell;
 using Phantasma.Node.Utils;
 using Serilog;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
 using EthAccount = Nethereum.Web3.Accounts.Account;
 using NeoAPI = Phantasma.Node.Chains.NeoAPI;
 using Grpc.Core;
 using Tendermint.Abci;
+using Tendermint.RPC;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Linq;
+using System.IO;
 
 namespace Phantasma.Node
 {
@@ -61,7 +62,7 @@ namespace Phantasma.Node
 
         public Node()
         {
-            this.ABCIConnector = new ABCIConnector();
+            this.ABCIConnector = new ABCIConnector(Settings.Default.Node.SeedValidators);
         }
 
         protected override void OnStart()
@@ -89,21 +90,20 @@ namespace Phantasma.Node
                 this.OnStop();
                 return;
             }
-            var tRPC = Settings.Default.Node.TendermintProxyPort-1;
-            var tProxy = Settings.Default.Node.TendermintProxyPort;
-            Console.WriteLine("tPRoxy: " + tProxy);
 
-            this.ABCIConnector.SetNodeInfo(NexusAPI.Nexus, "http://127.0.0.1:"+tRPC.ToString(), _nodeKeys);
+            var rpcUrl = Settings.Default.Node.TendermintRPCHost+ ":" + Settings.Default.Node.TendermintRPCPort;
+            Console.WriteLine("rpc: " + rpcUrl);
 
-            //var options = new ChannelOption(ChannelOptions.MaxReceiveMessageLength, 100*1024*1024);
+            this.ABCIConnector.SetNodeInfo(NexusAPI.Nexus, rpcUrl, _nodeKeys);
+
             var options = new ChannelOption[] {
                 new ChannelOption(ChannelOptions.MaxReceiveMessageLength, 1500*1024*1024)
             };
 
             var server = new Server(options)
             {
-                Ports = { new ServerPort("localhost", tProxy, ServerCredentials.Insecure) },
-                //Services = { ABCIApplication.BindService(new ABCIConnector()) },
+                Ports = { new ServerPort(Settings.Default.Node.TendermintProxyHost, Settings.Default.Node.TendermintProxyPort
+                        , ServerCredentials.Insecure) },
                 Services = { ABCIApplication.BindService(this.ABCIConnector) },
             };
 
@@ -183,6 +183,7 @@ namespace Phantasma.Node
             var ethRpcList = Settings.Default.Oracle.EthRpcNodes;
             
             var ethWIF = Settings.Default.GetInteropWif(_nodeKeys, EthereumWallet.EthereumPlatform);
+            //TODO
             var ethKeys = PhantasmaKeys.FromWIF("L4GcHJVrUPz6nW2EKJJGV2yxfa5UoaG8nfnaTAgzmWyuAmt3BYKg");
 
             this._ethAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()));
@@ -199,7 +200,25 @@ namespace Phantasma.Node
 
         private PhantasmaKeys SetupNodeKeys()
         {
-            PhantasmaKeys nodeKeys = PhantasmaKeys.FromWIF(Settings.Default.Node.NodeWif);;
+            var keyStr = Environment.GetEnvironmentVariable("PHA_KEY");
+
+            PhantasmaKeys nodeKeys = null;
+
+            if (!string.IsNullOrEmpty(keyStr))
+            {
+                nodeKeys = new PhantasmaKeys(Convert.FromBase64String(keyStr));
+            }
+
+            if (nodeKeys is null)
+            {
+                nodeKeys = new PhantasmaKeys(Convert.FromBase64String(Settings.Default.Node.TendermintKey));
+            }
+
+            if (nodeKeys is null)
+            {
+                nodeKeys = PhantasmaKeys.FromWIF(Settings.Default.Node.NodeWif);;
+            }
+
             //TODO wallet module?
 
             return nodeKeys;
@@ -243,12 +262,14 @@ namespace Phantasma.Node
             var storagePath = Settings.Default.Node.StoragePath;
             var oraclePath = Settings.Default.Node.OraclePath;
             var nexusName = Settings.Default.Node.NexusName;
+            var rpcUrl = Settings.Default.Node.TendermintRPCHost+ ":" + Settings.Default.Node.TendermintRPCPort;
 
             switch (Settings.Default.Node.StorageBackend)
             {
                 case StorageBackendType.CSV:
                     Log.Information("Setting CSV nexus...");
                     NexusAPI.Nexus = new Nexus(nexusName, (name) => new BasicDiskStore(storagePath + name + ".csv"));
+                    NexusAPI.TRPC = new NodeRpcClient(rpcUrl);
                     break;
 
                 case StorageBackendType.RocksDB:

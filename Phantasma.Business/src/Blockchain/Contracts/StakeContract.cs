@@ -275,10 +275,9 @@ namespace Phantasma.Business.Contracts
             {
                 var diff = stakeAmount - balance;
                 throw new BalanceException(Runtime.GetToken("SOUL"), from, diff);
-                //balance = stakeAmount; // debug mode only, otherwise a exception will prevent it from reaching here
             }
 
-            Runtime.Expect(balance >= stakeAmount, $"balance: {balance} stake: {stakeAmount} not enough balance to stake at " + from);
+            Runtime.Expect(balance >= stakeAmount, $"balance: {balance} stake: {stakeAmount} not enough balance to stake at {from}");
 
             Runtime.TransferTokens(DomainSettings.StakingTokenSymbol, from, this.Address, stakeAmount);
 

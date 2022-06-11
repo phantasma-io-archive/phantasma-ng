@@ -276,7 +276,7 @@ namespace Phantasma.Business
                         Expect(contract == ContractNames.GasContractName, $"event kind only in {ContractNames.GasContractName} contract");
 
                         var gasInfo = Serialization.Unserialize<GasEventData>(bytes);
-                        Expect(gasInfo.price >= this.MinimumFee, "gas fee is too low");
+                        Expect(gasInfo.price >= this.MinimumFee, $"gas fee is too low {gasInfo.price} >= {this.MinimumFee}");
                         this.MaxGas = gasInfo.amount;
                         this.GasPrice = gasInfo.price;
                         this.GasTarget = gasInfo.address;

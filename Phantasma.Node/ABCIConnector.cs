@@ -20,11 +20,16 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     private Nexus _nexus;
     private PhantasmaKeys _owner;
     private NodeRpcClient _rpc;
+    private IEnumerable<Address> _initialValidators;
     private SortedDictionary<int, Transaction>_systemTxs = new SortedDictionary<int, Transaction>();
     private List<Transaction> _broadcastedTxs = new List<Transaction>();
 
     // TODO add logger
-    public ABCIConnector() { Log.Information("ABCI Connector initialized"); }
+    public ABCIConnector(IEnumerable<Address> initialValidators)
+    {
+        _initialValidators = initialValidators;
+        Log.Information("ABCI Connector initialized");
+    }
 
     public void SetNodeInfo(Nexus nexus, string tendermintEndpoint, PhantasmaKeys keys)
     {
@@ -36,6 +41,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     public override Task<ResponseBeginBlock> BeginBlock(RequestBeginBlock request, ServerCallContext context)
     {
+        Console.WriteLine("Begin block called!");
         var response = new ResponseBeginBlock();
         try
         {
@@ -50,33 +56,33 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                     _rpc.BroadcastTxSync(txString);
                     _broadcastedTxs.Add(tx.Value);
                 }
-                _systemTxs.Clear();
             }
-            var kp = PhantasmaKeys.Generate();
-            Console.WriteLine("TAddress: " + kp.Address.TendermintAddress);
-            Console.WriteLine("TPubBase64: " + Convert.ToBase64String(kp.PublicKey));
-            Console.WriteLine("TPrvBase64: " + Convert.ToBase64String(kp.PrivateKey.Concat(kp.PublicKey).ToArray()));
-            Console.WriteLine("TWIF: " + kp.ToWIF());
-            Console.WriteLine("check " + PhantasmaKeys.FromWIF(kp.ToWIF()));
+            _systemTxs.Clear();
+            //var kp = PhantasmaKeys.Generate();
+            //Console.WriteLine("TAddress: " + kp.Address.TendermintAddress);
+            //Console.WriteLine("TPubBase64: " + Convert.ToBase64String(kp.PublicKey));
+            //Console.WriteLine("TPrvBase64: " + Convert.ToBase64String(kp.PrivateKey.Concat(kp.PublicKey).ToArray()));
+            //Console.WriteLine("TWIF: " + kp.ToWIF());
+            //Console.WriteLine("check " + PhantasmaKeys.FromWIF(kp.ToWIF()));
 
-            //var strii = request.Header.ProposerAddress.ToStringUtf8();
-            ////var address = Address.FromBytes(bytes);
+            ////var strii = request.Header.ProposerAddress.ToStringUtf8();
+            //////var address = Address.FromBytes(bytes);
 
-            //Console.WriteLine("validator: " + this._owner.Address); 
-            //Console.WriteLine("tvalidator: " + this._owner.Address.TendermintAddress); 
-            //Console.WriteLine("block val base16: " + base16); 
-            // private base64 w0mmOZ+uL/c210eB/Iq26ZlIkgVDqQUPYPOo8cxjMNkzCafWCkiZiR9oYShDmi450bUybwcBiDggq2mCZvhnKw==
-            Console.WriteLine("node0: " + new PhantasmaKeys(Convert.FromBase64String("9hXo3RT1MmwO+BySGvMlZoOX6mpEZ3fFHfIcG5OgSNKhZ9NyIfVKX8Tc5XswVxNsCfBSrI8TKKot3K299WrZBg==")).ToWIF());
-            Console.WriteLine("node1: " + new PhantasmaKeys(Convert.FromBase64String("1gA+fxcnKN8KUEUZ2DT1E1cDDs9TszA5g+E+DVZqnPQfwoCENyyKI0bTg9NOSGip9+kbJlAvp4c8PBO3dbtKUQ==")).ToWIF());
-            Console.WriteLine("node2: " + new PhantasmaKeys(Convert.FromBase64String("0bxNN0SgWCdcAfP9kJuZsA4ZckobDnrXUpUF2t8EomtdqNI4zpAiSjfRH0V9iol3pBCz9XVFlZq9e3Ca+zdOCw==")).ToWIF());
-            Console.WriteLine("node3: " + new PhantasmaKeys(Convert.FromBase64String("/6avjlC7uF1dTGh/kAEG6yVSvGTgMfSLU4BLhAIKFuqlvNEoV33bjSiK0WAa+cghWYuAMBHia113WWYimJvIsQ==")).ToWIF());
+            ////Console.WriteLine("validator: " + this._owner.Address); 
+            ////Console.WriteLine("tvalidator: " + this._owner.Address.TendermintAddress); 
+            ////Console.WriteLine("block val base16: " + base16); 
+            //// private base64 w0mmOZ+uL/c210eB/Iq26ZlIkgVDqQUPYPOo8cxjMNkzCafWCkiZiR9oYShDmi450bUybwcBiDggq2mCZvhnKw==
+            //Console.WriteLine("node0: " + new PhantasmaKeys(Convert.FromBase64String("9hXo3RT1MmwO+BySGvMlZoOX6mpEZ3fFHfIcG5OgSNKhZ9NyIfVKX8Tc5XswVxNsCfBSrI8TKKot3K299WrZBg==")).ToWIF());
+            //Console.WriteLine("node1: " + new PhantasmaKeys(Convert.FromBase64String("1gA+fxcnKN8KUEUZ2DT1E1cDDs9TszA5g+E+DVZqnPQfwoCENyyKI0bTg9NOSGip9+kbJlAvp4c8PBO3dbtKUQ==")).ToWIF());
+            //Console.WriteLine("node2: " + new PhantasmaKeys(Convert.FromBase64String("0bxNN0SgWCdcAfP9kJuZsA4ZckobDnrXUpUF2t8EomtdqNI4zpAiSjfRH0V9iol3pBCz9XVFlZq9e3Ca+zdOCw==")).ToWIF());
+            //Console.WriteLine("node3: " + new PhantasmaKeys(Convert.FromBase64String("/6avjlC7uF1dTGh/kAEG6yVSvGTgMfSLU4BLhAIKFuqlvNEoV33bjSiK0WAa+cghWYuAMBHia113WWYimJvIsQ==")).ToWIF());
 
-            var node3 = Convert.FromBase64String("B6dzjjiNh6I0aa2gulbD1qv8I/q+IhNGP82yAuzqvZZCSldCbRU6FgYpWg0NQ393Ms9hGDdX+K+/HWjMsvwgiA==");
-            var node3Key = new PhantasmaKeys(node3);
-            //var a = Convert.FromBase64String("+ezHfdCg==");
-            //Console.WriteLine("test: " + xx.Address.TendermintAddress); 
-            //Console.WriteLine("test2: " + xx.ToWIF()); 
-            Console.WriteLine("node3: " + node3Key.ToWIF()); 
+            //var node3 = Convert.FromBase64String("B6dzjjiNh6I0aa2gulbD1qv8I/q+IhNGP82yAuzqvZZCSldCbRU6FgYpWg0NQ393Ms9hGDdX+K+/HWjMsvwgiA==");
+            //var node3Key = new PhantasmaKeys(node3);
+            ////var a = Convert.FromBase64String("+ezHfdCg==");
+            ////Console.WriteLine("test: " + xx.Address.TendermintAddress); 
+            ////Console.WriteLine("test2: " + xx.ToWIF()); 
+            //Console.WriteLine("node3: " + node3Key.ToWIF()); 
 
             IEnumerable<Transaction> systemTransactions;
             systemTransactions = _nexus.RootChain.BeginBlock(request.Header); 
@@ -93,6 +99,10 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                     idx++;
                 }
             }
+            else
+            {
+                _systemTxs.Clear();
+            }
         }
         catch (Exception e)
         {
@@ -108,6 +118,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         try
         {
             Log.Debug("CheckTx called");
+            Console.WriteLine("CheckTx called");
             (CodeType code, string message) = _nexus.RootChain.CheckTx(request.Tx);
 
             var response = new ResponseCheckTx();
@@ -136,12 +147,26 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             Code = result.Code,
             Codespace = result.Codespace,
             Data = ByteString.CopyFrom(bytes),
-            //response.Log = ???
-            //response.info = ???
-            //response.GasWanted = ???
-            //response.GasUsed = ???
-            //response.Events = TODO
         };
+
+        var newEvents = new List<Tendermint.Abci.Event>();
+        foreach (var evt in result.Events)
+        {
+            var newEvent = new Tendermint.Abci.Event();
+            var attributes = new EventAttribute[]
+            {
+                new EventAttribute() { Key = "address", Value = evt.Address.ToString() },
+                new EventAttribute() { Key = "contract", Value = evt.Contract },
+                new EventAttribute() { Key = "data", Value = Base16.Encode(evt.Data) },
+            };
+
+            newEvent.Type = evt.Kind.ToString();
+            newEvent.Attributes.AddRange(attributes);
+
+            newEvents.Add(newEvent);
+        }
+
+        response.Events.AddRange(newEvents);
 
         var toDelete = new List<Transaction>();
         foreach (var tx in _broadcastedTxs)
@@ -220,7 +245,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
             response = new ResponseInfo() {
                 AppVersion = _nexus.GetProtocolVersion(_nexus.RootStorage),
-                LastBlockAppHash = ByteString.CopyFrom(_nexus.GetProtocolVersion(_nexus.RootStorage).ToString(), Encoding.UTF8) ,
+                //LastBlockAppHash = ByteString.CopyFrom(_nexus.GetProtocolVersion(_nexus.RootStorage).ToString(), Encoding.UTF8),
 
                 LastBlockHeight = (lastBlock != null) ? (long)lastBlock.Height : 0,
                 Version = "0.0.1",
@@ -242,7 +267,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         try
         {
             Dictionary<int, Transaction> systemTransactions;
-            systemTransactions = _nexus.CreateGenesisBlock(timestamp, 0, this._owner);
+            systemTransactions = _nexus.CreateGenesisBlock(timestamp, 0, this._owner, this._initialValidators);
 
             var idx = 0;
             foreach (var tx in systemTransactions.OrderByDescending(x => x.Key))
@@ -259,6 +284,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
         var appHash = Encoding.UTF8.GetBytes("A Phantasma was born...");
         response.AppHash = ByteString.CopyFrom(appHash);
+        Console.WriteLine("done init");
         return Task.FromResult( response );
     }
 

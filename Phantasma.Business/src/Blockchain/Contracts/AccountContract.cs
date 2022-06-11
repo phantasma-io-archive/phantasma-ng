@@ -48,6 +48,8 @@ namespace Phantasma.Business.Contracts
 
             if (isReserved && Runtime.IsWitness(Runtime.GenesisAddress))
             {
+                var pollName = ConsensusContract.SystemPoll + name;
+                var hasConsensus = Runtime.CallNativeContext(NativeContractKind.Consensus, "HasConsensus", pollName, name).AsBool();
                 isReserved = false;
             }
 
