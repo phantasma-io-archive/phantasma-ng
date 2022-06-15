@@ -87,6 +87,9 @@ namespace Phantasma.Core
 
         public const string RewardTokenSymbol = "CROWN";
         public const string RewardTokenName = "Phantasma Crown";
+        
+        public const string LiquidityTokenSymbol = "LP";
+        public const string LiquidityTokenName = "Phantasma Liquidity";
 
         public const string RootChainName = "main";
 
