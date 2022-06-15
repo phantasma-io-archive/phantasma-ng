@@ -23,7 +23,7 @@ public interface IChain
     bool IsRoot { get; }
     IContract[] GetContracts(StorageContext storage);
 
-    IEnumerable<Transaction> BeginBlock(Header header);
+    IEnumerable<Transaction> BeginBlock(Header header, IEnumerable<Address> initialValidators);
     (CodeType, string) CheckTx(ByteString serializedTx);
     TransactionResult DeliverTx(ByteString serializedTx);
     byte[] Commit();

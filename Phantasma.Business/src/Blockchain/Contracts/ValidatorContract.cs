@@ -35,6 +35,27 @@ namespace Phantasma.Business.Contracts
             return result;
         }
 
+        public ValidatorEntry GetCurrentValidator(string tAddress)
+        {
+            var totalValidators = (int)Runtime.GetGovernanceValue(ValidatorCountTag);
+
+            for (int i = 0; i < totalValidators; i++)
+            {
+                var validator = GetValidatorByIndex(i);
+                if (validator.address.TendermintAddress == tAddress)
+                {
+                    return validator;
+                }
+            }
+
+            return new ValidatorEntry()
+            {
+                address = Address.Null,
+                type = ValidatorType.Invalid,
+                election = new Timestamp(0)
+            };
+        }
+
         public ValidatorType GetValidatorType(Address address)
         {
             var totalValidators = (int)Runtime.GetGovernanceValue(ValidatorCountTag);

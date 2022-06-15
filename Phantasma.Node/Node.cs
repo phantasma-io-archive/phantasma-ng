@@ -275,6 +275,7 @@ namespace Phantasma.Node
                 case StorageBackendType.RocksDB:
                     Log.Information("Setting RocksDB nexus...");
                     NexusAPI.Nexus = new Nexus(nexusName, (name) => new DBPartition(storagePath + name));
+                    NexusAPI.TRPC = new NodeRpcClient(rpcUrl);
                     break;
                 default:
                     throw new Exception("Backend has to be set to either \"db\" or \"file\"");

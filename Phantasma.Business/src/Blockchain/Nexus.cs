@@ -1224,11 +1224,14 @@ public class Nexus : INexus
         bytes = CompressionUtils.Decompress(bytes);
 
         var content = Serialization.Unserialize<TokenContent>(bytes);
+        Console.WriteLine("read nft raw");
+        Console.WriteLine("ram: " + string.Join("", content.RAM));
         return content;
     }
 
     private TokenContent ReadNFT(StorageContext storage, string symbol, BigInteger tokenID, uint ProtocolVersion)
     {
+        Console.WriteLine("read nft");
         var tokenKey = GetKeyForNFT(symbol, tokenID);
 
         Throw.If(!storage.Has(tokenKey), $"nft {symbol} {tokenID} does not exist");
@@ -1243,8 +1246,6 @@ public class Nexus : INexus
         {
             content.ReplaceROM(series.ROM);
         }
-
-
         return content;
     }
 
@@ -2061,6 +2062,27 @@ public class Nexus : INexus
     public IKeyValueStoreAdapter GetChainStorage(string name)
     {
         return this.CreateKeyStoreAdapter($"chain.{name}");
+    }
+
+    public ValidatorEntry GetValidator(StorageContext storage, string tAddress)
+    {
+        var valueMapKey = Encoding.UTF8.GetBytes($".{ContractNames.ValidatorContractName}._validators");
+        var validators = new StorageMap(valueMapKey, storage);
+
+        foreach (var validator in validators.AllValues<ValidatorEntry>())
+        {
+            if (validator.address.TendermintAddress == tAddress)
+            {
+                return validator;
+            }
+        }
+
+        return new ValidatorEntry()
+        {
+            address = Address.Null,
+            type = ValidatorType.Invalid,
+            election = new Timestamp(0)
+        };
     }
 
     public BigInteger GetGovernanceValue(StorageContext storage, string name)

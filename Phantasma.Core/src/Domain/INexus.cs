@@ -111,6 +111,7 @@ public interface INexus
     int GetIndexOfChain(string name);
     IKeyValueStoreAdapter GetChainStorage(string name);
     BigInteger GetGovernanceValue(StorageContext storage, string name);
+    ValidatorEntry GetValidator(StorageContext storage, string tAddress);
     void RegisterPlatformAddress(StorageContext storage, string platform, Address localAddress, string externalAddress);
     bool IsPlatformAddress(StorageContext storage, Address address);
     string[] GetTokens(StorageContext storage);

@@ -146,9 +146,8 @@ namespace Phantasma.Core
             }
             else
             {
-                fee = new BigInteger(bytes);
+                fee = new BigInteger(bytes, true);
             }
-            //fee = BigInteger.FromUnsignedArray(bytes, true);
             return fee;
         }
 

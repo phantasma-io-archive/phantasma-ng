@@ -39,6 +39,7 @@ namespace Phantasma.Business
         public Address Address { get; private set; }
 
         public Block CurrentBlock{ get; private set; }
+        public string CurrentProposer { get; private set; }
 
         public StorageChangeSetContext CurrentChangeSet { get; private set; }
 
@@ -78,7 +79,7 @@ namespace Phantasma.Business
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
         }
 
-        public IEnumerable<Transaction> BeginBlock(Header header)
+        public IEnumerable<Transaction> BeginBlock(Header header, IEnumerable<Address> initialValidators)
         {
             // should never happen
             if (this.CurrentBlock != null)
@@ -92,15 +93,36 @@ namespace Phantasma.Business
             var isFirstBlock = lastBlock == null;
 
             var protocol = Nexus.GetProtocolVersion(Nexus.RootStorage);
+            this.CurrentProposer = Base16.Encode(header.ProposerAddress.ToByteArray());
+            var validator = Nexus.GetValidator(this.Storage, this.CurrentProposer);
 
-        //public Block(BigInteger height, Address chainAddress, Timestamp timestamp, IEnumerable<Hash> hashes, Hash previousHash,
-                //uint protocol, Address validator, byte[] payload, IEnumerable<OracleEntry> oracleEntries = null)
+            Address validatorAddress = validator.address;
+
+            if (validator.address == Address.Null)
+            {
+                foreach (var address in initialValidators)
+                {
+                    Console.WriteLine(address.TendermintAddress);
+                    Console.WriteLine(this.CurrentProposer);
+                    if (address.TendermintAddress == this.CurrentProposer)
+                    {
+                        validatorAddress = address;
+                        break;
+                    }
+                }
+
+                if (validatorAddress == Address.Null)
+                {
+                    throw new Exception("Unknown validator");
+                }
+            }
+
             this.CurrentBlock = new Block(header.Height
                 , this.Address
                 , Timestamp.Now
                 , isFirstBlock ? Hash.Null : lastBlock.Hash
                 , protocol
-                , this.ValidatorAddress
+                , validatorAddress
                 , new byte[0]);
 
             this.CurrentChangeSet = new StorageChangeSetContext(this.Storage);
@@ -156,6 +178,12 @@ namespace Phantasma.Business
                 return (CodeType.UnsignedTx, "Transaction is not signed");
             }
 
+            // TODO make sure we do not overflow
+            //if (!VerifyBlockBeforeAdd(block))
+            //{
+            //    throw new BlockGenerationException($"block verification failed, would have overflown, hash:{block.Hash}");
+            //}
+
             Log.Information("check tx 4 " + tx.Hash);
             return (CodeType.Ok, "");
         }
@@ -204,9 +232,9 @@ namespace Phantasma.Business
 
         public IEnumerable<TValidatorUpdate> EndBlock()
         {
-            // TODO validator update
 
-            this.CurrentBlock.Sign(this.ValidatorKeys);
+            // TODO return block events
+            // TODO validator update
             return new List<TValidatorUpdate>();
         }
 
@@ -274,36 +302,13 @@ namespace Phantasma.Business
 
         public void AddBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee, StorageChangeSetContext changeSet)
         {
-            Console.WriteLine("before1: " + block.TransactionCount);
-            if (!block.IsSigned)
-            {
-                throw new BlockGenerationException($"block must be signed");
-            }
-
-            var unsignedBytes = block.ToByteArray(false);
-            if (!block.Signature.Verify(unsignedBytes, block.Validator))
-            {
-                throw new BlockGenerationException($"block signature does not match validator {block.Validator.Text}");
-            }
-
-            if (!VerifyBlockBeforeAdd(block))
-            {
-                throw new BlockGenerationException($"block verification failed, would have overflown, hash:{block.Hash}");
-            }
-
             block.AddAllTransactionHashes(transactions.Select (x => x.Hash).ToArray());
-
-            var hashList = new StorageList(BlockHeightListTag, this.Storage);
-            var expectedBlockHeight = hashList.Count() + 1;
-            if (expectedBlockHeight != block.Height)
-            {
-                throw new ChainException("unexpected block height");
-            }
 
             // from here on, the block is accepted
             using (var m = new ProfileMarker("changeSet.Execute"))
                 changeSet.Execute();
 
+            var hashList = new StorageList(BlockHeightListTag, this.Storage);
             hashList.Add<Hash>(block.Hash);
 
             // persist genesis hash at height 2 for height 1
@@ -573,10 +578,10 @@ namespace Phantasma.Business
         private TransactionResult ExecuteTransaction(int index, Transaction transaction, byte[] script, Address validator, Timestamp time, StorageChangeSetContext changeSet
                 , Action<Hash, Event> onNotify, IOracleReader oracle, IChainTask task, BigInteger minimumFee, bool allowModify = true)
         {
-            if (!transaction.HasSignatures)
-            {
-                throw new ChainException("Cannot execute unsigned transaction");
-            }
+            //if (!transaction.HasSignatures)
+            //{
+            //    throw new ChainException("Cannot execute unsigned transaction");
+            //}
 
             var result = new TransactionResult();
 

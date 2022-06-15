@@ -58,34 +58,9 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                 }
             }
             _systemTxs.Clear();
-            //var kp = PhantasmaKeys.Generate();
-            //Console.WriteLine("TAddress: " + kp.Address.TendermintAddress);
-            //Console.WriteLine("TPubBase64: " + Convert.ToBase64String(kp.PublicKey));
-            //Console.WriteLine("TPrvBase64: " + Convert.ToBase64String(kp.PrivateKey.Concat(kp.PublicKey).ToArray()));
-            //Console.WriteLine("TWIF: " + kp.ToWIF());
-            //Console.WriteLine("check " + PhantasmaKeys.FromWIF(kp.ToWIF()));
-
-            ////var strii = request.Header.ProposerAddress.ToStringUtf8();
-            //////var address = Address.FromBytes(bytes);
-
-            ////Console.WriteLine("validator: " + this._owner.Address); 
-            ////Console.WriteLine("tvalidator: " + this._owner.Address.TendermintAddress); 
-            ////Console.WriteLine("block val base16: " + base16); 
-            //// private base64 w0mmOZ+uL/c210eB/Iq26ZlIkgVDqQUPYPOo8cxjMNkzCafWCkiZiR9oYShDmi450bUybwcBiDggq2mCZvhnKw==
-            //Console.WriteLine("node0: " + new PhantasmaKeys(Convert.FromBase64String("9hXo3RT1MmwO+BySGvMlZoOX6mpEZ3fFHfIcG5OgSNKhZ9NyIfVKX8Tc5XswVxNsCfBSrI8TKKot3K299WrZBg==")).ToWIF());
-            //Console.WriteLine("node1: " + new PhantasmaKeys(Convert.FromBase64String("1gA+fxcnKN8KUEUZ2DT1E1cDDs9TszA5g+E+DVZqnPQfwoCENyyKI0bTg9NOSGip9+kbJlAvp4c8PBO3dbtKUQ==")).ToWIF());
-            //Console.WriteLine("node2: " + new PhantasmaKeys(Convert.FromBase64String("0bxNN0SgWCdcAfP9kJuZsA4ZckobDnrXUpUF2t8EomtdqNI4zpAiSjfRH0V9iol3pBCz9XVFlZq9e3Ca+zdOCw==")).ToWIF());
-            //Console.WriteLine("node3: " + new PhantasmaKeys(Convert.FromBase64String("/6avjlC7uF1dTGh/kAEG6yVSvGTgMfSLU4BLhAIKFuqlvNEoV33bjSiK0WAa+cghWYuAMBHia113WWYimJvIsQ==")).ToWIF());
-
-            //var node3 = Convert.FromBase64String("B6dzjjiNh6I0aa2gulbD1qv8I/q+IhNGP82yAuzqvZZCSldCbRU6FgYpWg0NQ393Ms9hGDdX+K+/HWjMsvwgiA==");
-            //var node3Key = new PhantasmaKeys(node3);
-            ////var a = Convert.FromBase64String("+ezHfdCg==");
-            ////Console.WriteLine("test: " + xx.Address.TendermintAddress); 
-            ////Console.WriteLine("test2: " + xx.ToWIF()); 
-            //Console.WriteLine("node3: " + node3Key.ToWIF()); 
 
             IEnumerable<Transaction> systemTransactions;
-            systemTransactions = _nexus.RootChain.BeginBlock(request.Header); 
+            systemTransactions = _nexus.RootChain.BeginBlock(request.Header, this._initialValidators); 
 
             if (proposerAddress.Equals(this._owner.Address.TendermintAddress))
             {
@@ -240,13 +215,13 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         Log.Information("Info called");
         try 
         {
+            Console.WriteLine("before last block hash");
             lastBlockHash = _nexus.RootChain.GetLastBlockHash();
             lastBlock = _nexus.RootChain.GetBlockByHash(lastBlockHash);
-
+            Console.WriteLine("after last block hash");
+            var version = _nexus.GetProtocolVersion(_nexus.RootStorage);
             response = new ResponseInfo() {
-                AppVersion = _nexus.GetProtocolVersion(_nexus.RootStorage),
-                //LastBlockAppHash = ByteString.CopyFrom(_nexus.GetProtocolVersion(_nexus.RootStorage).ToString(), Encoding.UTF8),
-
+                AppVersion = 0,
                 LastBlockHeight = (lastBlock != null) ? (long)lastBlock.Height : 0,
                 Version = "0.0.1",
             };
@@ -256,11 +231,14 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             Log.Information("Error getting info " + e);
         }
 
+        Console.WriteLine("info done");
+
         return Task.FromResult(response);
     }
 
     public override Task<ResponseInitChain> InitChain(RequestInitChain request, ServerCallContext context)
     {
+        Console.WriteLine("start init");
         var response = new ResponseInitChain();
         var timestamp = new Timestamp((uint) request.Time.Seconds);
 

@@ -123,6 +123,7 @@ namespace Phantasma.Business
                 OUT obj = loader((IN)convertedInput);
                 var temp = new VMObject();
                 temp.SetValue(obj);
+                Console.WriteLine("stack.Push 1: "+ temp);
                 vm.Stack.Push(temp);
             }
             catch (Exception e)
@@ -158,6 +159,7 @@ namespace Phantasma.Business
             var addr = vm.PopAddress();
             var temp = new VMObject();
             temp.SetValue(addr);
+            Console.WriteLine("stack.Push 2: "+ temp);
             vm.Stack.Push(temp);
             return ExecutionState.Running;
         }
@@ -308,6 +310,7 @@ namespace Phantasma.Business
         {
             var result = new VMObject();
             result.SetValue(vm.Time);
+            Console.WriteLine("stack.Push 3: "+ result);
             vm.Stack.Push(result);
             return ExecutionState.Running;
         }
@@ -321,6 +324,7 @@ namespace Phantasma.Business
 
                 var result = new VMObject();
                 result.SetValue(tx.Hash);
+                Console.WriteLine("stack.Push 4: "+ result);
                 vm.Stack.Push(result);
             }
             catch (Exception e)
@@ -347,6 +351,7 @@ namespace Phantasma.Business
 
                 var result = new VMObject();
                 result.SetValue(success);
+                Console.WriteLine("stack.Push 5: "+ result);
                 vm.Stack.Push(result);
             }
             catch (Exception e)
@@ -366,6 +371,7 @@ namespace Phantasma.Business
 
             var result = new VMObject();
             result.SetValue(vm.GasTarget);
+            Console.WriteLine("stack.Push 6: "+ result);
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -375,6 +381,7 @@ namespace Phantasma.Business
         {
             var result = new VMObject();
             result.SetValue(vm.Validator);
+            Console.WriteLine("stack.Push 7: "+ result);
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -384,6 +391,7 @@ namespace Phantasma.Business
         {
             var result = new VMObject();
             result.SetValue(vm.CurrentContext.Name);
+            Console.WriteLine("stack.Push 8: "+ result);
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -402,6 +410,7 @@ namespace Phantasma.Business
                 result.SetValue(VirtualMachine.EntryContextName);
             }
 
+            Console.WriteLine("stack.Push 9: "+ result);
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -415,6 +424,7 @@ namespace Phantasma.Business
 
                 var result = new VMObject();
                 result.SetValue(number);
+                Console.WriteLine("stack.Push 10: "+ result);
                 vm.Stack.Push(result);
             }
             catch (Exception e)
@@ -433,6 +443,7 @@ namespace Phantasma.Business
 
                 var result = new VMObject();
                 result.SetValue(number);
+                Console.WriteLine("stack.Push 11: "+ result);
                 vm.Stack.Push(result);
             }
             catch (Exception e)
@@ -470,6 +481,7 @@ namespace Phantasma.Business
 
                 var result = new VMObject();
                 result.SetValue(success);
+                Console.WriteLine("stack.Push 12: "+ result);
                 vm.Stack.Push(result);
             }
             catch (Exception e)
@@ -491,6 +503,7 @@ namespace Phantasma.Business
 
                 var result = new VMObject();
                 result.SetValue(success);
+                Console.WriteLine("stack.Push 13: "+ result);
                 vm.Stack.Push(result);
             }
             catch (Exception e)
@@ -524,6 +537,7 @@ namespace Phantasma.Business
             var value_bytes = vm.Storage.Get(key);
             var val = new VMObject();
             val.SetValue(value_bytes, vmType);
+            Console.WriteLine("stack.Push 14: "+ val);
             vm.Stack.Push(val);
 
             return ExecutionState.Running;
@@ -589,6 +603,7 @@ namespace Phantasma.Business
 
             var val = new VMObject();
             val.SetValue(keyExists);
+            Console.WriteLine("stack.Push 15: "+ val);
             vm.Stack.Push(val);
 
             return ExecutionState.Running;
@@ -623,6 +638,7 @@ namespace Phantasma.Business
             {
                 val.SetValue(value_bytes, vmType);
             }
+            Console.WriteLine("stack.Push 16: "+ val);
             vm.Stack.Push(val);
 
             return ExecutionState.Running;
@@ -703,6 +719,7 @@ namespace Phantasma.Business
 
             var keys = map.AllKeys<byte[]>();
             var val = VMObject.FromObject(keys);
+            Console.WriteLine("stack.Push 17: "+ val);
             vm.Stack.Push(val);
 
             return ExecutionState.Running;
@@ -720,6 +737,7 @@ namespace Phantasma.Business
 
             var count = map.Count();
             var val = VMObject.FromObject(count);
+            Console.WriteLine("stack.Push 18: "+ val);
             vm.Stack.Push(val);
 
             return ExecutionState.Running;
@@ -755,6 +773,7 @@ namespace Phantasma.Business
             {
                 val.SetValue(value_bytes, vmType);
             }
+            Console.WriteLine("stack.Push 19: "+ val);
             vm.Stack.Push(val);
 
             return ExecutionState.Running;
@@ -855,6 +874,7 @@ namespace Phantasma.Business
 
             var count = list.Count();
             var val = VMObject.FromObject(count);
+            Console.WriteLine("stack.Push 20: "+ val);
             vm.Stack.Push(val);
 
             return ExecutionState.Running;
@@ -872,6 +892,7 @@ namespace Phantasma.Business
 
             var result = new VMObject();
             result.SetValue(balance);
+            Console.WriteLine("stack.Push 21: "+ result);
             vm.Stack.Push(result);
             
             return ExecutionState.Running;
@@ -1012,6 +1033,7 @@ namespace Phantasma.Business
 
             var result = new VMObject();
             result.SetValue(tokenID);
+            Console.WriteLine("stack.Push 22: "+ result);
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -1052,6 +1074,7 @@ namespace Phantasma.Business
             var symbol = vm.PopString("symbol");
             var tokenID = vm.PopNumber("token ID");
 
+            Console.WriteLine("read token intenal");
             var result = vm.ReadToken(symbol, tokenID);
 
             vm.Expect(result.TokenID == tokenID, "retrived NFT content does not have proper tokenID");
@@ -1092,6 +1115,7 @@ namespace Phantasma.Business
             }
             
             result.SetValue(fields);
+            Console.WriteLine("stack.Push 23: "+ result);
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -1099,10 +1123,13 @@ namespace Phantasma.Business
          
         private static ExecutionState Runtime_ReadTokenRAM(RuntimeVM Runtime)
         {
+            Console.WriteLine("read token ram ");
             var content = Runtime_ReadTokenInternal(Runtime);
 
             var result = new VMObject();
+            Console.WriteLine("read token ram: " + string.Join("", content.RAM));
             result.SetValue(content.RAM, VMType.Bytes);
+            Console.WriteLine("stack.Push 24: "+ result);
             Runtime.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -1114,6 +1141,7 @@ namespace Phantasma.Business
 
             var result = new VMObject();
             result.SetValue(content.ROM, VMType.Bytes);
+            Console.WriteLine("stack.Push 25: "+ result);
             Runtime.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -1130,6 +1158,7 @@ namespace Phantasma.Business
             var symbol = vm.PopString("symbol");
             var tokenID = vm.PopNumber("token ID");
             var ram = vm.PopBytes("ram");
+            Console.WriteLine($"block {vm.Chain.Height + 1} -> WriteToken: {tokenID} ram: {Base16.Encode(ram)}");
 
             vm.WriteToken(from, symbol, tokenID, ram);
 
@@ -1167,6 +1196,7 @@ namespace Phantasma.Business
 
             var result = new VMObject();
             result.SetValue(success);
+            Console.WriteLine("stack.Push 26: "+ result);
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -1187,6 +1217,7 @@ namespace Phantasma.Business
 
             var result = new VMObject();
             result.SetValue(token.Decimals);
+            Console.WriteLine("stack.Push 27: "+ result);
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -1207,6 +1238,7 @@ namespace Phantasma.Business
 
             var result = new VMObject();
             result.SetValue(token.Flags);
+            Console.WriteLine("stack.Push 28: "+ result);
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -1460,6 +1492,7 @@ namespace Phantasma.Business
 
             var result = new VMObject();
             result.SetValue(decryptedData);
+            Console.WriteLine("stack.Push 29: "+ result);
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -1476,6 +1509,7 @@ namespace Phantasma.Business
 
             var result = new VMObject();
             result.SetValue(encryptedData);
+            Console.WriteLine("stack.Push 30: "+ result);
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -1645,6 +1679,7 @@ namespace Phantasma.Business
 
             var result = new VMObject();
             result.SetValue(target);
+            Console.WriteLine("stack.Push 31: "+ result);
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -1718,6 +1753,7 @@ namespace Phantasma.Business
         {
             var result = new VMObject();
             result.SetValue(vm.CurrentTask);
+            Console.WriteLine("stack.Push 32: "+ result);
             vm.Stack.Push(result);
             return ExecutionState.Running;
         }
@@ -1731,6 +1767,7 @@ namespace Phantasma.Business
 
             var result = new VMObject();
             result.SetValue(task);
+            Console.WriteLine("stack.Push 33: "+ result);
             vm.Stack.Push(result);
             return ExecutionState.Running;
         }
@@ -1768,6 +1805,7 @@ namespace Phantasma.Business
 
             var result = new VMObject();
             result.SetValue(task.ID);
+            Console.WriteLine("stack.Push 34: "+ result);
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
@@ -1783,6 +1821,7 @@ namespace Phantasma.Business
             var address = vm.PopAddress();
 
             var result = vm.GetAddressName(address);
+            Console.WriteLine(VMObject.FromObject("stack.Push 35: "+ result));
             vm.Stack.Push(VMObject.FromObject(result));
 
             return ExecutionState.Running;
@@ -1795,6 +1834,7 @@ namespace Phantasma.Business
             var address = vm.PopAddress();
 
             var result = vm.Chain.GetLastActivityOfAddress(address);
+            Console.WriteLine(VMObject.FromObject("stack.Push 36: "+ result));
             vm.Stack.Push(VMObject.FromObject(result));
 
             return ExecutionState.Running;
@@ -1819,6 +1859,7 @@ namespace Phantasma.Business
 
             var obj = new VMObject();
             obj.SetValue(dict);
+            Console.WriteLine("stack.Push 37: "+ obj);
             vm.Stack.Push(obj);
 
             return ExecutionState.Running;

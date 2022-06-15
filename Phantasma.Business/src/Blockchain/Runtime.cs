@@ -216,6 +216,7 @@ namespace Phantasma.Business
             for (int i = args.Length - 1; i >= 0; i--)
             {
                 var obj = VMObject.FromObject(args[i]);
+                Console.WriteLine("push arg: " + obj);
                 this.Stack.Push(obj);
             }
         }
@@ -455,7 +456,7 @@ namespace Phantasma.Business
             Shared.Throw.If(Oracle == null, "cannot read price from null oracle");
             var bytes = Oracle.Read<byte[]>(this.Time, "price://" + symbol);
             Expect(bytes != null && bytes.Length > 0, $"Could not read price of {symbol} from oracle");
-            var value = new BigInteger(bytes);
+            var value = new BigInteger(bytes, true);
 
             Expect(value > 0, "token price not available for " + symbol);
 
