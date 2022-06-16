@@ -2,11 +2,8 @@ using System;
 using System.IO;
 using System.Numerics;
 using System.Text;
-using System.Linq;
 using Phantasma.Shared;
 using Phantasma.Shared.Utils;
-//using Phantasma.Storage;
-//using Phantasma.Storage.Utils;
 
 namespace Phantasma.Core
 {

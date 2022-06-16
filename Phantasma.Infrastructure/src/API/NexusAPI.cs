@@ -1,18 +1,18 @@
-using System;
 using System.Text;
-using System.Linq;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text.Json;
-using System.Threading;
 using Phantasma.Shared;
 using Phantasma.Core;
 using Phantasma.Business;
 using Phantasma.Business.Tokens;
 using Phantasma.Business.Storage;
 using Phantasma.Business.Contracts;
-using Phantasma.Infrastructure;
 using Phantasma.Shared.Utils;
+using Tendermint.RPC;
+using System;
+using System.Linq;
+using System.Threading;
 
 namespace Phantasma.Infrastructure;
 
@@ -20,6 +20,7 @@ public static class NexusAPI
 {
     public static Nexus Nexus;
     public static ITokenSwapper TokenSwapper;
+    public static NodeRpcClient TRPC;
 
     public static bool ApiLog;
 
@@ -119,7 +120,7 @@ public static class NexusAPI
                 if (!extHash.IsNull)
                 {
                     external.Add(new TokenExternalResult()
-                    {   
+                    {
                         hash = ExternalHashToString(platform, extHash, tokenSymbol),
                         platform = platform,
                     });
@@ -234,7 +235,7 @@ public static class NexusAPI
         return result;
     }
 
-    public static AuctionResult FillAuction(MarketAuction auction, Chain chain)
+    public static AuctionResult FillAuction(MarketAuction auction, IChain chain)
     {
         RequireNexus();
 
@@ -316,7 +317,7 @@ public static class NexusAPI
         };
     }
 
-    public static OracleResult FillOracle(IOracleEntry oracle)
+    public static OracleResult FillOracle(OracleEntry oracle)
     {
         return new OracleResult
         {
@@ -327,7 +328,7 @@ public static class NexusAPI
         };
     }
 
-    public static BlockResult FillBlock(Block block, Chain chain)
+    public static BlockResult FillBlock(Block block, IChain chain)
     {
         RequireNexus();
 
@@ -361,7 +362,7 @@ public static class NexusAPI
         return result;
     }
 
-    public static ChainResult FillChain(Chain chain)
+    public static ChainResult FillChain(IChain chain)
     {
         RequireNexus();
 
@@ -386,7 +387,7 @@ public static class NexusAPI
         return result;
     }
 
-    public static Chain FindChainByInput(string chainInput)
+    public static IChain FindChainByInput(string chainInput)
     {
         RequireNexus();
 
@@ -453,7 +454,7 @@ public static class NexusAPI
         };
     }
 
-    public static ArchiveResult FillArchive(Archive archive)
+    public static ArchiveResult FillArchive(IArchive archive)
     {
         return new ArchiveResult()
         {
@@ -589,15 +590,15 @@ public static class NexusAPI
 
         return result;
     }
-    
+
     public static JsonDocument ForwardTxAsync(string node, string tx)
     {
         var paramData = new List<object>();
         paramData.Add(tx);
-        
+
         int retryCount = 0;
         do
-        { 
+        {
             var response = RequestUtils.RPCRequest(node, "broadcast_tx_async", out var _, 0, 1, paramData.ToArray());
 
             if (response != null)
@@ -607,7 +608,7 @@ public static class NexusAPI
                     return response;
                 }
             }
-            
+
             retryCount++;
             Thread.Sleep(1000);
 
@@ -615,15 +616,15 @@ public static class NexusAPI
 
         return null;
     }
-    
+
     public static JsonDocument ForwardTxSync(string node, string tx)
     {
         var paramData = new List<object>();
         paramData.Add(tx);
-        
+
         int retryCount = 0;
         do
-        { 
+        {
             var response = RequestUtils.RPCRequest(node, "broadcast_tx_sync", out var _, 0, 1, paramData.ToArray());
 
             if (response != null)
@@ -633,7 +634,7 @@ public static class NexusAPI
                     return response;
                 }
             }
-            
+
             retryCount++;
             Thread.Sleep(1000);
 

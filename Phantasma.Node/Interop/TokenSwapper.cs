@@ -90,7 +90,7 @@ namespace Phantasma.Node.Interop
         public readonly TokenSwapper Swapper;
         public readonly string LocalAddress;
         public readonly string WIF;
-        public OracleReader OracleReader => Swapper.OracleReader;
+        public IOracleReader OracleReader => Swapper.OracleReader;
 
         protected ChainSwapper(TokenSwapper swapper, string platformName)
         {
@@ -132,7 +132,7 @@ namespace Phantasma.Node.Interop
         public Dictionary<string, string[]> SwapAddresses = new Dictionary<string,string[]>();
 
         internal readonly PhantasmaKeys SwapKeys;
-        internal readonly OracleReader OracleReader;
+        internal readonly IOracleReader OracleReader;
 
         public readonly Node Node;
 
@@ -251,7 +251,7 @@ namespace Phantasma.Node.Interop
 
         public void ResyncBlockOnChain(string platform, string blockId)
         {
-            if (_swappers.TryGetValue(platform, out ChainSwapper finder) 
+            if (_swappers.TryGetValue(platform, out ChainSwapper finder)
                     && System.Numerics.BigInteger.TryParse(blockId, out var bigIntBlock))
             {
                 Log.Information($"TokenSwapper: Resync block {blockId} on platform {platform}");
@@ -530,7 +530,7 @@ namespace Phantasma.Node.Interop
 
             var nexus = NexusAPI.GetNexus();
 
-            var tx = new Business.Transaction(nexus.Name, "main", script, Timestamp.Now + TimeSpan.FromMinutes(5), Node.TxIdentifier);
+            var tx = new Transaction(nexus.Name, "main", script, Timestamp.Now + TimeSpan.FromMinutes(5), Node.TxIdentifier);
             tx.Sign(SwapKeys);
 
             var bytes = tx.ToByteArray(true);

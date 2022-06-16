@@ -12,8 +12,8 @@ namespace Phantasma.Core
 {
     public interface ISerializable
     {
-        void SerializeData(BinaryWriter writer);
-        void UnserializeData(BinaryReader reader);
+        public void SerializeData(BinaryWriter writer);
+        public void UnserializeData(BinaryReader reader);
     }
 
     public delegate void CustomWriter(BinaryWriter writer, object obj);

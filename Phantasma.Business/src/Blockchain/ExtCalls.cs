@@ -1004,24 +1004,9 @@ namespace Phantasma.Business
 
             BigInteger seriesID;
 
-            if (vm.ProtocolVersion >= 4)
-            {
-                seriesID = vm.PopNumber("series");
-            }
-            else
-            {
-                seriesID = 0;
-            }
+            seriesID = vm.PopNumber("series");
 
-            Address creator;
-            if (vm.ProtocolVersion >= 7)
-            {
-                creator = source;
-            }
-            else
-            {
-                creator = destination;
-            }
+            Address creator = source;
 
             var tokenID = vm.MintToken(symbol, creator, destination, rom, ram, seriesID);
 
@@ -1076,11 +1061,6 @@ namespace Phantasma.Business
 
         private static ExecutionState Runtime_ReadToken(RuntimeVM vm)
         {
-            if (vm.ProtocolVersion < 4)
-            {
-                return Runtime_ReadTokenRAM(vm);
-            }
-
             var content = Runtime_ReadTokenInternal(vm);
 
             var fieldList = vm.PopString("fields").Split(',');
@@ -1141,18 +1121,11 @@ namespace Phantasma.Business
 
         private static ExecutionState Runtime_WriteToken(RuntimeVM vm)
         {
-            vm.ExpectStackSize(vm.ProtocolVersion >= 6 ? 4 : 3);
+            vm.ExpectStackSize(4);
 
             Address from;
 
-            if (vm.ProtocolVersion >= 6)
-            {
-                from = vm.PopAddress();
-            }
-            else
-            {
-                from = Address.Null;
-            }
+            from = vm.PopAddress();
 
             var symbol = vm.PopString("symbol");
             var tokenID = vm.PopNumber("token ID");
@@ -1265,21 +1238,12 @@ namespace Phantasma.Business
             var contractAddress = SmartContract.GetAddressForName(contractName);
             var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
 
-            // TODO 
-            if (vm.ProtocolVersion >= 2)
-            {
-                vm.Expect(!deployed, $"{contractName} is already deployed");
-            }
-            else
-            if (deployed)
-            {
-                return ExecutionState.Running;
-            }
+            vm.Expect(!deployed, $"{contractName} is already deployed");
 
             byte[] script;
             ContractInterface abi;
 
-            bool isNative = Nexus.IsNativeContract(contractName);
+            bool isNative = Nexus.IsNativeContractStatic(contractName);
             if (isNative)
             {
                 /*if (contractName == "validator" && vm.GenesisAddress == Address.Null)
@@ -1317,7 +1281,7 @@ namespace Phantasma.Business
                 var abiBytes = vm.PopBytes("contractABI");
                 abi = ContractInterface.FromBytes(abiBytes);
 
-                var fuelCost = vm.GetGovernanceValue(Nexus.FuelPerContractDeployTag);
+                var fuelCost = vm.GetGovernanceValue(vm.Nexus.FuelPerContractDeployTag);
                 // governance value is in usd fiat, here convert from fiat to fuel amount
                 fuelCost = vm.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
 
@@ -1370,7 +1334,7 @@ namespace Phantasma.Business
             byte[] script;
             ContractInterface abi;
 
-            bool isNative = Nexus.IsNativeContract(contractName);
+            bool isNative = Nexus.IsNativeContractStatic(contractName);
             vm.Expect(!isNative, "cannot upgrade native contract");
 
             bool isToken = ValidationUtils.IsValidTicker(contractName);
@@ -1380,7 +1344,7 @@ namespace Phantasma.Business
             var abiBytes = vm.PopBytes("contractABI");
             abi = ContractInterface.FromBytes(abiBytes);
 
-            var fuelCost = vm.GetGovernanceValue(Nexus.FuelPerContractDeployTag);
+            var fuelCost = vm.GetGovernanceValue(vm.Nexus.FuelPerContractDeployTag);
             // governance value is in usd fiat, here convert from fiat to fuel amount
             fuelCost = vm.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
 
@@ -1444,7 +1408,7 @@ namespace Phantasma.Business
 
             vm.Expect(deployed, $"{contractName} does not exist");
 
-            bool isNative = Nexus.IsNativeContract(contractName);
+            bool isNative = Nexus.IsNativeContractStatic(contractName);
             vm.Expect(!isNative, "cannot kill native contract");
 
             bool isToken = ValidationUtils.IsValidTicker(contractName);
@@ -1566,104 +1530,78 @@ namespace Phantasma.Business
             int decimals = -1;
             TokenFlags flags = TokenFlags.None;
 
-            if (vm.ProtocolVersion < 6)
-            {
-                vm.ExpectStackSize(7);
+            vm.ExpectStackSize(3);
 
-                owner = vm.PopAddress();
-                symbol = vm.PopString("symbol");
-                name = vm.PopString("name");
-                maxSupply = vm.PopNumber("maxSupply");
-                decimals = (int)vm.PopNumber("decimals");
-                flags = vm.PopEnum<TokenFlags>("flags");
-
-                vm.Expect(!owner.IsNull, "missing or invalid token owner");
-            }
-            else
-            {
-                vm.ExpectStackSize(3);
-
-                owner = vm.PopAddress();
-            }
+            owner = vm.PopAddress();
 
             var script = vm.PopBytes("script");
 
             ContractInterface abi;
 
-            if (vm.ProtocolVersion >= 4)
-            {
-                var abiBytes = vm.PopBytes("abi bytes");
-                abi = ContractInterface.FromBytes(abiBytes);
-            }
-            else
-            {
-                abi = new ContractInterface();
-            }
+            var abiBytes = vm.PopBytes("abi bytes");
+            abi = ContractInterface.FromBytes(abiBytes);
 
             var rootChain = (Chain)vm.GetRootChain(); // this cast is not the best, but works for now...
             var storage = vm.RootStorage;
 
-            if (vm.ProtocolVersion >= 6)
+            TokenUtils.FetchProperty(storage, rootChain, "getSymbol", script, abi, (prop, value) =>
             {
-                TokenUtils.FetchProperty(storage, rootChain, "getSymbol", script, abi, (prop, value) =>
-                {
-                    symbol = value.AsString();
-                });
+                symbol = value.AsString();
+            });
 
-                TokenUtils.FetchProperty(storage, rootChain, "getName", script, abi, (prop, value) =>
-                {
-                    name = value.AsString();
-                });
+            TokenUtils.FetchProperty(storage, rootChain, "getName", script, abi, (prop, value) =>
+            {
+                name = value.AsString();
+            });
 
-                TokenUtils.FetchProperty(storage, rootChain, "getTokenFlags", script, abi, (prop, value) =>
-                {
-                    flags = value.AsEnum<TokenFlags>();
-                });
+            TokenUtils.FetchProperty(storage, rootChain, "getTokenFlags", script, abi, (prop, value) =>
+            {
+                flags = value.AsEnum<TokenFlags>();
+            });
 
-                // we offer two ways to describe the flags, either individually or via getTokenFlags
-                if (flags == TokenFlags.None)
+            // we offer two ways to describe the flags, either individually or via getTokenFlags
+            if (flags == TokenFlags.None)
+            {
+                var possibleFlags = Enum.GetValues(typeof(TokenFlags)).Cast<TokenFlags>().ToArray();
+                foreach (var entry in possibleFlags)
                 {
-                    var possibleFlags = Enum.GetValues(typeof(TokenFlags)).Cast<TokenFlags>().ToArray();
-                    foreach (var entry in possibleFlags)
+                    var flag = entry; // this line necessary for lambda closure to catch the correct value
+                    var propName = $"is{flag}";
+
+                    // for each flag, if the property exists and returns true, we set the flag
+                    TokenUtils.FetchProperty(storage, rootChain, propName, script, abi, (prop, value) =>
                     {
-                        var flag = entry; // this line necessary for lambda closure to catch the correct value
-                        var propName = $"is{flag}";
-
-                        // for each flag, if the property exists and returns true, we set the flag
-                        TokenUtils.FetchProperty(storage, rootChain, propName, script, abi, (prop, value) =>
+                        var isSet = value.AsBool();
+                        if (isSet)
                         {
-                            var isSet = value.AsBool();
-                            if (isSet)
-                            {
-                                flags |= flag;
-                            }
-                        });
-                    }
-                }
-
-                if (flags.HasFlag(TokenFlags.Finite))
-                {
-                    TokenUtils.FetchProperty(storage, rootChain, "getMaxSupply", script, abi, (prop, value) =>
-                    {
-                        maxSupply = value.AsNumber();
+                            flags |= flag;
+                        }
                     });
                 }
-                else
-                {
-                    maxSupply = 0;
-                }
+            }
 
-                if (flags.HasFlag(TokenFlags.Fungible))
+            if (flags.HasFlag(TokenFlags.Finite))
+            {
+                TokenUtils.FetchProperty(storage, rootChain, "getMaxSupply", script, abi, (prop, value) =>
                 {
-                    TokenUtils.FetchProperty(storage, rootChain, "getDecimals", script, abi, (prop, value) =>
-                    {
-                        decimals = (int)value.AsNumber();
-                    });
-                }
-                else
+                    maxSupply = value.AsNumber();
+                });
+            }
+            else
+            {
+                maxSupply = 0;
+            }
+
+            if (flags.HasFlag(TokenFlags.Fungible))
+            {
+                TokenUtils.FetchProperty(storage, rootChain, "getDecimals", script, abi, (prop, value) =>
                 {
-                    decimals = 0;
-                }
+                    decimals = (int)value.AsNumber();
+                });
+            }
+            else
+            {
+                decimals = 0;
             }
 
             vm.Expect(ValidationUtils.IsValidTicker(symbol), "missing or invalid token symbol");

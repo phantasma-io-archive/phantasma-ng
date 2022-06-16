@@ -7,157 +7,164 @@ namespace Phantasma.Core
     public interface IRuntime
     {
         IChain Chain { get; }
-        ITransaction Transaction { get; }
-        Timestamp Time { get; }
-        StorageContext Storage { get; }
-        bool IsTrigger { get; }
-        int TransactionIndex { get; }
+        Transaction Transaction { get; }
+        public Timestamp Time { get; }
+        public StorageContext Storage { get; }
+        public StorageContext RootStorage { get; }
+        public bool IsTrigger { get; }
+        public int TransactionIndex { get; }
 
-        ITask CurrentTask { get; }
+        public IChainTask CurrentTask { get; }
 
-        IExecutionContext CurrentContext { get; }
-        IExecutionContext PreviousContext { get; }
+        ExecutionContext CurrentContext { get; }
+        ExecutionContext PreviousContext { get; }
 
-        Address GasTarget { get; }
+        public Address GasTarget { get; }
         BigInteger UsedGas { get; }
-        BigInteger GasPrice { get; }
+        public BigInteger GasPrice { get; }
 
-        IBlock GetBlockByHash(Hash hash);
-        IBlock GetBlockByHeight(BigInteger height);
+        public Block GetBlockByHash(Hash hash);
+        public Block GetBlockByHeight(BigInteger height);
 
-        Address GetValidator(Timestamp time);
+        public Address GetValidator(Timestamp time);
 
-        bool HasGenesis { get; }
-        string NexusName { get; }
-        uint ProtocolVersion { get; }
-        Address GenesisAddress { get; }
-        Hash GenesisHash { get; }
-        Timestamp GetGenesisTime();
+        public bool HasGenesis { get; }
+        public string NexusName { get; }
+        public uint ProtocolVersion { get; }
+        public Address GenesisAddress { get; }
+        public Hash GenesisHash { get; }
+        public Timestamp GetGenesisTime();
 
-        ITransaction GetTransaction(Hash hash);
+        public Transaction GetTransaction(Hash hash);
 
-        string[] GetTokens();
-        string[] GetChains();
-        string[] GetPlatforms();
-        string[] GetFeeds();
-        string[] GetOrganizations();
+        public string[] GetTokens();
+        public string[] GetChains();
+        public string[] GetPlatforms();
+        public string[] GetFeeds();
+        public string[] GetOrganizations();
         
         // returns contracts deployed on current chain
-        IContract[] GetContracts();
+        public IContract[] GetContracts();
 
-        IToken GetToken(string symbol);
-        Hash GetTokenPlatformHash(string symbol, IPlatform platform);
-        IFeed GetFeed(string name);
-        IContract GetContract(string name);
-        Address GetContractOwner(Address address);
+        public IToken GetToken(string symbol);
+        public Hash GetTokenPlatformHash(string symbol, IPlatform platform);
+        public IFeed GetFeed(string name);
+        public IContract GetContract(string name);
+        public Address GetContractOwner(Address address);
 
-        IPlatform GetPlatformByName(string name);
-        IPlatform GetPlatformByIndex(int index);
+        public IPlatform GetPlatformByName(string name);
+        public IPlatform GetPlatformByIndex(int index);
 
-        bool TokenExists(string symbol);        
-        bool NFTExists(string symbol, BigInteger tokenID);
-        bool FeedExists(string name);
-        bool PlatformExists(string name);
+        public bool TokenExists(string symbol);
+        public bool NFTExists(string symbol, BigInteger tokenID);
+        public bool FeedExists(string name);
+        public bool PlatformExists(string name);
 
-        bool OrganizationExists(string name);
-        IOrganization GetOrganization(string name);
+        public bool OrganizationExists(string name);
+        public IOrganization GetOrganization(string name);
 
-        bool AddMember(string organization, Address admin, Address target);
-        bool RemoveMember(string organization, Address admin, Address target);
-        void MigrateMember(string organization, Address admin, Address source, Address destination);
+        public bool AddMember(string organization, Address admin, Address target);
+        public bool RemoveMember(string organization, Address admin, Address target);
+        public void MigrateMember(string organization, Address admin, Address source, Address destination);
 
-        bool ContractExists(string name);
-        bool ContractDeployed(string name);
+        public bool ContractExists(string name);
+        public bool ContractDeployed(string name);
 
-        bool ArchiveExists(Hash hash);
-        IArchive GetArchive(Hash hash);
-        bool DeleteArchive(Hash hash);
+        public bool ArchiveExists(Hash hash);
+        public IArchive GetArchive(Hash hash);
+        public bool DeleteArchive(Hash hash);
 
-        bool AddOwnerToArchive(Hash hash, Address address);
+        public bool AddOwnerToArchive(Hash hash, Address address);
 
-        bool RemoveOwnerFromArchive(Hash hash, Address address);
+        public bool RemoveOwnerFromArchive(Hash hash, Address address);
 
-        bool WriteArchive(IArchive archive, int blockIndex, byte[] data);
+        public bool WriteArchive(IArchive archive, int blockIndex, byte[] data);
 
-        bool ChainExists(string name);
-        IChain GetChainByAddress(Address address);
-        IChain GetChainByName(string name);
-        int GetIndexOfChain(string name);
+        public bool ChainExists(string name);
+        public IChain GetChainByAddress(Address address);
+        public IChain GetChainByName(string name);
+        public int GetIndexOfChain(string name);
 
-        IChain GetChainParent(string name);
+        public IChain GetChainParent(string name);
 
-        void Log(string description);
-        void Throw(string description);
+        public void Log(string description);
+        public void Throw(string description);
         void Expect(bool condition, string description);
-        void Notify(EventKind kind, Address address, byte[] data);
-        VMObject CallContext(string contextName, uint jumpOffset, string methodName, params object[] args);
-        VMObject CallInterop(string methodName, params object[] args);
+        public void Notify(EventKind kind, Address address, byte[] data);
+        public VMObject CallContext(string contextName, uint jumpOffset, string methodName, params object[] args);
+        public VMObject CallInterop(string methodName, params object[] args);
 
-        Address LookUpName(string name);
-        bool HasAddressScript(Address from);
-        byte[] GetAddressScript(Address from);
-        string GetAddressName(Address from);
+        public Address LookUpName(string name);
+        public bool HasAddressScript(Address from);
+        public byte[] GetAddressScript(Address from);
+        public string GetAddressName(Address from);
 
-        Event[] GetTransactionEvents(Hash transactionHash);
-        Hash[] GetTransactionHashesForAddress(Address address);
+        public Event[] GetTransactionEvents(Hash transactionHash);
+        public Hash[] GetTransactionHashesForAddress(Address address);
 
-        ValidatorEntry GetValidatorByIndex(int index);
-        ValidatorEntry[] GetValidators();
-        bool IsPrimaryValidator(Address address);
-        bool IsSecondaryValidator(Address address);
-        int GetPrimaryValidatorCount();
-        int GetSecondaryValidatorCount();
-        bool IsKnownValidator(Address address);
+        public ValidatorEntry GetValidatorByIndex(int index);
+        public ValidatorEntry[] GetValidators();
+        public bool IsPrimaryValidator(Address address);
+        public bool IsSecondaryValidator(Address address);
+        public int GetPrimaryValidatorCount();
+        public int GetSecondaryValidatorCount();
+        public bool IsKnownValidator(Address address);
 
-        bool IsStakeMaster(Address address); // TODO remove
-        BigInteger GetStake(Address address);
+        public bool IsStakeMaster(Address address); // TODO remove
+        public BigInteger GetStake(Address address);
 
-        BigInteger GetTokenPrice(string symbol);
-        BigInteger GetGovernanceValue(string name);
+        public BigInteger GetTokenPrice(string symbol);
+        public BigInteger GetGovernanceValue(string name);
 
-        BigInteger GenerateUID();
-        BigInteger GenerateRandomNumber();
+        public BigInteger GenerateUID();
+        public BigInteger GenerateRandomNumber();
 
-        TriggerResult InvokeTrigger(bool allowThrow, byte[] script, string contextName, ContractInterface abi, string triggerName, params object[] args);
+        public TriggerResult InvokeTrigger(bool allowThrow, byte[] script, string contextName, ContractInterface abi, string triggerName, params object[] args);
 
-        bool IsWitness(Address address);
+        public bool IsWitness(Address address);
 
-        BigInteger GetBalance(string symbol, Address address);
-        BigInteger[] GetOwnerships(string symbol, Address address);
-        BigInteger GetTokenSupply(string symbol);
+        public BigInteger GetBalance(string symbol, Address address);
+        public BigInteger[] GetOwnerships(string symbol, Address address);
+        public BigInteger GetTokenSupply(string symbol);
 
-        void CreateToken(Address owner, string symbol, string name, BigInteger maxSupply, int decimals, TokenFlags flags, byte[] script, ContractInterface abi);
-        void SetPlatformTokenHash(string symbol, string platform, Hash hash);
-        void CreateChain(Address creator, string organization, string name, string parentChain);
-        void CreateFeed(Address owner, string name, FeedMode mode);
-        IArchive CreateArchive(MerkleTree merkleTree, Address owner, string name, BigInteger size, Timestamp time, IArchiveEncryption encryption);
+        public void CreateToken(Address owner, string symbol, string name, BigInteger maxSupply, int decimals, TokenFlags flags, byte[] script, ContractInterface abi);
+        public void SetPlatformTokenHash(string symbol, string platform, Hash hash);
+        public void CreateChain(Address creator, string organization, string name, string parentChain);
+        public void CreateFeed(Address owner, string name, FeedMode mode);
+        public IArchive CreateArchive(MerkleTree merkleTree, Address owner, string name, BigInteger size, Timestamp time, IArchiveEncryption encryption);
 
-        BigInteger CreatePlatform(Address from, string name, string externalAddress, Address interopAddress, string fuelSymbol);
+        public BigInteger CreatePlatform(Address from, string name, string externalAddress, Address interopAddress, string fuelSymbol);
 
-        bool IsAddressOfParentChain(Address address);
-        bool IsAddressOfChildChain(Address address);
+        public bool IsAddressOfParentChain(Address address);
+        public bool IsAddressOfChildChain(Address address);
 
-        bool IsPlatformAddress(Address address);
-        void RegisterPlatformAddress(string platform, Address localAddress, string externalAddress);
+        public bool IsPlatformAddress(Address address);
+        public void RegisterPlatformAddress(string platform, Address localAddress, string externalAddress);
 
-        void MintTokens(string symbol, Address from, Address target, BigInteger amount);
-        void BurnTokens(string symbol, Address from, BigInteger amount);
-        void TransferTokens(string symbol, Address source, Address destination, BigInteger amount);
-        void SwapTokens(string sourceChain, Address from, string targetChain, Address to, string symbol, BigInteger value);
+        public void MintTokens(string symbol, Address from, Address target, BigInteger amount);
+        public void BurnTokens(string symbol, Address from, BigInteger amount);
+        public void TransferTokens(string symbol, Address source, Address destination, BigInteger amount);
+        public void SwapTokens(string sourceChain, Address from, string targetChain, Address to, string symbol, BigInteger value);
 
-        BigInteger MintToken(string symbol, Address from, Address target, byte[] rom, byte[] ram, BigInteger seriesID);
-        void BurnToken(string symbol, Address from, BigInteger tokenID);
-        void InfuseToken(string symbol, Address from, BigInteger tokenID, string infuseSymbol, BigInteger value);
-        void TransferToken(string symbol, Address source, Address destination, BigInteger tokenID);
-        void WriteToken(Address from, string tokenSymbol, BigInteger tokenID, byte[] ram);
-        TokenContent ReadToken(string tokenSymbol, BigInteger tokenID);
-        ITokenSeries CreateTokenSeries(string tokenSymbol, Address from, BigInteger seriesID, BigInteger maxSupply, TokenSeriesMode mode, byte[] script, ContractInterface abi);
-        ITokenSeries GetTokenSeries(string symbol, BigInteger seriesID);
+        public BigInteger MintToken(string symbol, Address from, Address target, byte[] rom, byte[] ram, BigInteger seriesID);
+        public void BurnToken(string symbol, Address from, BigInteger tokenID);
+        public void InfuseToken(string symbol, Address from, BigInteger tokenID, string infuseSymbol, BigInteger value);
+        public void TransferToken(string symbol, Address source, Address destination, BigInteger tokenID);
+        public void WriteToken(Address from, string tokenSymbol, BigInteger tokenID, byte[] ram);
+        public TokenContent ReadToken(string tokenSymbol, BigInteger tokenID);
+        public ITokenSeries CreateTokenSeries(string tokenSymbol, Address from, BigInteger seriesID, BigInteger maxSupply, TokenSeriesMode mode, byte[] script, ContractInterface abi);
+        public ITokenSeries GetTokenSeries(string symbol, BigInteger seriesID);
 
-        byte[] ReadOracle(string URL);
+        public byte[] ReadOracle(string URL);
 
-        ITask StartTask(Address from, string contractName, ContractMethod method, uint frequency, uint delay, TaskFrequencyMode mode, BigInteger gasLimit);
-        void StopTask(ITask task);
-        ITask GetTask(BigInteger taskID);
+        public IChainTask StartTask(Address from, string contractName, ContractMethod method, uint frequency, uint delay, TaskFrequencyMode mode, BigInteger gasLimit);
+        public void StopTask(IChainTask task);
+        public IChainTask GetTask(BigInteger taskID);
+
+        TriggerResult InvokeTriggerOnAccount(bool allowThrow, Address address, AccountTrigger trigger, params object[] args);
+        TriggerResult InvokeTriggerOnToken(bool allowThrow, IToken token, TokenTrigger trigger, params object[] args);
+        void AddAllowance(Address destination, string symbol, BigInteger amount);
+        bool SubtractAllowance(Address destination, string symbol, BigInteger amount);
+        void RemoveAllowance(Address destination, string symbol);
     }
 }

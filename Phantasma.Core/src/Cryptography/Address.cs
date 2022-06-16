@@ -265,6 +265,11 @@ namespace Phantasma.Core
 
         public static Address FromText(string text)
         {
+            return Address.Parse(text);
+        }
+
+        public static Address Parse(string text)
+        {
             Address addr;
 
             lock (_textToAddressCache)

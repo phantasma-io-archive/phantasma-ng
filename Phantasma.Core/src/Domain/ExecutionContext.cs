@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
-using Phantasma.Core;
 
-namespace Phantasma.Business
+namespace Phantasma.Core
 {
-    public abstract class ExecutionContext : IExecutionContext
+    public abstract class ExecutionContext
     {
         public abstract string Name { get; }
 
@@ -20,7 +19,7 @@ namespace Phantasma.Business
             }
         }
 
-        public abstract ExecutionState Execute(IExecutionFrame frame, Stack<VMObject> stack);
+        public abstract ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack);
 
         public override string ToString()
         {

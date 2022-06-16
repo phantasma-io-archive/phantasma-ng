@@ -275,10 +275,9 @@ namespace Phantasma.Business.Contracts
             {
                 var diff = stakeAmount - balance;
                 throw new BalanceException(Runtime.GetToken("SOUL"), from, diff);
-                //balance = stakeAmount; // debug mode only, otherwise a exception will prevent it from reaching here
             }
 
-            Runtime.Expect(balance >= stakeAmount, $"balance: {balance} stake: {stakeAmount} not enough balance to stake at " + from);
+            Runtime.Expect(balance >= stakeAmount, $"balance: {balance} stake: {stakeAmount} not enough balance to stake at {from}");
 
             Runtime.TransferTokens(DomainSettings.StakingTokenSymbol, from, this.Address, stakeAmount);
 
@@ -534,19 +533,10 @@ namespace Phantasma.Business.Contracts
 
             uint[] crownDays;
 
+            var crowns = Runtime.GetOwnerships(DomainSettings.RewardTokenSymbol, from);
 
-            if (Runtime.ProtocolVersion >= 5)
-            {
-                var crowns = Runtime.GetOwnerships(DomainSettings.RewardTokenSymbol, from);
-
-                // calculate how many days each CROWN is hold at current address and use older ones first
-                crownDays = crowns.Select(id => (Runtime.Time - Runtime.ReadToken(DomainSettings.RewardTokenSymbol, id).Timestamp) / SecondsInDay).OrderByDescending(k => k).ToArray();
-            }
-            else
-            {
-                crownDays = new uint[0];
-            }
-
+            // calculate how many days each CROWN is hold at current address and use older ones first
+            crownDays = crowns.Select(id => (Runtime.Time - Runtime.ReadToken(DomainSettings.RewardTokenSymbol, id).Timestamp) / SecondsInDay).OrderByDescending(k => k).ToArray();
 
             var bonusPercent = (int)Runtime.GetGovernanceValue(StakeSingleBonusPercentTag);
             var maxPercent = (int)Runtime.GetGovernanceValue(StakeMaxBonusPercentTag);
@@ -609,23 +599,6 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
 
             var unclaimedAmount = GetUnclaimed(stakeAddress);
-
-            if (Runtime.ProtocolVersion < 5)
-            {
-                var crownCount = Runtime.GetBalance(DomainSettings.RewardTokenSymbol, from);
-
-                var bonusPercent = Runtime.GetGovernanceValue(StakeSingleBonusPercentTag);
-                var maxPercent = Runtime.GetGovernanceValue(StakeMaxBonusPercentTag);
-
-                bonusPercent *= crownCount;
-                if (bonusPercent > maxPercent)
-                {
-                    bonusPercent = maxPercent;
-                }
-
-                var bonusAmount = (unclaimedAmount * bonusPercent) / 100;
-                unclaimedAmount += bonusAmount;
-            }
 
             Runtime.Expect(unclaimedAmount > 0, "nothing unclaimed");
 

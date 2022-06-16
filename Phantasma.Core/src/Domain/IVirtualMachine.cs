@@ -1,47 +1,44 @@
 using System.Collections.Generic;
-using System.Reflection.Emit;
-using System.Threading;
 
 namespace Phantasma.Core
 {
     public interface IVirtualMachine
     {
+        public Stack<VMObject> Stack { get; }
 
-        Stack<VMObject> Stack { get; }
+        public byte[] EntryScript { get; }
 
-        byte[] EntryScript { get; }
+        public Address EntryAddress { get; set; }
 
-        Address EntryAddress { get; set; }
+        public ExecutionContext CurrentContext { get; set; }
 
-        IExecutionContext CurrentContext { get; set; }
+        public ExecutionContext PreviousContext { get; set; }
 
-        IExecutionContext PreviousContext { get; set; }
+        public ExecutionFrame CurrentFrame { get; set; }
 
-        IExecutionFrame CurrentFrame { get; set; }
+        public Stack<ExecutionFrame> Frames { get; }
 
-        Stack<IExecutionFrame> Frames { get; }
-
-        public void RegisterContext(string contextName, IExecutionContext context);
+        public void RegisterContext(string contextName, ExecutionContext context);
 
         public ExecutionState ExecuteInterop(string method);
 
-        public abstract IExecutionContext LoadContext(string contextName);
+        public abstract ExecutionContext LoadContext(string contextName);
 
         public ExecutionState Execute();
 
-        public void PushFrame(IExecutionContext context, uint instructionPointer,  int registerCount);
+        public void PushFrame(ExecutionContext context, uint instructionPointer,  int registerCount);
 
         public uint PopFrame();
 
-        public IExecutionFrame PeekFrame();
+        public ExecutionFrame PeekFrame();
 
-        public void SetCurrentContext(IExecutionContext context);
+        public void SetCurrentContext(ExecutionContext context);
 
-        public IExecutionContext FindContext(string contextName);
+        public ExecutionContext FindContext(string contextName);
 
         public ExecutionState ValidateOpcode(Opcode opcode);
 
-        public ExecutionState SwitchContext(IExecutionContext context, uint instructionPointer);
+        public ExecutionState SwitchContext(ExecutionContext context, uint instructionPointer);
 
         public string GetDumpFileName();
 

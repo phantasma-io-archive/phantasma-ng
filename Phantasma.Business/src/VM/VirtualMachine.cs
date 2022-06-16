@@ -18,7 +18,7 @@ namespace Phantasma.Business
 
         public readonly static string EntryContextName = "entry";
 
-        private readonly ExecutionContext entryContext;
+        private readonly Phantasma.Core.ExecutionContext entryContext;
 
 
         public Stack<VMObject> Stack { get; } = new Stack<VMObject>();
@@ -38,17 +38,17 @@ namespace Phantasma.Business
             } 
         }
 
-        public IExecutionContext CurrentContext { get; set; }
-        public IExecutionContext PreviousContext { get; set; }
+        public Phantasma.Core.ExecutionContext CurrentContext { get; set; }
+        public Phantasma.Core.ExecutionContext PreviousContext { get; set; }
 
         private Stack<Address> _activeAddresses = new Stack<Address>();
         public Stack<Address> ActiveAddresses => _activeAddresses;
 
-        private Dictionary<string, IExecutionContext> _contextMap = new Dictionary<string, IExecutionContext>();
+        private Dictionary<string, ExecutionContext> _contextMap = new Dictionary<string, ExecutionContext>();
 
-        private readonly Stack<IExecutionFrame> frames = new Stack<IExecutionFrame>();
-        public Stack<IExecutionFrame> Frames { get { return frames; } }
-        public IExecutionFrame CurrentFrame { get; set; }
+        private readonly Stack<ExecutionFrame> frames = new Stack<ExecutionFrame>();
+        public Stack<ExecutionFrame> Frames { get { return frames; } }
+        public ExecutionFrame CurrentFrame { get; set; }
 
         public VirtualMachine(byte[] script, uint offset, string contextName)
         {
@@ -70,13 +70,13 @@ namespace Phantasma.Business
             this.EntryScript = script;
         }
 
-        public void RegisterContext(string contextName, IExecutionContext context)
+        public void RegisterContext(string contextName, ExecutionContext context)
         {
             _contextMap[contextName] = context;
         }
 
         public abstract ExecutionState ExecuteInterop(string method);
-        public abstract IExecutionContext LoadContext(string contextName);
+        public abstract ExecutionContext LoadContext(string contextName);
 
         public virtual ExecutionState Execute()
         {
@@ -86,7 +86,7 @@ namespace Phantasma.Business
         #region FRAMES
 
         // instructionPointer is the location to jump after the frame is popped!
-        public void PushFrame(IExecutionContext context, uint instructionPointer,  int registerCount)
+        public void PushFrame(ExecutionContext context, uint instructionPointer,  int registerCount)
         {
             var frame = new ExecutionFrame(this, instructionPointer, context, registerCount);
             frames.Push(frame);
@@ -106,7 +106,7 @@ namespace Phantasma.Business
             return instructionPointer;
         }
 
-        public IExecutionFrame PeekFrame()
+        public ExecutionFrame PeekFrame()
         {
             Throw.If(frames.Count < 2, "Not enough frames available");
 
@@ -118,7 +118,7 @@ namespace Phantasma.Business
             return result;
         }
 
-        public void SetCurrentContext(IExecutionContext context)
+        public void SetCurrentContext(ExecutionContext context)
         {
             if (context == null)
             {
@@ -128,7 +128,7 @@ namespace Phantasma.Business
             this.CurrentContext = context;
         }
 
-        public IExecutionContext FindContext(string contextName)
+        public ExecutionContext FindContext(string contextName)
         {
             if (_contextMap.ContainsKey(contextName))
             {
@@ -151,7 +151,7 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        public ExecutionState SwitchContext(IExecutionContext context, uint instructionPointer)
+        public ExecutionState SwitchContext(ExecutionContext context, uint instructionPointer)
         {
             if (context == null)
             {

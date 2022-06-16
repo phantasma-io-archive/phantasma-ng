@@ -1,17 +1,16 @@
 ﻿using System;
-using Phantasma.Core;
 
-namespace Phantasma.Business
+namespace Phantasma.Core
 {
-    public class ExecutionFrame : IExecutionFrame
+    public class ExecutionFrame
     {
         public VMObject[] Registers { get; }
 
         public uint Offset { get; } // current instruction pointer **before** the frame was entered
-        public IExecutionContext Context { get; }
+        public ExecutionContext Context { get; }
         public IVirtualMachine VM { get; }
 
-        public ExecutionFrame(IVirtualMachine VM, uint offset, IExecutionContext context, int registerCount)
+        public ExecutionFrame(IVirtualMachine VM, uint offset, ExecutionContext context, int registerCount)
         {
             this.VM = VM;
             this.Offset = offset;

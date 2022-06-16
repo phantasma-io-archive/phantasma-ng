@@ -11,6 +11,9 @@ using Phantasma.Core;
 using Phantasma.Shared.Utils;
 using System.Text.Json;
 using System.Linq;
+using Block = Neo.Network.P2P.Payloads.Block;
+using Transaction = Neo.Network.P2P.Payloads.Transaction;
+
 //using Phantasma.Neo.Utils;
 //using Phantasma.Storage;
 
@@ -35,11 +38,6 @@ namespace Phantasma.Node.Chains
             return new RemoteRPCNode(20332, "https://neoscan-testnet.io", NEONodesKind.NEO_ORG);
         }
 
-        public static NeoRPC ForPrivateNet()
-        {
-            return new LocalRPCNode(30333, "http://localhost:4000");
-        }
-
         #region RPC API
         public string rpcEndpoint { get; set; }
         private static object rpcEndpointUpdateLocker = new object();
@@ -57,7 +55,7 @@ namespace Phantasma.Node.Chains
                     paramData.Add((int)entry);
                 }
                 else if (entry.GetType() == typeof(BigInteger))
-                { 
+                {
                     /*
                      * TODO sufficient for neo2 but needs a better solution in the future.
                      * Could fail if entry > maxInt.
@@ -75,7 +73,7 @@ namespace Phantasma.Node.Chains
 
             int retryCount = 0;
             do
-            { 
+            {
                 // Using local var to avoid it being nullified by another thread right before RequestUtils.Request() call.
                 string currentRpcEndpoint;
                 if (!string.IsNullOrEmpty(node))
@@ -484,16 +482,16 @@ namespace Phantasma.Node.Chains
                             UInt160 source = UInt160.Zero;
                             UInt160 target = UInt160.Zero;
                             BigInteger amount = 0;
-                            var contract = notifications.ElementAt(i).GetProperty("contract").GetString(); 
+                            var contract = notifications.ElementAt(i).GetProperty("contract").GetString();
 
                             if(states.ElementAt(0).GetProperty("type").GetString() == "ByteArray")
                                 txevent = states.ElementAt(0).GetProperty("value").GetString();
 
-                            if(states.ElementAt(1).GetProperty("type").GetString() == "ByteArray" 
+                            if(states.ElementAt(1).GetProperty("type").GetString() == "ByteArray"
                                     && !string.IsNullOrEmpty(states.ElementAt(1).GetProperty("value").GetString()))
                                 source = UInt160.Parse(states.ElementAt(1).GetProperty("value").GetString());
 
-                            if(states.ElementAt(2).GetProperty("type").GetString() == "ByteArray" 
+                            if(states.ElementAt(2).GetProperty("type").GetString() == "ByteArray"
                                     && !string.IsNullOrEmpty(states.ElementAt(2).GetProperty("value").GetString()))
                                 target = UInt160.Parse(states.ElementAt(2).GetProperty("value").GetString());
 
@@ -546,7 +544,7 @@ namespace Phantasma.Node.Chains
                 object[] heightData = new object[] { (int)height };
 
                 taskList.Add(
-                        new Task<JsonDocument>(() => 
+                        new Task<JsonDocument>(() =>
                         {
                             return QueryRPC("getblock", heightData, 1, true);
                         })
@@ -637,21 +635,6 @@ namespace Phantasma.Node.Chains
             {
                 return null;
             }
-        }
-    }
-
-    public class LocalRPCNode : NeoRPC
-    {
-        private int port;
-
-        public LocalRPCNode(int port, string neoscanURL) : base(neoscanURL)
-        {
-            this.port = port;
-        }
-
-        protected override string GetRPCEndpoint()
-        {
-            return $"http://localhost:{port}";
         }
     }
 

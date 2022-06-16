@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk" ToolsVersion="Current">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.15.0" />

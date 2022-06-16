@@ -20,11 +20,16 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     private Nexus _nexus;
     private PhantasmaKeys _owner;
     private NodeRpcClient _rpc;
+    private IEnumerable<Address> _initialValidators;
     private SortedDictionary<int, Transaction>_systemTxs = new SortedDictionary<int, Transaction>();
     private List<Transaction> _broadcastedTxs = new List<Transaction>();
 
     // TODO add logger
-    public ABCIConnector() { Log.Information("ABCI Connector initialized"); }
+    public ABCIConnector(IEnumerable<Address> initialValidators)
+    {
+        _initialValidators = initialValidators;
+        Log.Information("ABCI Connector initialized");
+    }
 
     public void SetNodeInfo(Nexus nexus, string tendermintEndpoint, PhantasmaKeys keys)
     {
@@ -36,6 +41,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     public override Task<ResponseBeginBlock> BeginBlock(RequestBeginBlock request, ServerCallContext context)
     {
+        Log.Information($"Begin block {request.Header.Height}");
         var response = new ResponseBeginBlock();
         try
         {
@@ -47,39 +53,27 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                 {
                     var txString = Base16.Encode(tx.Value.ToByteArray(true));
                     Log.Information($"Broadcast tx {tx}");
-                    _rpc.BroadcastTxSync(txString);
-                    _broadcastedTxs.Add(tx.Value);
+                    var cnt = _broadcastedTxs.Count;
+                    while (true)
+                    {
+                        try
+                        {
+                            _rpc.BroadcastTxSync(txString);
+                            _broadcastedTxs.Add(tx.Value);
+                            break;
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.Message);
+                        }
+                    }
+                    Log.Information($"Broadcast tx {tx} done");
                 }
-                _systemTxs.Clear();
             }
-            var kp = PhantasmaKeys.Generate();
-            Console.WriteLine("TAddress: " + kp.Address.TendermintAddress);
-            Console.WriteLine("TPubBase64: " + Convert.ToBase64String(kp.PublicKey));
-            Console.WriteLine("TPrvBase64: " + Convert.ToBase64String(kp.PrivateKey.Concat(kp.PublicKey).ToArray()));
-            Console.WriteLine("TWIF: " + kp.ToWIF());
-            Console.WriteLine("check " + PhantasmaKeys.FromWIF(kp.ToWIF()));
-
-            //var strii = request.Header.ProposerAddress.ToStringUtf8();
-            ////var address = Address.FromBytes(bytes);
-
-            //Console.WriteLine("validator: " + this._owner.Address); 
-            //Console.WriteLine("tvalidator: " + this._owner.Address.TendermintAddress); 
-            //Console.WriteLine("block val base16: " + base16); 
-            // private base64 w0mmOZ+uL/c210eB/Iq26ZlIkgVDqQUPYPOo8cxjMNkzCafWCkiZiR9oYShDmi450bUybwcBiDggq2mCZvhnKw==
-            Console.WriteLine("node0: " + new PhantasmaKeys(Convert.FromBase64String("9hXo3RT1MmwO+BySGvMlZoOX6mpEZ3fFHfIcG5OgSNKhZ9NyIfVKX8Tc5XswVxNsCfBSrI8TKKot3K299WrZBg==")).ToWIF());
-            Console.WriteLine("node1: " + new PhantasmaKeys(Convert.FromBase64String("1gA+fxcnKN8KUEUZ2DT1E1cDDs9TszA5g+E+DVZqnPQfwoCENyyKI0bTg9NOSGip9+kbJlAvp4c8PBO3dbtKUQ==")).ToWIF());
-            Console.WriteLine("node2: " + new PhantasmaKeys(Convert.FromBase64String("0bxNN0SgWCdcAfP9kJuZsA4ZckobDnrXUpUF2t8EomtdqNI4zpAiSjfRH0V9iol3pBCz9XVFlZq9e3Ca+zdOCw==")).ToWIF());
-            Console.WriteLine("node3: " + new PhantasmaKeys(Convert.FromBase64String("/6avjlC7uF1dTGh/kAEG6yVSvGTgMfSLU4BLhAIKFuqlvNEoV33bjSiK0WAa+cghWYuAMBHia113WWYimJvIsQ==")).ToWIF());
-
-            var node3 = Convert.FromBase64String("B6dzjjiNh6I0aa2gulbD1qv8I/q+IhNGP82yAuzqvZZCSldCbRU6FgYpWg0NQ393Ms9hGDdX+K+/HWjMsvwgiA==");
-            var node3Key = new PhantasmaKeys(node3);
-            //var a = Convert.FromBase64String("+ezHfdCg==");
-            //Console.WriteLine("test: " + xx.Address.TendermintAddress); 
-            //Console.WriteLine("test2: " + xx.ToWIF()); 
-            Console.WriteLine("node3: " + node3Key.ToWIF()); 
+            _systemTxs.Clear();
 
             IEnumerable<Transaction> systemTransactions;
-            systemTransactions = _nexus.RootChain.BeginBlock(request.Header); 
+            systemTransactions = _nexus.RootChain.BeginBlock(request.Header, this._initialValidators); 
 
             if (proposerAddress.Equals(this._owner.Address.TendermintAddress))
             {
@@ -92,6 +86,10 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                     Task.Factory.StartNew(() => _rpc.BroadcastTxSync(txString));
                     idx++;
                 }
+            }
+            else
+            {
+                _systemTxs.Clear();
             }
         }
         catch (Exception e)
@@ -107,7 +105,6 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         // TODO checktx 
         try
         {
-            Log.Debug("CheckTx called");
             (CodeType code, string message) = _nexus.RootChain.CheckTx(request.Tx);
 
             var response = new ResponseCheckTx();
@@ -120,14 +117,13 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         catch (Exception e)
         {
 
-            Log.Information("exception: " + e);
+            Log.Information("CheckTx failed: " + e);
         }
         return Task.FromResult(ResponseHelper.Check.Ok());
     }
     
     public override Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
     {
-        Log.Information("DeliverTx called");
         var result = _nexus.RootChain.DeliverTx(request.Tx);
 
         var bytes = Serialization.Serialize(result.Result);
@@ -136,12 +132,26 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             Code = result.Code,
             Codespace = result.Codespace,
             Data = ByteString.CopyFrom(bytes),
-            //response.Log = ???
-            //response.info = ???
-            //response.GasWanted = ???
-            //response.GasUsed = ???
-            //response.Events = TODO
         };
+
+        var newEvents = new List<Tendermint.Abci.Event>();
+        foreach (var evt in result.Events)
+        {
+            var newEvent = new Tendermint.Abci.Event();
+            var attributes = new EventAttribute[]
+            {
+                new EventAttribute() { Key = "address", Value = evt.Address.ToString() },
+                new EventAttribute() { Key = "contract", Value = evt.Contract },
+                new EventAttribute() { Key = "data", Value = Base16.Encode(evt.Data) },
+            };
+
+            newEvent.Type = evt.Kind.ToString();
+            newEvent.Attributes.AddRange(attributes);
+
+            newEvents.Add(newEvent);
+        }
+
+        response.Events.AddRange(newEvents);
 
         var toDelete = new List<Transaction>();
         foreach (var tx in _broadcastedTxs)
@@ -154,7 +164,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
         foreach (var tx in toDelete)
         {
-            Console.WriteLine("delete " + tx);
+            Log.Information($"Transaction {tx.Hash} has been executed, remove now");
             _broadcastedTxs.Remove(tx);
         }
 
@@ -212,16 +222,13 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         Hash lastBlockHash;
         Block lastBlock = null;
         ResponseInfo response = null;
-        Log.Information("Info called");
         try 
         {
             lastBlockHash = _nexus.RootChain.GetLastBlockHash();
             lastBlock = _nexus.RootChain.GetBlockByHash(lastBlockHash);
-
+            var version = _nexus.GetProtocolVersion(_nexus.RootStorage);
             response = new ResponseInfo() {
-                AppVersion = _nexus.GetProtocolVersion(_nexus.RootStorage),
-                LastBlockAppHash = ByteString.CopyFrom(_nexus.GetProtocolVersion(_nexus.RootStorage).ToString(), Encoding.UTF8) ,
-
+                AppVersion = 0,
                 LastBlockHeight = (lastBlock != null) ? (long)lastBlock.Height : 0,
                 Version = "0.0.1",
             };
@@ -242,7 +249,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         try
         {
             Dictionary<int, Transaction> systemTransactions;
-            systemTransactions = _nexus.CreateGenesisBlock(timestamp, 0, this._owner);
+            systemTransactions = _nexus.CreateGenesisBlock(timestamp, 0, this._owner, this._initialValidators);
 
             var idx = 0;
             foreach (var tx in systemTransactions.OrderByDescending(x => x.Key))

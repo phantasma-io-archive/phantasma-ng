@@ -226,58 +226,6 @@ namespace Phantasma.Business.Contracts
         // returns how many tokens would be obtained by trading from one type of another
         public BigInteger GetRate(string fromSymbol, string toSymbol, BigInteger amount)
         {
-            var swapVersion = GetSwapVersion();
-
-            if (swapVersion >= 3)
-            {
-                return GetRateV3(fromSymbol, toSymbol, amount);
-            }
-            else if (swapVersion == 2)
-            {
-
-                return GetRateV2(fromSymbol, toSymbol, amount);
-            }
-            else 
-            {
-                return GetRateV1(fromSymbol, toSymbol, amount);
-            }
-        }
-
-        private BigInteger GetRateV1(string fromSymbol, string toSymbol, BigInteger amount)
-        {
-            Runtime.Expect(fromSymbol != toSymbol, "invalid pair");
-
-            Runtime.Expect(IsSupportedToken(fromSymbol), "unsupported from symbol");
-            Runtime.Expect(IsSupportedToken(toSymbol), "unsupported to symbol");
-
-            var fromInfo = Runtime.GetToken(fromSymbol);
-            Runtime.Expect(fromInfo.IsFungible(), "must be fungible");
-
-            var toInfo = Runtime.GetToken(toSymbol);
-            Runtime.Expect(toInfo.IsFungible(), "must be fungible");
-
-            var rate = Runtime.GetTokenQuote(fromSymbol, toSymbol, amount);
-
-            var fromPrice = Runtime.GetTokenPrice(fromSymbol);
-            var toPrice = Runtime.GetTokenPrice(toSymbol);
-
-
-            var feeTag = fromPrice > toPrice ? SwapMakerFeePercentTag : SwapTakerFeePercentTag; 
-
-            var feePercent = Runtime.GetGovernanceValue(feeTag);
-            var fee = (rate * feePercent) / 100;
-            rate -= fee;
-
-            if (rate < 0)
-            {
-                rate = 0;
-            }
-
-            return rate;
-        }
-
-        private BigInteger GetRateV2(string fromSymbol, string toSymbol, BigInteger amount)
-        {
             Runtime.Expect(fromSymbol != toSymbol, "invalid pair");
 
             Runtime.Expect(IsSupportedToken(fromSymbol), "unsupported from symbol");
@@ -438,121 +386,12 @@ namespace Phantasma.Business.Contracts
         }
 
         /// <summary>
-        /// Method used to convert a Symbol into KCAL
-        /// </summary>
-        /// <param name="from"></param>
-        /// <param name="fromSymbol"></param>
-        /// <param name="feeAmount"></param>
-        public void SwapFee(Address from, string fromSymbol, BigInteger feeAmount)
-        {
-            var protocol = Runtime.ProtocolVersion;
-
-            var swapVersion = GetSwapVersion();
-
-            if (swapVersion >= 3)
-            {
-                SwapFeeV3(from, fromSymbol, feeAmount);
-            }
-            else
-            if (swapVersion == 2)
-            {
-                SwapFeeV2(from, fromSymbol, feeAmount);
-            }
-            else
-            {
-                SwapFeeV1(from, fromSymbol, feeAmount);
-            }
-        }
-        
-        /// <summary>
-        /// Swap fee old
-        /// </summary>
-        /// <param name="from"></param>
-        /// <param name="fromSymbol"></param>
-        /// <param name="feeAmount"></param>
-        private void SwapFeeV1(Address from, string fromSymbol, BigInteger feeAmount)
-        {
-            var toSymbol = DomainSettings.FuelTokenSymbol;
-            var amount = GetRate(toSymbol, fromSymbol, feeAmount);
-            var token = Runtime.GetToken(fromSymbol);
-            if (token.Decimals == 0 && amount < 1)
-            {
-                amount = 1;
-            }
-            else
-            {
-                Runtime.Expect(amount > 0, $"cannot swap {fromSymbol} as a fee");
-
-                var balance = Runtime.GetBalance(toSymbol, from);
-                amount -= balance;
-            }
-
-            if (amount > 0)
-            {
-                SwapTokens(from, fromSymbol, toSymbol, amount);
-            }
-        }
-        
-        /// <summary>
-        /// Swap fee old
-        /// </summary>
-        /// <param name="from"></param>
-        /// <param name="fromSymbol"></param>
-        /// <param name="feeAmount"></param>
-        private void SwapFeeV2(Address from, string fromSymbol, BigInteger feeAmount)
-        {
-            var feeSymbol = DomainSettings.FuelTokenSymbol;
-            var feeBalance = Runtime.GetBalance(feeSymbol, from);
-            feeAmount -= feeBalance;
-            if (feeAmount <= 0)
-            {
-                return;
-            }
-
-            var amountInOtherSymbol = GetRate(feeSymbol, fromSymbol, feeAmount);
-
-            var token = Runtime.GetToken(fromSymbol);
-            BigInteger minAmount;
-
-            // different tokens have different decimals, so we need to make sure a certain minimum amount is swapped
-            if (token.Decimals == 0)
-            {
-                minAmount = 1;
-            }
-            else
-            {
-                var diff = DomainSettings.FuelTokenDecimals - token.Decimals;
-                if (diff > 0)
-                {
-                    minAmount = BigInteger.Pow(10, diff);
-                }
-                else
-                {
-                    minAmount = 1;
-                }
-            }
-
-            if (amountInOtherSymbol < minAmount)
-            {
-                amountInOtherSymbol = minAmount;
-            }
-
-            // round up
-            amountInOtherSymbol++;
-
-            SwapTokens(from, fromSymbol, feeSymbol, amountInOtherSymbol);
-
-            var finalFeeBalance = Runtime.GetBalance(feeSymbol, from);
-            Runtime.Expect(finalFeeBalance >= feeAmount, $"something went wrong in swapfee finalFeeBalance: {finalFeeBalance} feeAmount: {feeAmount}");
-        }
-        
-        /// <summary>
         /// Swap Fee -> Method used to convert a Symbol into KCAL, Using Pools
         /// </summary>
         /// <param name="from"></param>
         /// <param name="fromSymbol"></param>
         /// <param name="feeAmount"></param>
-        private void SwapFeeV3(Address from, string fromSymbol, BigInteger feeAmount)
+        private void SwapFee(Address from, string fromSymbol, BigInteger feeAmount)
         {
             Runtime.Expect(_DEXversion >= 1, "call migrateV3 first");
             var feeSymbol = DomainSettings.FuelTokenSymbol;
@@ -834,7 +673,7 @@ namespace Phantasma.Business.Contracts
             }
 
             // sort tokens by estimated SOUL value, from low to high
-            var sortedTokens = tokens.Select(x => new KeyValuePair<string, BigInteger>(x.Key, GetRateV2(x.Key, DomainSettings.StakingTokenSymbol, x.Value)))
+            var sortedTokens = tokens.Select(x => new KeyValuePair<string, BigInteger>(x.Key, GetRate(x.Key, DomainSettings.StakingTokenSymbol, x.Value)))
                 .OrderBy(x => x.Value)
                 .Select(x => x.Key)
                 .ToArray();

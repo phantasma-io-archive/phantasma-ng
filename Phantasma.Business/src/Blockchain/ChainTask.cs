@@ -4,7 +4,7 @@ using Phantasma.Core;
 
 namespace Phantasma.Business
 {
-    public class ChainTask: ITask
+    public class ChainTask: IChainTask
     {
         public readonly static ChainTask Null = null;
 

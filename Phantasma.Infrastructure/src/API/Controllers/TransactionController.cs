@@ -1,12 +1,11 @@
-using System;
-using System.Linq;
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core;
 using Phantasma.Business;
-using Serilog;
 using Phantasma.Core.Context;
 using Phantasma.Shared.Types;
+using System.Linq;
+using System;
+using System.Collections.Generic;
 
 namespace Phantasma.Infrastructure.Controllers
 {
@@ -167,7 +166,30 @@ namespace Phantasma.Infrastructure.Controllers
         [HttpGet("SendRawTransaction")]
         public string SendRawTransaction([APIParameter("Serialized transaction bytes, in hexadecimal format", "0000000000")] string txData)
         {
-            return "";
+            byte[] bytes;
+            try
+            {
+                bytes = Base16.Decode(txData);
+            }
+            catch
+            {
+                return Hash.Null.ToString();
+            }
+            
+            if (bytes.Length == 0)
+            {
+                return Hash.Null.ToString();
+            }
+            
+            // TODO store deserialized tx to save some time later on
+            var tx = Transaction.Unserialize(bytes);
+            if (tx == null)
+            {
+                return Hash.Null.ToString();
+            }
+
+            var res = NexusAPI.TRPC.BroadcastTxSync(txData);
+            return tx.Hash.ToString();
         }
 
         [APIInfo(typeof(ScriptResult), "Allows to invoke script based on network state, without state changes.", false, 5, true)]

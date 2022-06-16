@@ -102,7 +102,7 @@ namespace Phantasma.Business
             throw new VMException(this, "unknown interop: " + method);
         }
 
-        public override ExecutionContext LoadContext(string contextName)
+        public override Phantasma.Core.ExecutionContext LoadContext(string contextName)
         {
             throw new NotImplementedException();
         }

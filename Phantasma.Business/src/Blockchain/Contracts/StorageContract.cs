@@ -271,35 +271,27 @@ namespace Phantasma.Business.Contracts
                 deleteSize = oldData.Length;
             }
 
-            if (Runtime.ProtocolVersion >= 4)
+            var writeSize = value.Length;
+            if (writeSize > deleteSize)
             {
-                var writeSize = value.Length;
-                if (writeSize > deleteSize)
-                {
-                    var diff = writeSize - deleteSize;
-                    var availableSize = GetAvailableSpace(target);
-                    Runtime.Expect(availableSize >= diff, $"not enough storage space available: requires " + diff + ", only have: " + availableSize);
-                }
-
-                Runtime.Storage.Put(key, value);
-
-                usedQuota -= deleteSize;
-                usedQuota += writeSize;
-
-                if (usedQuota <= 0)
-                {
-                    usedQuota = writeSize; // fix for data written in previous protocol
-                }
-
-                _dataQuotas.Set<Address, BigInteger>(target, usedQuota);
-
-                _dataQuotas.Set<Address, BigInteger>(target, usedQuota);
-            }
-            else
-            {
-                Runtime.Storage.Put(key, value);
+                var diff = writeSize - deleteSize;
+                var availableSize = GetAvailableSpace(target);
+                Runtime.Expect(availableSize >= diff, $"not enough storage space available: requires " + diff + ", only have: " + availableSize);
             }
 
+            Runtime.Storage.Put(key, value);
+
+            usedQuota -= deleteSize;
+            usedQuota += writeSize;
+
+            if (usedQuota <= 0)
+            {
+                usedQuota = writeSize; // fix for data written in previous protocol
+            }
+
+            _dataQuotas.Set<Address, BigInteger>(target, usedQuota);
+
+            _dataQuotas.Set<Address, BigInteger>(target, usedQuota);
 
             var temp = Runtime.Storage.Get(key);
             Runtime.Expect(temp.Length == value.Length, "storage write corruption");
@@ -316,18 +308,15 @@ namespace Phantasma.Business.Contracts
 
             Runtime.Storage.Delete(key);
 
-            if (Runtime.ProtocolVersion >= 4)
+            var usedQuota = _dataQuotas.Get<Address, BigInteger>(target);
+            usedQuota -= deleteSize;
+
+            if (usedQuota < 0)
             {
-                var usedQuota = _dataQuotas.Get<Address, BigInteger>(target);
-                usedQuota -= deleteSize;
-
-                if (usedQuota < 0)
-                {
-                    usedQuota = 0;
-                }
-
-                _dataQuotas.Set<Address, BigInteger>(target, usedQuota);
+                usedQuota = 0;
             }
+
+            _dataQuotas.Set<Address, BigInteger>(target, usedQuota);
         }
 
         public static BigInteger CalculateRequiredSize(string fileName, BigInteger contentSize) => contentSize + Hash.Length + fileName.Length;

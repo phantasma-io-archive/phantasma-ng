@@ -222,12 +222,12 @@ namespace Phantasma.Node.Interop
                 var _interopBlockHeight = BigInteger.Parse(OracleReader.GetCurrentHeight("neo", "neo"));
 
                 var nextCurrentBlockHeight = _interopBlockHeight + batchCount;
-                
+
                 for (var i = _interopBlockHeight; i < nextCurrentBlockHeight; i++)
                 {
                     var url = DomainExtensions.GetOracleBlockURL(
                             "neo", "neo", i);
-                
+
                     taskList.Add(CreateTask(url));
                 }
             }
@@ -423,7 +423,7 @@ namespace Phantasma.Node.Interop
 
             if (witness == null)
             {
-                // tx has no witness 
+                // tx has no witness
                 return emptyTx;
             }
 
@@ -551,7 +551,7 @@ namespace Phantasma.Node.Interop
                     }
                     else
                     {
-                        
+
                         var assetString = new UInt160(disasmEntry.data).ToString();
                         if (string.IsNullOrEmpty(assetString) || FindSymbolFromAsset(assetString) == null)
                         {
@@ -719,7 +719,7 @@ namespace Phantasma.Node.Interop
                         catch (Exception e)
                         {
                             // If we can't check mempool, we are unable to verify if the tx has gone through or not,
-                            // therefore we have to wait until we are able to check this nodes mempool again, or find 
+                            // therefore we have to wait until we are able to check this nodes mempool again, or find
                             // the tx in a block in the next round.
                             Log.Error("Exception during mempool check: " + e);
                             return Hash.Null;
@@ -785,7 +785,7 @@ namespace Phantasma.Node.Interop
 
             var nonce = sourceHash.ToByteArray();
 
-            Transaction tx = null;
+            NeoTx tx = null;
             string usedRpc = null;
             try
             {

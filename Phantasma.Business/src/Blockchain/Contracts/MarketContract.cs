@@ -395,7 +395,6 @@ namespace Phantasma.Business.Contracts
 
             if (auction.Creator == from)
             {
-                Runtime.Expect(Runtime.ProtocolVersion < 5, "seller and buyer are the same, use CancelSale instead");
                 CancelSale(symbol, tokenID);
                 return;
             }
@@ -481,25 +480,22 @@ namespace Phantasma.Business.Contracts
                 }
 
                 // handle royalties
-                if (Runtime.ProtocolVersion >= 4)
+                var nftSymbol = auction.BaseSymbol;
+                var nftData = Runtime.ReadToken(nftSymbol, tokenID);
+                var series = Runtime.GetTokenSeries(nftSymbol, nftData.SeriesID);
+
+                var royaltyProperty = new ContractMethod("getRoyalties", VMType.Number, -1);
+
+                if (series.ABI.Implements(royaltyProperty))
                 {
-                    var nftSymbol = auction.BaseSymbol;
-                    var nftData = Runtime.ReadToken(nftSymbol, tokenID);
-                    var series = Runtime.GetTokenSeries(nftSymbol, nftData.SeriesID);
-
-                    var royaltyProperty = new ContractMethod("getRoyalties", VMType.Number, -1);
-
-                    if (series.ABI.Implements(royaltyProperty))
+                    var nftRoyalty = Runtime.CallNFT(nftSymbol, nftData.SeriesID, royaltyProperty, tokenID).AsNumber();
+                    if (nftRoyalty > 50)
                     {
-                        var nftRoyalty = Runtime.CallNFT(nftSymbol, nftData.SeriesID, royaltyProperty, tokenID).AsNumber();
-                        if (nftRoyalty > 50)
-                        {
-                            nftRoyalty = 50; // we don't allow more than 50% royalties fee
-                        }
-                        var royaltyFee = finalAmount * nftRoyalty / 100;
-                        Runtime.TransferTokens(quoteToken.Symbol, this.Address, nftData.Creator, royaltyFee);
-                        finalAmount -= royaltyFee;
+                        nftRoyalty = 50; // we don't allow more than 50% royalties fee
                     }
+                    var royaltyFee = finalAmount * nftRoyalty / 100;
+                    Runtime.TransferTokens(quoteToken.Symbol, this.Address, nftData.Creator, royaltyFee);
+                    finalAmount -= royaltyFee;
                 }
 
                 // transfer sale amount

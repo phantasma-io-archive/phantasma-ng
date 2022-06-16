@@ -115,7 +115,6 @@ namespace Phantasma.Node
 
         private Settings(string[] args, IConfigurationSection section)
         {
-            Console.WriteLine("args: " + string.Join(" ", args));
             new CliArgumets(args);
 
             var levelSwitchConsole = new LoggingLevelSwitch
@@ -257,7 +256,7 @@ namespace Phantasma.Node
         public bool HasArchive { get; }
         public bool HasRpc { get; }
         public int RpcPort { get; } = 7077;
-        public List<string> Seeds { get; }
+        public List<Address> SeedValidators { get; }
 
         public bool HasRest { get; }
         public int RestPort { get; } = 7078;
@@ -273,22 +272,33 @@ namespace Phantasma.Node
         public uint SenderThreads { get; } = 8;
         public uint SenderAddressCount { get; } = 100;
 
-        public int BlockTime { get; } = Mempool.MinimumBlockTime;
+        public int BlockTime { get; } = 0;
         public int MinimumFee { get; } = 100000;
         public int MinimumPow { get; } = 0;
 
         public bool WebLogs { get; }
 
+        public string TendermintProxyHost { get; }
         public int TendermintProxyPort { get; }
+
+        public string TendermintRPCHost { get; }
+        public int TendermintRPCPort { get; }
+
+        public string TendermintKey { get; }
 
         public NodeSettings(IConfigurationSection section)
         {
             this.WebLogs = section.GetValueEx<bool>("web.logs");
-            this.TendermintProxyPort = section.GetValue<Int32>("tendermint.proxy");
-            Console.WriteLine("ttttttt" + this.TendermintProxyPort);
+
+            this.TendermintRPCPort = section.GetValueEx<Int32>("tendermint.rpc.port");
+            this.TendermintRPCHost = section.GetString("tendermint.rpc.host");
+
+            this.TendermintProxyPort = section.GetValueEx<Int32>("tendermint.proxy.port");
+            this.TendermintProxyHost = section.GetString("tendermint.proxy.host");
+
+            this.TendermintKey = section.GetString("tendermint.key");
 
             this.BlockTime = section.GetValueEx<Int32>("block.time");
-            Console.WriteLine("bbbbbttttttt" + this.BlockTime);
             this.MinimumFee = section.GetValueEx<Int32>("minimum.fee");
             this.MinimumPow = section.GetValueEx<Int32>("minimum.pow");
 
@@ -305,9 +315,9 @@ namespace Phantasma.Node
                 this.ApiProxyUrl = null;
             }
 
-            this.Seeds = section.GetSection("seeds").AsEnumerable()
+            this.SeedValidators = section.GetSection("seed.validators").AsEnumerable()
                 .Where(p => p.Value != null)
-                .Select(p => p.Value)
+                .Select(p => Address.FromText(p.Value))
                 .ToList();
 
             this.Mode = section.GetValueEx<NodeMode>("node.mode", NodeMode.Invalid);
@@ -378,7 +388,7 @@ namespace Phantasma.Node
             }
 
             var backend = section.GetString("storage.backend");
-            
+
             if (!Enum.TryParse<StorageBackendType>(backend, true, out this.StorageBackend))
             {
                 throw new Exception("Unknown storage backend: " + backend);
@@ -430,7 +440,7 @@ namespace Phantasma.Node
         public uint EthConfirmations { get; }
         public uint EthGasLimit { get; }
         public bool NeoQuickSync { get; } = true;
-        
+
         public OracleSettings(IConfigurationSection section)
         {
             this.NeoscanUrl = section.GetString("neoscan.api");

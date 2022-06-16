@@ -7,9 +7,9 @@ using Phantasma.Shared;
 using Phantasma.Shared.Types;
 using System;
 
-namespace Phantasma.Business
+namespace Phantasma.Core
 {
-    public sealed class Block : IBlock, ISerializable
+    public sealed class Block : ISerializable
     {
         public Address ChainAddress { get; private set; }
 
@@ -33,7 +33,7 @@ namespace Phantasma.Business
             }
         }
 
-        private List<Hash> _transactionHashes;
+        private List<Hash> _transactionHashes = new List<Hash>();
         public Hash[] TransactionHashes => _transactionHashes.ToArray();
         public int TransactionCount => _transactionHashes.Count;
 
@@ -45,7 +45,7 @@ namespace Phantasma.Business
 
         // stores the results of oracles
         public List<OracleEntry> _oracleData = new List<OracleEntry>();
-        public IOracleEntry[] OracleData => _oracleData.Select(x => (IOracleEntry)x).ToArray();
+        public OracleEntry[] OracleData => _oracleData.Select(x => (OracleEntry)x).ToArray();
 
         public Address Validator { get; private set; }
         public Signature Signature { get; private set; }
@@ -74,8 +74,6 @@ namespace Phantasma.Business
             this.Height = height;
             this.PreviousHash = previousHash;
 
-            _transactionHashes = new List<Hash>();
-
             this.Payload = payload;
             this.Validator = validator;
             this.Signature = null;
@@ -97,7 +95,7 @@ namespace Phantasma.Business
             _transactionHashes.AddRange(hashes);
             this._dirty = true;
         }
-        
+
         public void AddTransactionHash(Hash hash)
         {
             _transactionHashes.Add(hash);
@@ -275,7 +273,7 @@ namespace Phantasma.Business
             return block;
         }
 
-        internal void SetResultForHash(Hash hash, byte[] result)
+        public void SetResultForHash(Hash hash, byte[] result)
         {
             Throw.IfNull(result, nameof(result));
             Throw.If(result.Length > 32 * 1024, "transaction result is too large");
@@ -340,7 +338,6 @@ namespace Phantasma.Business
                 oracleCount--;
             }
 
-
             try
             {
                 var evtCount = (int)reader.ReadVarInt();
@@ -394,7 +391,7 @@ namespace Phantasma.Business
             }
         }
 
-        internal void MergeOracle(OracleReader oracle)
+        internal void MergeOracle(IOracleReader oracle)
         {
             if (oracle.Entries.Any())
             {

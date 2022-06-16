@@ -12,8 +12,8 @@ namespace Phantasma.Core
 
     public interface IFeed
     {
-        string Name { get;  }
-        Address Address { get;  }
-        FeedMode Mode { get;  }
+        public string Name { get;  }
+        public Address Address { get;  }
+        public FeedMode Mode { get;  }
     }
 }

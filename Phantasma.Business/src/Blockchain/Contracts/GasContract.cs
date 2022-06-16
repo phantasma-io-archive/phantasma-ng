@@ -140,14 +140,7 @@ namespace Phantasma.Business.Contracts
 
                 BigInteger stakeAmount;
 
-                if (Runtime.ProtocolVersion > 5)
-                {
-                    stakeAmount = UnitConversion.ToBigInteger(2, DomainSettings.StakingTokenDecimals);
-                }
-                else
-                {
-                    stakeAmount = UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals);
-                }
+                stakeAmount = UnitConversion.ToBigInteger(2, DomainSettings.StakingTokenDecimals);
 
                 Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, this.Address, rewardAmount);
 
@@ -225,79 +218,6 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(_allowanceMap.ContainsKey(from), "no gas allowance found");
 
-            if (Runtime.ProtocolVersion >= 3)
-            {
-                SpendGasV2(from);
-            }
-            else
-            {
-                SpendGasV1(from);
-            }
-
-        }
-
-        private void SpendGasV1(Address from)
-        {
-            var availableAmount = _allowanceMap.Get<Address, BigInteger>(from);
-
-            var spentGas = Runtime.UsedGas;
-            var requiredAmount = spentGas * Runtime.GasPrice;
-            Runtime.Expect(requiredAmount > 0, "gas fee must exist");
-
-            Runtime.Expect(availableAmount >= requiredAmount, "gas allowance is not enough");
-
-            var targetAddress = _allowanceTargets.Get<Address, Address>(from);
-            BigInteger targetGas;
-
-            Runtime.Notify(EventKind.GasPayment, from, new GasEventData(targetAddress,  Runtime.GasPrice, spentGas));
-
-            // return escrowed gas to transaction creator
-            Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, this.Address, from, availableAmount);
-
-            Runtime.Expect(spentGas > 1, "gas spent too low");
-            var burnGas = spentGas / 2;
-
-            if (burnGas > 0)
-            {
-                Runtime.BurnTokens(DomainSettings.FuelTokenSymbol, from, burnGas);
-                spentGas -= burnGas;
-            }
-
-            targetGas = spentGas / 2; // 50% for dapps (or reward accum if dapp not specified)
-
-            if (targetGas > 0)
-            {
-                var targetPayment = targetGas * Runtime.GasPrice;
-
-                if (targetAddress == Runtime.Chain.Address)
-                {
-                    _rewardAccum += targetPayment;
-                    Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, from, this.Address, targetPayment);
-                    Runtime.Notify(EventKind.CrownRewards, from, new TokenEventData(DomainSettings.FuelTokenSymbol, targetPayment, Runtime.Chain.Name));
-                }
-                else
-                {
-                    Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, from, targetAddress, targetPayment);
-                }
-                spentGas -= targetGas;
-            }
-
-            if (spentGas > 0)
-            {
-                var validatorPayment = spentGas * Runtime.GasPrice;
-                var validatorAddress = SmartContract.GetAddressForNative(NativeContractKind.Block);
-                Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, from, validatorAddress, validatorPayment);
-                spentGas = 0;
-            }
-
-            _allowanceMap.Remove(from);
-            _allowanceTargets.Remove(from);
-
-            CheckInflation();
-        }
-
-        private void SpendGasV2(Address from)
-        {
             var availableAmount = _allowanceMap.Get<Address, BigInteger>(from);
 
             var spentGas = Runtime.UsedGas;
@@ -326,14 +246,7 @@ namespace Phantasma.Business.Contracts
             {
                 BigInteger burnAmount;
                 
-                if (Runtime.ProtocolVersion >= 4)
-                {
-                    burnAmount = burnGas * Runtime.GasPrice;
-                }
-                else
-                {
-                    burnAmount = burnGas;
-                }
+                burnAmount = burnGas * Runtime.GasPrice;
 
                 Runtime.BurnTokens(DomainSettings.FuelTokenSymbol, this.Address, burnAmount);
                 spentGas -= burnGas;
