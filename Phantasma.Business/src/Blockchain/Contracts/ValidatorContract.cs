@@ -132,7 +132,6 @@ namespace Phantasma.Business.Contracts
             }
 
             var max = GetMaxPrimaryValidators();
-            System.Console.WriteLine("maxxxx: " + max);
             var count = 0;
             for (int i = 0; i < max; i++)
             {
@@ -177,7 +176,6 @@ namespace Phantasma.Business.Contracts
         // NOTE - witness not required, as anyone should be able to call this, permission is granted based on consensus
         public void SetValidator(Address target, BigInteger index, ValidatorType type)
         {
-            System.Console.WriteLine($"set validator {target} {index}");
             Runtime.Expect(target.IsUser, "must be user address");
             Runtime.Expect(type == ValidatorType.Primary || type == ValidatorType.Secondary, "invalid validator type");
 

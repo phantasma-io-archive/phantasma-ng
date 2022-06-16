@@ -115,7 +115,6 @@ namespace Phantasma.Node
 
         private Settings(string[] args, IConfigurationSection section)
         {
-            Console.WriteLine("args: " + string.Join(" ", args));
             new CliArgumets(args);
 
             var levelSwitchConsole = new LoggingLevelSwitch

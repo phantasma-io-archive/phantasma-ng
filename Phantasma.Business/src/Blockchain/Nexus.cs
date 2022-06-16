@@ -1224,14 +1224,11 @@ public class Nexus : INexus
         bytes = CompressionUtils.Decompress(bytes);
 
         var content = Serialization.Unserialize<TokenContent>(bytes);
-        Console.WriteLine("read nft raw");
-        Console.WriteLine("ram: " + string.Join("", content.RAM));
         return content;
     }
 
     private TokenContent ReadNFT(StorageContext storage, string symbol, BigInteger tokenID, uint ProtocolVersion)
     {
-        Console.WriteLine("read nft");
         var tokenKey = GetKeyForNFT(symbol, tokenID);
 
         Throw.If(!storage.Has(tokenKey), $"nft {symbol} {tokenID} does not exist");

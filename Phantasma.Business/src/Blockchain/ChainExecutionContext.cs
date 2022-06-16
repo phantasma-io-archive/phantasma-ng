@@ -149,7 +149,6 @@ namespace Phantasma.Business
             if (method.returnType != VMType.None)
             {
                 var obj = VMObject.FromObject(result);
-                Console.WriteLine("internal call: " + obj);
                 stack.Push(obj);
             }
 

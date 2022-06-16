@@ -518,12 +518,6 @@ namespace Phantasma.Core
 
         public VMObject SetValue(byte[] val, VMType type)
         {
-            Console.WriteLine($"set value {type} " + string.Join("", val));
-            //if (type == VMType.Bytes)
-            //{
-            //    System.Diagnostics.StackTrace stackTrace = new System.Diagnostics.StackTrace();
-            //    Console.WriteLine(stackTrace);
-            //}
             this.Type = type;
             this._localSize = val != null ? val.Length : 0;
 
@@ -1105,7 +1099,6 @@ namespace Phantasma.Core
 
             var result = new VMObject();
 
-            Console.WriteLine($"FromObject: {type} : " + obj);
             switch (type)
             {
                 case VMType.Bool: result.SetValue((bool)obj); break;

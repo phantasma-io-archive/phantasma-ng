@@ -83,7 +83,6 @@ namespace Phantasma.Node
             Version = Assembly.GetAssembly(typeof(Node)).GetVersion();
 
             _nodeKeys = SetupNodeKeys();
-            Console.WriteLine("keys: " + _nodeKeys);
 
             if (!SetupNexus())
             {
@@ -92,7 +91,6 @@ namespace Phantasma.Node
             }
 
             var rpcUrl = Settings.Default.Node.TendermintRPCHost+ ":" + Settings.Default.Node.TendermintRPCPort;
-            Console.WriteLine("rpc: " + rpcUrl);
 
             this.ABCIConnector.SetNodeInfo(NexusAPI.Nexus, rpcUrl, _nodeKeys);
 

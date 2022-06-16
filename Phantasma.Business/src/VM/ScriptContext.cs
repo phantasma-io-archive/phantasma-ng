@@ -212,7 +212,6 @@ namespace Phantasma.Business
 
                             var temp = new VMObject();
                             temp.Copy(val);
-                            Console.WriteLine($"!!! PUSH reg {src} : {temp}");
                             stack.Push(temp);
                             break;
                         }
@@ -272,17 +271,7 @@ namespace Phantasma.Business
 
                             var method = frame.Registers[src].AsString();
                             
-                            Console.WriteLine($"extacll {method} start stack count: {frame.VM.Stack.Count}");
-                            foreach (var a in frame.VM.Stack)
-                            {
-                                Console.WriteLine($"!!!!!!!!!!!!!!!!!!!!!!!!!! entry before: {a}");
-                            }
                             var state = frame.VM.ExecuteInterop(method);
-                            foreach (var a in frame.VM.Stack)
-                            {
-                                Console.WriteLine($"!!!!!!!!!!!!!!!!!!!!!!!!!! entry: {a}");
-                            }
-                            Console.WriteLine($"extacll {method} done");
                             if (state != ExecutionState.Running)
                             {
                                 throw new VMException(frame.VM, "VM extcall failed: " + method);
@@ -1004,7 +993,7 @@ namespace Phantasma.Business
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Exception during execution in vm: " + ex);
+                //Console.WriteLine("Exception during execution in vm: " + ex);
                 ex = ex.ExpandInnerExceptions();
 
                 Trace.WriteLine(ex.ToString());

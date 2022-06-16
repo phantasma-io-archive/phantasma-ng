@@ -102,8 +102,6 @@ namespace Phantasma.Business
             {
                 foreach (var address in initialValidators)
                 {
-                    Console.WriteLine(address.TendermintAddress);
-                    Console.WriteLine(this.CurrentProposer);
                     if (address.TendermintAddress == this.CurrentProposer)
                     {
                         validatorAddress = address;
@@ -194,7 +192,7 @@ namespace Phantasma.Business
             var txString = serializedTx.ToStringUtf8();
             var tx = Transaction.Unserialize(Base16.Decode(txString));
 
-            Log.Information($"deliver tx {tx}");
+            Log.Information($"Deliver tx {tx}");
             try
             {
                 CurrentTransactions.Add(tx);
@@ -218,7 +216,7 @@ namespace Phantasma.Business
             }
             catch (Exception e)
             {
-                Console.WriteLine("exception " + e);
+                Log.Error("exception " + e);
                 // log original exception, throwing it again kills the call stack!
                 Log.Error("Exception was thrown while processing {0} error: {1}", result.Hash, e.Message);
                 this.CurrentTransactions.Remove(tx);
@@ -232,7 +230,6 @@ namespace Phantasma.Business
 
         public IEnumerable<TValidatorUpdate> EndBlock()
         {
-
             // TODO return block events
             // TODO validator update
             return new List<TValidatorUpdate>();
@@ -243,9 +240,7 @@ namespace Phantasma.Business
             Block lastBlock = null;
             try
             {
-                Console.WriteLine("before block hashes: " + this.CurrentBlock.TransactionHashes.Length);
                 AddBlock(this.CurrentBlock, this.CurrentTransactions, 0, this.CurrentChangeSet);
-                Console.WriteLine("block hashes: " + this.CurrentBlock.TransactionHashes.Length);
                 lastBlock = this.CurrentBlock;
                 this.CurrentBlock = null;
                 this.CurrentTransactions.Clear();
@@ -253,7 +248,7 @@ namespace Phantasma.Business
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Log.Error("Error during commit: " + e);
             }
 
             return lastBlock.Hash.ToByteArray();
@@ -323,12 +318,10 @@ namespace Phantasma.Business
             using (var m = new ProfileMarker("Compress"))
             {
                 var blockMap = new StorageMap(BlockHashMapTag, this.Storage);
-                Console.WriteLine("before: " + block.TransactionCount);
 
                 var blockBytes = block.ToByteArray(true);
 
                 var blk = Block.Unserialize(blockBytes);
-                Console.WriteLine("unserialized: " + blk.TransactionCount);
                 blockBytes = CompressionUtils.Compress(blockBytes);
                 blockMap.Set<Hash, byte[]>(block.Hash, blockBytes);
 
@@ -782,7 +775,6 @@ namespace Phantasma.Business
         #region FEES
         public BigInteger GetBlockReward(Block block)
         {
-            Console.WriteLine(block.Height + " txcnt: " + block.TransactionCount);
             if (block.TransactionCount == 0)
             {
                 return 0;

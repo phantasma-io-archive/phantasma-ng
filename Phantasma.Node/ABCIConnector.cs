@@ -41,7 +41,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     public override Task<ResponseBeginBlock> BeginBlock(RequestBeginBlock request, ServerCallContext context)
     {
-        Console.WriteLine("Begin block called!");
+        Log.Information($"Begin block {request.Header.Height}");
         var response = new ResponseBeginBlock();
         try
         {
@@ -53,8 +53,21 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                 {
                     var txString = Base16.Encode(tx.Value.ToByteArray(true));
                     Log.Information($"Broadcast tx {tx}");
-                    _rpc.BroadcastTxSync(txString);
-                    _broadcastedTxs.Add(tx.Value);
+                    var cnt = _broadcastedTxs.Count;
+                    while (true)
+                    {
+                        try
+                        {
+                            _rpc.BroadcastTxSync(txString);
+                            _broadcastedTxs.Add(tx.Value);
+                            break;
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.Message);
+                        }
+                    }
+                    Log.Information($"Broadcast tx {tx} done");
                 }
             }
             _systemTxs.Clear();
@@ -92,8 +105,6 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         // TODO checktx 
         try
         {
-            Log.Debug("CheckTx called");
-            Console.WriteLine("CheckTx called");
             (CodeType code, string message) = _nexus.RootChain.CheckTx(request.Tx);
 
             var response = new ResponseCheckTx();
@@ -106,14 +117,13 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         catch (Exception e)
         {
 
-            Log.Information("exception: " + e);
+            Log.Information("CheckTx failed: " + e);
         }
         return Task.FromResult(ResponseHelper.Check.Ok());
     }
     
     public override Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
     {
-        Log.Information("DeliverTx called");
         var result = _nexus.RootChain.DeliverTx(request.Tx);
 
         var bytes = Serialization.Serialize(result.Result);
@@ -154,7 +164,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
         foreach (var tx in toDelete)
         {
-            Console.WriteLine("delete " + tx);
+            Log.Information($"Transaction {tx.Hash} has been executed, remove now");
             _broadcastedTxs.Remove(tx);
         }
 
@@ -212,13 +222,10 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         Hash lastBlockHash;
         Block lastBlock = null;
         ResponseInfo response = null;
-        Log.Information("Info called");
         try 
         {
-            Console.WriteLine("before last block hash");
             lastBlockHash = _nexus.RootChain.GetLastBlockHash();
             lastBlock = _nexus.RootChain.GetBlockByHash(lastBlockHash);
-            Console.WriteLine("after last block hash");
             var version = _nexus.GetProtocolVersion(_nexus.RootStorage);
             response = new ResponseInfo() {
                 AppVersion = 0,
@@ -231,14 +238,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             Log.Information("Error getting info " + e);
         }
 
-        Console.WriteLine("info done");
-
         return Task.FromResult(response);
     }
 
     public override Task<ResponseInitChain> InitChain(RequestInitChain request, ServerCallContext context)
     {
-        Console.WriteLine("start init");
         var response = new ResponseInitChain();
         var timestamp = new Timestamp((uint) request.Time.Seconds);
 
@@ -262,7 +266,6 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
         var appHash = Encoding.UTF8.GetBytes("A Phantasma was born...");
         response.AppHash = ByteString.CopyFrom(appHash);
-        Console.WriteLine("done init");
         return Task.FromResult( response );
     }
 

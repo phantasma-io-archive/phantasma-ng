@@ -216,7 +216,6 @@ namespace Phantasma.Business
             for (int i = args.Length - 1; i >= 0; i--)
             {
                 var obj = VMObject.FromObject(args[i]);
-                Console.WriteLine("push arg: " + obj);
                 this.Stack.Push(obj);
             }
         }
