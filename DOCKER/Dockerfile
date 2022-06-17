@@ -7,7 +7,7 @@ COPY DOCKER/testnet ./testnet
 COPY DOCKER/bin ./testnet
 
 RUN apt-get update; apt-get install -y libc6-dev \ 
-    libsnappy-dev libicu-dev screen bash vim net-tools ca-certificates openssl openssl-devel
+    libsnappy-dev libicu-dev screen bash vim net-tools ca-certificates openssl libssl-dev
 
 EXPOSE 5101 5102 5103 5104
 
