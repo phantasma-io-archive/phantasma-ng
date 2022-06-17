@@ -10,16 +10,17 @@ namespace Phantasma.Infrastructure.Controllers
         [APIInfo(typeof(int), "Returns the height of a chain.", false, 3)]
         [APIFailCase("chain is invalid", "4533")]
         [HttpGet("GetBlockHeight")]
-        public BigInteger GetBlockHeight([APIParameter("Address or name of chain", "root")] string chainInput)
+        public string GetBlockHeight([APIParameter("Address or name of chain", "root")] string chainInput)
         {
             var chain = NexusAPI.FindChainByInput(chainInput);
 
             if (chain == null)
             {
-                throw new APIException("invalid chain");
+                //throw new APIException("invalid chain");
+                return "invalid chain";
             }
 
-            return chain.Height;
+            return chain.Height.ToString();
         }
 
         [APIInfo(typeof(int), "Returns the number of transactions of given block hash or error if given hash is invalid or is not found.", false, -1)]
