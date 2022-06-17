@@ -12,7 +12,10 @@ namespace Phantasma.Node.Oracles
                 Decimal cGeckoPrice = 0;
                 Decimal cComparePrice = 0;
 
-                cComparePrice = CryptoCompareUtils.GetCoinRate(baseSymbol, quoteSymbol, cryptoCompApiKey, supportedTokens);
+                if (string.IsNullOrEmpty(cryptoCompApiKey))
+                {
+                    cComparePrice = CryptoCompareUtils.GetCoinRate(baseSymbol, quoteSymbol, cryptoCompApiKey, supportedTokens);
+                }
 
                 if (cgEnabled)
                 {

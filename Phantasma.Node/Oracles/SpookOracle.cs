@@ -199,20 +199,14 @@ namespace Phantasma.Node.Oracles
             var pricerCGEnabled = Settings.Default.Oracle.PricerCoinGeckoEnabled;
             var pricerSupportedTokens = Settings.Default.Oracle.PricerSupportedTokens.ToArray();
 
-            if (!string.IsNullOrEmpty(apiKey))
+            if (symbol == DomainSettings.FuelTokenSymbol)
             {
-                if (symbol == DomainSettings.FuelTokenSymbol)
-                {
-                    var result = PullPrice(time, DomainSettings.StakingTokenSymbol);
-                    return result / 5;
-                }
-
-                //var price = CryptoCompareUtils.GetCoinRate(symbol, DomainSettings.FiatTokenSymbol, apiKey);
-                var price = Pricer.GetCoinRate(symbol, DomainSettings.FiatTokenSymbol, apiKey, pricerCGEnabled, pricerSupportedTokens);
-                return price;
+                var result = PullPrice(time, DomainSettings.StakingTokenSymbol);
+                return result / 5;
             }
 
-            throw new OracleException("No support for oracle prices in this node");
+            var price = Pricer.GetCoinRate(symbol, DomainSettings.FiatTokenSymbol, apiKey, pricerCGEnabled, pricerSupportedTokens);
+            return price;
         }
 
         protected override InteropBlock PullPlatformBlock(string platformName, string chainName, Hash hash, BigInteger height = new BigInteger())
