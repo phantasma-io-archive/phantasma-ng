@@ -164,6 +164,7 @@ public class Startup
         app.UseAuthorization();
         app.UseMiddleware<SwaggerAuthorizationMiddleware>();
         app.UseSwagger();
+        app.UseHttpsRedirection();
         app.UseSwaggerUI(options =>
         {
             options.RoutePrefix = "swagger";
