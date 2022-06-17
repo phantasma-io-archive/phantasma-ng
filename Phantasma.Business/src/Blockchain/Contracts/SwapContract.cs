@@ -69,6 +69,38 @@ namespace Phantasma.Business.Contracts
         }
     }
     
+    public struct TradingVolume: ISerializable
+    {
+        public string Symbol0;
+        public string Symbol1;
+        public string Day;
+        public BigInteger Volume;
+
+        public TradingVolume(string Symbol0, string Symbol1, string Day, BigInteger Volume)
+        {
+            this.Symbol0 = Symbol0;
+            this.Symbol1 = Symbol1;
+            this.Day = Day;
+            this.Volume = Volume;
+        }
+
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.WriteVarString(Symbol0);
+            writer.WriteVarString(Symbol1);
+            writer.WriteVarString(Day);
+            writer.WriteBigInteger(Volume);
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            Symbol0 = reader.ReadVarString();
+            Symbol1 = reader.ReadVarString();
+            Day = reader.ReadVarString();
+            Volume = reader.ReadBigInteger();
+        }
+    }
+    
      public struct Pool: ISerializable
     {
         public string Symbol0; // Symbol
@@ -606,6 +638,12 @@ namespace Phantasma.Business.Contracts
             Runtime.TransferTokens(fromSymbol, from, this.Address, amount);
             Runtime.TransferTokens(toSymbol, this.Address, from, total);
 
+            // Trading volume
+            if (fromSymbol == DomainSettings.StakingTokenSymbol)
+                UpdateTradingVolume(pool, amount);
+            else
+                UpdateTradingVolume(pool, total);
+            
             // Handle Fees
             BigInteger totalFees = total*3/100;
             BigInteger feeForUsers = totalFees * 100 / UserPercent;
@@ -625,8 +663,8 @@ namespace Phantasma.Business.Contracts
         /// </summary>
         public void MigrateToV3()
         {
-            var owner = Runtime.GenesisAddress;
-            Runtime.Expect(Runtime.IsWitness(owner), "invalid witness");
+            var caller = Address.FromText("P2K9zmyFDNGN6n6hHiTUAz6jqn29s5G1SWLiXwCVQcpHcQb");
+            Runtime.Expect(Runtime.IsWitness(caller), "invalid witness");
 
             Runtime.Expect(_DEXversion == 0, "Migration failed, wrong version");
 
@@ -635,7 +673,7 @@ namespace Phantasma.Business.Contracts
 
             var tokenScript = new byte[] { (byte)Opcode.RET }; // TODO maybe fetch a pre-compiled Tomb script here, like for Crown?
             var abi = ContractInterface.Empty;
-            Runtime.CreateToken(owner, DomainSettings.LiquidityTokenSymbol, DomainSettings.LiquidityTokenSymbol, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
+            Runtime.CreateToken(caller, DomainSettings.LiquidityTokenSymbol, DomainSettings.LiquidityTokenSymbol, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
 
             byte[] nftScript;
             ContractInterface nftABI;
@@ -757,14 +795,14 @@ namespace Phantasma.Business.Contracts
                     totalSOULUsed += soulAmount;
                     Runtime.Expect(soulAmount <= soulTotal, $"SOUL higher than total... {soulAmount}/{soulTotal}");
                     CreatePool(this.Address, DomainSettings.StakingTokenSymbol, soulAmount, symbol, tokenAmount);
-                    Runtime.TransferTokens(symbol, this.Address, owner, tokens[symbol] - tokenAmount);
+                    Runtime.TransferTokens(symbol, this.Address, caller, tokens[symbol] - tokenAmount);
                 }
             }
 
             Runtime.Expect(totalSOULUsed <= soulTotal, "Used more than it has...");
 
             // return the left overs
-            Runtime.TransferTokens(DomainSettings.StakingTokenSymbol, this.Address, owner, soulTotal - totalSOULUsed);
+            Runtime.TransferTokens(DomainSettings.StakingTokenSymbol, this.Address, caller, soulTotal - totalSOULUsed);
         }
 
         #region DEXify
@@ -776,7 +814,81 @@ namespace Phantasma.Business.Contracts
         internal StorageMap _pools;
         internal StorageMap _lp_tokens;
         internal StorageMap _lp_holders; // <string, storage_list<Address>> |-> string : $"symbol0_symbol1" |-> Address[] : key to the list 
+        internal StorageMap _trading_volume; // <string, storage_list<TradingVolume>> |-> string : $"symbol0_symbol1" |-> TradingVolume[] : key to the list 
 
+        
+        private StorageList GetTradingVolume(string symbol0, string symbol1)
+        {
+            string key = $"{symbol0}_{symbol1}";
+            if (!_trading_volume.ContainsKey<string>(key))
+            {
+                StorageList newStorage = new StorageList();
+                _trading_volume.Set<string, StorageList>(key, newStorage);
+            }
+
+            var _tradingList = _trading_volume.Get<string, StorageList>(key);
+            return _tradingList;
+        }
+        // Year -> Math.floor(((time % 31556926) % 2629743) / 86400)
+        // Month -> Math.floor(((time % 31556926) % 2629743) / 86400)
+        // Day -> Math.floor(((time % 31556926) % 2629743) / 86400)
+        private TradingVolume GetTradingVolumeToday(string symbol0, string symbol1)
+        {
+            var tradingList = GetTradingVolume(symbol0, symbol1);
+            var index = 0;
+            var count = tradingList.Count();
+            var today = DateTime.Today.Date; 
+            TradingVolume tempTrading = new TradingVolume(symbol0, symbol0, today.ToShortDateString(), 0);
+            while (index < count)
+            {
+                tempTrading = tradingList.Get<TradingVolume>(index);
+                if (tempTrading.Day == today.ToShortDateString())
+                    return tempTrading;
+
+                index++;
+            }
+            
+            return tempTrading;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pool"></param>
+        /// <param name="Amount">Always in SOUL AMOUNT!</param>
+        private void UpdateTradingVolume(Pool pool, BigInteger Amount)
+        {
+            var today = DateTime.Today.Date; 
+            StorageList tradingList = GetTradingVolume(pool.Symbol0, pool.Symbol1);
+            var tradingToday = GetTradingVolumeToday(pool.Symbol0, pool.Symbol1);
+            string key = $"{pool.Symbol0}_{pool.Symbol1}";
+            tradingToday.Volume += Amount;
+            
+            var index = 0;
+            var count = tradingList.Count();
+            TradingVolume tempTrading = new TradingVolume();
+            bool changed = false;
+            while (index < count)
+            {
+                tempTrading = tradingList.Get<TradingVolume>(index);
+                if (tempTrading.Day == today.ToShortDateString())
+                {
+                    tradingList.Replace(index, tradingToday);
+                    changed = true;
+                    break;
+                }
+
+                index++;
+            }
+
+            if (!changed)
+            {
+                tradingList.Add(tradingToday);
+            }
+            
+            
+            _trading_volume.Set<string, StorageList>(key, tradingList);
+        }
         /// <summary>
         /// This method is used to generate the key related to the USER NFT ID, to make it easier to fetch.
         /// </summary>
