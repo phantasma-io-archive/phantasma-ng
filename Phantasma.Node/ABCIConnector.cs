@@ -134,38 +134,37 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             Data = ByteString.CopyFrom(bytes),
         };
 
-        var newEvents = new List<Tendermint.Abci.Event>();
-        foreach (var evt in result.Events)
+        if (response.Code == 0)
         {
-            var newEvent = new Tendermint.Abci.Event();
-            var attributes = new EventAttribute[]
+            var newEvents = new List<Tendermint.Abci.Event>();
+            foreach (var evt in result.Events)
             {
-                new EventAttribute() { Key = "address", Value = evt.Address.ToString() },
-                new EventAttribute() { Key = "contract", Value = evt.Contract },
-                new EventAttribute() { Key = "data", Value = Base16.Encode(evt.Data) },
-            };
+                var newEvent = new Tendermint.Abci.Event();
+                var attributes = new EventAttribute[]
+                {
+                    new EventAttribute() { Key = "address", Value = evt.Address.ToString() },
+                    new EventAttribute() { Key = "contract", Value = evt.Contract },
+                    new EventAttribute() { Key = "data", Value = Base16.Encode(evt.Data) },
+                };
 
-            newEvent.Type = evt.Kind.ToString();
-            newEvent.Attributes.AddRange(attributes);
+                newEvent.Type = evt.Kind.ToString();
+                newEvent.Attributes.AddRange(attributes);
 
-            newEvents.Add(newEvent);
+                newEvents.Add(newEvent);
+            }
+
+            response.Events.AddRange(newEvents);
         }
 
-        response.Events.AddRange(newEvents);
-
-        var toDelete = new List<Transaction>();
-        foreach (var tx in _broadcastedTxs)
+        // check if a system tx was executed, if yes, remove it
+        for (var i = 0; i < _broadcastedTxs.Count; i++)
         {
+            var tx = _broadcastedTxs[i];
             if (tx.Hash == result.Hash)
             {
-                toDelete.Add(tx);
+                Log.Information($"Transaction {tx.Hash} has been executed, remove now");
+                _broadcastedTxs.Remove(tx);
             }
-        }
-
-        foreach (var tx in toDelete)
-        {
-            Log.Information($"Transaction {tx.Hash} has been executed, remove now");
-            _broadcastedTxs.Remove(tx);
         }
 
         return Task.FromResult(response);
