@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using Phantasma.Core;
 using Phantasma.Shared;
 using Phantasma.Shared.Types;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business
 {
@@ -22,7 +23,7 @@ namespace Phantasma.Business
         public IEnumerable<OracleEntry> Entries => (IEnumerable<OracleEntry>) _entries.Values;
 
         protected abstract T PullData<T>(Timestamp time, string url);
-        protected abstract decimal PullPrice(Timestamp time, string symbol);
+        protected abstract Task<decimal> PullPrice(Timestamp time, string symbol);
         protected abstract BigInteger PullFee(Timestamp time, string platform);
         protected abstract InteropBlock PullPlatformBlock(string platformName, string chainName, Hash hash, BigInteger height = new BigInteger());
         protected abstract InteropTransaction PullPlatformTransaction(string platformName, string chainName, Hash hash);
@@ -38,7 +39,7 @@ namespace Phantasma.Business
             this.Nexus = nexus;
         }
 
-        public virtual T Read<T>(Timestamp time, string url) where T : class
+        public virtual async Task<T> Read<T>(Timestamp time, string url) where T : class
         {
             if (TryGetOracleCache<T>(url, out T cachedEntry))
             {
@@ -117,7 +118,7 @@ namespace Phantasma.Business
                     }
                     else
                     {
-                        soulPriceDec = PullPrice(time, DomainSettings.StakingTokenSymbol);
+                        soulPriceDec = await PullPrice(time, DomainSettings.StakingTokenSymbol);
                         var soulPriceBi = UnitConversion.ToBigInteger(soulPriceDec, DomainSettings.FiatTokenDecimals);
 
                         CacheOracleData<T>(url, soulPriceBi.ToSignedByteArray() as T);
@@ -128,7 +129,7 @@ namespace Phantasma.Business
                 }
                 else
                 {
-                    var price = PullPrice(time, baseSymbol);
+                    var price = await PullPrice(time, baseSymbol);
                     val = UnitConversion.ToBigInteger(price, DomainSettings.FiatTokenDecimals);
                 }
 
@@ -428,10 +429,10 @@ namespace Phantasma.Business
             return PullPlatformNFT(platformName, symbol, tokenID);
         }
 
-        public InteropTransaction ReadTransaction(string platform, string chain, Hash hash)
+        public async Task<InteropTransaction> ReadTransaction(string platform, string chain, Hash hash)
         {
             var url = DomainExtensions.GetOracleTransactionURL(platform, chain, hash);
-            var bytes = this.Read<InteropTransaction>(Timestamp.Now, url);
+            var bytes = await Read<InteropTransaction>(Timestamp.Now, url);
             return bytes;
         }
 

@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Threading.Tasks;
 using Phantasma.Core;
 using Phantasma.Core.Context;
 
@@ -54,7 +55,7 @@ namespace Phantasma.Business.Contracts
             Runtime.SwapTokens(sourceChain.Name, sourceAddress, Runtime.Chain.Name, targetAddress, symbol, value);
         }
 
-        public void SettleTransaction(Address sourceChainAddress, Hash hash)
+        public async Task SettleTransaction(Address sourceChainAddress, Hash hash)
         {
             Runtime.Expect(Runtime.IsAddressOfParentChain(sourceChainAddress) || Runtime.IsAddressOfChildChain(sourceChainAddress), "source must be parent or child chain");
 
@@ -62,7 +63,7 @@ namespace Phantasma.Business.Contracts
 
             var sourceChain = this.Runtime.GetChainByAddress(sourceChainAddress);
 
-            var tx = Runtime.ReadTransactionFromOracle(DomainSettings.PlatformName, sourceChain.Name, hash);
+            var tx = await Runtime.ReadTransactionFromOracle(DomainSettings.PlatformName, sourceChain.Name, hash);
 
             int settlements = 0;
 

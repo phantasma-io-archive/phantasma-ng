@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Phantasma.Core;
 using Phantasma.Shared;
 
@@ -33,7 +34,7 @@ namespace Phantasma.Business
 
         private static readonly string FormatInteropTag = "Format.";
 
-        public override ExecutionState ExecuteInterop(string method)
+        public override Task<ExecutionState> ExecuteInterop(string method)
         {
             if (method.StartsWith(FormatInteropTag))
             {
@@ -49,8 +50,8 @@ namespace Phantasma.Business
 
                             var result = UnitConversion.ToDecimal(amount, info.Decimals);
 
-                            this.Stack.Push(VMObject.FromObject(result.ToString()));
-                            return ExecutionState.Running;
+                            Stack.Push(VMObject.FromObject(result.ToString()));
+                            return Task.FromResult(ExecutionState.Running);
                         }
 
                     case "Account":
@@ -75,16 +76,16 @@ namespace Phantasma.Business
                             }
 
                             var result = OutputAddress(addr);
-                            this.Stack.Push(VMObject.FromObject(result.ToString()));
-                            return ExecutionState.Running;
+                            Stack.Push(VMObject.FromObject(result.ToString()));
+                            return Task.FromResult(ExecutionState.Running);
                         }
 
                     case "Symbol":
                         {
                             var symbol = this.PopString("symbol");
                             var result = OutputSymbol(symbol);
-                            this.Stack.Push(VMObject.FromObject(result.ToString()));
-                            return ExecutionState.Running;
+                            Stack.Push(VMObject.FromObject(result.ToString()));
+                            return Task.FromResult(ExecutionState.Running);
                         }
 
                     default:
@@ -96,13 +97,13 @@ namespace Phantasma.Business
             if (handlers.ContainsKey(method))
             {
                 var interop = handlers[method];
-                return interop(this);
+                return Task.FromResult(interop(this));
             }
 
             throw new VMException(this, "unknown interop: " + method);
         }
 
-        public override Phantasma.Core.ExecutionContext LoadContext(string contextName)
+        public override ExecutionContext LoadContext(string contextName)
         {
             throw new NotImplementedException();
         }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Phantasma.Core;
 using Shouldly;
 using Xunit;
@@ -16,9 +17,9 @@ public class VirtualMachineTest
         {
         }
 
-        public override ExecutionState ExecuteInterop(string method)
+        public override Task<ExecutionState> ExecuteInterop(string method)
         {
-            return ExecutionState.Running;
+            return Task.FromResult(ExecutionState.Running);
         }
 
         public override ExecutionContext LoadContext(string contextName)
@@ -31,9 +32,9 @@ public class VirtualMachineTest
             
         }
 
-        public override ExecutionState Execute()
+        public override async Task<ExecutionState> Execute()
         {
-            var result = base.Execute();
+            var result = await base.Execute();
             return result;
         }
 
@@ -57,9 +58,9 @@ public class VirtualMachineTest
             this.Name = name;
         }
         
-        public override ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack)
+        public override Task<ExecutionState> Execute(ExecutionFrame frame, Stack<VMObject> stack)
         {
-            return ExecutionState.Halt;
+            return Task.FromResult(ExecutionState.Halt);
         }
     }
     

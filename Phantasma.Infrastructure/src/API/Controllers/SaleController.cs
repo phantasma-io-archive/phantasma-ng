@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Business.Contracts;
 using Phantasma.Core;
+using System.Threading.Tasks;
 
 namespace Phantasma.Infrastructure.Controllers
 {
@@ -8,11 +9,11 @@ namespace Phantasma.Infrastructure.Controllers
     {
         [APIInfo(typeof(string), "Returns latest sale hash.", false, -1)]
         [HttpGet("GetLatestSaleHash")]
-        public string GetLatestSaleHash()
+        public async Task<string> GetLatestSaleHash()
         {
             var nexus = NexusAPI.GetNexus();
 
-            var hash = (Hash)nexus.RootChain.InvokeContract(nexus.RootChain.Storage, "sale", nameof(SaleContract.GetLatestSaleHash)).ToObject();
+            var hash = (Hash)(await nexus.RootChain.InvokeContract(nexus.RootChain.Storage, "sale", nameof(SaleContract.GetLatestSaleHash))).ToObject();
 
             return hash.ToString();
         }
@@ -20,7 +21,7 @@ namespace Phantasma.Infrastructure.Controllers
         [APIInfo(typeof(CrowdsaleResult), "Returns data about a crowdsale.", false, -1)]
         [APIFailCase("hash is invalid", "43242342")]
         [HttpGet("GetSale")]
-        public CrowdsaleResult GetSale([APIParameter("Hash of sale", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText)
+        public async Task<CrowdsaleResult> GetSale([APIParameter("Hash of sale", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText)
         {
             Hash hash;
             if (!Hash.TryParse(hashText, out hash) || hash == Hash.Null)
@@ -30,7 +31,7 @@ namespace Phantasma.Infrastructure.Controllers
 
             var nexus = NexusAPI.GetNexus();
 
-            var sale = (SaleInfo)nexus.RootChain.InvokeContract(nexus.RootChain.Storage, "sale", nameof(SaleContract.GetSale), hash).ToObject();
+            var sale = (SaleInfo)(await nexus.RootChain.InvokeContract(nexus.RootChain.Storage, "sale", nameof(SaleContract.GetSale), hash)).ToObject();
 
             return new CrowdsaleResult()
             {

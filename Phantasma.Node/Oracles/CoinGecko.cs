@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Phantasma.Shared.Utils;
 using Serilog;
 
@@ -7,7 +8,7 @@ namespace Phantasma.Node.Oracles
 {
     public static class CoinGeckoUtils
     {
-        public static decimal GetCoinRate(string baseSymbol, string quoteSymbol, PricerSupportedToken[] supportedTokens)
+        public static async Task<decimal> GetCoinRate(string baseSymbol, string quoteSymbol, PricerSupportedToken[] supportedTokens)
         {
             string baseticker = "";
 
@@ -34,7 +35,7 @@ namespace Phantasma.Node.Oracles
 
             try
             {
-                var response = RequestUtils.Request<JsonDocument>(RequestType.GET, url, out var _);
+                var response = await RequestUtils.RequestAsync<JsonDocument>(RequestType.GET, url);
 
                 if (response == null)
                     return 0;

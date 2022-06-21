@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Phantasma.Core;
 using Phantasma.Shared;
 using Phantasma.Shared.Performance;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business
 {
@@ -18,7 +19,7 @@ namespace Phantasma.Business
 
         public readonly static string EntryContextName = "entry";
 
-        private readonly Phantasma.Core.ExecutionContext entryContext;
+        private readonly ExecutionContext entryContext;
 
 
         public Stack<VMObject> Stack { get; } = new Stack<VMObject>();
@@ -29,17 +30,17 @@ namespace Phantasma.Business
         public Address EntryAddress { 
             get
             {
-                return this.entryAddress;
+                return entryAddress;
             }
 
             set
             {
-                this.entryAddress = value;
+                entryAddress = value;
             } 
         }
 
-        public Phantasma.Core.ExecutionContext CurrentContext { get; set; }
-        public Phantasma.Core.ExecutionContext PreviousContext { get; set; }
+        public ExecutionContext CurrentContext { get; set; }
+        public ExecutionContext PreviousContext { get; set; }
 
         private Stack<Address> _activeAddresses = new Stack<Address>();
         public Stack<Address> ActiveAddresses => _activeAddresses;
@@ -54,7 +55,7 @@ namespace Phantasma.Business
         {
             Throw.IfNull(script, nameof(script));
 
-            this.EntryAddress = Address.FromHash(script);
+            EntryAddress = Address.FromHash(script);
             this._activeAddresses.Push(EntryAddress);
 
             if (contextName == null)
@@ -75,10 +76,10 @@ namespace Phantasma.Business
             _contextMap[contextName] = context;
         }
 
-        public abstract ExecutionState ExecuteInterop(string method);
+        public abstract Task<ExecutionState> ExecuteInterop(string method);
         public abstract ExecutionContext LoadContext(string contextName);
 
-        public virtual ExecutionState Execute()
+        public virtual Task<ExecutionState> Execute()
         {
             return SwitchContext(entryContext, 0);
         }
@@ -151,7 +152,7 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        public ExecutionState SwitchContext(ExecutionContext context, uint instructionPointer)
+        public async Task<ExecutionState> SwitchContext(ExecutionContext context, uint instructionPointer)
         {
             if (context == null)
             {
@@ -167,7 +168,7 @@ namespace Phantasma.Business
 
                 _activeAddresses.Push(context.Address);
 
-                var result = context.Execute(this.CurrentFrame, this.Stack);
+                var result = await context.Execute(CurrentFrame, Stack);
 
                 PreviousContext = tempContext;
 

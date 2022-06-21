@@ -2,10 +2,11 @@
 using System.Numerics;
 using System.Collections.Generic;
 using Phantasma.Core;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business
 {
-    internal class DummyExecutionContext : Phantasma.Core.ExecutionContext
+    internal class DummyExecutionContext : ExecutionContext
     {
         public override string Name => _name;
 
@@ -16,9 +17,9 @@ namespace Phantasma.Business
             this._name = name;
         }
 
-        public override ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack)
+        public override Task<ExecutionState> Execute(ExecutionFrame frame, Stack<VMObject> stack)
         {
-            return ExecutionState.Halt;
+            return Task.FromResult(ExecutionState.Halt);
         }
     }
 
@@ -36,12 +37,12 @@ namespace Phantasma.Business
             throw new NotImplementedException();
         }
 
-        public override Phantasma.Core.ExecutionContext LoadContext(string contextName)
+        public override ExecutionContext LoadContext(string contextName)
         {
             return new DummyExecutionContext(contextName);
         }
 
-        public override ExecutionState ExecuteInterop(string method)
+        public override Task<ExecutionState> ExecuteInterop(string method)
         {
             BigInteger gasCost;
 
@@ -92,7 +93,7 @@ namespace Phantasma.Business
                 ConsumeGas(gasCost);
             }
 
-            return ExecutionState.Running;
+            return Task.FromResult(ExecutionState.Running);
         }
 
         public virtual ExecutionState ConsumeGas(BigInteger gasCost)

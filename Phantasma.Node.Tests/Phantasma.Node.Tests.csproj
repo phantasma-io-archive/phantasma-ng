@@ -8,6 +8,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="config.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0-preview.5.22301.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.0-preview-20220612-01" />
     <PackageReference Include="Shouldly" Version="4.0.3" />
     <PackageReference Include="xunit" Version="2.4.2-pre.12" />
@@ -19,6 +30,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Phantasma.Node\Phantasma.Node.csproj" />
   </ItemGroup>
 
 </Project>

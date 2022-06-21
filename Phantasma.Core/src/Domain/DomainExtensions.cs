@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using System.Threading.Tasks;
 
 namespace Phantasma.Core
 {
@@ -112,33 +113,33 @@ namespace Phantasma.Core
             return runtime.Chain.Address == rootChain.Address;
         }
 
-        public static InteropBlock ReadBlockFromOracle(this IRuntime runtime, string platform, string chain, Hash hash)
+        public static async Task<InteropBlock> ReadBlockFromOracle(this IRuntime runtime, string platform, string chain, Hash hash)
         {
-            var bytes = runtime.ReadOracle($"interop://{platform}/{chain}/block/{hash}");
+            var bytes = await runtime.ReadOracle($"interop://{platform}/{chain}/block/{hash}");
             var block = Serialization.Unserialize<InteropBlock>(bytes);
             return block;
         }
 
-        public static InteropTransaction ReadTransactionFromOracle(this IRuntime runtime, string platform, string chain, Hash hash)
+        public static async Task<InteropTransaction> ReadTransactionFromOracle(this IRuntime runtime, string platform, string chain, Hash hash)
         {
             var url = GetOracleTransactionURL(platform, chain, hash);
-            var bytes = runtime.ReadOracle(url);
+            var bytes = await runtime.ReadOracle(url);
             var tx = Serialization.Unserialize<InteropTransaction>(bytes);
             return tx;
         }
 
-        public static InteropNFT ReadNFTFromOracle(this IRuntime runtime, string platform, string symbol, BigInteger tokenID)
+        public static async Task<InteropNFT> ReadNFTFromOracle(this IRuntime runtime, string platform, string symbol, BigInteger tokenID)
         {
             var url = GetOracleNFTURL(platform, symbol, tokenID);
-            var bytes = runtime.ReadOracle(url);
+            var bytes = await runtime.ReadOracle(url);
             var nft = Serialization.Unserialize<InteropNFT>(bytes);
             return nft;
         }
 
-        public static BigInteger ReadFeeFromOracle(this IRuntime runtime, string platform)
+        public static async Task<BigInteger> ReadFeeFromOracle(this IRuntime runtime, string platform)
         {
             var url = GetOracleFeeURL(platform);
-            var bytes = runtime.ReadOracle(url);
+            var bytes = await runtime.ReadOracle(url);
             BigInteger fee;
             if (bytes == null)
             {
@@ -204,27 +205,27 @@ namespace Phantasma.Core
         }
 
 
-        public static BigInteger GetTokenQuote(this IRuntime runtime, string baseSymbol, string quoteSymbol, BigInteger amount)
+        public static async Task<BigInteger> GetTokenQuote(this IRuntime runtime, string baseSymbol, string quoteSymbol, BigInteger amount)
         {
             if (runtime.ProtocolVersion >= 3)
             {
-                return GetTokenQuoteV2(runtime, baseSymbol, quoteSymbol, amount);
+                return await GetTokenQuoteV2(runtime, baseSymbol, quoteSymbol, amount);
             }
             else
             {
-                return GetTokenQuoteV1(runtime, baseSymbol, quoteSymbol, amount);
+                return await GetTokenQuoteV1(runtime, baseSymbol, quoteSymbol, amount);
             }
         }
 
         // converts amount in baseSymbol to amount in quoteSymbol
-        public static BigInteger GetTokenQuoteV1(IRuntime runtime, string baseSymbol, string quoteSymbol, BigInteger amount)
+        public static async Task<BigInteger> GetTokenQuoteV1(IRuntime runtime, string baseSymbol, string quoteSymbol, BigInteger amount)
         {
 
             if (baseSymbol == quoteSymbol)
                 return amount;
 
             // old
-            var basePrice = runtime.GetTokenPrice(baseSymbol);
+            var basePrice = await runtime.GetTokenPrice(baseSymbol);
 
             var baseToken = runtime.GetToken(baseSymbol);
             var fiatToken = runtime.GetToken(DomainSettings.FiatTokenSymbol);
@@ -236,19 +237,19 @@ namespace Phantasma.Core
                 return result;
             }
 
-            var quotePrice = runtime.GetTokenPrice(quoteSymbol);
+            var quotePrice = await runtime.GetTokenPrice(quoteSymbol);
             var quoteToken = runtime.GetToken(quoteSymbol);
 
             result = runtime.ConvertQuoteToBase(result, quotePrice, quoteToken, fiatToken);
             return result;
         }
 
-        public static BigInteger GetTokenQuoteV2(IRuntime runtime, string baseSymbol, string quoteSymbol, BigInteger amount)
+        public static async Task<BigInteger> GetTokenQuoteV2(IRuntime runtime, string baseSymbol, string quoteSymbol, BigInteger amount)
         {
             if (baseSymbol == quoteSymbol)
                 return amount;
 
-            var basePrice = runtime.GetTokenPrice(baseSymbol);
+            var basePrice = await runtime.GetTokenPrice(baseSymbol);
 
             var baseToken = runtime.GetToken(baseSymbol);
 
@@ -263,7 +264,7 @@ namespace Phantasma.Core
             }
             else
             {
-                var quotePrice = runtime.GetTokenPrice(quoteSymbol);
+                var quotePrice = await runtime.GetTokenPrice(quoteSymbol);
                 var quoteToken = runtime.GetToken(quoteSymbol);
 
                 if (quoteToken.Decimals <= baseToken.Decimals)
@@ -289,12 +290,12 @@ namespace Phantasma.Core
                 }
             }
         }
-        public static TriggerResult InvokeTrigger(this IRuntime runtime, bool allowThrow, byte[] script, NativeContractKind contextName, ContractInterface abi, string triggerName, params object[] args)
+        public static Task<TriggerResult> InvokeTrigger(this IRuntime runtime, bool allowThrow, byte[] script, NativeContractKind contextName, ContractInterface abi, string triggerName, params object[] args)
         {
             return runtime.InvokeTrigger(allowThrow, script, contextName.ToString().ToLower(), abi, triggerName, args);
         }
 
-        public static VMObject CallNFT(this IRuntime runtime, string symbol, BigInteger seriesID, ContractMethod method, params object[] args)
+        public static Task<VMObject> CallNFT(this IRuntime runtime, string symbol, BigInteger seriesID, ContractMethod method, params object[] args)
         {
             //var series = Nexus.GetTokenSeries(this.RootStorage, symbol, seriesID);
             var contextName = $"{symbol}#{seriesID}";
@@ -302,7 +303,7 @@ namespace Phantasma.Core
             return runtime.CallContext(contextName, (uint)method.offset, method.name, args);
         }
 
-        public static VMObject CallContext(this IRuntime runtime, string contextName, ContractMethod method, params object[] args)
+        public static Task<VMObject> CallContext(this IRuntime runtime, string contextName, ContractMethod method, params object[] args)
         {
             runtime.Expect(method != null, "trying to call null method for context: " + contextName);
 
@@ -316,7 +317,7 @@ namespace Phantasma.Core
             return runtime.CallContext(contextName, (uint)method.offset, method.name, args);
         }
 
-        public static VMObject CallNativeContext(this IRuntime runtime, NativeContractKind nativeContract, string methodName, params object[] args)
+        public static Task<VMObject> CallNativeContext(this IRuntime runtime, NativeContractKind nativeContract, string methodName, params object[] args)
         {
             return runtime.CallContext(nativeContract.GetContractName(), 0, methodName, args);
         }

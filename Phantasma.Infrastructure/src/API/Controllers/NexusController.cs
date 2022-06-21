@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core;
 using Phantasma.Business.Contracts;
+using System.Threading.Tasks;
 
 namespace Phantasma.Infrastructure.Controllers
 {
@@ -10,7 +11,7 @@ namespace Phantasma.Infrastructure.Controllers
     {
         [APIInfo(typeof(NexusResult), "Returns info about the nexus.", false, 60)]
         [HttpGet("GetNexus")]
-        public NexusResult GetNexus(bool extended = false)
+        public async Task<NexusResult> GetNexus(bool extended = false)
         {
             var nexus = NexusAPI.GetNexus();
 
@@ -53,7 +54,7 @@ namespace Phantasma.Infrastructure.Controllers
                 chainList.Add(single);
             }
 
-            var governance = (GovernancePair[])nexus.RootChain.InvokeContract(nexus.RootChain.Storage, "governance", nameof(GovernanceContract.GetValues)).ToObject();
+            var governance = (GovernancePair[])(await nexus.RootChain.InvokeContract(nexus.RootChain.Storage, "governance", nameof(GovernanceContract.GetValues))).ToObject();
 
             var orgs = nexus.GetOrganizations(nexus.RootStorage);
 

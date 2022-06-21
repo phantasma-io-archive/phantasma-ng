@@ -9,6 +9,7 @@ using Phantasma.Business.Tokens;
 using Phantasma.Business.Contracts;
 using System.Collections.Generic;
 using System;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business
 {
@@ -111,46 +112,51 @@ namespace Phantasma.Business
 
         internal void RegisterMethod(string name, Func<RuntimeVM, ExecutionState> handler)
         {
+            handlers[name] = vm => Task.FromResult(handler(vm));
+        }
+
+        internal void RegisterMethod(string name, Func<RuntimeVM, Task<ExecutionState>> handler)
+        {
             handlers[name] = handler;
         }
 
-        private Dictionary<string, Func<RuntimeVM, ExecutionState>> handlers = new Dictionary<string, Func<RuntimeVM, ExecutionState>>(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, Func<RuntimeVM, Task<ExecutionState>>> handlers = new Dictionary<string, Func<RuntimeVM, Task<ExecutionState>>>(StringComparer.OrdinalIgnoreCase);
 
-        public override ExecutionState ExecuteInterop(string method)
+        public override async Task<ExecutionState> ExecuteInterop(string method)
         {
-            var result = base.ExecuteInterop(method);
+            var result = await base.ExecuteInterop(method);
 
             if (result == ExecutionState.Running)
             {
                 if (handlers.ContainsKey(method))
                 {
                     using (var m = new ProfileMarker(method))
-                        return handlers[method](this);
+                        return await handlers[method](this);
                 }
             }
 
             return ExecutionState.Fault;
         }
 
-        public VMObject CallInterop(string methodName, params object[] args)
+        public async Task<VMObject> CallInterop(string methodName, params object[] args)
         {
             PushArgsIntoStack(args);
-            if (ExecuteInterop(methodName) == ExecutionState.Running)
+            if (await ExecuteInterop(methodName) == ExecutionState.Running)
             {
-                if (this.Stack.Count == 0)
+                if (Stack.Count == 0)
                 {
                     return null;
                 }
 
-                return this.Stack.Pop();
+                return Stack.Pop();
             }
 
             return null;
         }
 
-        public override ExecutionState Execute()
+        public override async Task<ExecutionState> Execute()
         {
-            var result = base.Execute();
+            var result = await base.Execute();
 
             if (result == ExecutionState.Halt)
             {
@@ -220,28 +226,28 @@ namespace Phantasma.Business
             }
         }
 
-        public VMObject CallContext(string contextName, uint jumpOffset, string methodName, params object[] args)
+        public async Task<VMObject> CallContext(string contextName, uint jumpOffset, string methodName, params object[] args)
         {
-            var tempContext = this.PreviousContext;
-            this.PreviousContext = this.CurrentContext;
+            var tempContext = PreviousContext;
+            PreviousContext = CurrentContext;
 
             var context = LoadContext(contextName);
             Expect(context != null, "could not call context: " + contextName);
 
             PushArgsIntoStack(args);
 
-            this.Stack.Push(VMObject.FromObject(methodName));
+            Stack.Push(VMObject.FromObject(methodName));
 
             SetCurrentContext(context);
 
-            this.PushFrame(context, jumpOffset, VirtualMachine.DefaultRegisterCount);
+            PushFrame(context, jumpOffset, VirtualMachine.DefaultRegisterCount);
 
             ActiveAddresses.Push(context.Address);
 
-            var temp = context.Execute(this.CurrentFrame, this.Stack);
+            var temp = await context.Execute(CurrentFrame, Stack);
             Expect(temp == ExecutionState.Halt, "expected call success");
 
-            this.PopFrame();
+            PopFrame();
 
             var temp2 = ActiveAddresses.Pop();
             if (temp2 != context.Address)
@@ -249,9 +255,9 @@ namespace Phantasma.Business
                 throw new VMException(this, "runtimeVM implementation bug detected: address stack");
             }
 
-            this.PreviousContext = tempContext;
+            PreviousContext = tempContext;
 
-            if (this.Stack.Count > 0)
+            if (Stack.Count > 0)
             {
                 var result = this.Stack.Pop();
                 return result;
@@ -442,7 +448,7 @@ namespace Phantasma.Business
 
         #region ORACLES
         // returns value in FIAT token
-        public BigInteger GetTokenPrice(string symbol)
+        public async Task<BigInteger> GetTokenPrice(string symbol)
         {
             if (symbol == DomainSettings.FiatTokenSymbol)
             {
@@ -453,7 +459,7 @@ namespace Phantasma.Business
             var token = GetToken(symbol);
 
             Shared.Throw.If(Oracle == null, "cannot read price from null oracle");
-            var bytes = Oracle.Read<byte[]>(this.Time, "price://" + symbol);
+            var bytes = await Oracle.Read<byte[]>(this.Time, "price://" + symbol);
             Expect(bytes != null && bytes.Length > 0, $"Could not read price of {symbol} from oracle");
             var value = new BigInteger(bytes, true);
 
@@ -523,7 +529,7 @@ namespace Phantasma.Business
         }
 
         #region TRIGGERS
-        public TriggerResult InvokeTriggerOnAccount(bool allowThrow, Address address, AccountTrigger trigger, params object[] args)
+        public async Task<TriggerResult> InvokeTriggerOnAccount(bool allowThrow, Address address, AccountTrigger trigger, params object[] args)
         {
             if (address.IsNull)
             {
@@ -547,7 +553,7 @@ namespace Phantasma.Business
                 //Expect(accountScript.SequenceEqual(accountScript2), "different account scripts");
 
                 ValidateTriggerGuard($"{address.Text}.{triggerName}");
-                return this.InvokeTrigger(allowThrow, accountScript, address.Text, accountABI, triggerName, args);
+                return await InvokeTrigger(allowThrow, accountScript, address.Text, accountABI, triggerName, args);
             }
 
             if (address.IsSystem)
@@ -561,7 +567,7 @@ namespace Phantasma.Business
                         if (customContract != null)
                         {
                             ValidateTriggerGuard($"{contract.Name}.{triggerName}");
-                            return InvokeTrigger(allowThrow, customContract.Script, contract.Name, contract.ABI, triggerName, args);
+                            return await InvokeTrigger(allowThrow, customContract.Script, contract.Name, contract.ABI, triggerName, args);
                         }
 
                         var native = contract as NativeContract;
@@ -626,12 +632,12 @@ namespace Phantasma.Business
 
         }
 
-        public TriggerResult InvokeTriggerOnToken(bool allowThrow, IToken token, TokenTrigger trigger, params object[] args)
+        public Task<TriggerResult> InvokeTriggerOnToken(bool allowThrow, IToken token, TokenTrigger trigger, params object[] args)
         {
             return InvokeTrigger(allowThrow, token.Script, token.Symbol, token.ABI, trigger.ToString(), args);
         }
 
-        public TriggerResult InvokeTrigger(bool allowThrow, byte[] script, string contextName, ContractInterface abi, string triggerName, params object[] args)
+        public async Task<TriggerResult> InvokeTrigger(bool allowThrow, byte[] script, string contextName, ContractInterface abi, string triggerName, params object[] args)
         {
             if (script == null || script.Length == 0 || abi == null)
             {
@@ -654,7 +660,7 @@ namespace Phantasma.Business
 
 			ExecutionState state;
 			try {
-				state = runtime.Execute();
+				state = await runtime.Execute();
 				// TODO catch VM exceptions?
 			}
 			catch (VMException)
@@ -692,7 +698,7 @@ namespace Phantasma.Business
 
         private HashSet<Address> validatedWitnesses = new HashSet<Address>();
 
-        public bool IsWitness(Address address)
+        public async Task<bool> IsWitness(Address address)
         {
             if (address.IsInterop)
             {
@@ -704,7 +710,7 @@ namespace Phantasma.Business
                 return false;
             }
 
-            if (address == this.Chain.Address /*|| address == this.Address*/)
+            if (address == Chain.Address /*|| address == this.Address*/)
             {
                 return false;
             }
@@ -728,7 +734,7 @@ namespace Phantasma.Business
                 var org = Nexus.GetOrganizationByAddress(RootStorage, address);
                 if (org != null)
                 {
-                    this.ConsumeGas(10000);
+                    ConsumeGas(10000);
                     var result = org.IsWitness(Transaction);
 
                     if (result)
@@ -743,14 +749,14 @@ namespace Phantasma.Business
                     var owner = GetContractOwner(address);
                     if (owner != Address.Null && owner != address)
                     {
-                        return IsWitness(owner);
+                        return await IsWitness(owner);
                     }
 
                     return address == CurrentContext.Address;
                 }
             }
 
-            if (this.Transaction == null)
+            if (Transaction == null)
             {
                 return false;
             }
@@ -766,7 +772,7 @@ namespace Phantasma.Business
             {
                  TriggerResult triggerResult;
                 using (var m = new ProfileMarker("InvokeTriggerOnAccount"))
-                    triggerResult = InvokeTriggerOnAccount(false, address, AccountTrigger.OnWitness, address);
+                    triggerResult = await InvokeTriggerOnAccount(false, address, AccountTrigger.OnWitness, address);
 
                 if (triggerResult == TriggerResult.Missing)
                 {
@@ -947,12 +953,12 @@ namespace Phantasma.Business
         public IChain GetChainParent(string name)
         {
             var parentName = Nexus.GetParentChainByName(name);
-            return this.GetChainByName(parentName);
+            return GetChainByName(parentName);
         }
 
         public Address LookUpName(string name)
         {
-            return this.Chain.LookUpName(this.RootStorage, name);
+            return Chain.LookUpName(this.RootStorage, name);
         }
 
         public bool HasAddressScript(Address from)
@@ -965,9 +971,9 @@ namespace Phantasma.Business
             return Nexus.LookUpAddressScript(this.RootStorage, from);
         }
 
-        public string GetAddressName(Address from)
+        public async Task<string> GetAddressName(Address from)
         {
-            return Chain.GetNameFromAddress(this.RootStorage, from);
+            return await Chain.GetNameFromAddress(this.RootStorage, from);
         }
 
         public Event[] GetTransactionEvents(Hash transactionHash)
@@ -1052,12 +1058,12 @@ namespace Phantasma.Business
             return Chain.GetTokenSupply(this.Storage, symbol);
         }
 
-        public void SetPlatformTokenHash(string symbol, string platform, Hash hash)
+        public async Task SetPlatformTokenHash(string symbol, string platform, Hash hash)
         {
             var Runtime = this;
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
-            Runtime.Expect(Runtime.IsWitness(Runtime.GenesisAddress), "invalid witness, must be genesis");
+            Runtime.Expect(await Runtime.IsWitness(Runtime.GenesisAddress), "invalid witness, must be genesis");
 
             Runtime.Expect(platform != DomainSettings.PlatformName, "external token chain required");
             Runtime.Expect(hash != Hash.Null, "hash cannot be null");
@@ -1076,7 +1082,7 @@ namespace Phantasma.Business
             Nexus.SetPlatformTokenHash(symbol, platform, hash, this.RootStorage);
         }
 
-        public void CreateToken(Address owner, string symbol, string name, BigInteger maxSupply, int decimals, TokenFlags flags, byte[] script, ContractInterface abi)
+        public async Task CreateToken(Address owner, string symbol, string name, BigInteger maxSupply, int decimals, TokenFlags flags, byte[] script, ContractInterface abi)
         {
             var Runtime = this;
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
@@ -1084,7 +1090,7 @@ namespace Phantasma.Business
             Runtime.Expect(owner.IsUser, "owner address must be user address");
 
             Runtime.Expect(Runtime.IsStakeMaster(owner), "needs to be master");
-            Runtime.Expect(Runtime.IsWitness(owner), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(owner), "invalid witness");
 
             var pow = Runtime.Transaction.Hash.GetDifficulty();
             Runtime.Expect(pow >= (int)ProofOfWork.Minimal, "expected proof of work");
@@ -1153,14 +1159,14 @@ namespace Phantasma.Business
 
             var fuelCost = Runtime.GetGovernanceValue(Nexus.FuelPerTokenDeployTag);
             // governance value is in usd fiat, here convert from fiat to fuel amount
-            fuelCost = Runtime.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
+            fuelCost = await Runtime.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
             // burn the "cost" tokens
             Runtime.BurnTokens(DomainSettings.FuelTokenSymbol, owner, fuelCost);
 
             Runtime.Notify(EventKind.TokenCreate, owner, symbol);
         }
 
-        public void CreateChain(Address creator, string organization, string name, string parentName)
+        public async Task CreateChain(Address creator, string organization, string name, string parentName)
         {
             var Runtime = this;
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
@@ -1177,7 +1183,7 @@ namespace Phantasma.Business
 
             Runtime.Expect(creator.IsUser, "owner address must be user address");
             Runtime.Expect(Runtime.IsStakeMaster(creator), "needs to be master");
-            Runtime.Expect(Runtime.IsWitness(creator), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(creator), "invalid witness");
 
             name = name.ToLowerInvariant();
             Runtime.Expect(!name.Equals(parentName, StringComparison.OrdinalIgnoreCase), "same name as parent");
@@ -1186,7 +1192,7 @@ namespace Phantasma.Business
             Runtime.Notify(EventKind.ChainCreate, creator, name);
         }
 
-        public void CreateFeed(Address owner, string name, FeedMode mode)
+        public async Task CreateFeed(Address owner, string name, FeedMode mode)
         {
             var Runtime = this;
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
@@ -1198,20 +1204,20 @@ namespace Phantasma.Business
 
             Runtime.Expect(owner.IsUser, "owner address must be user address");
             Runtime.Expect(Runtime.IsStakeMaster(owner), "needs to be master");
-            Runtime.Expect(Runtime.IsWitness(owner), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(owner), "invalid witness");
 
             Runtime.Expect(Nexus.CreateFeed(RootStorage, owner, name, mode), "feed creation failed");
 
             Runtime.Notify(EventKind.FeedCreate, owner, name);
         }
 
-        public BigInteger CreatePlatform(Address from, string name, string externalAddress, Address interopAddress, string fuelSymbol)
+        public async Task<BigInteger> CreatePlatform(Address from, string name, string externalAddress, Address interopAddress, string fuelSymbol)
         {
             var Runtime = this;
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
             Runtime.Expect(from == Runtime.GenesisAddress, "(CreatePlatform) must be genesis");
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             Runtime.Expect(ValidationUtils.IsValidIdentifier(name), "invalid platform name");
 
@@ -1222,19 +1228,19 @@ namespace Phantasma.Business
             return platformID;
         }
 
-        public void CreateOrganization(Address from, string ID, string name, byte[] script)
+        public async Task CreateOrganization(Address from, string ID, string name, byte[] script)
         {
             var Runtime = this;
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
             Runtime.Expect(from == Runtime.GenesisAddress, $"(CreateOrganization) must be genesis from: {from} genesis: {Runtime.GenesisAddress}");
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             Runtime.Expect(ValidationUtils.IsValidIdentifier(ID), "invalid organization name");
 
             Runtime.Expect(!Nexus.OrganizationExists(RootStorage, ID), "organization already exists");
 
-            Nexus.CreateOrganization(this.RootStorage, ID, name, script);
+            Nexus.CreateOrganization(RootStorage, ID, name, script);
 
             Runtime.Notify(EventKind.OrganizationCreate, from, ID);
         }
@@ -1242,7 +1248,7 @@ namespace Phantasma.Business
         public IArchive CreateArchive(MerkleTree merkleTree, Address owner, string name, BigInteger size, Timestamp time, IArchiveEncryption encryption)
         {
             // TODO validation
-            var archive = Nexus.CreateArchive(this.RootStorage, merkleTree, owner, name, size, time, encryption);
+            var archive = Nexus.CreateArchive(RootStorage, merkleTree, owner, name, size, time, encryption);
 
             var Runtime = this;
             Runtime.Notify(EventKind.FileCreate, owner, archive.Hash);
@@ -1302,11 +1308,11 @@ namespace Phantasma.Business
             return Chain.Name == parentName;
         }
 
-        public void MintTokens(string symbol, Address from, Address target, BigInteger amount)
+        public async Task MintTokens(string symbol, Address from, Address target, BigInteger amount)
         {
             var Runtime = this;
 
-            Runtime.Expect(IsWitness(from), "must be from a valid witness");
+            Runtime.Expect(await IsWitness(from), "must be from a valid witness");
 
             Runtime.Expect(amount > 0, "amount must be positive and greater than zero");
 
@@ -1321,7 +1327,7 @@ namespace Phantasma.Business
                 Nexus.MintTokens(this, token, from, target, Chain.Name, amount);
         }
 
-        public BigInteger MintToken(string symbol, Address from, Address target, byte[] rom, byte[] ram, BigInteger seriesID)
+        public async Task<BigInteger> MintToken(string symbol, Address from, Address target, byte[] rom, byte[] ram, BigInteger seriesID)
         {
             var Runtime = this;
             Runtime.Expect(Runtime.TokenExists(symbol), "invalid token");
@@ -1332,7 +1338,7 @@ namespace Phantasma.Business
             // TODO should not be necessary, verified by trigger
             //Runtime.Expect(IsWitness(target), "invalid witness");
             
-            Runtime.Expect(IsWitness(from), "must be from a valid witness");
+            Runtime.Expect(await IsWitness(from), "must be from a valid witness");
             Runtime.Expect(Runtime.IsRootChain(), "can only mint nft in root chain");
 
             Runtime.Expect(rom.Length <= TokenContent.MaxROMSize, "ROM size exceeds maximum allowed, received: " + rom.Length + ", maximum: " + TokenContent.MaxROMSize);
@@ -1365,10 +1371,10 @@ namespace Phantasma.Business
             Nexus.BurnTokens(this, token, target, target, Chain.Name, amount);
         }
 
-        public void BurnToken(string symbol, Address target, BigInteger tokenID)
+        public async Task BurnToken(string symbol, Address target, BigInteger tokenID)
         {
             var Runtime = this;
-            Runtime.Expect(IsWitness(target), "invalid witness");
+            Runtime.Expect(await IsWitness(target), "invalid witness");
 
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
@@ -1380,10 +1386,10 @@ namespace Phantasma.Business
             Nexus.BurnToken(this, token, target, target, Chain.Name, tokenID);
         }
 
-        public void InfuseToken(string symbol, Address from, BigInteger tokenID, string infuseSymbol, BigInteger value)
+        public async Task InfuseToken(string symbol, Address from, BigInteger tokenID, string infuseSymbol, BigInteger value)
         {
             var Runtime = this;
-            Runtime.Expect(IsWitness(from), "invalid witness");
+            Runtime.Expect(await IsWitness(from), "invalid witness");
 
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
@@ -1403,7 +1409,7 @@ namespace Phantasma.Business
             return Nexus.GetTokenSeries(this.RootStorage, symbol, seriesID);
         }
 
-        public ITokenSeries CreateTokenSeries(string symbol, Address from, BigInteger seriesID, BigInteger maxSupply, TokenSeriesMode mode, byte[] script, ContractInterface abi)
+        public async Task<ITokenSeries> CreateTokenSeries(string symbol, Address from, BigInteger seriesID, BigInteger maxSupply, TokenSeriesMode mode, byte[] script, ContractInterface abi)
         {
             var Runtime = this;
 
@@ -1416,8 +1422,8 @@ namespace Phantasma.Business
             var token = Runtime.GetToken(symbol);
             Runtime.Expect(!token.IsFungible(), "token must be non-fungible");
 
-            Runtime.Expect(IsWitness(from), "invalid witness");
-            Runtime.Expect(InvokeTriggerOnToken(false, token, TokenTrigger.OnSeries, from) != TriggerResult.Failure, $"trigger {TokenTrigger.OnSeries} on token {symbol} failed for {from}");
+            Runtime.Expect(await IsWitness(from), "invalid witness");
+            Runtime.Expect(await InvokeTriggerOnToken(false, token, TokenTrigger.OnSeries, from) != TriggerResult.Failure, $"trigger {TokenTrigger.OnSeries} on token {symbol} failed for {from}");
 
             return Nexus.CreateSeries(this.RootStorage, token, seriesID, maxSupply, mode, script, abi);
         }
@@ -1450,10 +1456,10 @@ namespace Phantasma.Business
             Runtime.Nexus.TransferTokens(Runtime, token, source, destination, amount);
         }
 
-        public void TransferToken(string symbol, Address source, Address destination, BigInteger tokenID)
+        public async Task TransferToken(string symbol, Address source, Address destination, BigInteger tokenID)
         {
             var Runtime = this;
-            Runtime.Expect(IsWitness(source), "invalid witness");
+            Runtime.Expect(await IsWitness(source), "invalid witness");
 
             Runtime.Expect(source != destination, "source and destination must be different");
 
@@ -1465,7 +1471,7 @@ namespace Phantasma.Business
             Nexus.TransferToken(this, token, source, destination, tokenID);
         }
 
-        public void SwapTokens(string sourceChain, Address from, string targetChain, Address to, string symbol, BigInteger value)
+        public async Task SwapTokens(string sourceChain, Address from, string targetChain, Address to, string symbol, BigInteger value)
         {
             var Runtime = this;
 
@@ -1495,14 +1501,14 @@ namespace Phantasma.Business
                 Nexus.BurnTokens(this, token, from, to, targetChain, value);
 
                 var swap = new ChainSwap(DomainSettings.PlatformName, sourceChain, Transaction.Hash, targetChain, targetChain, Hash.Null);
-                this.Chain.RegisterSwap(this.Storage, to, swap);
+                Chain.RegisterSwap(this.Storage, to, swap);
             }
             else
-            if (sourceChain == this.Chain.Name)
+            if (sourceChain == Chain.Name)
             {
                 Runtime.Expect(IsNameOfParentChain(targetChain) || IsNameOfChildChain(targetChain), "target must be parent or child chain");
                 Runtime.Expect(to.IsUser, "destination must be user address");
-                Runtime.Expect(IsWitness(from), "invalid witness");
+                Runtime.Expect(await IsWitness(from), "invalid witness");
 
                 /*if (tokenInfo.IsCapped())
                 {
@@ -1529,14 +1535,14 @@ namespace Phantasma.Business
                 }
 
                 var swap = new ChainSwap(DomainSettings.PlatformName, sourceChain, Transaction.Hash, DomainSettings.PlatformName, targetChain, Hash.Null);
-                this.Chain.RegisterSwap(this.Storage, to, swap);
+                Chain.RegisterSwap(this.Storage, to, swap);
             }
             else
             if (targetChain == this.Chain.Name)
             {
                 Runtime.Expect(IsNameOfParentChain(sourceChain) || IsNameOfChildChain(sourceChain), "source must be parent or child chain");
                 Runtime.Expect(!to.IsInterop, "destination cannot be interop address");
-                Runtime.Expect(IsWitness(to), "invalid witness");
+                Runtime.Expect(await IsWitness(to), "invalid witness");
 
                 if (token.IsFungible())
                 {
@@ -1553,14 +1559,14 @@ namespace Phantasma.Business
             }
         }
 
-        public void WriteToken(Address from, string tokenSymbol, BigInteger tokenID, byte[] ram)
+        public async Task WriteToken(Address from, string tokenSymbol, BigInteger tokenID, byte[] ram)
         {
             var nft = ReadToken(tokenSymbol, tokenID);
 
             var Runtime = this;
             var token = Runtime.GetToken(tokenSymbol);
 
-            Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnWrite, from, ram, tokenID) != TriggerResult.Failure, "token write trigger failed");
+            Runtime.Expect(await Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnWrite, from, ram, tokenID) != TriggerResult.Failure, "token write trigger failed");
 
             Nexus.WriteNFT(this, tokenSymbol, tokenID, nft.CurrentChain, nft.Creator, nft.CurrentOwner, nft.ROM, ram,
                     nft.SeriesID, nft.Timestamp, nft.Infusion, true);
@@ -1582,9 +1588,9 @@ namespace Phantasma.Business
             Nexus.RegisterPlatformAddress(RootStorage, platform, localAddress, externalAddress);
         }
 
-        public byte[] ReadOracle(string URL)
+        public async Task<byte[]> ReadOracle(string URL)
         {
-            return this.Oracle.Read<byte[]>(this.Time, URL);
+            return await Oracle.Read<byte[]>(Time, URL);
         }
 
         public Hash GetTokenPlatformHash(string symbol, IPlatform platform)
@@ -1756,7 +1762,7 @@ namespace Phantasma.Business
         }
 
         #region TASKS
-        public IChainTask StartTask(Address from, string contractName, ContractMethod method, uint frequency, uint delay, TaskFrequencyMode mode, BigInteger gasLimit)
+        public async Task<IChainTask> StartTask(Address from, string contractName, ContractMethod method, uint frequency, uint delay, TaskFrequencyMode mode, BigInteger gasLimit)
         {
             var vm = this;
 
@@ -1782,7 +1788,7 @@ namespace Phantasma.Business
                 vm.Expect(frequency == 0, "invalid frequency");
             }
 
-            vm.Expect(IsWitness(from), "invalid witness");
+            vm.Expect(await IsWitness(from), "invalid witness");
 
             var result = this.Chain.StartTask(this.Storage, from, contractName, method, frequency, delay, mode, gasLimit);
             vm.Expect(result != null, "could not start task");
@@ -1792,13 +1798,13 @@ namespace Phantasma.Business
             return result;
         }
 
-        public void StopTask(IChainTask task)
+        public async Task StopTask(IChainTask task)
         {
             var vm = this;
 
             vm.Expect(task != null, "invalid task");
 
-            vm.Expect(IsWitness(task.Owner), "invalid witness");
+            vm.Expect(await IsWitness(task.Owner), "invalid witness");
 
             vm.Expect(this.Chain.StopTask(this.Storage, task.ID), "failed to stop task");
 

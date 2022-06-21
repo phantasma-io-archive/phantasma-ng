@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Serilog;
 
 namespace Phantasma.Node.Oracles
 {
     public static class Pricer
     {
-        public static decimal GetCoinRate(string baseSymbol, string quoteSymbol, string cryptoCompApiKey, bool cgEnabled, PricerSupportedToken[] supportedTokens)
+        public static async Task<decimal> GetCoinRate(string baseSymbol, string quoteSymbol, string cryptoCompApiKey, bool cgEnabled, PricerSupportedToken[] supportedTokens)
         {
             try
             {
@@ -19,7 +20,7 @@ namespace Phantasma.Node.Oracles
 
                 if (cgEnabled)
                 {
-                    cGeckoPrice = CoinGeckoUtils.GetCoinRate(baseSymbol, quoteSymbol, supportedTokens);
+                    cGeckoPrice = await CoinGeckoUtils.GetCoinRate(baseSymbol, quoteSymbol, supportedTokens);
                 }
 
                 if ((cGeckoPrice > 0) && (cComparePrice > 0))

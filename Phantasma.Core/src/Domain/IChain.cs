@@ -6,6 +6,7 @@ using Phantasma.Shared.Types;
 using Tendermint.Types;
 using TValidatorUpdate = Tendermint.Abci.ValidatorUpdate;
 using Types;
+using System.Threading.Tasks;
 
 namespace Phantasma.Core;
 
@@ -23,30 +24,30 @@ public interface IChain
     bool IsRoot { get; }
     IContract[] GetContracts(StorageContext storage);
 
-    IEnumerable<Transaction> BeginBlock(Header header, IEnumerable<Address> initialValidators);
+    Task<IEnumerable<Transaction>> BeginBlock(Header header, IEnumerable<Address> initialValidators);
     (CodeType, string) CheckTx(ByteString serializedTx);
-    TransactionResult DeliverTx(ByteString serializedTx);
+    Task<TransactionResult> DeliverTx(ByteString serializedTx);
     byte[] Commit();
     IEnumerable<TValidatorUpdate> EndBlock();
 
 
     string ToString();
     void AddBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee, StorageChangeSetContext changeSet);
-    StorageChangeSetContext ProcessBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee);
+    Task<StorageChangeSetContext> ProcessBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee);
 
-    StorageChangeSetContext ProcessTransactions(Block block, IEnumerable<Transaction> transactions
+    Task<StorageChangeSetContext> ProcessTransactions(Block block, IEnumerable<Transaction> transactions
         , IOracleReader oracle, BigInteger minimumFee);
 
     BigInteger GetTokenBalance(StorageContext storage, IToken token, Address address);
     BigInteger GetTokenBalance(StorageContext storage, string symbol, Address address);
     BigInteger GetTokenSupply(StorageContext storage, string symbol);
     BigInteger[] GetOwnedTokens(StorageContext storage, string tokenSymbol, Address address);
-    VMObject InvokeContractAtTimestamp(StorageContext storage, Timestamp time, NativeContractKind nativeContract, string methodName, params object[] args);
-    VMObject InvokeContractAtTimestamp(StorageContext storage, Timestamp time, string contractName, string methodName, params object[] args);
-    VMObject InvokeContract(StorageContext storage, NativeContractKind nativeContract, string methodName, params object[] args);
-    VMObject InvokeContract(StorageContext storage, string contractName, string methodName, params object[] args);
-    VMObject InvokeScript(StorageContext storage, byte[] script);
-    VMObject InvokeScript(StorageContext storage, byte[] script, Timestamp time);
+    Task<VMObject> InvokeContractAtTimestamp(StorageContext storage, Timestamp time, NativeContractKind nativeContract, string methodName, params object[] args);
+    Task<VMObject> InvokeContractAtTimestamp(StorageContext storage, Timestamp time, string contractName, string methodName, params object[] args);
+    Task<VMObject> InvokeContract(StorageContext storage, NativeContractKind nativeContract, string methodName, params object[] args);
+    Task<VMObject> InvokeContract(StorageContext storage, string contractName, string methodName, params object[] args);
+    Task<VMObject> InvokeScript(StorageContext storage, byte[] script);
+    Task<VMObject> InvokeScript(StorageContext storage, byte[] script, Timestamp time);
     BigInteger GenerateUID(StorageContext storage);
     BigInteger GetBlockReward(Block block);
     BigInteger GetTransactionFee(Transaction tx);
@@ -80,5 +81,5 @@ public interface IChain
     Address GetValidator(StorageContext storage, Timestamp targetTime);
     void CloseBlock(Block block, StorageChangeSetContext storage);
     Address LookUpName(StorageContext storage, string name);
-    string GetNameFromAddress(StorageContext storage, Address address);
+    Task<string> GetNameFromAddress(StorageContext storage, Address address);
 }

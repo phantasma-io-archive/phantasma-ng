@@ -13,6 +13,7 @@ using Tendermint.RPC;
 using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Phantasma.Infrastructure;
 
@@ -469,18 +470,18 @@ public static class NexusAPI
         };
     }
 
-    public static StorageResult FillStorage(Address address)
+    public static async Task<StorageResult> FillStorage(Address address)
     {
         RequireNexus();
 
         var storage = new StorageResult();
 
-        storage.used = (uint)Nexus.RootChain.InvokeContract(Nexus.RootChain.Storage, "storage", nameof(StorageContract.GetUsedSpace), address).AsNumber();
-        storage.available = (uint)Nexus.RootChain.InvokeContract(Nexus.RootChain.Storage, "storage", nameof(StorageContract.GetAvailableSpace), address).AsNumber();
+        storage.used = (uint)(await Nexus.RootChain.InvokeContract(Nexus.RootChain.Storage, "storage", nameof(StorageContract.GetUsedSpace), address)).AsNumber();
+        storage.available = (uint)(await Nexus.RootChain.InvokeContract(Nexus.RootChain.Storage, "storage", nameof(StorageContract.GetAvailableSpace), address)).AsNumber();
 
         if (storage.used > 0)
         {
-            var files = (Hash[])Nexus.RootChain.InvokeContract(Nexus.RootChain.Storage, "storage", nameof(StorageContract.GetFiles), address).ToObject();
+            var files = (Hash[])(await Nexus.RootChain.InvokeContract(Nexus.RootChain.Storage, "storage", nameof(StorageContract.GetFiles), address)).ToObject();
 
             Hash avatarHash = Hash.Null;
             storage.archives = files.Select(x => {
@@ -518,13 +519,13 @@ public static class NexusAPI
         return storage;
     }
 
-    public static AccountResult FillAccount(Address address)
+    public static async Task<AccountResult> FillAccount(Address address)
     {
         RequireNexus();
 
         var result = new AccountResult();
         result.address = address.Text;
-        result.name = Nexus.RootChain.GetNameFromAddress(Nexus.RootStorage, address);
+        result.name = await Nexus.RootChain.GetNameFromAddress(Nexus.RootStorage, address);
 
         var stake = Nexus.GetStakeFromAddress(Nexus.RootStorage, address);
 
@@ -539,7 +540,7 @@ public static class NexusAPI
             result.stakes = new StakeResult() { amount = "0", time = 0, unclaimed = "0" };
         }
 
-        result.storage = FillStorage(address);
+        result.storage = await FillStorage(address);
 
         // deprecated
         result.stake = result.stakes.amount;

@@ -4,10 +4,11 @@ using System.Collections.Generic;
 using Phantasma.Business.Contracts;
 using Phantasma.Core;
 using Phantasma.Shared.Performance;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business
 {
-    public class ChainExecutionContext : Phantasma.Core.ExecutionContext
+    public class ChainExecutionContext : ExecutionContext
     {
         public readonly SmartContract Contract;
 
@@ -15,14 +16,14 @@ namespace Phantasma.Business
 
         public ChainExecutionContext(SmartContract contract)
         {
-            this.Contract = contract;
+            Contract = contract;
         }
 
-        public override ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack)
+        public override async Task<ExecutionState> Execute(ExecutionFrame frame, Stack<VMObject> stack)
         {
-            if (this.Contract.ABI == null)
+            if (Contract.ABI == null)
             {
-                throw new VMException(frame.VM, $"VM nativecall failed: ABI is missing for contract '{this.Contract.Name}'");
+                throw new VMException(frame.VM, $"VM nativecall failed: ABI is missing for contract '{Contract.Name}'");
             }
 
             if (stack.Count <= 0)
@@ -45,7 +46,7 @@ namespace Phantasma.Business
                 }
                 else
                 {
-                    usedQuota = runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.GetUsedDataQuota), this.Contract.Address).AsNumber();
+                    usedQuota = (await runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.GetUsedDataQuota), Contract.Address)).AsNumber();
                 }
 
                 if (usedQuota > 0)
@@ -114,7 +115,7 @@ namespace Phantasma.Business
 #endif
 
                     var context = new ScriptContext(Contract.Name, custom.Script, (uint)method.offset);
-                    result = context.Execute(frame, stack);
+                    result = await context.Execute(frame, stack);
                 }
                 else
                 {

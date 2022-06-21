@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core;
 using Phantasma.Business.Contracts;
 using System.Numerics;
+using System.Threading.Tasks;
 
 namespace Phantasma.Infrastructure.Controllers
 {
@@ -12,7 +13,7 @@ namespace Phantasma.Infrastructure.Controllers
     {
         [APIInfo(typeof(int), "Returns the number of active auctions.", false, 30)]
         [HttpGet("GetAuctionsCount")]
-        public int GetAuctionsCount([APIParameter("Chain address or name where the market is located", "main")] string chainAddressOrName = null, [APIParameter("Token symbol used as filter", "NACHO")]
+        public async Task<int> GetAuctionsCount([APIParameter("Chain address or name where the market is located", "main")] string chainAddressOrName = null, [APIParameter("Token symbol used as filter", "NACHO")]
             string symbol = null)
         {
             var chain = NexusAPI.FindChainByInput(chainAddressOrName);
@@ -26,7 +27,7 @@ namespace Phantasma.Infrastructure.Controllers
                 throw new APIException("Market not available");
             }
 
-            IEnumerable<MarketAuction> entries = (MarketAuction[])chain.InvokeContract(chain.Storage, "market", "GetAuctions").ToObject();
+            IEnumerable<MarketAuction> entries = (MarketAuction[])(await chain.InvokeContract(chain.Storage, "market", "GetAuctions")).ToObject();
 
             if (!string.IsNullOrEmpty(symbol))
             {
@@ -38,7 +39,7 @@ namespace Phantasma.Infrastructure.Controllers
 
         [APIInfo(typeof(AuctionResult[]), "Returns the auctions available in the market.", true, 30)]
         [HttpGet("GetAuctions")]
-        public PaginatedResult GetAuctions([APIParameter("Chain address or name where the market is located", "NACHO")] string chainAddressOrName, [APIParameter("Token symbol used as filter", "NACHO")] string symbol = null,
+        public async Task<PaginatedResult> GetAuctions([APIParameter("Chain address or name where the market is located", "NACHO")] string chainAddressOrName, [APIParameter("Token symbol used as filter", "NACHO")] string symbol = null,
             [APIParameter("Index of page to return", "5")] uint page = 1,
             [APIParameter("Number of items to return per page", "5")] uint pageSize = NexusAPI.PaginationMaxResults)
         {
@@ -65,7 +66,7 @@ namespace Phantasma.Infrastructure.Controllers
 
             var paginatedResult = new PaginatedResult();
 
-            IEnumerable<MarketAuction> entries = (MarketAuction[])chain.InvokeContract(chain.Storage, "market", "GetAuctions").ToObject();
+            IEnumerable<MarketAuction> entries = (MarketAuction[])(await chain.InvokeContract(chain.Storage, "market", "GetAuctions")).ToObject();
 
             if (!string.IsNullOrEmpty(symbol))
             {
@@ -93,7 +94,7 @@ namespace Phantasma.Infrastructure.Controllers
 
         [APIInfo(typeof(AuctionResult), "Returns the auction for a specific token.", false, 30)]
         [HttpGet("GetAuction")]
-        public AuctionResult GetAuction([APIParameter("Chain address or name where the market is located", "NACHO")] string chainAddressOrName, [APIParameter("Token symbol", "NACHO")] string symbol, [APIParameter("Token ID", "1")] string IDtext)
+        public async Task<AuctionResult> GetAuction([APIParameter("Chain address or name where the market is located", "NACHO")] string chainAddressOrName, [APIParameter("Token symbol", "NACHO")] string symbol, [APIParameter("Token ID", "1")] string IDtext)
         {
             var nexus = NexusAPI.GetNexus();
 
@@ -130,13 +131,13 @@ namespace Phantasma.Infrastructure.Controllers
 
             var nft = nexus.ReadNFT(nexus.RootStorage, symbol, ID);
 
-            var forSale = chain.InvokeContract(chain.Storage, "market", "HasAuction", symbol, ID).AsBool();
+            var forSale = (await chain.InvokeContract(chain.Storage, "market", "HasAuction", symbol, ID)).AsBool();
             if (!forSale)
             {
                 throw new APIException("Token not for sale");
             }
 
-            var auction = (MarketAuction)chain.InvokeContract(chain.Storage, "market", "GetAuction", symbol, ID).ToObject();
+            var auction = (MarketAuction)(await chain.InvokeContract(chain.Storage, "market", "GetAuction", symbol, ID)).ToObject();
 
             return new AuctionResult()
             {

@@ -39,7 +39,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         _nexus.RootChain.ValidatorKeys = _owner;
     }
 
-    public override Task<ResponseBeginBlock> BeginBlock(RequestBeginBlock request, ServerCallContext context)
+    public override async Task<ResponseBeginBlock> BeginBlock(RequestBeginBlock request, ServerCallContext context)
     {
         Log.Information($"Begin block {request.Header.Height}");
         var response = new ResponseBeginBlock();
@@ -73,19 +73,17 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             _systemTxs.Clear();
 
             IEnumerable<Transaction> systemTransactions;
-            systemTransactions = _nexus.RootChain.BeginBlock(request.Header, this._initialValidators); 
+            systemTransactions = await _nexus.RootChain.BeginBlock(request.Header, this._initialValidators); 
 
             if (proposerAddress.Equals(this._owner.Address.TendermintAddress))
             {
-                var idx = 0;
-                foreach (var tx in systemTransactions)
+                await Task.WhenAll(systemTransactions.Select((tx, idx) =>
                 {
                     Log.Information("Broadcasting system transaction {}", tx);
                     _systemTxs.Add(idx, tx);
                     var txString = Base16.Encode(tx.ToByteArray(true));
-                    Task.Factory.StartNew(() => _rpc.BroadcastTxSync(txString));
-                    idx++;
-                }
+                    return Task.Factory.StartNew(() => _rpc.BroadcastTxSync(txString));
+                }));
             }
             else
             {
@@ -97,7 +95,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             Log.Information(e.ToString());
         }
         
-        return Task.FromResult(response);
+        return response;
     }
     
     public override Task<ResponseCheckTx> CheckTx(RequestCheckTx request, ServerCallContext context)
@@ -122,9 +120,9 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         return Task.FromResult(ResponseHelper.Check.Ok());
     }
     
-    public override Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
+    public override async Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
     {
-        var result = _nexus.RootChain.DeliverTx(request.Tx);
+        var result = await _nexus.RootChain.DeliverTx(request.Tx);
 
         var bytes = Serialization.Serialize(result.Result);
         var response = new ResponseDeliverTx()
@@ -167,7 +165,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             }
         }
 
-        return Task.FromResult(response);
+        return response;
     }
 
     public override Task<ResponseEndBlock> EndBlock(RequestEndBlock request, ServerCallContext context)

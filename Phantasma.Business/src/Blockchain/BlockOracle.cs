@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Collections.Generic;
 using Phantasma.Core;
 using Phantasma.Shared.Types;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business
 {
@@ -21,7 +22,7 @@ namespace Phantasma.Business
             }
         }
 
-        public override T Read<T>(Timestamp time, string url) 
+        public override Task<T> Read<T>(Timestamp time, string url) 
         {
             T content = null;
 
@@ -37,7 +38,7 @@ namespace Phantasma.Business
                 }
             }
 
-            return content;
+            return Task.FromResult(content);
         }
 
         public override List<InteropBlock> ReadAllBlocks(string platformName, string chainName)
@@ -65,7 +66,7 @@ namespace Phantasma.Business
             throw new NotImplementedException();
         }
 
-        protected override decimal PullPrice(Timestamp time, string symbol)
+        protected override Task<decimal> PullPrice(Timestamp time, string symbol)
         {
             throw new NotImplementedException();
         }

@@ -352,7 +352,7 @@ namespace Phantasma.Core
 
                 Signature = reader.ReadSignature();
             }
-            catch (Exception e)
+            catch
             {
                 Payload = null;
                 Validator = Address.Null;

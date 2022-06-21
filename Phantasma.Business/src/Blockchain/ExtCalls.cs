@@ -9,6 +9,7 @@ using Phantasma.Shared.Types;
 using Phantasma.Core.Context;
 using Phantasma.Business.Contracts;
 using Phantasma.Business.Tokens;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business
 {
@@ -1235,7 +1236,7 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_DeployContract(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_DeployContract(RuntimeVM vm)
         {
             var tx = vm.Transaction;
             Throw.IfNull(tx, nameof(tx));
@@ -1254,7 +1255,7 @@ namespace Phantasma.Business
                 vm.Expect(vm.IsStakeMaster(from), "needs to be master");
             }
 
-            vm.Expect(vm.IsWitness(from), "invalid witness");
+            vm.Expect(await vm.IsWitness(from), "invalid witness");
 
             var contractName = vm.PopString("contractName");
 
@@ -1292,7 +1293,7 @@ namespace Phantasma.Business
 
                 var isReserved = ValidationUtils.IsReservedIdentifier(contractName);
 
-                if (isReserved && vm.IsWitness(vm.GenesisAddress))
+                if (isReserved && await vm.IsWitness(vm.GenesisAddress))
                 {
                     isReserved = false;
                 }
@@ -1306,7 +1307,7 @@ namespace Phantasma.Business
 
                 var fuelCost = vm.GetGovernanceValue(vm.Nexus.FuelPerContractDeployTag);
                 // governance value is in usd fiat, here convert from fiat to fuel amount
-                fuelCost = vm.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
+                fuelCost = await vm.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
 
                 // burn the "cost" tokens
                 vm.BurnTokens(DomainSettings.FuelTokenSymbol, from, fuelCost);
@@ -1330,7 +1331,7 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_UpgradeContract(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_UpgradeContract(RuntimeVM vm)
         {
             var tx = vm.Transaction;
             Throw.IfNull(tx, nameof(tx));
@@ -1345,7 +1346,7 @@ namespace Phantasma.Business
 
             vm.Expect(vm.IsStakeMaster(from), "needs to be master");
 
-            vm.Expect(vm.IsWitness(from), "invalid witness");
+            vm.Expect(await vm.IsWitness(from), "invalid witness");
 
             var contractName = vm.PopString("contractName");
 
@@ -1369,7 +1370,7 @@ namespace Phantasma.Business
 
             var fuelCost = vm.GetGovernanceValue(vm.Nexus.FuelPerContractDeployTag);
             // governance value is in usd fiat, here convert from fiat to fuel amount
-            fuelCost = vm.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
+            fuelCost = await vm.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
 
             // burn the "cost" tokens
             vm.BurnTokens(DomainSettings.FuelTokenSymbol, from, fuelCost);
@@ -1393,7 +1394,7 @@ namespace Phantasma.Business
             var triggerName = AccountTrigger.OnUpgrade.ToString();
             vm.ValidateTriggerGuard($"{contractName}.{triggerName}");
 
-            vm.Expect(vm.InvokeTrigger(false, script, contractName, abi, triggerName, from) == TriggerResult.Success, triggerName + " trigger failed");
+            vm.Expect(await vm.InvokeTrigger(false, script, contractName, abi, triggerName, from) == TriggerResult.Success, triggerName + " trigger failed");
 
             if (isToken)
             {
@@ -1409,7 +1410,7 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_KillContract(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_KillContract(RuntimeVM vm)
         {
             var tx = vm.Transaction;
             Throw.IfNull(tx, nameof(tx));
@@ -1422,7 +1423,7 @@ namespace Phantasma.Business
             var from = vm.PopAddress();
             vm.Expect(from.IsUser, "address must be user");
 
-            vm.Expect(vm.IsWitness(from), "invalid witness");
+            vm.Expect(await vm.IsWitness(from), "invalid witness");
 
             var contractName = vm.PopString("contractName");
 
@@ -1456,7 +1457,7 @@ namespace Phantasma.Business
 
             vm.ValidateTriggerGuard($"{contractName}.{triggerName}");
 
-            vm.Expect(vm.InvokeTrigger(false, customContract.Script, contract.Name, contract.ABI, triggerName, new object[] { from }) == TriggerResult.Success, triggerName + " trigger failed");
+            vm.Expect(await vm.InvokeTrigger(false, customContract.Script, contract.Name, contract.ABI, triggerName, new object[] { from }) == TriggerResult.Success, triggerName + " trigger failed");
 
             if (isToken)
             {
@@ -1773,7 +1774,7 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Task_Start(RuntimeVM vm)
+        private static async Task<ExecutionState> Task_Start(RuntimeVM vm)
         {
             vm.ExpectStackSize(1);
 
@@ -1787,7 +1788,7 @@ namespace Phantasma.Business
 
             var method = ContractMethod.FromBytes(methodBytes);
 
-            var task = vm.StartTask(from, contractName, method, frequency, delay, mode, gasLimit);
+            var task = await vm.StartTask(from, contractName, method, frequency, delay, mode, gasLimit);
 
             var result = new VMObject();
             result.SetValue(task.ID);

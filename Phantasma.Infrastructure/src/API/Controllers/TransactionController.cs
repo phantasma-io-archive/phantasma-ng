@@ -6,6 +6,7 @@ using Phantasma.Shared.Types;
 using System.Linq;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Phantasma.Infrastructure.Controllers
 {
@@ -196,7 +197,7 @@ namespace Phantasma.Infrastructure.Controllers
         [APIFailCase("script is invalid", "")]
         [APIFailCase("failed to decoded script", "0000")]
         [HttpGet("InvokeRawScript")]
-        public ScriptResult InvokeRawScript([APIParameter("Address or name of chain", "root")] string chainInput, [APIParameter("Serialized script bytes, in hexadecimal format", "0000000000")] string scriptData)
+        public async Task<ScriptResult> InvokeRawScript([APIParameter("Address or name of chain", "root")] string chainInput, [APIParameter("Serialized script bytes, in hexadecimal format", "0000000000")] string scriptData)
         {
             var chain = NexusAPI.FindChainByInput(chainInput);
             if (chain == null)
@@ -232,7 +233,7 @@ namespace Phantasma.Infrastructure.Controllers
             ExecutionState state = ExecutionState.Fault;
             try
             {
-                state = vm.Execute();
+                state = await vm.Execute();
             }
             catch (Exception e)
             {

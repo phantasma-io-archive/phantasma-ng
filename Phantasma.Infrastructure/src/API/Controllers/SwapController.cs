@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Phantasma.Business.Contracts;
 using Phantasma.Core;
 using Phantasma.Business;
+using System.Threading.Tasks;
 
 namespace Phantasma.Infrastructure.Controllers
 {
@@ -77,7 +78,7 @@ namespace Phantasma.Infrastructure.Controllers
 
         [APIInfo(typeof(SwapResult[]), "Returns platform swaps for a specific address.", false, 0, true)]
         [HttpGet("GetSwapsForAddress")]
-        public SwapResult[] GetSwapsForAddress([APIParameter("Address or account name", "helloman")] string account,
+        public async Task<SwapResult[]> GetSwapsForAddress([APIParameter("Address or account name", "helloman")] string account,
                 string platform, bool extended = false)
         {
             var nexus = NexusAPI.GetNexus();
@@ -113,9 +114,8 @@ namespace Phantasma.Infrastructure.Controllers
 
             var oracleReader = nexus.GetOracleReader();
 
-            var txswaps = swapList.
-                Select(x => new KeyValuePair<ChainSwap, InteropTransaction>(x, oracleReader.ReadTransaction(x.sourcePlatform, x.sourceChain, x.sourceHash))).ToArray();
-
+            var txswaps = await Task.WhenAll(swapList.
+                Select(async x => new KeyValuePair<ChainSwap, InteropTransaction>(x, await oracleReader.ReadTransaction(x.sourcePlatform, x.sourceChain, x.sourceHash))));           
             var swaps = txswaps.Where(x => x.Value != null && x.Value.Transfers.Length > 0).
                 Select(x => new SwapResult()
                 {
@@ -133,7 +133,7 @@ namespace Phantasma.Infrastructure.Controllers
 
             if (extended)
             {
-                var oldSwaps = (InteropHistory[])nexus.RootChain.InvokeContract(nexus.RootChain.Storage, "interop", nameof(InteropContract.GetSwapsForAddress), address).ToObject();
+                var oldSwaps = (InteropHistory[])(await nexus.RootChain.InvokeContract(nexus.RootChain.Storage, "interop", nameof(InteropContract.GetSwapsForAddress), address)).ToObject();
 
                 swaps = swaps.Concat(oldSwaps.Select(x => new SwapResult()
                 {

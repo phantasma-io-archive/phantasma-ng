@@ -15,6 +15,7 @@ using Neo;
 using Serilog;
 using Phantasma.Infrastructure;
 using Phantasma.Node.Chains;
+using System.Threading.Tasks;
 
 namespace Phantasma.Node.Oracles
 {
@@ -193,7 +194,7 @@ namespace Phantasma.Node.Oracles
             }
         }
 
-        protected override decimal PullPrice(Timestamp time, string symbol)
+        protected override async Task<decimal> PullPrice(Timestamp time, string symbol)
         {
             var apiKey = _cli.CryptoCompareAPIKey;
             var pricerCGEnabled = Settings.Default.Oracle.PricerCoinGeckoEnabled;
@@ -201,11 +202,11 @@ namespace Phantasma.Node.Oracles
 
             if (symbol == DomainSettings.FuelTokenSymbol)
             {
-                var result = PullPrice(time, DomainSettings.StakingTokenSymbol);
+                var result = await PullPrice(time, DomainSettings.StakingTokenSymbol);
                 return result / 5;
             }
 
-            var price = Pricer.GetCoinRate(symbol, DomainSettings.FiatTokenSymbol, apiKey, pricerCGEnabled, pricerSupportedTokens);
+            var price = await Pricer.GetCoinRate(symbol, DomainSettings.FiatTokenSymbol, apiKey, pricerCGEnabled, pricerSupportedTokens);
             return price;
         }
 

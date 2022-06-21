@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Business.Contracts;
 using Phantasma.Core;
@@ -10,11 +11,11 @@ namespace Phantasma.Infrastructure.Controllers
     {
         [APIInfo(typeof(LeaderboardResult), "Returns content of a Phantasma leaderboard.", false, 30)]
         [HttpGet("GetLeaderboard")]
-        public LeaderboardResult GetLeaderboard(string name)
+        public async Task<LeaderboardResult> GetLeaderboard(string name)
         {
             var nexus = NexusAPI.GetNexus();
 
-            var temp = nexus.RootChain.InvokeContract(nexus.RootChain.Storage, "ranking", nameof(RankingContract.GetRows), name).ToObject();
+            var temp = (await nexus.RootChain.InvokeContract(nexus.RootChain.Storage, "ranking", nameof(RankingContract.GetRows), name)).ToObject();
 
             try
             {

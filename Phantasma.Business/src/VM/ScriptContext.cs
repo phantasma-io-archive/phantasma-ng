@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Phantasma.Core;
 using Phantasma.Shared;
 using Phantasma.Shared.Performance;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business
 {
@@ -32,11 +33,11 @@ namespace Phantasma.Business
             this.opcode = Opcode.NOP;
         }
 
-        public override ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack)
+        public override async Task<ExecutionState> Execute(ExecutionFrame frame, Stack<VMObject> stack)
         {
             while (_state == ExecutionState.Running)
             {
-                this.Step(ref frame, stack);
+                await Step(frame, stack);
             }
 
             return _state;
@@ -128,7 +129,7 @@ namespace Phantasma.Business
             this._state = state;
         }
 
-        public void Step(ref ExecutionFrame frame, Stack<VMObject> stack)
+        public async Task Step(ExecutionFrame frame, Stack<VMObject> stack)
         {
             try
             {
@@ -271,7 +272,7 @@ namespace Phantasma.Business
 
                             var method = frame.Registers[src].AsString();
                             
-                            var state = frame.VM.ExecuteInterop(method);
+                            var state = await frame.VM.ExecuteInterop(method);
                             if (state != ExecutionState.Running)
                             {
                                 throw new VMException(frame.VM, "VM extcall failed: " + method);
@@ -954,7 +955,7 @@ namespace Phantasma.Business
 
                             var context = frame.Registers[src].AsInterop<Phantasma.Core.ExecutionContext>();
 
-                            _state = frame.VM.SwitchContext(context, InstructionPointer);
+                            _state = await frame.VM.SwitchContext(context, InstructionPointer);
 
                             if (_state == ExecutionState.Halt)
                             {

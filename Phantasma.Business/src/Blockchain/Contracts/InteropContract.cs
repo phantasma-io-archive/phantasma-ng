@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Numerics;
+using System.Threading.Tasks;
 using Phantasma.Core;
 using Phantasma.Core.Context;
 using Phantasma.Shared.Types;
@@ -61,16 +62,16 @@ namespace Phantasma.Business.Contracts
         // Existing swap addresses will still be considered valid for receiving funds
         // However nodes should start sending assets from this new address when doing swaps going from Phantasma to this platform
         // For all purposes, any transfer coming from another swap address of same platform into this one shall not being considered a "swap"        
-        public void RegisterAddress(Address from, string platform, Address localAddress, string externalAddress)
+        public async Task RegisterAddress(Address from, string platform, Address localAddress, string externalAddress)
         {
             Runtime.Expect(from == Runtime.GenesisAddress, "only genesis allowed");
-            Runtime.Expect(Runtime.IsWitness(from), "witness failed");
+            Runtime.Expect(await Runtime.IsWitness(from), "witness failed");
             Runtime.Expect(localAddress.IsInterop, "swap target must be interop address");
 
             Runtime.RegisterPlatformAddress(platform, localAddress, externalAddress);
         }
 
-        public void SettleTransaction(Address from, string platform, string chain, Hash hash)
+        public async Task SettleTransaction(Address from, string platform, string chain, Hash hash)
         {
             PlatformSwapAddress[] swapAddresses;
 
@@ -85,13 +86,13 @@ namespace Phantasma.Business.Contracts
                 swapAddresses = null;
             }
 
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(from.IsUser, "must be user address");
 
             var chainHashes = _platformHashes.Get<string, StorageMap>(platform);
             Runtime.Expect(!chainHashes.ContainsKey<Hash>(hash), "hash already seen");
 
-            var interopTx = Runtime.ReadTransactionFromOracle(platform, chain, hash);
+            var interopTx = await Runtime.ReadTransactionFromOracle(platform, chain, hash);
 
             Runtime.Expect(interopTx.Hash == hash, "unxpected hash");
 
@@ -200,9 +201,9 @@ namespace Phantasma.Business.Contracts
         }
 
         // send to external chain
-        public void WithdrawTokens(Address from, Address to, string symbol, BigInteger value)
+        public async Task WithdrawTokens(Address from, Address to, string symbol, BigInteger value)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             Runtime.Expect(from.IsUser, "source must be user address");
             Runtime.Expect(to.IsInterop, "destination must be interop address");
@@ -252,7 +253,7 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(feeTokenInfo.Flags.HasFlag(TokenFlags.Transferable), "fee token must be transferable");
 
             BigInteger feeAmount;
-            feeAmount = Runtime.ReadFeeFromOracle(platform.Name); // fee is in fee currency (gwei for eth, gas for neo)
+            feeAmount = await Runtime.ReadFeeFromOracle(platform.Name); // fee is in fee currency (gwei for eth, gas for neo)
 
             Runtime.Expect(feeAmount > 0, "fee is too small");
 

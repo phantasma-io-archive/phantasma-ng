@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Phantasma.Core
 {
@@ -19,7 +20,7 @@ namespace Phantasma.Core
             }
         }
 
-        public abstract ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack);
+        public abstract Task<ExecutionState> Execute(ExecutionFrame frame, Stack<VMObject> stack);
 
         public override string ToString()
         {

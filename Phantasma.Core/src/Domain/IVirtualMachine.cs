@@ -1,50 +1,51 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Phantasma.Core
 {
     public interface IVirtualMachine
     {
-        public Stack<VMObject> Stack { get; }
+        Stack<VMObject> Stack { get; }
 
-        public byte[] EntryScript { get; }
+        byte[] EntryScript { get; }
 
-        public Address EntryAddress { get; set; }
+        Address EntryAddress { get; set; }
 
-        public ExecutionContext CurrentContext { get; set; }
+        ExecutionContext CurrentContext { get; set; }
 
-        public ExecutionContext PreviousContext { get; set; }
+        ExecutionContext PreviousContext { get; set; }
 
-        public ExecutionFrame CurrentFrame { get; set; }
+        ExecutionFrame CurrentFrame { get; set; }
 
-        public Stack<ExecutionFrame> Frames { get; }
+        Stack<ExecutionFrame> Frames { get; }
 
-        public void RegisterContext(string contextName, ExecutionContext context);
+        void RegisterContext(string contextName, ExecutionContext context);
 
-        public ExecutionState ExecuteInterop(string method);
+        Task<ExecutionState> ExecuteInterop(string method);
 
-        public abstract ExecutionContext LoadContext(string contextName);
+        abstract ExecutionContext LoadContext(string contextName);
 
-        public ExecutionState Execute();
+        Task<ExecutionState> Execute();
 
-        public void PushFrame(ExecutionContext context, uint instructionPointer,  int registerCount);
+        void PushFrame(ExecutionContext context, uint instructionPointer,  int registerCount);
 
-        public uint PopFrame();
+        uint PopFrame();
 
-        public ExecutionFrame PeekFrame();
+        ExecutionFrame PeekFrame();
 
-        public void SetCurrentContext(ExecutionContext context);
+        void SetCurrentContext(ExecutionContext context);
 
-        public ExecutionContext FindContext(string contextName);
+        ExecutionContext FindContext(string contextName);
 
-        public ExecutionState ValidateOpcode(Opcode opcode);
+        ExecutionState ValidateOpcode(Opcode opcode);
 
-        public ExecutionState SwitchContext(ExecutionContext context, uint instructionPointer);
+        Task<ExecutionState> SwitchContext(ExecutionContext context, uint instructionPointer);
 
-        public string GetDumpFileName();
+        string GetDumpFileName();
 
-        public void DumpData(List<string> lines);
+        void DumpData(List<string> lines);
 
-        public void Expect(bool condition, string description);
+        void Expect(bool condition, string description);
 
     }
 }

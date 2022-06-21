@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Phantasma.Business.Tokens;
 using Phantasma.Core;
 using Phantasma.Core.Context;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business.Contracts
 {
@@ -256,7 +257,7 @@ namespace Phantasma.Business.Contracts
         public const string SwapTakerFeePercentTag = "swap.fee.taker";
 
         // returns how many tokens would be obtained by trading from one type of another
-        public BigInteger GetRate(string fromSymbol, string toSymbol, BigInteger amount)
+        public async Task<BigInteger> GetRate(string fromSymbol, string toSymbol, BigInteger amount)
         {
             Runtime.Expect(fromSymbol != toSymbol, "invalid pair");
 
@@ -269,7 +270,7 @@ namespace Phantasma.Business.Contracts
             var toInfo = Runtime.GetToken(toSymbol);
             Runtime.Expect(toInfo.IsFungible(), "must be fungible");
 
-            var rate = Runtime.GetTokenQuote(fromSymbol, toSymbol, amount);
+            var rate = await Runtime.GetTokenQuote(fromSymbol, toSymbol, amount);
 
             Runtime.Expect(rate >= 0, "invalid swap rate");
 
@@ -283,7 +284,7 @@ namespace Phantasma.Business.Contracts
         /// <param name="toSymbol"></param>
         /// <param name="amount">Amount of fromSymbol to Swap</param>
         /// <returns></returns>
-        private BigInteger GetRateV3(string fromSymbol, string toSymbol, BigInteger amount)
+        private async Task<BigInteger> GetRateV3(string fromSymbol, string toSymbol, BigInteger amount)
         {
             Runtime.Expect(fromSymbol != toSymbol, "invalid pair");
 
@@ -299,8 +300,8 @@ namespace Phantasma.Business.Contracts
             //Runtime.Expect(PoolExists(fromSymbol, toSymbol), $"Pool {fromSymbol}/{toSymbol} doesn't exist.");
             if ( !PoolIsReal(fromSymbol, toSymbol))
             {
-                BigInteger rate1 = GetRate(fromSymbol, "SOUL", amount);
-                BigInteger rate2 = GetRate("SOUL", toSymbol, rate1);
+                BigInteger rate1 = await GetRate(fromSymbol, "SOUL", amount);
+                BigInteger rate2 = await GetRate("SOUL", toSymbol, rate1);
                 return rate2;
             }
 
@@ -340,9 +341,9 @@ namespace Phantasma.Business.Contracts
             return rate;
         }
         
-        public void DepositTokens(Address from, string symbol, BigInteger amount)
+        public async Task DepositTokens(Address from, string symbol, BigInteger amount)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(from.IsUser, "address must be user address");
 
             Runtime.Expect(IsSupportedToken(symbol), "token is unsupported");
@@ -381,7 +382,7 @@ namespace Phantasma.Business.Contracts
         }
 
         // TODO optimize this method without using .NET native stuff
-        public SwapPair[] GetRates(string fromSymbol, BigInteger amount)
+        public async Task<SwapPair[]> GetRates(string fromSymbol, BigInteger amount)
         {
             var fromInfo = Runtime.GetToken(fromSymbol);
             Runtime.Expect(fromInfo.IsFungible(), "must be fungible");
@@ -403,7 +404,7 @@ namespace Phantasma.Business.Contracts
                     continue;
                 }
 
-                var rate = GetRate(fromSymbol, toSymbol, amount);
+                var rate = await GetRate(fromSymbol, toSymbol, amount);
                 if (rate > 0)
                 {
                     result.Add(new SwapPair()
@@ -423,7 +424,7 @@ namespace Phantasma.Business.Contracts
         /// <param name="from"></param>
         /// <param name="fromSymbol"></param>
         /// <param name="feeAmount"></param>
-        private void SwapFee(Address from, string fromSymbol, BigInteger feeAmount)
+        private async Task SwapFee(Address from, string fromSymbol, BigInteger feeAmount)
         {
             Runtime.Expect(_DEXversion >= 1, "call migrateV3 first");
             var feeSymbol = DomainSettings.FuelTokenSymbol;
@@ -461,14 +462,14 @@ namespace Phantasma.Business.Contracts
 
             if (!PoolIsReal(fromSymbol, feeSymbol))
             {
-                var rate = GetRate(fromSymbol, "SOUL", feeAmount);
-                SwapTokens(from, fromSymbol, "SOUL", feeAmount);
-                SwapTokens(from, "SOUL", feeSymbol, rate);
+                var rate = await GetRate(fromSymbol, "SOUL", feeAmount);
+                await SwapTokens(from, fromSymbol, "SOUL", feeAmount);
+                await SwapTokens(from, "SOUL", feeSymbol, rate);
                 return;
             }else
             {
-                var amountInOtherSymbol = GetRate(feeSymbol, fromSymbol, feeAmount);
-                var amountIKCAL = GetRate(fromSymbol, feeSymbol, feeAmount);
+                var amountInOtherSymbol = await GetRate(feeSymbol, fromSymbol, feeAmount);
+                var amountIKCAL = await GetRate(fromSymbol, feeSymbol, feeAmount);
                 //Console.WriteLine($"AmountOther: {amountInOtherSymbol} | feeAmount:{feeAmount} | feeBalance:{feeBalance} | amountOfKcal: {amountIKCAL}" );
 
                 if (amountInOtherSymbol < minAmount)
@@ -479,23 +480,23 @@ namespace Phantasma.Business.Contracts
                 // round up
                 //amountInOtherSymbol++;
 
-                SwapTokens(from, fromSymbol, feeSymbol, feeAmount);
+                await SwapTokens(from, fromSymbol, feeSymbol, feeAmount);
             }           
 
             var finalFeeBalance = Runtime.GetBalance(feeSymbol, from);
             Runtime.Expect(finalFeeBalance >= feeBalance, $"something went wrong in swapfee finalFeeBalance: {finalFeeBalance} feeBalance: {feeBalance}");
         }
 
-        public void SwapReverse(Address from, string fromSymbol, string toSymbol, BigInteger total)
+        public async Task SwapReverse(Address from, string fromSymbol, string toSymbol, BigInteger total)
         {
-            var amount = GetRate(toSymbol, fromSymbol, total);
+            var amount = await GetRate(toSymbol, fromSymbol, total);
             Runtime.Expect(amount > 0, $"cannot reverse swap {fromSymbol}");
-            SwapTokens(from, fromSymbol, toSymbol, amount);
+            await SwapTokens(from, fromSymbol, toSymbol, amount);
         }
 
-        public void SwapFiat(Address from, string fromSymbol, string toSymbol, BigInteger worth)
+        public async Task SwapFiat(Address from, string fromSymbol, string toSymbol, BigInteger worth)
         {
-            var amount = GetRate(DomainSettings.FiatTokenSymbol, fromSymbol, worth);
+            var amount = await GetRate(DomainSettings.FiatTokenSymbol, fromSymbol, worth);
 
             var token = Runtime.GetToken(fromSymbol);
             if (token.Decimals == 0 && amount < 1)
@@ -510,23 +511,23 @@ namespace Phantasma.Business.Contracts
             SwapTokens(from, fromSymbol, toSymbol, amount);
         }
 
-        public void SwapTokens(Address from, string fromSymbol, string toSymbol, BigInteger amount)
+        public async Task SwapTokens(Address from, string fromSymbol, string toSymbol, BigInteger amount)
         {
             var swapVersion = GetSwapVersion();
 
             if (swapVersion >= 3)
             {
-                SwapTokensV3(from, fromSymbol, toSymbol, amount);
+                await SwapTokensV3(from, fromSymbol, toSymbol, amount);
             }
             else
             {
-                SwapTokensV2(from, fromSymbol, toSymbol, amount);
+                await SwapTokensV2(from, fromSymbol, toSymbol, amount);
             }
         }
         
-        public void SwapTokensV2(Address from, string fromSymbol, string toSymbol, BigInteger amount)
+        public async Task SwapTokensV2(Address from, string fromSymbol, string toSymbol, BigInteger amount)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(amount > 0, "invalid amount");
 
             var fromInfo = Runtime.GetToken(fromSymbol);
@@ -538,7 +539,7 @@ namespace Phantasma.Business.Contracts
             var toInfo = Runtime.GetToken(toSymbol);
             Runtime.Expect(IsSupportedToken(toSymbol), "destination token is unsupported");
 
-            var total = GetRate(fromSymbol, toSymbol, amount);
+            var total = await GetRate(fromSymbol, toSymbol, amount);
             Runtime.Expect(total > 0, "amount to swap needs to be larger than zero");
 
             var toPotBalance = GetAvailableForSymbol(toSymbol);
@@ -574,9 +575,9 @@ namespace Phantasma.Business.Contracts
         /// <param name="fromSymbol"></param>
         /// <param name="toSymbol"></param>
         /// <param name="amount"></param>
-        public void SwapTokensV3(Address from, string fromSymbol, string toSymbol, BigInteger amount)
+        public async Task SwapTokensV3(Address from, string fromSymbol, string toSymbol, BigInteger amount)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(amount > 0, $"invalid amount, need to be higher than 0 | {amount}");
 
             var fromInfo = Runtime.GetToken(fromSymbol);
@@ -588,14 +589,14 @@ namespace Phantasma.Business.Contracts
             var toInfo = Runtime.GetToken(toSymbol);
             Runtime.Expect(IsSupportedToken(toSymbol), "destination token is unsupported");
 
-            var total = GetRate(fromSymbol, toSymbol, amount);
+            var total = await GetRate(fromSymbol, toSymbol, amount);
             Runtime.Expect(total > 0, "amount to swap needs to be larger than zero");
 
 
             if (!PoolIsReal(fromSymbol, toSymbol)){
-                var rate = GetRate(fromSymbol, "SOUL", amount);
-                SwapTokens(from, fromSymbol, "SOUL", amount);
-                SwapTokens(from, "SOUL", toSymbol, rate);
+                var rate = await GetRate(fromSymbol, "SOUL", amount);
+                await SwapTokens(from, fromSymbol, "SOUL", amount);
+                await SwapTokens(from, "SOUL", toSymbol, rate);
                 return;
             }
 
@@ -661,10 +662,10 @@ namespace Phantasma.Business.Contracts
         /// <summary>
         /// Method use to Migrate to the new SwapMechanism
         /// </summary>
-        public void MigrateToV3()
+        public async Task MigrateToV3()
         {
             var caller = Address.FromText("P2K9zmyFDNGN6n6hHiTUAz6jqn29s5G1SWLiXwCVQcpHcQb");
-            Runtime.Expect(Runtime.IsWitness(caller), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(caller), "invalid witness");
 
             Runtime.Expect(_DEXversion == 0, "Migration failed, wrong version");
 
@@ -711,15 +712,13 @@ namespace Phantasma.Business.Contracts
             }
 
             // sort tokens by estimated SOUL value, from low to high
-            var sortedTokens = tokens.Select(x => new KeyValuePair<string, BigInteger>(x.Key, GetRate(x.Key, DomainSettings.StakingTokenSymbol, x.Value)))
-                .OrderBy(x => x.Value)
-                .Select(x => x.Key)
-                .ToArray();
+            var keyValuePairs = await Task.WhenAll(tokens.Select(async x => new KeyValuePair<string, BigInteger>(x.Key, await GetRate(x.Key, DomainSettings.StakingTokenSymbol, x.Value))));
+            var sortedTokens = keyValuePairs.OrderBy(x => x.Value).Select(x => x.Key).ToArray();
 
 
             // Calculate the Percent to each Pool
             var tokensPrice = new Dictionary<string, BigInteger>();
-            var soulPrice = Runtime.GetTokenQuote(DomainSettings.StakingTokenSymbol, DomainSettings.FiatTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals));
+            var soulPrice = await Runtime.GetTokenQuote(DomainSettings.StakingTokenSymbol, DomainSettings.FiatTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals));
             var soulTotalPrice = soulPrice * UnitConversion.ConvertDecimals(soulTotal, DomainSettings.StakingTokenDecimals, DomainSettings.FiatTokenDecimals);
             BigInteger otherTokensTotalValue = 0;
             BigInteger totalTokenAmount = 0;
@@ -737,7 +736,7 @@ namespace Phantasma.Business.Contracts
                 tokenInfo = Runtime.GetToken(symbol);
 
                 amount = UnitConversion.ConvertDecimals(tokens[symbol], tokenInfo.Decimals, DomainSettings.FiatTokenDecimals);
-                tokenPrice = Runtime.GetTokenQuote(symbol, DomainSettings.FiatTokenSymbol, UnitConversion.ToBigInteger(1, tokenInfo.Decimals));
+                tokenPrice = await Runtime.GetTokenQuote(symbol, DomainSettings.FiatTokenSymbol, UnitConversion.ToBigInteger(1, tokenInfo.Decimals));
 
                 //Console.WriteLine($"{symbol} price {tokenPrice}$  .{tokenInfo.Decimals}  { amount}x{tokenPrice} :{ amount * tokenPrice} -> {UnitConversion.ToDecimal(tokenPrice, DomainSettings.FiatTokenDecimals)}");
                 tokensPrice[symbol] = tokenPrice;
@@ -794,7 +793,7 @@ namespace Phantasma.Business.Contracts
                     //Console.WriteLine($"Trade {UnitConversion.ToDecimal(tokenAmount, tokenInfo.Decimals)} {symbol} for {UnitConversion.ToDecimal(soulAmount, DomainSettings.StakingTokenDecimals)} SOUL\n");
                     totalSOULUsed += soulAmount;
                     Runtime.Expect(soulAmount <= soulTotal, $"SOUL higher than total... {soulAmount}/{soulTotal}");
-                    CreatePool(this.Address, DomainSettings.StakingTokenSymbol, soulAmount, symbol, tokenAmount);
+                    await CreatePool(this.Address, DomainSettings.StakingTokenSymbol, soulAmount, symbol, tokenAmount);
                     Runtime.TransferTokens(symbol, this.Address, caller, tokens[symbol] - tokenAmount);
                 }
             }
@@ -1199,12 +1198,12 @@ namespace Phantasma.Business.Contracts
         /// <param name="amount0">Amount for Symbol0</param>
         /// <param name="symbol1">Symbol of 2nd Token</param>
         /// <param name="amount1">Amount for Symbol1</param>
-        public void CreatePool(Address from, string symbol0, BigInteger amount0, string symbol1,  BigInteger amount1)
+        public async Task CreatePool(Address from, string symbol0, BigInteger amount0, string symbol1,  BigInteger amount1)
         {
             Runtime.Expect(_DEXversion >= 1, "call migrateV3 first");
 
             // Check the if the input is valid
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(amount0 > 0 || amount1 > 0, "invalid amount 0");
             Runtime.Expect(symbol0 == "SOUL" || symbol1 == "SOUL", "Virtual pools are not supported yet!");
 
@@ -1217,8 +1216,8 @@ namespace Phantasma.Business.Contracts
             var token1Info = Runtime.GetToken(symbol1);
             Runtime.Expect(IsSupportedToken(symbol1), "destination token is unsupported");
             
-            var symbol0Price = Runtime.GetTokenQuote(symbol0, DomainSettings.FiatTokenSymbol, UnitConversion.ToBigInteger(1, token0Info.Decimals));
-            var symbol1Price = Runtime.GetTokenQuote(symbol1, DomainSettings.FiatTokenSymbol, UnitConversion.ToBigInteger(1, token1Info.Decimals));
+            var symbol0Price = await Runtime.GetTokenQuote(symbol0, DomainSettings.FiatTokenSymbol, UnitConversion.ToBigInteger(1, token0Info.Decimals));
+            var symbol1Price = await Runtime.GetTokenQuote(symbol1, DomainSettings.FiatTokenSymbol, UnitConversion.ToBigInteger(1, token1Info.Decimals));
             BigInteger tradeRatio = 0;
             BigInteger tradeRatioAmount = 0;
 
@@ -1283,15 +1282,15 @@ namespace Phantasma.Business.Contracts
             // Create the pool
             Pool pool = new Pool(symbol0, symbol1, token0Address.Text, token1Address.Text, amount0, amount1, feeRatio, TLP);
 
-            _pools.Set<string, Pool>($"{symbol0}_{symbol1}", pool);
+            _pools.Set($"{symbol0}_{symbol1}", pool);
 
             // Give LP Token to the address
             LPTokenContentROM nftROM = new LPTokenContentROM(pool.Symbol0, pool.Symbol1, 0);
             LPTokenContentRAM nftRAM = new LPTokenContentRAM(amount0, amount1, TLP);
 
-            var nftID = Runtime.MintToken(DomainSettings.LiquidityTokenSymbol, this.Address, from, VMObject.FromStruct(nftROM).AsByteArray(), VMObject.FromStruct(nftRAM).AsByteArray(), DEXSeriesID);
-            Runtime.TransferTokens(pool.Symbol0, from, this.Address, amount0);
-            Runtime.TransferTokens(pool.Symbol1, from, this.Address, amount1);
+            var nftID = await Runtime.MintToken(DomainSettings.LiquidityTokenSymbol, this.Address, from, VMObject.FromStruct(nftROM).AsByteArray(), VMObject.FromStruct(nftRAM).AsByteArray(), DEXSeriesID);
+            Runtime.TransferTokens(pool.Symbol0, from, Address, amount0);
+            Runtime.TransferTokens(pool.Symbol1, from, Address, amount1);
             AddToLPTokens(from, nftID, pool.Symbol0, pool.Symbol1);
         }
 
@@ -1303,10 +1302,10 @@ namespace Phantasma.Business.Contracts
         /// <param name="amount0">Amount for Symbol0</param>
         /// <param name="symbol1">Symbol of 2nd Token</param>
         /// <param name="amount1">Amount for Symbol1</param>
-        public void AddLiquidity(Address from, string symbol0, BigInteger amount0, string symbol1, BigInteger amount1)
+        public async Task AddLiquidity(Address from, string symbol0, BigInteger amount0, string symbol1, BigInteger amount1)
         {
             // Check input
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(amount0 >= 0, "invalid amount 0");
             Runtime.Expect(amount1 >= 0, "invalid amount 1");
             Runtime.Expect(amount0 > 0 || amount1 > 0, "invalid amount, both amounts can't be 0");
@@ -1324,7 +1323,7 @@ namespace Phantasma.Business.Contracts
             // Check if pool exists
             if (!PoolExists(symbol0, symbol1))
             {
-                CreatePool(from, symbol0, amount0, symbol1, amount1);
+                await CreatePool(from, symbol0, amount0, symbol1, amount1);
                 return;
             }
 
@@ -1430,7 +1429,7 @@ namespace Phantasma.Business.Contracts
 
                 liquidity = lp_amount;
 
-                Runtime.WriteToken(from, DomainSettings.LiquidityTokenSymbol, nftID, VMObject.FromStruct(nftRAM).AsByteArray());
+                await Runtime.WriteToken(from, DomainSettings.LiquidityTokenSymbol, nftID, VMObject.FromStruct(nftRAM).AsByteArray());
             }
             else
             {
@@ -1456,7 +1455,7 @@ namespace Phantasma.Business.Contracts
 
                 liquidity = lp_amount;
 
-                nftID = Runtime.MintToken(DomainSettings.LiquidityTokenSymbol, this.Address, from, VMObject.FromStruct(nftROM).AsByteArray(), VMObject.FromStruct(nftRAM).AsByteArray(), DEXSeriesID);
+                nftID = await Runtime.MintToken(DomainSettings.LiquidityTokenSymbol, this.Address, from, VMObject.FromStruct(nftROM).AsByteArray(), VMObject.FromStruct(nftRAM).AsByteArray(), DEXSeriesID);
                 AddToLPTokens(from, nftID, pool.Symbol0, pool.Symbol1);
             }
 
@@ -1482,10 +1481,10 @@ namespace Phantasma.Business.Contracts
         /// <param name="amount0">Amount for Symbol0</param>
         /// <param name="symbol1">Symbol of 2nd Token</param>
         /// <param name="amount1">Amount for Symbol1</param>
-        public void RemoveLiquidity(Address from, string symbol0, BigInteger amount0, string symbol1, BigInteger amount1)
+        public async Task RemoveLiquidity(Address from, string symbol0, BigInteger amount0, string symbol1, BigInteger amount1)
         {
             // Check input
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(amount0 >= 0 , "invalid amount 0");
             Runtime.Expect(amount1 >= 0 , "invalid amount 1");
             Runtime.Expect(amount0 > 0 || amount1 > 0, "invalid amount, both amounts can't be 0");
@@ -1693,9 +1692,9 @@ namespace Phantasma.Business.Contracts
         /// <param name="from"></param>
         /// <param name="symbol0"></param>
         /// <param name="symbol1"></param>
-        public void ClaimFees(Address from, string symbol0, string symbol1)
+        public async Task ClaimFees(Address from, string symbol0, string symbol1)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             // Check if user has LP Token
             Runtime.Expect(UserHasLP(from, symbol0, symbol1), "User doesn't have LP");

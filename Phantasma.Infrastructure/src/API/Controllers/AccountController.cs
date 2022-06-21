@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core;
 
@@ -10,7 +11,7 @@ namespace Phantasma.Infrastructure.Controllers
         [APIInfo(typeof(AccountResult), "Returns the account name and balance of given address.", false, 10)]
         [APIFailCase("address is invalid", "ABCD123")]
         [HttpGet("GetAccount")]
-        public AccountResult GetAccount([APIParameter("Address of account", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string account)
+        public async Task<AccountResult> GetAccount([APIParameter("Address of account", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string account)
         {
             if (!Address.IsValidAddress(account))
             {
@@ -23,7 +24,7 @@ namespace Phantasma.Infrastructure.Controllers
 
             try
             {
-                result = NexusAPI.FillAccount(address);
+                result = await NexusAPI.FillAccount(address);
             }
             catch (Exception e)
             {
@@ -35,7 +36,7 @@ namespace Phantasma.Infrastructure.Controllers
 
         [APIInfo(typeof(AccountResult[]), "Returns data about several accounts.", false, 10)]
         [HttpGet("GetAccounts")]
-        public AccountResult[] GetAccounts([APIParameter("Multiple addresses separated by comma", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV,PDHcFHq2femFnj2ZaFc7iu3qD4XjZG9eVZXuwDrtJGDhj")] string accountText)
+        public async Task<AccountResult[]> GetAccounts([APIParameter("Multiple addresses separated by comma", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV,PDHcFHq2femFnj2ZaFc7iu3qD4XjZG9eVZXuwDrtJGDhj")] string accountText)
         {
             var accounts = accountText.Split(',');
 
@@ -54,7 +55,7 @@ namespace Phantasma.Infrastructure.Controllers
 
                 try
                 {
-                    result = NexusAPI.FillAccount(address);
+                    result = await NexusAPI.FillAccount(address);
                     list.Add(result);
                 }
                 catch (Exception e)
