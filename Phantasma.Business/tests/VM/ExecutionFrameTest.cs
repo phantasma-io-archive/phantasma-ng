@@ -1,4 +1,5 @@
-﻿using Xunit;
+﻿using Phantasma.Core;
+using Xunit;
 
 namespace Phantasma.Business.Tests.VM;
 

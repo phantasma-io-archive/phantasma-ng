@@ -17,7 +17,7 @@ namespace Phantasma.Business.Tests
             block.Timestamp.ShouldBe(Timestamp.Null);
             block.Payload.ShouldBe(null);
             block.Events.ShouldBe(new List<Event>());
-            block.OracleData.ShouldBe(new IOracleEntry[0]);
+            block.OracleData.ShouldBe(new OracleEntry[0]);
             block.TransactionCount.ShouldBe(0);
             // TODO: Need to check transactions to be null
             //block.PreviousHash.ShouldBeNull<Hash>(Hash.Null);

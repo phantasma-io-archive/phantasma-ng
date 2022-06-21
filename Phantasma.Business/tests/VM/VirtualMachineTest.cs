@@ -21,7 +21,7 @@ public class VirtualMachineTest
             return ExecutionState.Running;
         }
 
-        public override IExecutionContext LoadContext(string contextName)
+        public override ExecutionContext LoadContext(string contextName)
         {
             return null;
         }
@@ -47,7 +47,7 @@ public class VirtualMachineTest
             return base.ValidateOpcode(opcode);
         }
 
-        public ExecutionState SwitchContext(IExecutionContext context, uint instructionPointer)
+        public ExecutionState SwitchContext(ExecutionContext context, uint instructionPointer)
         {
             var result = base.SwitchContext(context, instructionPointer);
             return result;
@@ -63,7 +63,7 @@ public class VirtualMachineTest
             this.Name = name;
         }
         
-        public override ExecutionState Execute(IExecutionFrame frame, Stack<VMObject> stack)
+        public override ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack)
         {
             return ExecutionState.Halt;
         }
@@ -95,7 +95,7 @@ public class VirtualMachineTest
     public void pushFrame_test()
     {
         VirtualMachine = new VirtualTestMachine(new byte[]{}, 0, "test");
-        IExecutionContext executionContext = VirtualMachine.CurrentContext;
+        ExecutionContext executionContext = VirtualMachine.CurrentContext;
         Should.NotThrow(() =>
         {
             VirtualMachine.PushFrame(executionContext, 0, 1);

@@ -12,7 +12,7 @@ namespace Phantasma.Business.Tests
         [Fact]
         public void null_transaction_test()
         {
-            var transaction = new Transaction();
+            var transaction = new Phantasma.Core.Transaction();
             transaction.NexusName.ShouldBe(null);
             transaction.ChainName.ShouldBe(null);
             transaction.Hash.ShouldBeOfType<Hash>();
