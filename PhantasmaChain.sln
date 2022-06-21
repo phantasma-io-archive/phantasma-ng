@@ -20,7 +20,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Core.Tests", "Pha
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Core", "Phantasma.Core\src\Phantasma.Core.csproj", "{A99DFE65-B9A8-4B8A-B578-C637AF46E395}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Phantasma.Business.Tests", "Phantasma.Business\tests\Phantasma.Business.Tests.csproj", "{14165ECB-87D0-4746-A9D8-88E775FF1160}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Business.Tests", "Phantasma.Business\tests\Phantasma.Business.Tests.csproj", "{14165ECB-87D0-4746-A9D8-88E775FF1160}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Phantasma.Business", "Phantasma.Business", "{E3B46868-2261-426C-9150-7F53D8874389}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Phantasma.Node", "Phantasma.Node", "{08A64D1E-C03B-474E-990A-148C4282FED2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Phantasma.Node.Tests", "Phantasma.Node.Tests\Phantasma.Node.Tests.csproj", "{B535858F-B9E9-4DC1-9870-8F440BA9EFDC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -140,13 +146,29 @@ Global
 		{14165ECB-87D0-4746-A9D8-88E775FF1160}.Release|x64.Build.0 = Release|Any CPU
 		{14165ECB-87D0-4746-A9D8-88E775FF1160}.Release|x86.ActiveCfg = Release|Any CPU
 		{14165ECB-87D0-4746-A9D8-88E775FF1160}.Release|x86.Build.0 = Release|Any CPU
+		{B535858F-B9E9-4DC1-9870-8F440BA9EFDC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B535858F-B9E9-4DC1-9870-8F440BA9EFDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B535858F-B9E9-4DC1-9870-8F440BA9EFDC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B535858F-B9E9-4DC1-9870-8F440BA9EFDC}.Debug|x64.Build.0 = Debug|Any CPU
+		{B535858F-B9E9-4DC1-9870-8F440BA9EFDC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B535858F-B9E9-4DC1-9870-8F440BA9EFDC}.Debug|x86.Build.0 = Debug|Any CPU
+		{B535858F-B9E9-4DC1-9870-8F440BA9EFDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B535858F-B9E9-4DC1-9870-8F440BA9EFDC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B535858F-B9E9-4DC1-9870-8F440BA9EFDC}.Release|x64.ActiveCfg = Release|Any CPU
+		{B535858F-B9E9-4DC1-9870-8F440BA9EFDC}.Release|x64.Build.0 = Release|Any CPU
+		{B535858F-B9E9-4DC1-9870-8F440BA9EFDC}.Release|x86.ActiveCfg = Release|Any CPU
+		{B535858F-B9E9-4DC1-9870-8F440BA9EFDC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{31F2E65A-AD01-4BB3-8825-7E3B0042CB42} = {E3B46868-2261-426C-9150-7F53D8874389}
+		{D25C9B91-42E8-42AD-932D-CA3CEEB2BE93} = {08A64D1E-C03B-474E-990A-148C4282FED2}
 		{F4749737-2E38-47B4-A5E2-436E99DB672C} = {F7CCB749-3D6F-4224-9044-4665CB3E6ED5}
 		{A99DFE65-B9A8-4B8A-B578-C637AF46E395} = {F7CCB749-3D6F-4224-9044-4665CB3E6ED5}
+		{14165ECB-87D0-4746-A9D8-88E775FF1160} = {E3B46868-2261-426C-9150-7F53D8874389}
+		{B535858F-B9E9-4DC1-9870-8F440BA9EFDC} = {08A64D1E-C03B-474E-990A-148C4282FED2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2118B4E7-09F1-45EA-A596-12BF1C492CA1}

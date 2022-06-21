@@ -46,12 +46,6 @@ public class VirtualMachineTest
         {
             return base.ValidateOpcode(opcode);
         }
-
-        public ExecutionState SwitchContext(ExecutionContext context, uint instructionPointer)
-        {
-            var result = base.SwitchContext(context, instructionPointer);
-            return result;
-        }
     }
 
     public class TestExecutionContextDummy : ExecutionContext
