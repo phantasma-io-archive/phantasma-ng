@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Phantasma.Core
 {
@@ -53,7 +54,7 @@ namespace Phantasma.Core
 
     public interface ITokenSwapper
     {
-        Hash SettleSwap(string sourcePlatform, string destPlatform, Hash sourceHash);
+        Task<Hash> SettleSwap(string sourcePlatform, string destPlatform, Hash sourceHash);
         IEnumerable<ChainSwap> GetPendingSwaps(Address address);
 
         bool SupportsSwap(string sourcePlatform, string destPlatform);

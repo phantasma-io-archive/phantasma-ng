@@ -138,20 +138,20 @@ namespace Phantasma.Node.Chains
 
         }
 
-        public EthTransferResult TryTransferAsset(string symbol, string toAddress, decimal amount, int decimals, out string result)
+        public async Task<(EthTransferResult, string)> TryTransferAsset(string symbol, string toAddress, decimal amount, int decimals)
         {
             var nexus = NexusAPI.GetNexus();
 
             if (symbol.Equals("ETH", StringComparison.InvariantCultureIgnoreCase))
             {
-                var bytes = nexus.GetOracleReader().Read<byte[]>(DateTime.Now, DomainExtensions.GetOracleFeeURL("ethereum"));
+                var bytes = await nexus.GetOracleReader().Read<byte[]>(DateTime.Now, DomainExtensions.GetOracleFeeURL("ethereum"));
                 var fees = new BigInteger(bytes);
                 var gasPrice = Core.UnitConversion.ToDecimal(fees / Settings.Default.Oracle.EthGasLimit, 9);
 
-                result = EthUtils.RunSync(() => GetWeb3Client().Eth.GetEtherTransferService()
-                        .TransferEtherAsync(toAddress, amount, gasPrice, Settings.Default.Oracle.EthGasLimit));
+                var result = EthUtils.RunSync(() => GetWeb3Client().Eth.GetEtherTransferService()
+                                     .TransferEtherAsync(toAddress, amount, gasPrice, Settings.Default.Oracle.EthGasLimit));
 
-                return EthTransferResult.Success;
+                return (EthTransferResult.Success, result);
             }
             else
             {
@@ -165,15 +165,13 @@ namespace Phantasma.Node.Chains
 
                 if (hash.IsNull)
                 {
-                    result = null;
-                    return EthTransferResult.Failure;
+                    return (EthTransferResult.Failure, null);
                 }
 
                 var contractAddress = hash.ToString().Substring(0, 40);
                 if (string.IsNullOrEmpty(contractAddress))
                 {
-                    result = null;
-                    return EthTransferResult.Failure;
+                    return (EthTransferResult.Failure, null);
                 }
 
                 string outTransactionHash = null;
@@ -189,7 +187,7 @@ namespace Phantasma.Node.Chains
                     var swapInHandler = GetWeb3Client().Eth.GetContractTransactionHandler<SwapInFunction>();
 
                     swapIn.Gas = Settings.Default.Oracle.EthGasLimit;
-                    var bytes = nexus.GetOracleReader().Read<byte[]>(DateTime.Now, DomainExtensions.GetOracleFeeURL("ethereum"));
+                    var bytes = await nexus.GetOracleReader().Read<byte[]>(DateTime.Now, DomainExtensions.GetOracleFeeURL("ethereum"));
                     var fees = new BigInteger(bytes);
                     swapIn.GasPrice = BigInteger.Parse(fees.ToString()) / swapIn.Gas;
 
@@ -210,9 +208,7 @@ namespace Phantasma.Node.Chains
 
                 }
 
-                result = outTransactionHash;
-
-                return EthTransferResult.Success;
+                return (EthTransferResult.Success, outTransactionHash);
             }
         }
 

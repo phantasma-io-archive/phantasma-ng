@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using Phantasma.Shared;
 using Phantasma.Core.Context;
+using System.Threading.Tasks;
 
 namespace Phantasma.Core
 {
@@ -220,7 +221,7 @@ namespace Phantasma.Core
             return method.Invoke(this, args);
         }
 
-        private object CastArgument(IRuntime runtime, object arg, Type expectedType)
+        private async Task<object> CastArgument(IRuntime runtime, object arg, Type expectedType)
         {
             if (arg == null)
             {
@@ -306,7 +307,7 @@ namespace Phantasma.Core
                     else
                     {
                         // when a name string is passed instead of an address we do an automatic lookup and replace
-                        address = runtime.LookUpName(text);
+                        address = await runtime.LookUpName(text);
                     }
 
                     return address;

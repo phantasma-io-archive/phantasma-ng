@@ -65,7 +65,7 @@ namespace Phantasma.Node.Interop
                 _resyncBlockIds.Add(blockId);
             }
         }
-
+        //todo: cannot convert to async/await due to lock. Is it necessary?
         public override IEnumerable<PendingSwap> Update()
         {
             lock (String.Intern("PendingSetCurrentHeight_" + "neo"))
@@ -86,7 +86,7 @@ namespace Phantasma.Node.Interop
 
                     foreach (var block in allInteropBlocks)
                     {
-                        ProcessBlock(block, result);
+                        ProcessBlock(block, result).RunSynchronously();
                     }
 
                     initialStart = false;
@@ -105,7 +105,11 @@ namespace Phantasma.Node.Interop
                             {
                                 //Log.Debug($"read block {entry.Value}");
                                 var url = DomainExtensions.GetOracleBlockURL("neo", "neo", BigInteger.Parse(entry.Value.ToString()));
-                                blockList.Add(OracleReader.Read<InteropBlock>(DateTime.Now, url));
+
+                                //todo: blocking call. Address this later.
+                                var task = OracleReader.Read<InteropBlock>(DateTime.Now, url);
+                                task.RunSynchronously();
+                                blockList.Add(task.Result);
                             }
 
                             // get blocks and order them for processing
@@ -118,7 +122,7 @@ namespace Phantasma.Node.Interop
                             foreach (var entry in blocksToProcess.OrderBy(x => x.id))
                             {
                                 Log.Debug($"process block {entry.id}");
-                                ProcessBlock(entry.block, result);
+                                ProcessBlock(entry.block, result).RunSynchronously();
                                 OracleReader.SetCurrentHeight("neo", "neo", _interopBlockHeight.ToString());
                                 _interopBlockHeight = BigInteger.Parse(entry.id.ToString());
                             }
@@ -157,7 +161,8 @@ namespace Phantasma.Node.Interop
 
                                 Log.Debug($"NeoInterop: Update() resync block {blockId} now.");
                                 var interopBlock = GetInteropBlock(blockId);
-                                ProcessBlock(interopBlock, result);
+                                interopBlock.RunSynchronously();
+                                ProcessBlock(interopBlock.Result, result).RunSynchronously();
                                 _resyncBlockIds.RemoveAt(i);
                             }
                         }
@@ -181,7 +186,7 @@ namespace Phantasma.Node.Interop
                             {
                                 var block = task.Result;
 
-                                ProcessBlock(block, result);
+                                ProcessBlock(block, result).RunSynchronously();
                             }
 
                             OracleReader.SetCurrentHeight("neo", "neo", _interopBlockHeight.ToString());
@@ -189,9 +194,11 @@ namespace Phantasma.Node.Interop
                         }
                         else
                         {
-                            var interopBlock = GetInteropBlock(_interopBlockHeight);
+                            var task = GetInteropBlock(_interopBlockHeight);
+                            task.RunSynchronously();
+                            var interopBlock = task.Result;
 
-                            ProcessBlock(interopBlock, result);
+                            ProcessBlock(interopBlock, result).RunSynchronously();
 
                             OracleReader.SetCurrentHeight("neo", "neo", _interopBlockHeight.ToString());
                             _interopBlockHeight++;
@@ -206,7 +213,7 @@ namespace Phantasma.Node.Interop
             }
         }
 
-        private InteropBlock GetInteropBlock(BigInteger blockId)
+        private Task<InteropBlock> GetInteropBlock(BigInteger blockId)
         {
             var url = DomainExtensions.GetOracleBlockURL(
                 "neo", "neo", blockId);
@@ -246,44 +253,41 @@ namespace Phantasma.Node.Interop
 
         private Task<InteropBlock> CreateTask(string url)
         {
-            return new Task<InteropBlock>(() =>
-                   {
-                       var delay = 1000;
+            var delay = 1000;
 
-                       while (true)
-                       {
-                           try
-                           {
-                               return OracleReader.Read<InteropBlock>(DateTime.Now, url);
-                           }
-                           catch (Exception e)
-                           {
-                               var logMessage = "oracleReader.Read() exception caught:\n" + e.Message;
-                               var inner = e.InnerException;
-                               while (inner != null)
-                               {
-                                   logMessage += "\n---> " + inner.Message + "\n\n" + inner.StackTrace;
-                                   inner = inner.InnerException;
-                               }
-                               logMessage += "\n\n" + e.StackTrace;
+            while (true)
+            {
+                try
+                {
+                    return OracleReader.Read<InteropBlock>(DateTime.Now, url);
+                }
+                catch (Exception e)
+                {
+                    var logMessage = "oracleReader.Read() exception caught:\n" + e.Message;
+                    var inner = e.InnerException;
+                    while (inner != null)
+                    {
+                        logMessage += "\n---> " + inner.Message + "\n\n" + inner.StackTrace;
+                        inner = inner.InnerException;
+                    }
+                    logMessage += "\n\n" + e.StackTrace;
 
-                               Log.Error(logMessage.Contains("Neo block is null") ? "oracleReader.Read(): Neo block is null, possible connection failure" : logMessage);
-                           }
+                    Log.Error(logMessage.Contains("Neo block is null") ? "oracleReader.Read(): Neo block is null, possible connection failure" : logMessage);
+                }
 
-                           Thread.Sleep(delay);
-                           if (delay >= 60000) // Once we reach 1 minute, we stop increasing delay and just repeat every minute.
-                               delay = 60000;
-                           else
-                               delay *= 2;
-                       }
-                   });
+                Thread.Sleep(delay);
+                if (delay >= 60000) // Once we reach 1 minute, we stop increasing delay and just repeat every minute.
+                    delay = 60000;
+                else
+                    delay *= 2;
+            }
         }
 
-        private void ProcessBlock(InteropBlock block, List<PendingSwap> result)
+        private async Task ProcessBlock(InteropBlock block, List<PendingSwap> result)
         {
             foreach (var txHash in block.Transactions)
             {
-                var interopTx = OracleReader.ReadTransaction("neo", "neo", txHash);
+                var interopTx = await OracleReader.ReadTransaction("neo", "neo", txHash);
 
                 if (interopTx.Transfers.Length == 0)
                 {
@@ -757,7 +761,7 @@ namespace Phantasma.Node.Interop
 
 
         // NOTE no locks happen here because this callback is called from within a lock
-        internal override Hash SettleSwap(Hash sourceHash, Address destination, IToken token, BigInteger amount)
+        internal override Task<Hash> SettleSwap(Hash sourceHash, Address destination, IToken token, BigInteger amount)
         {
             Hash txHash = Hash.Null;
             string txStr = null;
@@ -771,7 +775,7 @@ namespace Phantasma.Node.Interop
 
                 if (!string.IsNullOrEmpty(txStr))
                 {
-                    return VerifyNeoTx(sourceHash, txStr);
+                    return Task.FromResult(VerifyNeoTx(sourceHash, txStr));
                 }
             }
 
@@ -808,18 +812,18 @@ namespace Phantasma.Node.Interop
             catch (Exception e)
             {
                 Log.Error("Error during transfering {token.Symbol}: " + e);
-                return Hash.Null;
+                return Task.FromResult(Hash.Null);
             }
 
             if (tx == null)
             {
                 Log.Error($"NeoAPI error {neoAPI.LastError} or possible failed neo swap sourceHash: {sourceHash} no transfer happend.");
-                return Hash.Null;
+                return Task.FromResult(Hash.Null);
             }
 
             var strHash = tx.Hash.ToString();
 
-            return VerifyNeoTx(sourceHash, strHash);
+            return Task.FromResult(VerifyNeoTx(sourceHash, strHash));
         }
     }
 }

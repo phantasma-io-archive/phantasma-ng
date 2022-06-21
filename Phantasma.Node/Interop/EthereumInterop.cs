@@ -108,7 +108,8 @@ namespace Phantasma.Node.Interop
                                 {
                                     Log.Debug($"EthInterop:Update() resync block {blockId} now.");
                                     var block = GetInteropBlock(blockId);
-                                    ProcessBlock(block, ref result);
+                                    block.RunSynchronously();
+                                    ProcessBlock(block.Result, ref result);
                                 }
                                 catch (Exception e)
                                 {
@@ -164,9 +165,9 @@ namespace Phantasma.Node.Interop
                         var url = DomainExtensions.GetOracleBlockURL(
                                 EthereumWallet.EthereumPlatform, EthereumWallet.EthereumPlatform, _interopBlockHeight);
 
-                        var interopBlock = OracleReader.Read<InteropBlock>(DateTime.Now, url);
-
-                        ProcessBlock(interopBlock, ref result);
+                        var task = OracleReader.Read<InteropBlock>(DateTime.Now, url);
+                        task.RunSynchronously();
+                        ProcessBlock(task.Result, ref result);
 
                         _interopBlockHeight++;
                         //}
@@ -256,44 +257,43 @@ namespace Phantasma.Node.Interop
 
         private Task<InteropBlock> CreateTask(string url)
         {
-            return new Task<InteropBlock>(() =>
-                   {
-                       var delay = 1000;
+            var delay = 1000;
 
-                       while (true)
-                       {
-                           try
-                           {
-                               return OracleReader.Read<InteropBlock>(DateTime.Now, url);
-                           }
-                           catch (Exception e)
-                           {
-                               var logMessage = "oracleReader.Read() exception caught:\n" + e.Message;
-                               var inner = e.InnerException;
-                               while (inner != null)
-                               {
-                                   logMessage += "\n---> " + inner.Message + "\n\n" + inner.StackTrace;
-                                   inner = inner.InnerException;
-                               }
-                               logMessage += "\n\n" + e.StackTrace;
+            while (true)
+            {
+                try
+                {
+                    return OracleReader.Read<InteropBlock>(DateTime.Now, url);
+                }
+                catch (Exception e)
+                {
+                    var logMessage = "oracleReader.Read() exception caught:\n" + e.Message;
+                    var inner = e.InnerException;
+                    while (inner != null)
+                    {
+                        logMessage += "\n---> " + inner.Message + "\n\n" + inner.StackTrace;
+                        inner = inner.InnerException;
+                    }
+                    logMessage += "\n\n" + e.StackTrace;
 
-                               Log.Error(logMessage.Contains("Ethereum block is null") ? "oracleReader.Read(): Ethereum block is null, possible connection failure" : logMessage);
-                           }
+                    Log.Error(logMessage.Contains("Ethereum block is null") ? "oracleReader.Read(): Ethereum block is null, possible connection failure" : logMessage);
+                }
 
-                           Thread.Sleep(delay);
-                           if (delay >= 60000) // Once we reach 1 minute, we stop increasing delay and just repeat every minute.
-                               delay = 60000;
-                           else
-                               delay *= 2;
-                       }
-                   });
+                Thread.Sleep(delay);
+                if (delay >= 60000) // Once we reach 1 minute, we stop increasing delay and just repeat every minute.
+                    delay = 60000;
+                else
+                    delay *= 2;
+            }
         }
 
         private void ProcessBlock(InteropBlock block, ref List<PendingSwap> result)
         {
             foreach (var txHash in block.Transactions)
             {
-                var interopTx = OracleReader.ReadTransaction(EthereumWallet.EthereumPlatform, "ethethereum", txHash);
+                var task = OracleReader.ReadTransaction(EthereumWallet.EthereumPlatform, "ethethereum", txHash);
+                task.RunSynchronously();
+                var interopTx = task.Result;
 
                 foreach (var interopTransfer in interopTx.Transfers)
                 {
@@ -308,7 +308,7 @@ namespace Phantasma.Node.Interop
             }
         }
 
-        private InteropBlock GetInteropBlock(BigInteger blockId)
+        private Task<InteropBlock> GetInteropBlock(BigInteger blockId)
         {
             var url = DomainExtensions.GetOracleBlockURL(
                 EthereumWallet.EthereumPlatform, EthereumWallet.EthereumPlatform, blockId);
@@ -721,14 +721,11 @@ namespace Phantasma.Node.Interop
 
 
         // NOTE no locks happen here because this callback is called from within a lock
-        internal override Hash SettleSwap(Hash sourceHash, Address destination, IToken token, BigInteger amount)
+        internal override async Task<Hash> SettleSwap(Hash sourceHash, Address destination, IToken token, BigInteger amount)
         {
-            // check if tx was sent but not minded yet
-            string tx = null;
-
             var inProgressMap = new StorageMap(TokenSwapper.InProgressTag, Swapper.Storage);
-
-            if (inProgressMap.ContainsKey<Hash>(sourceHash))
+            string tx;
+            if (inProgressMap.ContainsKey(sourceHash))
             {
                 tx = inProgressMap.Get<Hash, string>(sourceHash);
 
@@ -738,21 +735,21 @@ namespace Phantasma.Node.Interop
                 }
             }
 
-            var total = Core.UnitConversion.ToDecimal(amount, token.Decimals);
+            var total = UnitConversion.ToDecimal(amount, token.Decimals);
 
-            var ethKeys = EthereumKey.FromWIF(this.WIF);
+            var ethKeys = EthereumKey.FromWIF(WIF);
 
             var destAddress = EthereumWallet.DecodeAddress(destination);
 
             try
             {
                 Log.Debug($"ETHSWAP: Trying transfer of {total} {token.Symbol} from {ethKeys.Address} to {destAddress}");
-                var transferResult = ethAPI.TryTransferAsset(token.Symbol, destAddress, total, token.Decimals, out tx);
+                (var transferResult, tx) = await ethAPI.TryTransferAsset(token.Symbol, destAddress, total, token.Decimals);
 
                 if (transferResult == EthTransferResult.Success)
                 {
                     // persist resulting tx hash as in progress
-                    inProgressMap.Set<Hash, string>(sourceHash, tx);
+                    inProgressMap.Set(sourceHash, tx);
                     Log.Debug("broadcasted eth tx: " + tx);
                 }
                 else

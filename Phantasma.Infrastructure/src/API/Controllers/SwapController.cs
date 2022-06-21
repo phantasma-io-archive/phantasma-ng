@@ -13,7 +13,7 @@ namespace Phantasma.Infrastructure.Controllers
     {
         [APIInfo(typeof(string), "Tries to settle a pending swap for a specific hash.", false, 0, true)]
         [HttpGet("SettleSwap")]
-        public string SettleSwap([APIParameter("Name of platform where swap transaction was created", "phantasma")] string sourcePlatform
+        public async Task<string> SettleSwap([APIParameter("Name of platform where swap transaction was created", "phantasma")] string sourcePlatform
                 , [APIParameter("Name of platform to settle", "phantasma")] string destPlatform
                 , [APIParameter("Hash of transaction to settle", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText)
         {
@@ -59,7 +59,7 @@ namespace Phantasma.Infrastructure.Controllers
 
             try
             {
-                var destHash = tokenSwapper.SettleSwap(sourcePlatform, destPlatform, hash);
+                var destHash = await tokenSwapper.SettleSwap(sourcePlatform, destPlatform, hash);
 
                 if (destHash == Hash.Null)
                 {

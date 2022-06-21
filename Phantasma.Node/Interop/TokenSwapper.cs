@@ -123,7 +123,7 @@ namespace Phantasma.Node.Interop
         public abstract IEnumerable<PendingSwap> Update();
         public abstract void ResyncBlock(System.Numerics.BigInteger blockId);
 
-        internal abstract Hash SettleSwap(Hash sourceHash, Address destination, IToken token, BigInteger amount);
+        internal abstract Task<Hash> SettleSwap(Hash sourceHash, Address destination, IToken token, BigInteger amount);
         internal abstract Hash VerifyExternalTx(Hash sourceHash, string txStr);
     }
 
@@ -420,7 +420,7 @@ namespace Phantasma.Node.Interop
             }
         }
 
-        public Hash SettleSwap(string sourcePlatform, string destPlatform, Hash sourceHash)
+        public async Task<Hash> SettleSwap(string sourcePlatform, string destPlatform, Hash sourceHash)
         {
             Log.Debug("settleSwap called " + sourceHash);
             Log.Debug("dest platform " + destPlatform);
@@ -483,7 +483,7 @@ namespace Phantasma.Node.Interop
                 throw new SwapException("Invalid source platform");
             }
 
-            return SettleSwapToExternal(sourceHash, destPlatform);
+            return await SettleSwapToExternal(sourceHash, destPlatform);
         }
 
 
@@ -509,8 +509,9 @@ namespace Phantasma.Node.Interop
             }
 
             var nexus = NexusAPI.GetNexus();
-
-            var hash = (Hash)nexus.RootChain.InvokeContract(nexus.RootStorage, "interop", nameof(InteropContract.GetSettlement), sourcePlatform, sourceHash).ToObject();
+            var task = nexus.RootChain.InvokeContract(nexus.RootStorage, "interop", nameof(InteropContract.GetSettlement), sourcePlatform, sourceHash).ToObject();
+            task.RunSynchronously();
+            var hash = (Hash)task.Result;
             if (hash != Hash.Null && !settlements.ContainsKey<Hash>(sourceHash))
             {
                 // This modification should be locked when GetSettleHash() is called from SettleSwap(),
@@ -627,9 +628,9 @@ namespace Phantasma.Node.Interop
         }
 
 
-        private Hash SettleSwapToExternal(Hash sourceHash, string destPlatform)
+        private async Task<Hash> SettleSwapToExternal(Hash sourceHash, string destPlatform)
         {
-            var swap = OracleReader.ReadTransaction(DomainSettings.PlatformName, DomainSettings.RootChainName, sourceHash);
+            var swap = await OracleReader.ReadTransaction(DomainSettings.PlatformName, DomainSettings.RootChainName, sourceHash);
             var transfers = swap.Transfers.Where(x => x.destinationAddress.IsInterop).ToArray();
 
             // TODO not support yet
@@ -661,8 +662,9 @@ namespace Phantasma.Node.Interop
                 }
 
                 var chainSwapper = _swappers[destPlatform];
-
-                destHash = chainSwapper.SettleSwap(sourceHash, transfer.destinationAddress, token, transfer.Value);
+                var task = chainSwapper.SettleSwap(sourceHash, transfer.destinationAddress, token, transfer.Value);
+                task.RunSynchronously();
+                destHash = task.Result;
 
                 // if the asset transfer was sucessfull, we prepare a fee settlement on the mainnet
                 if (destHash != Hash.Null)

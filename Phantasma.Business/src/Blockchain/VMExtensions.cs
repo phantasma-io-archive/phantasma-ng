@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Diagnostics;
 using Phantasma.Shared;
 using Phantasma.Core;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business
 {
@@ -70,7 +71,7 @@ namespace Phantasma.Business
             return temp.AsByteArray();
         }
 
-        public static Address PopAddress(this RuntimeVM vm)
+        public static async Task<Address> PopAddress(this RuntimeVM vm)
         {
             var temp = vm.Stack.Pop();
 
@@ -83,7 +84,7 @@ namespace Phantasma.Business
                         {
                             return Address.FromText(text);
                         }
-                        return vm.Chain.LookUpName(vm.Storage, text);
+                        return await vm.Chain.LookUpName(vm.Storage, text);
                     }
 
                 case VMType.Bytes:

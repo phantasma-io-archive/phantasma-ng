@@ -206,12 +206,12 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_Notify(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_Notify(RuntimeVM vm)
         {
             vm.Expect(vm.CurrentContext.Name != VirtualMachine.EntryContextName, "cannot notify in current context");
 
             var kind = vm.Stack.Pop().AsEnum<EventKind>();
-            var address = vm.PopAddress();
+            var address = await vm.PopAddress();
             var obj = vm.Stack.Pop();
 
             var bytes = obj.Serialize();
@@ -222,7 +222,7 @@ namespace Phantasma.Business
 
         #region ORACLES
         // TODO proper exceptions
-        private static ExecutionState Oracle_Read(RuntimeVM vm)
+        private static async Task<ExecutionState> Oracle_Read(RuntimeVM vm)
         {
             vm.ExpectStackSize(1);
 
@@ -239,7 +239,7 @@ namespace Phantasma.Business
                 return ExecutionState.Fault;
             }
 
-            var result = vm.Oracle.Read<byte[]>(vm.Time,/*vm.Transaction.Hash, */url);
+            var result = await vm.Oracle.Read<byte[]>(vm.Time,/*vm.Transaction.Hash, */url);
             vm.Stack.Push(VMObject.FromObject(result));
 
             return ExecutionState.Running;
@@ -342,7 +342,7 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_IsMinter(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_IsMinter(RuntimeVM vm)
         {
             try
             {
@@ -351,7 +351,7 @@ namespace Phantasma.Business
 
                 vm.ExpectStackSize(1);
 
-                var address = vm.PopAddress();
+                var address = await vm.PopAddress();
                 var symbol = vm.PopString("symbol");
 
                 bool success = vm.IsMintingAddress(address, symbol);
@@ -465,7 +465,7 @@ namespace Phantasma.Business
         }
 
 
-        private static ExecutionState Runtime_IsWitness(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_IsWitness(RuntimeVM vm)
         {
             try
             {
@@ -474,10 +474,10 @@ namespace Phantasma.Business
 
                 vm.ExpectStackSize(1);
 
-                var address = vm.PopAddress();
+                var address = await vm.PopAddress();
                 //var success = tx.IsSignedBy(address);
                 // TODO check if this was just a bug or there was a real reason 
-                var success = vm.IsWitness(address);
+                var success = await vm.IsWitness(address);
 
                 var result = new VMObject();
                 result.SetValue(success);
@@ -872,11 +872,11 @@ namespace Phantasma.Business
         }
         #endregion
 
-        private static ExecutionState Runtime_GetBalance(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_GetBalance(RuntimeVM vm)
         {
             vm.ExpectStackSize(2);
 
-            var source = vm.PopAddress();
+            var source = await vm.PopAddress();
             var symbol = vm.PopString("symbol");
 
             var balance = vm.GetBalance(symbol, source);
@@ -888,12 +888,12 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_TransferTokens(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_TransferTokens(RuntimeVM vm)
         {
             vm.ExpectStackSize(4);
 
-            var source = vm.PopAddress();
-            var destination = vm.PopAddress();
+            var source = await vm.PopAddress();
+            var destination = await vm.PopAddress();
 
             var symbol = vm.PopString("symbol");
             var amount = vm.PopNumber("amount");
@@ -903,12 +903,12 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_TransferBalance(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_TransferBalance(RuntimeVM vm)
         {
             vm.ExpectStackSize(3);
 
-            var source = vm.PopAddress();
-            var destination = vm.PopAddress();
+            var source = await vm.PopAddress();
+            var destination = await vm.PopAddress();
 
             var symbol = vm.PopString("symbol");
 
@@ -922,7 +922,7 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_SwapTokens(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_SwapTokens(RuntimeVM vm)
         {
             vm.ExpectStackSize(5);
 
@@ -932,8 +932,8 @@ namespace Phantasma.Business
             vm.Expect(temp.Type == VMType.String, "expected string for target chain");
             var targetChain = temp.AsString();
 
-            var source = vm.PopAddress();
-            var destination = vm.PopAddress();
+            var source = await vm.PopAddress();
+            var destination = await vm.PopAddress();
 
             temp = vm.Stack.Pop();
             vm.Expect(temp.Type == VMType.String, "expected string for symbol");
@@ -941,17 +941,17 @@ namespace Phantasma.Business
 
             var value = vm.PopNumber("amount");
 
-            vm.SwapTokens(vm.Chain.Name, source, targetChain, destination, symbol, value);
+            await vm.SwapTokens(vm.Chain.Name, source, targetChain, destination, symbol, value);
 
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_MintTokens(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_MintTokens(RuntimeVM vm)
         {
             vm.ExpectStackSize(4);
 
-            var source = vm.PopAddress();
-            var destination = vm.PopAddress();
+            var source = await vm.PopAddress();
+            var destination = await vm.PopAddress();
 
             var symbol = vm.PopString("symbol");
             var amount = vm.PopNumber("amount");
@@ -962,17 +962,17 @@ namespace Phantasma.Business
                 vm.Expect(isMinter, $"{source} is not a valid minting address for {symbol}");
             }
 
-            vm.MintTokens(symbol, source, destination, amount);
+            await vm.MintTokens(symbol, source, destination, amount);
 
             return ExecutionState.Running;
         }
 
 
-        private static ExecutionState Runtime_BurnTokens(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_BurnTokens(RuntimeVM vm)
         {
             vm.ExpectStackSize(3);
 
-            var target = vm.PopAddress();
+            var target = await vm.PopAddress();
             var symbol = vm.PopString("symbol");
             var amount = vm.PopNumber("amount");
 
@@ -981,14 +981,14 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_TransferToken(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_TransferToken(RuntimeVM vm)
         {
             vm.ExpectStackSize(4);
             
             VMObject temp;
 
-            var source = vm.PopAddress();
-            var destination = vm.PopAddress();
+            var source = await vm.PopAddress();
+            var destination = await vm.PopAddress();
 
             temp = vm.Stack.Pop();
             vm.Expect(temp.Type == VMType.String, "expected string for symbol");
@@ -996,17 +996,17 @@ namespace Phantasma.Business
 
             var tokenID = vm.PopNumber("token ID");
 
-            vm.TransferToken(symbol, source, destination, tokenID);
+            await vm.TransferToken(symbol, source, destination, tokenID);
 
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_MintToken(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_MintToken(RuntimeVM vm)
         {
             vm.ExpectStackSize(4);
 
-            var source = vm.PopAddress();
-            var destination = vm.PopAddress();
+            var source = await vm.PopAddress();
+            var destination = await vm.PopAddress();
 
             var symbol = vm.PopString("symbol");
 
@@ -1028,30 +1028,30 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_BurnToken(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_BurnToken(RuntimeVM vm)
         {
             vm.ExpectStackSize(3);
 
-            var source = vm.PopAddress();
+            var source = await vm.PopAddress();
             var symbol = vm.PopString("symbol");
             var tokenID = vm.PopNumber("token ID");
 
-            vm.BurnToken(symbol, source, tokenID);
+            await vm.BurnToken(symbol, source, tokenID);
 
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_InfuseToken(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_InfuseToken(RuntimeVM vm)
         {
             vm.ExpectStackSize(5);
 
-            var source = vm.PopAddress();
+            var source = await vm.PopAddress();
             var targetSymbol = vm.PopString("target symbol");
             var tokenID = vm.PopNumber("token ID");
             var infuseSymbol = vm.PopString("infuse symbol");
             var value = vm.PopNumber("value");
 
-            vm.InfuseToken(targetSymbol, source, tokenID, infuseSymbol, value);
+            await vm.InfuseToken(targetSymbol, source, tokenID, infuseSymbol, value);
 
             return ExecutionState.Running;
         }
@@ -1130,19 +1130,19 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_WriteToken(RuntimeVM vm)
+        private static async Task<ExecutionState> Runtime_WriteToken(RuntimeVM vm)
         {
             vm.ExpectStackSize(4);
 
             Address from;
 
-            from = vm.PopAddress();
+            from = await vm.PopAddress();
 
             var symbol = vm.PopString("symbol");
             var tokenID = vm.PopNumber("token ID");
             var ram = vm.PopBytes("ram");
 
-            vm.WriteToken(from, symbol, tokenID, ram);
+            await vm.WriteToken(from, symbol, tokenID, ram);
 
             return ExecutionState.Running;
         }
@@ -1160,11 +1160,11 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Nexus_CreateTokenSeries(RuntimeVM vm)
+        private static async Task<ExecutionState> Nexus_CreateTokenSeries(RuntimeVM vm)
         {
             vm.ExpectStackSize(5);
 
-            var from = vm.PopAddress();
+            var from = await vm.PopAddress();
             var symbol = vm.PopString("symbol");
             var seriesID = vm.PopNumber("series ID");
             var maxSupply = vm.PopNumber("max supply");
@@ -1174,7 +1174,7 @@ namespace Phantasma.Business
 
             var abi = ContractInterface.FromBytes(abiBytes);
 
-            vm.CreateTokenSeries(symbol, from, seriesID, maxSupply, mode, script, abi);
+            await vm.CreateTokenSeries(symbol, from, seriesID, maxSupply, mode, script, abi);
 
             return ExecutionState.Running;
         }
@@ -1246,7 +1246,7 @@ namespace Phantasma.Business
 
             vm.ExpectStackSize(1);
 
-            var from = vm.PopAddress();
+            var from = await vm.PopAddress();
             vm.Expect(from.IsUser, "address must be user");
 
             if (vm.Nexus.HasGenesis)
@@ -1341,7 +1341,7 @@ namespace Phantasma.Business
 
             vm.ExpectStackSize(4);
 
-            var from = vm.PopAddress();
+            var from = await vm.PopAddress();
             vm.Expect(from.IsUser, "address must be user");
 
             vm.Expect(await vm.IsStakeMaster(from), "needs to be master");
@@ -1420,7 +1420,7 @@ namespace Phantasma.Business
 
             vm.ExpectStackSize(2);
 
-            var from = vm.PopAddress();
+            var from = await vm.PopAddress();
             vm.Expect(from.IsUser, "address must be user");
 
             vm.Expect(await vm.IsWitness(from), "invalid witness");
@@ -1505,47 +1505,47 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Nexus_BeginInit(RuntimeVM vm)
+        private static async Task<ExecutionState> Nexus_BeginInit(RuntimeVM vm)
         {
             //vm.Expect(vm.Chain == null, "nexus already initialized");
 
             vm.ExpectStackSize(1);
 
-            var owner = vm.PopAddress();
+            var owner = await vm.PopAddress();
 
             vm.Nexus.BeginInitialize(vm, owner);
 
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Nexus_EndInit(RuntimeVM vm)
+        private static async Task<ExecutionState> Nexus_EndInit(RuntimeVM vm)
         {
             //vm.Expect(vm.Chain == null, "nexus already initialized");
 
             vm.ExpectStackSize(1);
 
-            var owner = vm.PopAddress();
+            var owner = await vm.PopAddress();
 
             vm.Nexus.FinishInitialize(vm, owner);
 
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Nexus_MigrateToken(RuntimeVM vm)
+        private static async Task<ExecutionState> Nexus_MigrateToken(RuntimeVM vm)
         {
             vm.Expect(vm.CurrentContext.Name == "account", "Can only be called from account context");
 
             vm.ExpectStackSize(2);
 
-            var from = vm.PopAddress();
-            var to = vm.PopAddress();
+            var from = await vm.PopAddress();
+            var to = await vm.PopAddress();
 
             vm.Nexus.MigrateTokenOwner(vm.RootStorage, from, to);
 
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Nexus_CreateToken(RuntimeVM vm)
+        private static async Task<ExecutionState> Nexus_CreateToken(RuntimeVM vm)
         {
             Address owner = Address.Null;
             string symbol = null;
@@ -1556,7 +1556,7 @@ namespace Phantasma.Business
 
             vm.ExpectStackSize(3);
 
-            owner = vm.PopAddress();
+            owner = await vm.PopAddress();
 
             var script = vm.PopBytes("script");
 
@@ -1568,20 +1568,11 @@ namespace Phantasma.Business
             var rootChain = (Chain)vm.GetRootChain(); // this cast is not the best, but works for now...
             var storage = vm.RootStorage;
 
-            TokenUtils.FetchProperty(storage, rootChain, "getSymbol", script, abi, (prop, value) =>
-            {
-                symbol = value.AsString();
-            });
-
-            TokenUtils.FetchProperty(storage, rootChain, "getName", script, abi, (prop, value) =>
-            {
-                name = value.AsString();
-            });
-
-            TokenUtils.FetchProperty(storage, rootChain, "getTokenFlags", script, abi, (prop, value) =>
-            {
-                flags = value.AsEnum<TokenFlags>();
-            });
+            await Task.WhenAll(
+                TokenUtils.FetchProperty(storage, rootChain, "getSymbol", script, abi, (prop, value) => symbol = value.AsString()),
+                TokenUtils.FetchProperty(storage, rootChain, "getName", script, abi, (prop, value) => name = value.AsString()),
+                TokenUtils.FetchProperty(storage, rootChain, "getTokenFlags", script, abi, (prop, value) => flags = value.AsEnum<TokenFlags>())
+            );
 
             // we offer two ways to describe the flags, either individually or via getTokenFlags
             if (flags == TokenFlags.None)
@@ -1593,7 +1584,7 @@ namespace Phantasma.Business
                     var propName = $"is{flag}";
 
                     // for each flag, if the property exists and returns true, we set the flag
-                    TokenUtils.FetchProperty(storage, rootChain, propName, script, abi, (prop, value) =>
+                    await TokenUtils.FetchProperty(storage, rootChain, propName, script, abi, (prop, value) =>
                     {
                         var isSet = value.AsBool();
                         if (isSet)
@@ -1606,10 +1597,7 @@ namespace Phantasma.Business
 
             if (flags.HasFlag(TokenFlags.Finite))
             {
-                TokenUtils.FetchProperty(storage, rootChain, "getMaxSupply", script, abi, (prop, value) =>
-                {
-                    maxSupply = value.AsNumber();
-                });
+                await TokenUtils.FetchProperty(storage, rootChain, "getMaxSupply", script, abi, (prop, value) => maxSupply = value.AsNumber());
             }
             else
             {
@@ -1618,10 +1606,7 @@ namespace Phantasma.Business
 
             if (flags.HasFlag(TokenFlags.Fungible))
             {
-                TokenUtils.FetchProperty(storage, rootChain, "getDecimals", script, abi, (prop, value) =>
-                {
-                    decimals = (int)value.AsNumber();
-                });
+                await TokenUtils.FetchProperty(storage, rootChain, "getDecimals", script, abi, (prop, value) => decimals = (int)value.AsNumber());
             }
             else
             {
@@ -1636,33 +1621,33 @@ namespace Phantasma.Business
 
             vm.Expect(!flags.HasFlag(TokenFlags.Swappable), "swappable swap can't be set in token creation");
 
-            vm.CreateToken(owner, symbol, name, maxSupply, decimals, flags, script, abi);
+            await vm.CreateToken(owner, symbol, name, maxSupply, decimals, flags, script, abi);
 
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Nexus_CreateChain(RuntimeVM vm)
+        private static async Task<ExecutionState> Nexus_CreateChain(RuntimeVM vm)
         {
             vm.ExpectStackSize(4);
 
-            var source = vm.PopAddress();
+            var source = await vm.PopAddress();
             var org = vm.PopString("organization");
             var name = vm.PopString("name");
             var parentName = vm.PopString("parent");
 
-            vm.CreateChain(source, org, name, parentName);
+            await vm.CreateChain(source, org, name, parentName);
 
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Nexus_CreatePlatform(RuntimeVM vm)
+        private static async Task<ExecutionState> Nexus_CreatePlatform(RuntimeVM vm)
         {
             vm.ExpectStackSize(5);
 
-            var source = vm.PopAddress();
+            var source = await vm.PopAddress();
             var name = vm.PopString("name");
             var externalAddress = vm.PopString("external address");
-            var interopAddress = vm.PopAddress();
+            var interopAddress = await vm.PopAddress();
             var symbol = vm.PopString("symbol");
 
             var target = vm.CreatePlatform(source, name, externalAddress, interopAddress, symbol);
@@ -1674,7 +1659,7 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Nexus_SetPlatformTokenHash(RuntimeVM vm)
+        private static async Task<ExecutionState> Nexus_SetPlatformTokenHash(RuntimeVM vm)
         {
             vm.ExpectStackSize(3);
 
@@ -1684,32 +1669,32 @@ namespace Phantasma.Business
             var bytes = vm.PopBytes("hash");
             var hash = new Hash(bytes.Skip(1).ToArray());
 
-            vm.SetPlatformTokenHash(symbol, platform, hash);
+            await vm.SetPlatformTokenHash(symbol, platform, hash);
 
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Nexus_CreateOrganization(RuntimeVM vm)
+        private static async Task<ExecutionState> Nexus_CreateOrganization(RuntimeVM vm)
         {
             vm.ExpectStackSize(4);
 
-            var source = vm.PopAddress();
+            var source = await vm.PopAddress();
             var ID = vm.PopString("id");
             var name = vm.PopString("name");
             var script = vm.PopBytes("script");
 
-            vm.CreateOrganization(source, ID, name, script);
+            await vm.CreateOrganization(source, ID, name, script);
 
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Organization_AddMember(RuntimeVM vm)
+        private static async Task<ExecutionState> Organization_AddMember(RuntimeVM vm)
         {
             vm.ExpectStackSize(3);
 
-            var source = vm.PopAddress();
+            var source = await vm.PopAddress();
             var name = vm.PopString("name");
-            var target = vm.PopAddress();
+            var target = await vm.PopAddress();
 
             vm.AddMember(name, source, target);
 
@@ -1780,7 +1765,7 @@ namespace Phantasma.Business
 
             var contractName = vm.PopString("contract");
             var methodBytes = vm.PopBytes("method bytes");
-            var from = vm.PopAddress();
+            var from = await vm.PopAddress();
             var frequency = (uint)vm.PopNumber("frequency");
             var delay = (uint)vm.PopNumber("delay");
             var mode = vm.PopEnum<TaskFrequencyMode>("mode");
@@ -1800,11 +1785,11 @@ namespace Phantasma.Business
         #endregion
 
         #region ACCOUNT 
-        private static ExecutionState Account_Name(RuntimeVM vm)
+        private static async Task<ExecutionState> Account_Name(RuntimeVM vm)
         {
             vm.ExpectStackSize(1);
 
-            var address = vm.PopAddress();
+            var address = await vm.PopAddress();
 
             var result = vm.GetAddressName(address);
             vm.Stack.Push(VMObject.FromObject(result));
@@ -1812,11 +1797,11 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Account_Activity(RuntimeVM vm)
+        private static async Task<ExecutionState> Account_Activity(RuntimeVM vm)
         {
             vm.ExpectStackSize(1);
 
-            var address = vm.PopAddress();
+            var address = await vm.PopAddress();
 
             var result = vm.Chain.GetLastActivityOfAddress(address);
             vm.Stack.Push(VMObject.FromObject(result));
@@ -1824,11 +1809,11 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Account_Transactions(RuntimeVM vm)
+        private static async Task<ExecutionState> Account_Transactions(RuntimeVM vm)
         {
             vm.ExpectStackSize(1);
 
-            var address = vm.PopAddress();
+            var address = await vm.PopAddress();
 
             var result = vm.Chain.GetTransactionHashesForAddress(address);
 
