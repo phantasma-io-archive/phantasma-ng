@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Threading.Tasks;
 using Phantasma.Core;
 using Phantasma.Core.Context;
 
@@ -22,7 +23,7 @@ namespace Phantasma.Business.Contracts
             return _leaderboards.ContainsKey<string>(name);
         }
 
-        public void CreateLeaderboard(Address from, string name, BigInteger size)
+        public async Task CreateLeaderboard(Address from, string name, BigInteger size)
         {
             Runtime.Expect(size >= 5, "size invalid");
             Runtime.Expect(size <= 1000, "size too large");
@@ -31,7 +32,7 @@ namespace Phantasma.Business.Contracts
 
             Runtime.Expect(!Exists(name), "leaderboard already exists");
 
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(ValidationUtils.IsValidIdentifier(name), "invalid name");
 
             var leaderboard = new Leaderboard()
@@ -46,13 +47,13 @@ namespace Phantasma.Business.Contracts
             Runtime.Notify(EventKind.LeaderboardCreate, from, name);
         }
 
-        public void ResetLeaderboard(Address from, string name)
+        public async Task ResetLeaderboard(Address from, string name)
         {
             Runtime.Expect(Exists(name), "invalid leaderboard");
             var leaderboard = _leaderboards.Get<string, Leaderboard>(name);
 
             Runtime.Expect(from == leaderboard.owner, "invalid leaderboard owner");
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             leaderboard.round++;
 
@@ -135,14 +136,14 @@ namespace Phantasma.Business.Contracts
             return rows.Count();
         }
 
-        public void InsertScore(Address from, Address target, string name, BigInteger score)
+        public async Task InsertScore(Address from, Address target, string name, BigInteger score)
         {
             Runtime.Expect(Exists(name), "invalid leaderboard");
             
             var leaderboard = _leaderboards.Get<string, Leaderboard>(name);
 
             Runtime.Expect(from == leaderboard.owner, "invalid leaderboard owner");
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             var rows = _rows.Get<string, StorageList>(name);
             var count = rows.Count();

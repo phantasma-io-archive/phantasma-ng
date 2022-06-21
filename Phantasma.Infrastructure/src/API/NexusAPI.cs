@@ -527,12 +527,12 @@ public static class NexusAPI
         result.address = address.Text;
         result.name = await Nexus.RootChain.GetNameFromAddress(Nexus.RootStorage, address);
 
-        var stake = Nexus.GetStakeFromAddress(Nexus.RootStorage, address);
+        var stake = await Nexus.GetStakeFromAddress(Nexus.RootStorage, address);
 
         if (stake > 0)
         {
-            var unclaimed = Nexus.GetUnclaimedFuelFromAddress(Nexus.RootStorage, address);
-            var time = Nexus.GetStakeTimestampOfAddress(Nexus.RootStorage, address);
+            var unclaimed = await Nexus.GetUnclaimedFuelFromAddress(Nexus.RootStorage, address);
+            var time = await Nexus.GetStakeTimestampOfAddress(Nexus.RootStorage, address);
             result.stakes = new StakeResult() { amount = stake.ToString(), time = time.Value, unclaimed = unclaimed.ToString() };
         }
         else

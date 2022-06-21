@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Numerics;
+using System.Threading.Tasks;
 using Phantasma.Business.Tokens;
 using Phantasma.Core;
 using Phantasma.Core.Context;
@@ -174,9 +175,9 @@ namespace Phantasma.Business.Contracts
             return nextMasterClaim;
         }
 
-        public BigInteger GetMasterRewards(Address from)
+        public async Task<BigInteger> GetMasterRewards(Address from)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(IsMaster(from), "invalid master");
 
             var thisClaimDate = _masterClaims.Get<Address, Timestamp>(from);
@@ -190,11 +191,11 @@ namespace Phantasma.Business.Contracts
         }
 
         // migrates the full stake from one address to other
-        public void Migrate(Address from, Address to)
+        public async Task Migrate(Address from, Address to)
         {
             Runtime.Expect(Runtime.PreviousContext.Name == "account", "invalid context");
 
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(to.IsUser, "destination must be user address");
 
             var targetStake = GetStake(to);
@@ -213,9 +214,9 @@ namespace Phantasma.Business.Contracts
             Runtime.Notify(EventKind.AddressMigration, to, from);
         }
 
-        public void MasterClaim(Address from)
+        public async Task MasterClaim(Address from)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(IsMaster(from), $"{from} is no SoulMaster");
 
             var thisClaimDate = _masterClaims.Get<Address, Timestamp>(from);
@@ -264,10 +265,10 @@ namespace Phantasma.Business.Contracts
             _lastMasterClaim = Runtime.Time;
         }
 
-        public void Stake(Address from, BigInteger stakeAmount)
+        public async Task Stake(Address from, BigInteger stakeAmount)
         {
             Runtime.Expect(stakeAmount >= MinimumValidStake, "invalid amount");
-            Runtime.Expect(Runtime.IsWitness(from), "witness failed");
+            Runtime.Expect(await Runtime.IsWitness(from), "witness failed");
 
             var balance = Runtime.GetBalance(DomainSettings.StakingTokenSymbol, from);
 
@@ -279,11 +280,11 @@ namespace Phantasma.Business.Contracts
 
             Runtime.Expect(balance >= stakeAmount, $"balance: {balance} stake: {stakeAmount} not enough balance to stake at {from}");
 
-            Runtime.TransferTokens(DomainSettings.StakingTokenSymbol, from, this.Address, stakeAmount);
+            Runtime.TransferTokens(DomainSettings.StakingTokenSymbol, from, Address, stakeAmount);
 
             EnergyStake stake;
 
-            if (_stakeMap.ContainsKey<Address>(from))
+            if (_stakeMap.ContainsKey(from))
             {
                 stake = _stakeMap.Get<Address, EnergyStake>(from);
             }
@@ -298,22 +299,22 @@ namespace Phantasma.Business.Contracts
 
             stake.stakeTime = Runtime.Time;
             stake.stakeAmount += stakeAmount;
-            _stakeMap.Set<Address, EnergyStake>(from, stake);
+            _stakeMap.Set(from, stake);
 
-            Runtime.AddMember(DomainSettings.StakersOrganizationName, this.Address, from);
+            Runtime.AddMember(DomainSettings.StakersOrganizationName, Address, from);
 
             var claimList = _claimMap.Get<Address, StorageList>(from);
             var claimEntry = new EnergyClaim()
             {
                 stakeAmount = stakeAmount,
-                claimDate = this.Runtime.Time,
+                claimDate = Runtime.Time,
                 isNew = true,
             };
             claimList.Add(claimEntry);
 
             var logEntry = new VotingLogEntry()
             {
-                timestamp = this.Runtime.Time,
+                timestamp = Runtime.Time,
                 amount = stakeAmount
             };
             var votingLogbook = _voteHistory.Get<Address, StorageList>(from);
@@ -326,18 +327,18 @@ namespace Phantasma.Business.Contracts
                 var nextClaim = GetMasterClaimDate(2);
 
                 Runtime.AddMember(DomainSettings.MastersOrganizationName, this.Address, from);
-                _masterClaims.Set<Address, Timestamp>(from, nextClaim);
+                _masterClaims.Set(from, nextClaim);
 
-                _masterAgeMap.Set<Address, Timestamp>(from, Runtime.Time);
+                _masterAgeMap.Set(from, Runtime.Time);
             }
         }
 
-        public void Unstake(Address from, BigInteger unstakeAmount)
+        public async Task Unstake(Address from, BigInteger unstakeAmount)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "witness failed");
+            Runtime.Expect(await Runtime.IsWitness(from), "witness failed");
             Runtime.Expect(unstakeAmount >= MinimumValidStake, "invalid amount");
 
-            Runtime.Expect(_stakeMap.ContainsKey<Address>(from), "nothing to unstake");
+            Runtime.Expect(_stakeMap.ContainsKey(from), "nothing to unstake");
 
             var stake = _stakeMap.Get<Address, EnergyStake>(from);
             Runtime.Expect(stake.stakeAmount > 0, "nothing to unstake");
@@ -356,7 +357,7 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(balance >= unstakeAmount, "not enough balance to unstake");
 
             var availableStake = stake.stakeAmount;
-            availableStake -= GetStorageStake(from);
+            availableStake -= await GetStorageStake(from);
             Runtime.Expect(availableStake >= unstakeAmount, "tried to unstake more than what was staked");
 
             //if this is a partial unstake
@@ -376,7 +377,7 @@ namespace Phantasma.Business.Contracts
 
                 Runtime.RemoveMember(DomainSettings.StakersOrganizationName, this.Address, from);
 
-                var name = Runtime.GetAddressName(from);
+                var name = await Runtime.GetAddressName(from);
                 if (name != ValidationUtils.ANONYMOUS_NAME)
                 {
                     Runtime.CallNativeContext(NativeContractKind.Account, "UnregisterName", from);
@@ -594,9 +595,9 @@ namespace Phantasma.Business.Contracts
             return total;
         }
 
-        public void Claim(Address from, Address stakeAddress)
+        public async Task Claim(Address from, Address stakeAddress)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "witness failed");
+            Runtime.Expect(await Runtime.IsWitness(from), "witness failed");
 
             var unclaimedAmount = GetUnclaimed(stakeAddress);
 
@@ -610,7 +611,7 @@ namespace Phantasma.Business.Contracts
                 Runtime.Expect(stakeAddress.IsSystem, "must claim from a system address");
             }
 
-            Runtime.MintTokens(DomainSettings.FuelTokenSymbol, this.Address, stakeAddress, fuelAmount);
+            await Runtime.MintTokens(DomainSettings.FuelTokenSymbol, this.Address, stakeAddress, fuelAmount);
 
             var claimList = _claimMap.Get<Address, StorageList>(stakeAddress);
             var count = claimList.Count();
@@ -633,24 +634,24 @@ namespace Phantasma.Business.Contracts
                     {
                         entry.claimDate = Runtime.Time;
                         entry.isNew = false;
-                        claimList.Replace<EnergyClaim>(i, entry);
+                        claimList.Replace(i, entry);
                     }
                 }
             }
 
             // remove any leftovers
-            if (_leftoverMap.ContainsKey<Address>(stakeAddress))
+            if (_leftoverMap.ContainsKey(stakeAddress))
             {
-                _leftoverMap.Remove<Address>(stakeAddress);
+                _leftoverMap.Remove(stakeAddress);
             }
 
             // mark date to prevent imediate unstake
             if (Runtime.Time >= ContractPatch.UnstakePatch)
             {
-                Runtime.Expect(_stakeMap.ContainsKey<Address>(stakeAddress), "invalid stake address");
+                Runtime.Expect(_stakeMap.ContainsKey(stakeAddress), "invalid stake address");
                 var stake = _stakeMap.Get<Address, EnergyStake>(stakeAddress);
                 stake.stakeTime = Runtime.Time;
-                _stakeMap.Set<Address, EnergyStake>(stakeAddress, stake);
+                _stakeMap.Set(stakeAddress, stake);
             }
         }
 
@@ -666,9 +667,9 @@ namespace Phantasma.Business.Contracts
             return stake;
         }
 
-        public BigInteger GetStorageStake(Address address)
+        public async Task<BigInteger> GetStorageStake(Address address)
         {
-            var usedStorageSize = Runtime.CallNativeContext( NativeContractKind.Storage, "GetUsedSpace", address).AsNumber();
+            var usedStorageSize = await Runtime.CallNativeContext( NativeContractKind.Storage, "GetUsedSpace", address).AsNumber();
             var usedStake = usedStorageSize * UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals);
 
             var kilobytesPerStake = (int)Runtime.GetGovernanceValue(StorageContract.KilobytesPerStakeTag);
@@ -740,10 +741,10 @@ namespace Phantasma.Business.Contracts
             return votingPower;
         }
 
-        public void UpdateRate(BigInteger rate)
+        public async Task UpdateRate(BigInteger rate)
         {
             var bombAddress = GetAddressForName("bomb");
-            Runtime.Expect(Runtime.IsWitness(bombAddress), "must be called from bomb address");
+            Runtime.Expect(await Runtime.IsWitness(bombAddress), "must be called from bomb address");
 
             Runtime.Expect(rate > 0, "invalid rate");
             _currentEnergyRatioDivisor = rate;

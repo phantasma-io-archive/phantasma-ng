@@ -1403,7 +1403,7 @@ namespace Phantasma.Business
         #endregion
 
         #region block validation
-        public Address GetValidator(StorageContext storage, Timestamp targetTime)
+        public async Task<Address> GetValidator(StorageContext storage, Timestamp targetTime)
         {
             var rootStorage = this.IsRoot ? storage : Nexus.RootStorage;
 
@@ -1437,7 +1437,7 @@ namespace Phantasma.Business
 
             do
             {
-                var validator = Nexus.GetValidatorByIndex(validatorIndex);
+                var validator = await Nexus.GetValidatorByIndex(validatorIndex);
                 if (validator.type == ValidatorType.Primary && !validator.address.IsNull)
                 {
                     return validator.address;
@@ -1454,7 +1454,7 @@ namespace Phantasma.Business
             return Nexus.GetGenesisAddress(rootStorage);
         }
 
-        public void CloseBlock(Block block, StorageChangeSetContext storage)
+        public async Task CloseBlock(Block block, StorageChangeSetContext storage)
         {
             var rootStorage = this.IsRoot ? storage : Nexus.RootStorage;
 
@@ -1478,9 +1478,9 @@ namespace Phantasma.Business
 
             if (Nexus.HasGenesis)
             {
-                var validators = Nexus.GetValidators();
+                var validators = await Nexus.GetValidators();
 
-                var totalValidators = Nexus.GetPrimaryValidatorCount();
+                var totalValidators = await Nexus.GetPrimaryValidatorCount();
 
                 for (int i = 0; i < totalValidators; i++)
                 {

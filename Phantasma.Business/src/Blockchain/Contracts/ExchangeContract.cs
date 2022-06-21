@@ -7,6 +7,7 @@ using Phantasma.Core.EdDSA;
 using Phantasma.Core.Context;
 using static Phantasma.Business.Contracts.ExchangeOrderSide;
 using static Phantasma.Business.Contracts.ExchangeOrderType;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business.Contracts
 {
@@ -139,9 +140,9 @@ namespace Phantasma.Business.Contracts
             return false;
         }
 
-        public void CreateExchange(Address from, string id, string name)
+        public async Task CreateExchange(Address from, string id, string name)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             Runtime.Expect(ValidationUtils.IsValidIdentifier(id), "invalid id");
 
@@ -160,9 +161,9 @@ namespace Phantasma.Business.Contracts
             return _exchanges.All<ExchangeProvider>();
         }
 
-        private void OpenOrder(Address from, Address provider, string baseSymbol, string quoteSymbol, ExchangeOrderSide side, ExchangeOrderType orderType, BigInteger orderSize, BigInteger price)
+        private async Task OpenOrder(Address from, Address provider, string baseSymbol, string quoteSymbol, ExchangeOrderSide side, ExchangeOrderType orderType, BigInteger orderSize, BigInteger price)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             Runtime.Expect(baseSymbol != quoteSymbol, "invalid base/quote pair");
 
@@ -392,7 +393,7 @@ namespace Phantasma.Business.Contracts
             OpenOrder(from, Address.Null, baseSymbol, quoteSymbol, ExchangeOrderSide.Sell, ExchangeOrderType.OTC, ammount, price);
         }
 
-        public void CancelOrder(BigInteger uid)
+        public async Task CancelOrder(BigInteger uid)
         {
             Runtime.Expect(_orderMap.ContainsKey<BigInteger>(uid), "order not found");
             var key = _orderMap.Get<BigInteger, string>(uid);
@@ -404,7 +405,7 @@ namespace Phantasma.Business.Contracts
                 var order = orderList.Get<ExchangeOrder>(i);
                 if (order.Uid == uid)
                 {
-                    Runtime.Expect(Runtime.IsWitness(order.Creator), "invalid witness");
+                    Runtime.Expect(await Runtime.IsWitness(order.Creator), "invalid witness");
 
                     orderList.RemoveAt(i);
                     _orderMap.Remove<BigInteger>(uid);
@@ -545,15 +546,15 @@ namespace Phantasma.Business.Contracts
 
             var baseBalance = Runtime.GetBalance(baseSymbol, from);
             Runtime.Expect(baseBalance >= amount, "invalid seller amount");
-            Runtime.TransferTokens(baseSymbol, from, this.Address, price);
+            Runtime.TransferTokens(baseSymbol, from, Address, price);
 
-            var order = new ExchangeOrder(uid, Runtime.Time, from, this.Address, amount, baseSymbol, price, quoteSymbol, ExchangeOrderSide.Sell, ExchangeOrderType.OTC);
-            _otcBook.Add<ExchangeOrder>(order);
+            var order = new ExchangeOrder(uid, Runtime.Time, from, Address, amount, baseSymbol, price, quoteSymbol, ExchangeOrderSide.Sell, ExchangeOrderType.OTC);
+            _otcBook.Add(order);
         }
 
-        public void TakeOrder(Address from, BigInteger uid)
+        public async Task TakeOrder(Address from, BigInteger uid)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             var count = _otcBook.Count();
             for (int i=0; i<count; i++)
@@ -561,13 +562,13 @@ namespace Phantasma.Business.Contracts
                 var order = _otcBook.Get<ExchangeOrder>(i);
                 if (order.Uid == uid)
                 {
-                    var baseBalance = Runtime.GetBalance(order.BaseSymbol, this.Address);
+                    var baseBalance = Runtime.GetBalance(order.BaseSymbol, Address);
                     Runtime.Expect(baseBalance >= order.Price, "invalid seller amount");
 
                     var quoteBalance = Runtime.GetBalance(order.QuoteSymbol, from);
                     Runtime.Expect(quoteBalance >= order.Amount, "invalid buyer amount");
 
-                    Runtime.TransferTokens(order.BaseSymbol, this.Address, from, order.Price);
+                    Runtime.TransferTokens(order.BaseSymbol, Address, from, order.Price);
                     Runtime.TransferTokens(order.QuoteSymbol, from, order.Creator, order.Amount);
                     _otcBook.RemoveAt(i);
                     return;
@@ -577,7 +578,7 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(false, "order not found");
         }
 
-        public void CancelOTCOrder(Address from, BigInteger uid)
+        public async Task CancelOTCOrder(Address from, BigInteger uid)
         {
             var count = _otcBook.Count();
             ExchangeOrder order;
@@ -586,8 +587,8 @@ namespace Phantasma.Business.Contracts
                 order = _otcBook.Get<ExchangeOrder>(i);
                 if (order.Uid == uid)
                 {
-                    Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
-                    Runtime.Expect(Runtime.IsWitness(order.Creator), "invalid witness");
+                    Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
+                    Runtime.Expect(await Runtime.IsWitness(order.Creator), "invalid witness");
                     Runtime.Expect(from == order.Creator, "invalid owner");
                     _otcBook.RemoveAt(i);
 

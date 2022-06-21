@@ -3,6 +3,7 @@ using System.Numerics;
 using Phantasma.Shared.Types;
 using Phantasma.Core;
 using Phantasma.Core.Context;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business.Contracts
 {
@@ -81,11 +82,11 @@ namespace Phantasma.Business.Contracts
         {
         }
 
-        public void Migrate(Address from, Address target)
+        public async Task Migrate(Address from, Address target)
         {
             Runtime.Expect(Runtime.PreviousContext.Name == "account", "invalid context");
 
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             _presences.Migrate<Address, StorageList>(from, target);
         }
@@ -183,7 +184,7 @@ namespace Phantasma.Business.Contracts
             return poll;
         }
 
-        public void InitPoll(Address from, string subject, string organization, ConsensusMode mode, Timestamp startTime, Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser)
+        public async Task InitPoll(Address from, string subject, string organization, ConsensusMode mode, Timestamp startTime, Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser)
         {
             Runtime.Expect(Runtime.OrganizationExists(organization), "invalid organization");
 
@@ -221,7 +222,7 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(votesPerUser > 0, "number of votes per user too low");
             Runtime.Expect(votesPerUser < choices.Length, "number of votes per user too high");
 
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             ConsensusPoll poll;
             if (_pollMap.ContainsKey<string>(subject))
@@ -278,7 +279,7 @@ namespace Phantasma.Business.Contracts
             MultiVote(from, subject, new PollVote[] { new PollVote() { index = index, percentage = 100 } });
         }
 
-        public void MultiVote(Address from, string subject, PollVote[] choices)
+        public async Task MultiVote(Address from, string subject, PollVote[] choices)
         {
             Runtime.Expect(_pollMap.ContainsKey<string>(subject), "invalid poll subject");
 
@@ -293,7 +294,7 @@ namespace Phantasma.Business.Contracts
 
             Runtime.Expect(choices.Length <= poll.choicesPerUser, "too many choices");
 
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             var presences = _presences.Get<Address, StorageList>(from);
             var count = presences.Count();
@@ -320,7 +321,7 @@ namespace Phantasma.Business.Contracts
 
             if (poll.organization == DomainSettings.StakersOrganizationName)
             {
-                votingPower = Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetAddressVotingPower), from).AsNumber();
+                votingPower = await Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetAddressVotingPower), from).AsNumber();
             }
             else
             {
@@ -360,14 +361,14 @@ namespace Phantasma.Business.Contracts
             Runtime.Notify(EventKind.PollVote, from, subject);
         }
 
-        public bool HasConsensus(string subject, byte[] value)
+        public async Task<bool> HasConsensus(string subject, byte[] value)
         {
             if (subject.StartsWith(SystemPoll))
             {
                 var validatorCount = Runtime.GetPrimaryValidatorCount();
                 if (validatorCount <= 1)
                 {
-                    return Runtime.IsWitness(Runtime.GenesisAddress);
+                    return await Runtime.IsWitness(Runtime.GenesisAddress);
                 }
             }
 
@@ -377,7 +378,7 @@ namespace Phantasma.Business.Contracts
 
         public BigInteger GetRank(string subject, byte[] value)
         {
-            Runtime.Expect(_pollMap.ContainsKey<string>(subject), "invalid poll subject");
+            Runtime.Expect(_pollMap.ContainsKey(subject), "invalid poll subject");
 
             var poll = FetchPoll(subject);
             Runtime.Expect(poll.state == PollState.Consensus, "no consensus reached");
@@ -390,7 +391,7 @@ namespace Phantasma.Business.Contracts
                 }
             }
 
-            Runtime.Expect(_pollMap.ContainsKey<string>(subject), "invalid value");
+            Runtime.Expect(_pollMap.ContainsKey(subject), "invalid value");
             return -1;
         }
     }

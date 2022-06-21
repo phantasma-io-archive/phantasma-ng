@@ -16,6 +16,7 @@ using Phantasma.Business.Contracts;
 using Serilog;
 using Tendermint.Abci;
 using Types;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business;
 
@@ -174,39 +175,36 @@ public class Nexus : INexus
     }
 
     #region NAME SERVICE
-    public Address LookUpName(StorageContext storage, string name)
+    public async Task<Address> LookUpName(StorageContext storage, string name)
     {
         if (!ValidationUtils.IsValidIdentifier(name))
         {
             return Address.Null;
         }
 
-        var contract = this.GetContractByName(storage, name);
+        var contract = GetContractByName(storage, name);
         if (contract != null)
         {
             return contract.Address;
         }
 
-        var dao = this.GetOrganizationByName(storage, name);
+        var dao = GetOrganizationByName(storage, name);
         if (dao != null)
         {
             return dao.Address;
         }
 
-        var chain = RootChain;
-        return chain.InvokeContract(storage, ContractNames.AccountContractName, nameof(AccountContract.LookUpName), name).AsAddress();
+        return await RootChain.InvokeContract(storage, ContractNames.AccountContractName, nameof(AccountContract.LookUpName), name).AsAddress();
     }
 
-    public byte[] LookUpAddressScript(StorageContext storage, Address address)
+    public async Task<byte[]> LookUpAddressScript(StorageContext storage, Address address)
     {
-        var chain = RootChain;
-        return chain.InvokeContract(storage, ContractNames.AccountContractName, nameof(AccountContract.LookUpScript), address).AsByteArray();
+        return await RootChain.InvokeContract(storage, ContractNames.AccountContractName, nameof(AccountContract.LookUpScript), address).AsByteArray();
     }
 
-    public bool HasAddressScript(StorageContext storage, Address address)
+    public async Task<bool> HasAddressScript(StorageContext storage, Address address)
     {
-        var chain = RootChain;
-        return chain.InvokeContract(storage, ContractNames.AccountContractName, nameof(AccountContract.HasScript), address).AsBool();
+        return await RootChain.InvokeContract(storage, ContractNames.AccountContractName, nameof(AccountContract.HasScript), address).AsBool();
     }
     #endregion
 
@@ -326,7 +324,7 @@ public class Nexus : INexus
         var chain = new Chain(this, name);
 
         // add to persistent list of chains
-        var chainList = this.GetSystemList(ChainTag, storage);
+        var chainList = GetSystemList(ChainTag, storage);
         chainList.Add(name);
 
         // add address and name mapping
@@ -338,7 +336,7 @@ public class Nexus : INexus
         {
             storage.Put(ChainParentNameKey + chain.Name, Encoding.UTF8.GetBytes(parentChainName));
             var childrenList = GetChildrenListOfChain(storage, parentChainName);
-            childrenList.Add<string>(chain.Name);
+            childrenList.Add(chain.Name);
         }
 
         _chainCache[chain.Name] = chain;
@@ -621,7 +619,7 @@ public class Nexus : INexus
         throw new ChainException($"Token does not exist ({symbol})");
     }
 
-    public void MintTokens(IRuntime Runtime, IToken token, Address source, Address destination, string sourceChain, BigInteger amount)
+    public async Task MintTokens(IRuntime Runtime, IToken token, Address source, Address destination, string sourceChain, BigInteger amount)
     {
         Runtime.Expect(token.IsFungible(), "must be fungible");
         Runtime.Expect(amount > 0, "invalid amount");
@@ -635,10 +633,10 @@ public class Nexus : INexus
         Runtime.Expect(balances.Add(Runtime.Storage, destination, amount), "balance add failed");
 
         var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        Runtime.Expect(await Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
 
         var accountTrigger = isSettlement ? AccountTrigger.OnReceive : AccountTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        Runtime.Expect(await Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
 
         if (isSettlement)
         {
@@ -652,7 +650,7 @@ public class Nexus : INexus
     }
 
     // NFT version
-    public void MintToken(IRuntime Runtime, IToken token, Address source, Address destination, string sourceChain, BigInteger tokenID)
+    public async Task MintToken(IRuntime Runtime, IToken token, Address source, Address destination, string sourceChain, BigInteger tokenID)
     {
         Runtime.Expect(!token.IsFungible(), "cant be fungible");
 
@@ -665,10 +663,10 @@ public class Nexus : INexus
         Runtime.Expect(ownerships.Add(Runtime.Storage, destination, tokenID), "ownership add failed");
 
         var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        Runtime.Expect(await Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
 
         var accountTrigger = isSettlement ? AccountTrigger.OnReceive : AccountTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        Runtime.Expect(await Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
 
         var nft = ReadNFT(Runtime, token.Symbol, tokenID);
         using (var m = new ProfileMarker("Nexus.WriteNFT"))
@@ -725,13 +723,13 @@ public class Nexus : INexus
         return burnedSupply;
     }
 
-    public void BurnTokens(IRuntime Runtime, IToken token, Address source, Address destination, string targetChain, BigInteger amount)
+    public async Task BurnTokens(IRuntime Runtime, IToken token, Address source, Address destination, string targetChain, BigInteger amount)
     {
         Runtime.Expect(token.Flags.HasFlag(TokenFlags.Fungible), "must be fungible");
 
         Runtime.Expect(amount > 0, "invalid amount");
 
-        var allowed = Runtime.IsWitness(source);
+        var allowed = await Runtime.IsWitness(source);
 
         if (!allowed)
         {
@@ -749,9 +747,9 @@ public class Nexus : INexus
         var balances = new BalanceSheet(token);
         Runtime.Expect(balances.Subtract(Runtime.Storage, source, amount), $"{token.Symbol} balance subtract failed from {source.Text}");
 
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, isSettlement ? TokenTrigger.OnSend : TokenTrigger.OnBurn, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token trigger failed");
+        Runtime.Expect(await Runtime.InvokeTriggerOnToken(true, token, isSettlement ? TokenTrigger.OnSend : TokenTrigger.OnBurn, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token trigger failed");
 
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, source, isSettlement ? AccountTrigger.OnSend : AccountTrigger.OnBurn, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account trigger failed");
+        Runtime.Expect(await Runtime.InvokeTriggerOnAccount(true, source, isSettlement ? AccountTrigger.OnSend : AccountTrigger.OnBurn, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account trigger failed");
 
         if (isSettlement)
         {
@@ -766,7 +764,7 @@ public class Nexus : INexus
     }
 
     // NFT version
-    public void BurnToken(IRuntime Runtime, IToken token, Address source, Address destination, string targetChain, BigInteger tokenID)
+    public async Task BurnToken(IRuntime Runtime, IToken token, Address source, Address destination, string targetChain, BigInteger tokenID)
     {
         Runtime.Expect(!token.Flags.HasFlag(TokenFlags.Fungible), $"{token.Symbol} can't be fungible");
 
@@ -796,10 +794,10 @@ public class Nexus : INexus
         Runtime.Expect(ownerships.Remove(Runtime.Storage, source, tokenID), "ownership removal failed");
 
         var tokenTrigger = isSettlement ? TokenTrigger.OnSend : TokenTrigger.OnBurn;
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed: ");
+        Runtime.Expect(await Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed: ");
 
         var accountTrigger = isSettlement ? AccountTrigger.OnSend : AccountTrigger.OnBurn;
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, source, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"accont {accountTrigger} trigger failed: ");
+        Runtime.Expect(await Runtime.InvokeTriggerOnAccount(true, source, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"accont {accountTrigger} trigger failed: ");
 
         if (isSettlement)
         {
@@ -815,7 +813,7 @@ public class Nexus : INexus
         }
     }
 
-    public void InfuseToken(IRuntime Runtime, IToken token, Address from, BigInteger tokenID, IToken infuseToken, BigInteger value)
+    public async Task InfuseToken(IRuntime Runtime, IToken token, Address from, BigInteger tokenID, IToken infuseToken, BigInteger value)
     {
         Runtime.Expect(!token.Flags.HasFlag(TokenFlags.Fungible), "can't be fungible");
 
@@ -832,15 +830,15 @@ public class Nexus : INexus
         var target = DomainSettings.InfusionAddress;
 
         var tokenTrigger = TokenTrigger.OnInfuse;
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, from, target, infuseToken.Symbol, value) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed: ");
+        Runtime.Expect(await Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, from, target, infuseToken.Symbol, value) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed: ");
 
         if (infuseToken.IsFungible())
         {
-            this.TransferTokens(Runtime, infuseToken, from, target, value, true);
+            TransferTokens(Runtime, infuseToken, from, target, value, true);
         }
         else
         {
-            this.TransferToken(Runtime, infuseToken, from, target, value, true);
+            TransferToken(Runtime, infuseToken, from, target, value, true);
         }
 
         int index = -1;
@@ -875,7 +873,7 @@ public class Nexus : INexus
         Runtime.Notify(EventKind.Infusion, nft.CurrentOwner, new InfusionEventData(token.Symbol, tokenID, infuseToken.Symbol, value, nft.CurrentChain));
     }
 
-    public void TransferTokens(IRuntime Runtime, IToken token, Address source, Address destination, BigInteger amount, bool isInfusion = false)
+    public async Task TransferTokens(IRuntime Runtime, IToken token, Address source, Address destination, BigInteger amount, bool isInfusion = false)
     {
         Runtime.Expect(token.Flags.HasFlag(TokenFlags.Transferable), "Not transferable");
         Runtime.Expect(token.Flags.HasFlag(TokenFlags.Fungible), "must be fungible");
@@ -886,11 +884,11 @@ public class Nexus : INexus
 
         if (destination.IsSystem)
         {
-            var destName = Runtime.Chain.GetNameFromAddress(Runtime.Storage, destination);
+            var destName = await Runtime.Chain.GetNameFromAddress(Runtime.Storage, destination);
             Runtime.Expect(destName != ValidationUtils.ANONYMOUS_NAME, "anonymous system address as destination");
         }
 
-        var allowed = Runtime.IsWitness(source);
+        var allowed = await Runtime.IsWitness(source);
 
         if (!allowed)
         {
@@ -905,11 +903,11 @@ public class Nexus : INexus
 
         Runtime.AddAllowance(destination, token.Symbol, amount);
 
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnSend, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token onSend trigger failed");
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnReceive, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token onReceive trigger failed");
+        Runtime.Expect(await Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnSend, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token onSend trigger failed");
+        Runtime.Expect(await Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnReceive, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token onReceive trigger failed");
 
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, source, AccountTrigger.OnSend, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account onSend trigger failed");
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, AccountTrigger.OnReceive, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account onReceive trigger failed");
+        Runtime.Expect(await Runtime.InvokeTriggerOnAccount(true, source, AccountTrigger.OnSend, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account onSend trigger failed");
+        Runtime.Expect(await Runtime.InvokeTriggerOnAccount(true, destination, AccountTrigger.OnReceive, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account onReceive trigger failed");
 
         Runtime.RemoveAllowance(destination, token.Symbol);
 
@@ -929,7 +927,7 @@ public class Nexus : INexus
         }
     }
 
-    public void TransferToken(IRuntime Runtime, IToken token, Address source, Address destination, BigInteger tokenID, bool isInfusion = false)
+    public async Task TransferToken(IRuntime Runtime, IToken token, Address source, Address destination, BigInteger tokenID, bool isInfusion = false)
     {
         Runtime.Expect(token.Flags.HasFlag(TokenFlags.Transferable), "Not transferable");
         Runtime.Expect(!token.Flags.HasFlag(TokenFlags.Fungible), "Should be non-fungible");
@@ -948,13 +946,13 @@ public class Nexus : INexus
 
         Runtime.Expect(ownerships.Add(Runtime.Storage, destination, tokenID), "ownership add failed");
 
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnSend, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "token send trigger failed");
+        Runtime.Expect(await Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnSend, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "token send trigger failed");
 
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnReceive, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "token receive trigger failed");
+        Runtime.Expect(await Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnReceive, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "token receive trigger failed");
 
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, source, AccountTrigger.OnSend, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "account send trigger failed");
+        Runtime.Expect(await Runtime.InvokeTriggerOnAccount(true, source, AccountTrigger.OnSend, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "account send trigger failed");
 
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, AccountTrigger.OnReceive, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "account received trigger failed");
+        Runtime.Expect(await Runtime.InvokeTriggerOnAccount(true, destination, AccountTrigger.OnReceive, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "account received trigger failed");
 
         WriteNFT(Runtime, token.Symbol, tokenID, Runtime.Chain.Name, nft.Creator, destination, nft.ROM, nft.RAM,
                 nft.SeriesID, Runtime.Time, nft.Infusion, true);
@@ -1583,84 +1581,77 @@ public class Nexus : INexus
         throw new NotImplementedException();
     }
 
-    public ValidatorEntry[] GetValidators()
+    public async Task<ValidatorEntry[]> GetValidators()
     {
-        var validators = (ValidatorEntry[])RootChain.InvokeContract(this.RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidators)).ToObject();
-        return validators;
+        var validators = await RootChain.InvokeContract(RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidators)).ToObject();
+        return (ValidatorEntry[])validators;
     }
 
-    public int GetPrimaryValidatorCount()
+    public async Task<int> GetPrimaryValidatorCount()
     {
-        var count = RootChain.InvokeContract(this.RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
-        if (count < 1)
-        {
-            return 1;
-        }
-        return (int)count;
+        var result = await RootChain.InvokeContract(RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary);
+        var count = (int)result.AsNumber();
+        return count < 1 ? 1 : count;
     }
 
-    public int GetSecondaryValidatorCount()
+    public async Task<int> GetSecondaryValidatorCount()
     {
-        var count = RootChain.InvokeContract(this.RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
-        return (int)count;
+        return (int)await RootChain.InvokeContract(RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
     }
 
-    public ValidatorType GetValidatorType(Address address)
+    public async Task<ValidatorType> GetValidatorType(Address address)
     {
-        var result = RootChain.InvokeContract(this.RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidatorType), address).AsEnum<ValidatorType>();
-        return result;
+        var result = await RootChain.InvokeContract(RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidatorType), address);
+        return result.AsEnum<ValidatorType>();
     }
 
-    public bool IsPrimaryValidator(Address address)
+    public async Task<bool> IsPrimaryValidator(Address address)
     {
-        var result = GetValidatorType(address);
+        var result = await GetValidatorType(address);
         return result == ValidatorType.Primary;
     }
 
-    public bool IsSecondaryValidator(Address address)
+    public async Task<bool> IsSecondaryValidator(Address address)
     {
-        var result = GetValidatorType(address);
-        return result == ValidatorType.Secondary;
+        var validatorType = await GetValidatorType(address);
+        return validatorType == ValidatorType.Secondary;
     }
 
     // this returns true for both active and waiting
-    public bool IsKnownValidator(Address address)
+    public async Task<bool> IsKnownValidator(Address address)
     {
-        var result = GetValidatorType(address);
+        var result = await GetValidatorType(address);
         return result != ValidatorType.Invalid;
     }
 
-    public BigInteger GetStakeFromAddress(StorageContext storage, Address address)
+    public async Task<BigInteger> GetStakeFromAddress(StorageContext storage, Address address)
     {
-        var result = RootChain.InvokeContract(storage, ContractNames.StakeContractName, nameof(StakeContract.GetStake), address).AsNumber();
-        return result;
+        return await RootChain.InvokeContract(storage, ContractNames.StakeContractName, nameof(StakeContract.GetStake), address).AsNumber();
     }
 
-    public BigInteger GetUnclaimedFuelFromAddress(StorageContext storage, Address address)
+    public async Task<BigInteger> GetUnclaimedFuelFromAddress(StorageContext storage, Address address)
     {
-        var result = RootChain.InvokeContract(storage, ContractNames.StakeContractName, nameof(StakeContract.GetUnclaimed), address).AsNumber();
-        return result;
+        return await RootChain.InvokeContract(storage, ContractNames.StakeContractName, nameof(StakeContract.GetUnclaimed), address).AsNumber();
     }
 
-    public Timestamp GetStakeTimestampOfAddress(StorageContext storage, Address address)
+    public async Task<Timestamp> GetStakeTimestampOfAddress(StorageContext storage, Address address)
     {
-        var result = RootChain.InvokeContract(storage, ContractNames.StakeContractName, nameof(StakeContract.GetStakeTimestamp), address).AsTimestamp();
-        return result;
+        return await RootChain.InvokeContract(storage, ContractNames.StakeContractName, nameof(StakeContract.GetStakeTimestamp), address).AsTimestamp();
     }
 
-    public bool IsStakeMaster(StorageContext storage, Address address)
+    public async Task<bool> IsStakeMaster(StorageContext storage, Address address)
     {
-        var stake = GetStakeFromAddress(storage, address);
+        var stake = await GetStakeFromAddress(storage, address);
         if (stake <= 0)
         {
             return false;
         }
 
-        var masterThresold = RootChain.InvokeContract(storage, ContractNames.StakeContractName, nameof(StakeContract.GetMasterThreshold)).AsNumber();
+        var masterThresold = await RootChain.InvokeContract(storage, ContractNames.StakeContractName, nameof(StakeContract.GetMasterThreshold)).AsNumber();
         return stake >= masterThresold;
     }
 
-    public int GetIndexOfValidator(Address address)
+    public async Task<int> GetIndexOfValidator(Address address)
     {
         if (!address.IsUser)
         {
@@ -1672,11 +1663,10 @@ public class Nexus : INexus
             return -1;
         }
 
-        var result = (int)RootChain.InvokeContract(this.RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetIndexOfValidator), address).AsNumber();
-        return result;
+        return (int)await RootChain.InvokeContract(RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetIndexOfValidator), address).AsNumber();
     }
 
-    public ValidatorEntry GetValidatorByIndex(int index)
+    public async Task<ValidatorEntry> GetValidatorByIndex(int index)
     {
         if (RootChain == null)
         {
@@ -1690,8 +1680,7 @@ public class Nexus : INexus
 
         Throw.If(index < 0, "invalid validator index");
 
-        var result = (ValidatorEntry)RootChain.InvokeContract(this.RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidatorByIndex), (BigInteger)index).ToObject();
-        return result;
+        return (ValidatorEntry)await RootChain.InvokeContract(this.RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidatorByIndex), (BigInteger)index).ToObject();
     }
     #endregion
 
@@ -1851,13 +1840,12 @@ public class Nexus : INexus
     #endregion
 
     #region CHANNELS
-    public BigInteger GetRelayBalance(Address address)
+    public async Task<BigInteger> GetRelayBalance(Address address)
     {
         var chain = RootChain;
         try
         {
-            var result = chain.InvokeContract(this.RootStorage, "relay", "GetBalance", address).AsNumber();
-            return result;
+            return await chain.InvokeContract(this.RootStorage, "relay", "GetBalance", address).AsNumber();            
         }
         catch
         {

@@ -2,6 +2,7 @@
 using Phantasma.Shared.Types;
 using Phantasma.Core;
 using Phantasma.Core.Context;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business.Contracts
 {
@@ -174,7 +175,7 @@ namespace Phantasma.Business.Contracts
         }
 
         // NOTE - witness not required, as anyone should be able to call this, permission is granted based on consensus
-        public void SetValidator(Address target, BigInteger index, ValidatorType type)
+        public async Task SetValidator(Address target, BigInteger index, ValidatorType type)
         {
             Runtime.Expect(target.IsUser, "must be user address");
             Runtime.Expect(type == ValidatorType.Primary || type == ValidatorType.Secondary, "invalid validator type");
@@ -192,7 +193,7 @@ namespace Phantasma.Business.Contracts
 
             if (primaryValidators > _initialValidatorCount) // for initial validators stake is not verified because it doesn't exist yet.
             {
-                var requiredStake = Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetMasterThreshold), target).AsNumber();
+                var requiredStake = await Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetMasterThreshold), target).AsNumber(); ;
                 var stakedAmount = Runtime.GetStake(target);
 
                 Runtime.Expect(stakedAmount >= requiredStake, "not enough stake");
@@ -226,11 +227,11 @@ namespace Phantasma.Business.Contracts
                 {
                     if (primaryValidators > _initialValidatorCount)
                     {
-                        Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
+                        Runtime.Expect(await Runtime.IsWitness(target), "invalid witness");
                     }
                     else
                     {
-                        Runtime.Expect(Runtime.IsWitness(firstValidator), "invalid witness");
+                        Runtime.Expect(await Runtime.IsWitness(firstValidator), "invalid witness");
                     }
                 }
                 else
@@ -238,13 +239,13 @@ namespace Phantasma.Business.Contracts
                     if (primaryValidators > _initialValidatorCount)
                     {
                         var pollName = ConsensusContract.SystemPoll + ValidatorPollTag;
-                        var obtainedRank = Runtime.CallNativeContext(NativeContractKind.Consensus, "GetRank", pollName, target).AsNumber();
+                        var obtainedRank = await Runtime.CallNativeContext(NativeContractKind.Consensus, "GetRank", pollName, target).AsNumber();
                         Runtime.Expect(obtainedRank >= 0, "no consensus for electing this address");
                         Runtime.Expect(obtainedRank == index, "this address was elected at a different index");
                     }
                     else
                     {
-                        Runtime.Expect(Runtime.IsWitness(firstValidator), "invalid witness");
+                        Runtime.Expect(await Runtime.IsWitness(firstValidator), "invalid witness");
                     }
 
                     type = ValidatorType.Proposed;
@@ -252,7 +253,7 @@ namespace Phantasma.Business.Contracts
             }
             else
             {
-                Runtime.Expect(Runtime.IsWitness(Runtime.GenesisAddress), "invalid witness");
+                Runtime.Expect(await Runtime.IsWitness(Runtime.GenesisAddress), "invalid witness");
             }
 
             var entry = new ValidatorEntry()
@@ -261,7 +262,7 @@ namespace Phantasma.Business.Contracts
                 election = Runtime.Time,
                 type = type,
             };
-            _validators.Set<BigInteger, ValidatorEntry>(index, entry);
+            _validators.Set(index, entry);
 
             if (type == ValidatorType.Primary)
             {
@@ -321,11 +322,11 @@ namespace Phantasma.Business.Contracts
             Runtime.RemoveMember(DomainSettings.ValidatorsOrganizationName, this.Address, from, to);
         }*/
 
-        public void Migrate(Address from, Address to)
+        public async Task Migrate(Address from, Address to)
         {
             Runtime.Expect(Runtime.PreviousContext.Name == "account", "invalid context");
 
-            Runtime.Expect(Runtime.IsWitness(from), "witness failed");
+            Runtime.Expect(await Runtime.IsWitness(from), "witness failed");
 
             Runtime.Expect(to.IsUser, "destination must be user address");
 
@@ -336,7 +337,7 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(entry.type == ValidatorType.Primary || entry.type == ValidatorType.Secondary, "not active validator");
 
             entry.address = to;
-            _validators.Set<BigInteger, ValidatorEntry>(index, entry);
+            _validators.Set(index, entry);
 
             Runtime.MigrateMember(DomainSettings.ValidatorsOrganizationName, this.Address, from, to);
 

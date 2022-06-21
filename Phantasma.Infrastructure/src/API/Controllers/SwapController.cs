@@ -101,7 +101,7 @@ namespace Phantasma.Infrastructure.Controllers
                     address = Pay.Chains.BSCWallet.EncodeAddress(account);
                     break;
                 default:
-                    address = nexus.LookUpName(nexus.RootStorage, account);
+                    address = await nexus.LookUpName(nexus.RootStorage, account);
                     break;
             }
 

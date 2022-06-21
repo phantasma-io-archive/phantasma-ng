@@ -7,6 +7,7 @@ using Phantasma.Shared.Types;
 using Phantasma.Core;
 using Phantasma.Core.EdDSA;
 using Phantasma.Core.Context;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business.Contracts
 {
@@ -206,9 +207,9 @@ namespace Phantasma.Business.Contracts
             Runtime.Notify(EventKind.ChannelClose, from, channelName);
         }*/
 
-        public void OpenChannel(Address from, byte[] publicKey)
+        public async Task OpenChannel(Address from, byte[] publicKey)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(!_keys.ContainsKey<Address>(from), "channel already open");
 
             _keys.Set<Address, byte[]>(from, publicKey);
@@ -222,13 +223,13 @@ namespace Phantasma.Business.Contracts
             return _keys.Get<Address, byte[]>(from);
         }
 
-        public void TopUpChannel(Address from, BigInteger count)
+        public async Task TopUpChannel(Address from, BigInteger count)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(count >= 1, "insufficient topup amount");
             var amount = RelayFeePerMessage * count;
 
-            Runtime.Expect(_keys.ContainsKey<Address>(from), "channel not open");
+            Runtime.Expect(_keys.ContainsKey(from), "channel not open");
 
             BigInteger balance = _balances.ContainsKey(from) ? _balances.Get<Address, BigInteger>(from) : 0;
 
@@ -237,7 +238,7 @@ namespace Phantasma.Business.Contracts
             Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, from, this.Address, amount);
             balance += amount;
             Runtime.Expect(balance >= 0, "invalid balance");
-            _balances.Set<Address, BigInteger>(from, balance);
+            _balances.Set(from, balance);
 
             Runtime.Notify(EventKind.ChannelRefill, from, count);
         }

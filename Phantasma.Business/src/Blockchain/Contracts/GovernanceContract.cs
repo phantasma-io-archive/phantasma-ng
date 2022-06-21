@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Threading.Tasks;
 using Phantasma.Core;
 using Phantasma.Core.Context;
 
@@ -128,10 +129,10 @@ namespace Phantasma.Business.Contracts
             }
         }
 
-        public void CreateValue(string name, BigInteger initial, byte[] serializedConstraints)
+        public async Task CreateValue(string name, BigInteger initial, byte[] serializedConstraints)
         {
             Runtime.Expect(!HasName(name), "name already exists");
-            Runtime.Expect(Runtime.IsWitness(Runtime.GenesisAddress), "genesis must be witness");
+            Runtime.Expect(await Runtime.IsWitness(Runtime.GenesisAddress), "genesis must be witness");
 
             var constraints = Serialization.Unserialize<ChainConstraint[]>(serializedConstraints);
             ValidateConstraints(name, 0, initial, constraints, false);
@@ -156,12 +157,12 @@ namespace Phantasma.Business.Contracts
             return value;
         }
 
-        public void SetValue(string name, BigInteger value)
+        public async Task SetValue(string name, BigInteger value)
         {
             Runtime.Expect(HasValue(name), "invalid value name in SetValue");
 
             var pollName = ConsensusContract.SystemPoll + name;
-            var hasConsensus = Runtime.CallNativeContext(NativeContractKind.Consensus, "HasConsensus", pollName, value).AsBool();
+            var hasConsensus = await Runtime.CallNativeContext(NativeContractKind.Consensus, "HasConsensus", pollName, value).AsBool();
             Runtime.Expect(hasConsensus, "consensus not reached");
 
             var previous = _valueMap.Get<string, BigInteger>(name);

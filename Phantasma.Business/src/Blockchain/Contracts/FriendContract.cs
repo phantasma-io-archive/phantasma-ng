@@ -1,5 +1,6 @@
 ﻿using Phantasma.Core;
 using Phantasma.Core.Context;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business.Contracts
 {
@@ -14,9 +15,9 @@ namespace Phantasma.Business.Contracts
 #pragma warning restore 0649
 
         #region FRIENDLIST
-        public void AddFriend(Address target, Address friend)
+        public async Task AddFriend(Address target, Address friend)
         {
-            Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(target), "invalid witness");
 
             Runtime.Expect(friend.IsUser, "friend must be user addres");
             Runtime.Expect(friend != target, "friend must be different from target address");
@@ -30,9 +31,9 @@ namespace Phantasma.Business.Contracts
             Runtime.Notify(EventKind.AddressLink, target, friend);
         }
 
-        public void RemoveFriend(Address target, Address friend)
+        public async Task RemoveFriend(Address target, Address friend)
         {
-            Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(target), "invalid witness");
 
             var friendList = _friendMap.Get<Address, StorageList>(target);
 

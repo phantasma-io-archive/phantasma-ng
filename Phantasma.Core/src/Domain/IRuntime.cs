@@ -103,16 +103,16 @@ namespace Phantasma.Core
         Event[] GetTransactionEvents(Hash transactionHash);
         Hash[] GetTransactionHashesForAddress(Address address);
 
-        ValidatorEntry GetValidatorByIndex(int index);
-        ValidatorEntry[] GetValidators();
-        bool IsPrimaryValidator(Address address);
-        bool IsSecondaryValidator(Address address);
-        int GetPrimaryValidatorCount();
-        int GetSecondaryValidatorCount();
-        bool IsKnownValidator(Address address);
+        Task<ValidatorEntry> GetValidatorByIndex(int index);
+        Task<ValidatorEntry[]> GetValidators();
+        Task<bool> IsPrimaryValidator(Address address);
+        Task<bool> IsSecondaryValidator(Address address);
+        Task<int> GetPrimaryValidatorCount();
+        Task<int> GetSecondaryValidatorCount();
+        Task<bool> IsKnownValidator(Address address);
 
-        bool IsStakeMaster(Address address); // TODO remove
-        BigInteger GetStake(Address address);
+        Task<bool> IsStakeMaster(Address address); // TODO remove
+        Task<BigInteger> GetStake(Address address);
 
         Task<BigInteger> GetTokenPrice(string symbol);
         BigInteger GetGovernanceValue(string name);

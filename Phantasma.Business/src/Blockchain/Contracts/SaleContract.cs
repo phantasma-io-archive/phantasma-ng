@@ -4,6 +4,7 @@ using System.Numerics;
 using Phantasma.Shared.Types;
 using Phantasma.Core;
 using Phantasma.Core.Context;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business.Contracts
 {
@@ -90,11 +91,11 @@ namespace Phantasma.Business.Contracts
             return false;
         }
 
-        public Hash CreateSale(Address from, string name, SaleFlags flags, Timestamp startDate, Timestamp endDate,
+        public async Task<Hash> CreateSale(Address from, string name, SaleFlags flags, Timestamp startDate, Timestamp endDate,
                 string sellSymbol, string receiveSymbol, BigInteger price, BigInteger globalSoftCap,
                 BigInteger globalHardCap, BigInteger userSoftCap, BigInteger userHardCap)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             Runtime.Expect(Runtime.TokenExists(sellSymbol), "token must exist: " + sellSymbol);
 
@@ -191,7 +192,7 @@ namespace Phantasma.Business.Contracts
             return addressMap.Contains<Address>(address);
         }
 
-        public void AddToWhitelist(Hash saleHash, Address target)
+        public async Task AddToWhitelist(Hash saleHash, Address target)
         {
             Runtime.Expect(_saleMap.ContainsKey<Hash>(saleHash), "sale does not exist");
 
@@ -200,19 +201,19 @@ namespace Phantasma.Business.Contracts
 
             Runtime.Expect(sale.Flags.HasFlag(SaleFlags.Whitelist), "this sale is not using whitelists");
 
-            Runtime.Expect(Runtime.IsWitness(sale.Creator), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(sale.Creator), "invalid witness");
             Runtime.Expect(target != sale.Creator, "sale creator can't be whitelisted");
 
             var addressMap = _whitelistedAddresses.Get<Hash, StorageList>(saleHash);
 
             if (!addressMap.Contains<Address>(target))
             {
-                addressMap.Add<Address>(target);
+                addressMap.Add(target);
                 Runtime.Notify(EventKind.Crowdsale, target, new SaleEventData() { kind = SaleEventKind.AddedToWhitelist, saleHash = saleHash });
             }
         }
 
-        public void RemoveFromWhitelist(Hash saleHash, Address target)
+        public async Task RemoveFromWhitelist(Hash saleHash, Address target)
         {
             Runtime.Expect(_saleMap.ContainsKey<Hash>(saleHash), "sale does not exist");
 
@@ -221,13 +222,13 @@ namespace Phantasma.Business.Contracts
 
             Runtime.Expect(sale.Flags.HasFlag(SaleFlags.Whitelist), "this sale is not using whitelists");
 
-            Runtime.Expect(Runtime.IsWitness(sale.Creator), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(sale.Creator), "invalid witness");
 
             var addressMap = _whitelistedAddresses.Get<Hash, StorageList>(saleHash);
 
-            if (addressMap.Contains<Address>(target))
+            if (addressMap.Contains(target))
             {
-                addressMap.Remove<Address>(target);
+                addressMap.Remove(target);
                 Runtime.Notify(EventKind.Crowdsale, target, new SaleEventData() { kind = SaleEventKind.RemovedFromWhitelist, saleHash = saleHash });
             }
         }
@@ -245,7 +246,7 @@ namespace Phantasma.Business.Contracts
             return total;
         }
 
-        public void Purchase(Address from, Hash saleHash, string quoteSymbol, BigInteger quoteAmount)
+        public async Task Purchase(Address from, Hash saleHash, string quoteSymbol, BigInteger quoteAmount)
         {
             //For now, prevent purchases with other tokens 
             Runtime.Expect(quoteSymbol == DomainSettings.StakingTokenSymbol, "invalid receive token symbol: " + quoteSymbol + ". SOUL token must be used for purchase");
@@ -262,7 +263,7 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(quoteSymbol != sale.SellSymbol, "cannot participate in the sale using " + quoteSymbol);
             Runtime.Expect(from != sale.Creator, "sale creator can't participate");
 
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             if (sale.Flags.HasFlag(SaleFlags.Whitelist))
             {
                 Runtime.Expect(IsWhitelisted(saleHash, from), "address is not whitelisted");
@@ -322,18 +323,18 @@ namespace Phantasma.Business.Contracts
             }
 
             var addressMap = _buyerAddresses.Get<Hash, StorageList>(saleHash);
-            if (!addressMap.Contains<Address>(from))
+            if (!addressMap.Contains(from))
             {
-                addressMap.Add<Address>(from);
+                addressMap.Add(from);
             }
 
-            amountMap.Set<Address, BigInteger>(from, newAmount);
+            amountMap.Set(from, newAmount);
         }
 
         // anyone can call this, not only manager, in order to be able to trigger refunds
-        public void CloseSale(Address from, Hash saleHash)
+        public async Task CloseSale(Address from, Hash saleHash)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             Runtime.Expect(_saleMap.ContainsKey(saleHash), "sale does not exist or already closed");
 
@@ -400,13 +401,13 @@ namespace Phantasma.Business.Contracts
             return firstHash;
         }
 
-        public void EditSalePrice(Hash saleHash, BigInteger price)
+        public async Task EditSalePrice(Hash saleHash, BigInteger price)
         {
             Runtime.Expect(_saleMap.ContainsKey(saleHash), $"sale does not exist or already closed {saleHash}");
 
             var sale = _saleMap.Get<Hash, SaleInfo>(saleHash);
 
-            Runtime.Expect(Runtime.IsWitness(sale.Creator), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(sale.Creator), "invalid witness");
 
             Runtime.Expect(Runtime.Time < sale.EndDate, "sale has reached end date");
 
@@ -419,7 +420,7 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(Runtime.Time < sale.EndDate, "sale already reached end date");
 
             sale.Price = price;
-            _saleMap.Set<Hash, SaleInfo>(saleHash, sale);
+            _saleMap.Set(saleHash, sale);
 
             Runtime.Notify(EventKind.Crowdsale, sale.Creator, new SaleEventData() { kind = SaleEventKind.PriceChange, saleHash = saleHash });
         }

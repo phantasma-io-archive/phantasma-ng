@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using Phantasma.Shared;
 using Phantasma.Shared.Types;
+using System.Threading.Tasks;
 
 namespace Phantasma.Core
 {
@@ -21,6 +22,44 @@ namespace Phantasma.Core
         Bool,
         Enum,
         Object
+    }
+
+    public static class VMObjectTask
+    {
+        public static Task<Address> AsAddress(this Task<VMObject> task)
+        {
+            return task.ContinueWith(t => t.Result.AsAddress());
+        }
+
+        public static Task<bool> AsBool(this Task<VMObject> task)
+        {
+            return task.ContinueWith(t => t.Result.AsBool());
+        }
+
+        public static Task<byte[]> AsByteArray(this Task<VMObject> task)
+        {
+            return task.ContinueWith(t => t.Result.AsByteArray());
+        }
+
+        public static Task<T> AsEnum<T>(this Task<VMObject> task) where T : struct, IConvertible
+        {
+            return task.ContinueWith(t => t.Result.AsEnum<T>());
+        }
+
+        public static Task<BigInteger> AsNumber(this Task<VMObject> task)
+        {
+            return task.ContinueWith(t => t.Result.AsNumber());
+        }
+
+        public static Task<Timestamp> AsTimestamp(this Task<VMObject> task)
+        {
+            return task.ContinueWith(t => t.Result.AsTimestamp());
+        }
+
+        public static Task<object> ToObject(this Task<VMObject> task)
+        {
+            return task.ContinueWith(t => t.Result.ToObject());
+        }
     }
 
     public sealed class VMObject : ISerializable

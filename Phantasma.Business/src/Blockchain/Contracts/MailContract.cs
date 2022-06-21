@@ -1,6 +1,7 @@
 ﻿using Phantasma.Business.Storage;
 using Phantasma.Core;
 using Phantasma.Core.Context;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business.Contracts
 {
@@ -18,9 +19,9 @@ namespace Phantasma.Business.Contracts
         {
         }
 
-        public void PushMessage(Address from, Address target, Hash archiveHash)
+        public async Task PushMessage(Address from, Address target, Hash archiveHash)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             var ownedDomain = GetUserDomain(from);
             Runtime.Expect(!string.IsNullOrEmpty(ownedDomain), $"{from} not associated with any domain");
@@ -38,7 +39,7 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(encryption.Source == from, "mail archive not encrypted with correct source");
             Runtime.Expect(encryption.Destination == target, "mail archive not encrypted with correct destination");
 
-            Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.AddFile), from, target, archiveHash);
+            await Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.AddFile), from, target, archiveHash);
         }
 
         #region domains
@@ -47,34 +48,34 @@ namespace Phantasma.Business.Contracts
             return _domainMap.ContainsKey<string>(domainName);
         }
 
-        public void RegisterDomain(Address from, string domainName)
+        public async Task RegisterDomain(Address from, string domainName)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(from.IsUser, "destination must be user address");
 
             Runtime.Expect(!DomainExists(domainName), "domain already exists");
 
-            _domainMap.Set<string, Address>(domainName, from);
+            _domainMap.Set(domainName, from);
 
             JoinDomain(from, domainName);
 
             Runtime.Notify(EventKind.DomainCreate, from, domainName);
         }
 
-        public void UnregisterDomain(string domainName)
+        public async Task UnregisterDomain(string domainName)
         {
             Runtime.Expect(DomainExists(domainName), "domain does not exist");
 
             var from = _domainMap.Get<string, Address>(domainName);
 
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
-            _domainMap.Remove<string>(domainName);
+            _domainMap.Remove(domainName);
 
             Runtime.Notify(EventKind.DomainDelete, from, domainName);
         }
 
-        public void MigrateDomain(string domainName, Address target)
+        public async Task MigrateDomain(string domainName, Address target)
         {
             Runtime.Expect(DomainExists(domainName), "domain does not exist");
 
@@ -83,15 +84,15 @@ namespace Phantasma.Business.Contracts
 
             var from = _domainMap.Get<string, Address>(domainName);
 
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
-            _domainMap.Set<string, Address>(domainName, target);
+            _domainMap.Set(domainName, target);
 
             var users = GetDomainUsers(domainName);
-            foreach (var user in users)
-            {
-                Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.MigratePermission), user, from, target);
-            }
+
+            await Parallel.ForEachAsync(users, async (user, canceltoken) =>
+                await Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.MigratePermission), user, from, target));
+            
 
             Runtime.Notify(EventKind.AddressMigration, from, target);
         }
@@ -104,44 +105,44 @@ namespace Phantasma.Business.Contracts
             return list.All<Address>();
         }
 
-        public void JoinDomain(Address from, string domainName)
+        public async Task JoinDomain(Address from, string domainName)
         {
             Runtime.Expect(DomainExists(domainName), "domain does not exist");
 
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(from.IsUser, "destination must be user address");
 
             var currentDomain = GetUserDomain(from);
             Runtime.Expect(string.IsNullOrEmpty(currentDomain), "already associated with domain: " + currentDomain);
 
-            _userMap.Set<Address, string>(from, domainName);
+            _userMap.Set(from, domainName);
             var list = _domainUsers.Get<string, StorageList>(domainName);
-            list.Add<Address>(from);
+            list.Add(from);
 
             Runtime.Notify(EventKind.AddressRegister, from, domainName);
         }
 
-        public void LeaveDomain(Address from, string domainName)
+        public async Task LeaveDomain(Address from, string domainName)
         {
             Runtime.Expect(DomainExists(domainName), "domain does not exist");
 
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(from.IsUser, "destination must be user address");
 
             var currentDomain = GetUserDomain(from);
             Runtime.Expect(currentDomain == domainName, "not associated with domain: " + domainName);
 
-            _userMap.Remove<Address>(from);
+            _userMap.Remove(from);
 
             var list = _domainUsers.Get<string, StorageList>(domainName);
-            list.Remove<Address>(from);
+            list.Remove(from);
 
             Runtime.Notify(EventKind.AddressUnregister, from, domainName);
         }
 
         public string GetUserDomain(Address target)
         {
-            if (_userMap.ContainsKey<Address>(target))
+            if (_userMap.ContainsKey(target))
             {
                 return _userMap.Get<Address, string>(target);
             }

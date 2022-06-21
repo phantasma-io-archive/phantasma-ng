@@ -4,6 +4,7 @@ using Phantasma.Business.Tokens;
 using Phantasma.Shared.Types;
 using Phantasma.Core;
 using Phantasma.Core.Context;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business.Contracts
 {
@@ -60,9 +61,9 @@ namespace Phantasma.Business.Contracts
         {
         }
 
-        public void EditAuction(Address from, string baseSymbol, string quoteSymbol, BigInteger tokenID, BigInteger price, BigInteger endPrice, Timestamp startDate, Timestamp endDate, BigInteger extensionPeriod)
+        public async Task EditAuction(Address from, string baseSymbol, string quoteSymbol, BigInteger tokenID, BigInteger price, BigInteger endPrice, Timestamp startDate, Timestamp endDate, BigInteger extensionPeriod)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             Runtime.Expect(Runtime.TokenExists(quoteSymbol), "invalid quote token");
             var quoteToken = Runtime.GetToken(quoteSymbol);
@@ -70,7 +71,7 @@ namespace Phantasma.Business.Contracts
 
             var nft = Runtime.ReadToken(baseSymbol, tokenID);
             Runtime.Expect(nft.CurrentChain == Runtime.Chain.Name, "token not currently in this chain");
-            var marketAddress = SmartContract.GetAddressForNative(NativeContractKind.Market);
+            var marketAddress = GetAddressForNative(NativeContractKind.Market);
             Runtime.Expect(nft.CurrentOwner == marketAddress, "invalid owner");
 
             Runtime.Expect(price >= 0, "price has to be >= 0");
@@ -130,9 +131,9 @@ namespace Phantasma.Business.Contracts
             Runtime.Notify(EventKind.OrderCreated, auctionNew.Creator, new MarketEventData() { ID = auctionNew.TokenID, BaseSymbol = auctionNew.BaseSymbol, QuoteSymbol = auctionNew.QuoteSymbol, Price = auctionNew.Price, EndPrice = auctionNew.EndPrice, Type = auctionNew.Type });
         }
 
-        public void ListToken(Address from, string baseSymbol, string quoteSymbol, BigInteger tokenID, BigInteger price, BigInteger endPrice, Timestamp startDate, Timestamp endDate, BigInteger extensionPeriod, BigInteger typeAuction, BigInteger listingFee, Address listingFeeAddress)
+        public async Task ListToken(Address from, string baseSymbol, string quoteSymbol, BigInteger tokenID, BigInteger price, BigInteger endPrice, Timestamp startDate, Timestamp endDate, BigInteger extensionPeriod, BigInteger typeAuction, BigInteger listingFee, Address listingFeeAddress)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             if (startDate < Runtime.Time) // initialize start date to Runtime.Time if its before that
             {
@@ -206,9 +207,9 @@ namespace Phantasma.Business.Contracts
 
             Runtime.Notify(EventKind.OrderCreated, from, new MarketEventData() { ID = tokenID, BaseSymbol = baseSymbol, QuoteSymbol = quoteSymbol, Price = price, EndPrice = endPrice, Type = type });
         }
-        public void BidToken(Address from, string symbol, BigInteger tokenID, BigInteger price, BigInteger buyingFee, Address buyingFeeAddress)
+        public async Task BidToken(Address from, string symbol, BigInteger tokenID, BigInteger price, BigInteger buyingFee, Address buyingFeeAddress)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             var auctionID = symbol + "." + tokenID;
 
@@ -344,16 +345,16 @@ namespace Phantasma.Business.Contracts
 
                     auctionNew = new MarketAuction(auction.Creator, auction.StartDate, auction.EndDate, auction.BaseSymbol, auction.QuoteSymbol, auction.TokenID, auction.Price, 0, auction.ExtensionPeriod, auction.Type, auction.ListingFee, auction.ListingFeeAddress, buyingFee, buyingFeeAddress, from);
                     _auctionMap.Set(auctionID, auctionNew);
-                    EndSaleInternal(from, auction.BaseSymbol, auction.TokenID, auctionNew);
+                    await EndSaleInternal(from, auction.BaseSymbol, auction.TokenID, auctionNew);
                     Runtime.Notify(EventKind.OrderFilled, auctionNew.CurrentBidWinner, new MarketEventData() { ID = auctionNew.TokenID, BaseSymbol = auctionNew.BaseSymbol, QuoteSymbol = auctionNew.QuoteSymbol, Price = auctionNew.Price, EndPrice = auctionNew.EndPrice, Type = auctionNew.Type });
                 }
             }
         }
 
 
-        public void SellToken(Address from, string baseSymbol, string quoteSymbol, BigInteger tokenID, BigInteger price, Timestamp endDate)
+        public async Task SellToken(Address from, string baseSymbol, string quoteSymbol, BigInteger tokenID, BigInteger price, Timestamp endDate)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(endDate > Runtime.Time, "invalid end date");
 
             var maxAllowedDate = Runtime.Time + TimeSpan.FromDays(30);
@@ -373,7 +374,7 @@ namespace Phantasma.Business.Contracts
 
             Runtime.Expect(price >= 0, "price has to be >= 0");
 
-            Runtime.TransferToken(baseToken.Symbol, from, this.Address, tokenID);
+            await Runtime.TransferToken(baseToken.Symbol, from, this.Address, tokenID);
 
             var auction = new MarketAuction(from, Runtime.Time, endDate, baseSymbol, quoteSymbol, tokenID, price, 0, 0, TypeAuction.Fixed, 0, Address.Null, 0, Address.Null, Address.Null);
             var auctionID = baseSymbol + "." + tokenID;
@@ -383,13 +384,13 @@ namespace Phantasma.Business.Contracts
             Runtime.Notify(EventKind.OrderCreated, from, new MarketEventData() { ID = tokenID, BaseSymbol = baseSymbol, QuoteSymbol = quoteSymbol, Price = price, EndPrice = 0, Type = TypeAuction.Fixed });
         }
 
-        public void BuyToken(Address from, string symbol, BigInteger tokenID)
+        public async Task BuyToken(Address from, string symbol, BigInteger tokenID)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             var auctionID = symbol + "." + tokenID;
 
-            Runtime.Expect(_auctionMap.ContainsKey<string>(auctionID), "invalid auction");
+            Runtime.Expect(_auctionMap.ContainsKey(auctionID), "invalid auction");
             var auction = _auctionMap.Get<string, MarketAuction>(auctionID);
 
             Runtime.Expect(auction.Type == TypeAuction.Fixed, "BuyToken only supports fixed price listings");
@@ -402,12 +403,12 @@ namespace Phantasma.Business.Contracts
                 return;
             }
 
-            EndSaleInternal(from, symbol, tokenID, auction);
+            await EndSaleInternal(from, symbol, tokenID, auction);
 
             Runtime.Notify(EventKind.OrderFilled, from, new MarketEventData() { ID = auction.TokenID, BaseSymbol = auction.BaseSymbol, QuoteSymbol = auction.QuoteSymbol, Price = auction.Price, EndPrice = 0, Type = auction.Type });
         }
 
-        public void CancelSale(string symbol, BigInteger tokenID)
+        public async Task CancelSale(string symbol, BigInteger tokenID)
         {
             var auctionID = symbol + "." + tokenID;
 
@@ -418,7 +419,7 @@ namespace Phantasma.Business.Contracts
 
             if (Runtime.Time < auction.EndDate)
             {
-                Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+                Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             }
 
             if (Runtime.ProtocolVersion < 8)
@@ -440,11 +441,11 @@ namespace Phantasma.Business.Contracts
                 }
             }
 
-            EndSaleInternal(from, symbol, tokenID, auction);
+            await EndSaleInternal(from, symbol, tokenID, auction);
             Runtime.Notify(EventKind.OrderCancelled, from, new MarketEventData() { ID = auction.TokenID, BaseSymbol = auction.BaseSymbol, QuoteSymbol = auction.QuoteSymbol, Price = auction.Price, EndPrice = 0, Type = auction.Type });
         }
 
-        private void EndSaleInternal(Address from, string symbol, BigInteger tokenID, MarketAuction auction)
+        private async Task EndSaleInternal(Address from, string symbol, BigInteger tokenID, MarketAuction auction)
         {
             Runtime.Expect(Runtime.TokenExists(auction.BaseSymbol), "invalid base token");
             var baseToken = Runtime.GetToken(auction.BaseSymbol);
@@ -489,7 +490,7 @@ namespace Phantasma.Business.Contracts
                         throw new BalanceException(quoteToken, from, diff);
                     }
 
-                    Runtime.TransferTokens(auction.QuoteSymbol, from, this.Address, combinedFees);
+                    Runtime.TransferTokens(auction.QuoteSymbol, from, Address, combinedFees);
                 }
 
                 // handle royalties
@@ -501,39 +502,39 @@ namespace Phantasma.Business.Contracts
 
                 if (series.ABI.Implements(royaltyProperty))
                 {
-                    var nftRoyalty = Runtime.CallNFT(nftSymbol, nftData.SeriesID, royaltyProperty, tokenID).AsNumber();
+                    var nftRoyalty = await Runtime.CallNFT(nftSymbol, nftData.SeriesID, royaltyProperty, tokenID).AsNumber();
                     if (nftRoyalty > 50)
                     {
                         nftRoyalty = 50; // we don't allow more than 50% royalties fee
                     }
                     var royaltyFee = finalAmount * nftRoyalty / 100;
-                    Runtime.TransferTokens(quoteToken.Symbol, this.Address, nftData.Creator, royaltyFee);
+                    Runtime.TransferTokens(quoteToken.Symbol, Address, nftData.Creator, royaltyFee);
                     finalAmount -= royaltyFee;
                 }
 
                 // transfer sale amount
-                Runtime.TransferTokens(quoteToken.Symbol, this.Address, auction.Creator, finalAmount);
+                Runtime.TransferTokens(quoteToken.Symbol, Address, auction.Creator, finalAmount);
 
                 // transfer listing fees
                 if (listFee != 0)
                 {
-                    Runtime.TransferTokens(quoteToken.Symbol, this.Address, auction.ListingFeeAddress, listFee);
+                    Runtime.TransferTokens(quoteToken.Symbol, Address, auction.ListingFeeAddress, listFee);
                 }
 
                 // transfer buying fees
                 if (buyFee != 0)
                 {
-                    Runtime.TransferTokens(quoteToken.Symbol, this.Address, auction.BuyingFeeAddress, buyFee);
+                    Runtime.TransferTokens(quoteToken.Symbol, Address, auction.BuyingFeeAddress, buyFee);
                 }
 
             }
 
             // send nft to buyer
-            Runtime.TransferToken(baseToken.Symbol, this.Address, from, auction.TokenID);
+            await Runtime.TransferToken(baseToken.Symbol, Address, from, auction.TokenID);
 
             var auctionID = symbol + "." + tokenID;
-            _auctionMap.Remove<string>(auctionID);
-            _auctionIds.Remove<string>(auctionID);
+            _auctionMap.Remove(auctionID);
+            _auctionIds.Remove(auctionID);
         }
 
         private BigInteger GetFee(string symbol, BigInteger price, BigInteger fee)

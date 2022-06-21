@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Collections.Generic;
 using Phantasma.Core;
 using Phantasma.Core.Context;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business.Contracts
 {
@@ -23,11 +24,11 @@ namespace Phantasma.Business.Contracts
         {
         }
 
-        public void RegisterName(Address target, string name)
+        public async Task RegisterName(Address target, string name)
         {
             Runtime.Expect(target.IsUser, "must be user address");
             Runtime.Expect(target != Runtime.GenesisAddress, "address must not be genesis");
-            Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(target), "invalid witness");
             Runtime.Expect(ValidationUtils.IsValidIdentifier(name), "invalid name");
 
             var stake = Runtime.GetStake(target);
@@ -46,7 +47,7 @@ namespace Phantasma.Business.Contracts
 
             var isReserved = ValidationUtils.IsReservedIdentifier(name);
 
-            if (isReserved && Runtime.IsWitness(Runtime.GenesisAddress))
+            if (isReserved && await Runtime.IsWitness(Runtime.GenesisAddress))
             {
                 var pollName = ConsensusContract.SystemPoll + name;
                 var hasConsensus = Runtime.CallNativeContext(NativeContractKind.Consensus, "HasConsensus", pollName, name).AsBool();
@@ -61,11 +62,11 @@ namespace Phantasma.Business.Contracts
             Runtime.Notify(EventKind.AddressRegister, target, name);
         }
 
-        public void UnregisterName(Address target)
+        public async Task UnregisterName(Address target)
         {
             Runtime.Expect(target.IsUser, "must be user address");
             Runtime.Expect(target != Runtime.GenesisAddress, "address must not be genesis");
-            Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(target), "invalid witness");
 
             Runtime.Expect(_addressMap.ContainsKey(target), "address doest not have a name yet");
 
@@ -76,11 +77,11 @@ namespace Phantasma.Business.Contracts
             Runtime.Notify(EventKind.AddressUnregister, target, name);
         }
 
-        public void RegisterScript(Address target, byte[] script, byte[] abiBytes)
+        public async Task RegisterScript(Address target, byte[] script, byte[] abiBytes)
         {
             Runtime.Expect(target.IsUser, "must be user address");
             Runtime.Expect(target != Runtime.GenesisAddress, "address must not be genesis");
-            Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(target), "invalid witness");
 
             var stake = Runtime.GetStake(target);
             Runtime.Expect(stake >= UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals), "must have something staked");
@@ -95,21 +96,21 @@ namespace Phantasma.Business.Contracts
             var witnessTriggerName = AccountTrigger.OnWitness.ToString();
             if (abi.HasMethod(witnessTriggerName))
             {
-                var witnessCheck = Runtime.InvokeTrigger(false, script, NativeContractKind.Account, abi, witnessTriggerName, Address.Null) != TriggerResult.Failure;
+                var witnessCheck = await Runtime.InvokeTrigger(false, script, NativeContractKind.Account, abi, witnessTriggerName, Address.Null) != TriggerResult.Failure;
                 Runtime.Expect(!witnessCheck, "script does not handle OnWitness correctly, case #1");
 
-                witnessCheck = Runtime.InvokeTrigger(false, script, NativeContractKind.Account, abi, witnessTriggerName, target) != TriggerResult.Failure;
+                witnessCheck = await Runtime.InvokeTrigger(false, script, NativeContractKind.Account, abi, witnessTriggerName, target) != TriggerResult.Failure;
                 Runtime.Expect(witnessCheck, "script does not handle OnWitness correctly, case #2");
             }
 
             _scriptMap.Set(target, script);
             _abiMap.Set(target, abiBytes);
 
-            var constructor = abi.FindMethod(SmartContract.ConstructorName);
+            var constructor = abi.FindMethod(ConstructorName);
 
             if (constructor != null)
             {
-                Runtime.CallContext(target.Text, constructor, target);
+                await Runtime.CallContext(target.Text, constructor, target);
             }
 
             // TODO? Runtime.Notify(EventKind.AddressRegister, target, script);
@@ -181,28 +182,28 @@ namespace Phantasma.Business.Contracts
         }
 
 
-        public void Migrate(Address from, Address target)
+        public async Task Migrate(Address from, Address target)
         {
             Runtime.Expect(target != from, "addresses must be different");
             Runtime.Expect(target.IsUser, "must be user address");
 
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
-            bool isSeller = Runtime.CallNativeContext(NativeContractKind.Market, nameof(MarketContract.IsSeller), from).AsBool();
+            var isSeller = await Runtime.CallNativeContext(NativeContractKind.Market, nameof(MarketContract.IsSeller), from).AsBool();
             Runtime.Expect(!isSeller, "sale pending on market");
 
-            isSeller = Runtime.CallNativeContext(NativeContractKind.Sale, nameof(SaleContract.IsSeller), from).AsBool();
+            isSeller = await Runtime.CallNativeContext(NativeContractKind.Sale, nameof(SaleContract.IsSeller), from).AsBool();
             Runtime.Expect(!isSeller, "crowdsale pending");
 
-            var relayBalance = Runtime.CallNativeContext(NativeContractKind.Relay, nameof(RelayContract.GetBalance), from).AsNumber();
+            var relayBalance = await Runtime.CallNativeContext(NativeContractKind.Relay, nameof(RelayContract.GetBalance), from).AsNumber();
             Runtime.Expect(relayBalance == 0, "relay channel can't be open");
 
-            var unclaimed = Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), from).AsNumber();
+            var unclaimed = await Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), from).AsNumber();
             if (unclaimed > 0)
             {
-                Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Claim), from, from);
+                await Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Claim), from, from);
             }
 
             var symbols = Runtime.GetTokens();
@@ -219,10 +220,7 @@ namespace Phantasma.Business.Contracts
                     else
                     {
                         var tokenIDs = Runtime.GetOwnerships(symbol, from);
-                        foreach (var tokenID in tokenIDs)
-                        {
-                            Runtime.TransferToken(symbol, from, target, tokenID);
-                        }
+                        await Parallel.ForEachAsync(tokenIDs, async (tokenID, cancelToken) => await Runtime.TransferToken(symbol, from, target, tokenID));
                     }
                 }
             }
@@ -240,24 +238,24 @@ namespace Phantasma.Business.Contracts
             _scriptMap.Migrate<Address, byte[]>(from, target);
             _abiMap.Migrate<Address, byte[]>(from, target);
 
-            var stake = Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetStake), from).AsNumber();
+            var stake = await Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetStake), from).AsNumber();
             if (stake > 0)
             {
-                Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Migrate), from, target);
+                await Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Migrate), from, target);
             }
 
             if (Runtime.IsKnownValidator(from))
             {
-                Runtime.CallNativeContext(NativeContractKind.Validator, nameof(ValidatorContract.Migrate), from, target);
+                await Runtime.CallNativeContext(NativeContractKind.Validator, nameof(ValidatorContract.Migrate), from, target);
             }
 
-            var usedSpace = Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.GetUsedSpace), from).AsNumber();
+            var usedSpace = await Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.GetUsedSpace), from).AsNumber();
             if (usedSpace > 0)
             {
-                Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.Migrate), from, target);
+                await Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.Migrate), from, target);
             }
 
-            Runtime.CallNativeContext(NativeContractKind.Consensus, nameof(ConsensusContract.Migrate), from, target);
+            await Runtime.CallNativeContext(NativeContractKind.Consensus, nameof(ConsensusContract.Migrate), from, target);
 
             // TODO exchange, friend
 
@@ -277,7 +275,7 @@ namespace Phantasma.Business.Contracts
                 if (abi.Implements(migrateMethod))
                 {
                     var method = abi.FindMethod(migrateMethod.name);
-                    Runtime.CallContext(contract.Name, method, from, target);
+                    await Runtime.CallContext(contract.Name, method, from, target);
                 }
             }
 
@@ -290,11 +288,11 @@ namespace Phantasma.Business.Contracts
                 if (abi.Implements(migrateMethod))
                 {
                     var method = abi.FindMethod(migrateMethod.name);
-                    Runtime.CallContext(symbol, method, from, target);
+                    await Runtime.CallContext(symbol, method, from, target);
                 }
             }
 
-            Runtime.CallInterop("Nexus.MigrateToken", from, target);
+            await Runtime.CallInterop("Nexus.MigrateToken", from, target);
         }
 
 

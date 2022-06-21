@@ -2,6 +2,7 @@ using System.Numerics;
 using Phantasma.Core;
 using Phantasma.Core.Context;
 using Phantasma.Business.Storage;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business.Contracts
 {
@@ -35,9 +36,9 @@ namespace Phantasma.Business.Contracts
             return totalSize;
         }
 
-        public void CreateFile(Address target, string fileName, BigInteger fileSize, byte[] contentMerkle, byte[] encryptionContent)
+        public async Task CreateFile(Address target, string fileName, BigInteger fileSize, byte[] contentMerkle, byte[] encryptionContent)
         {
-            Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(target), "invalid witness");
             Runtime.Expect(target.IsUser, "destination address must be user address");
             Runtime.Expect(fileSize >= DomainSettings.ArchiveMinSize, "file too small");
             Runtime.Expect(fileSize <= DomainSettings.ArchiveMaxSize, "file too big");
@@ -70,10 +71,10 @@ namespace Phantasma.Business.Contracts
             var archive = Runtime.GetArchive(archiveHash);
             AddFile(from, target, archive);
         }
-
-        private void AddFile(Address from, Address target, IArchive archive)
+        
+        private async Task AddFile(Address from, Address target, IArchive archive)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             Runtime.Expect(HasPermission(from, target), $"permissions missing for {from} to add file to {target}");
 
@@ -97,12 +98,12 @@ namespace Phantasma.Business.Contracts
             }
 
             var list = _storageMap.Get<Address, StorageList>(target);
-            list.Add<Hash>(archive.Hash);
+            list.Add(archive.Hash);
         }
 
-        public void DeleteFile(Address from, Hash targetHash)
+        public async Task DeleteFile(Address from, Hash targetHash)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             var list = _storageMap.Get<Address, StorageList>(from);
 
@@ -136,9 +137,9 @@ namespace Phantasma.Business.Contracts
             return permissions.Contains<Address>(external);
         }
 
-        public void AddPermission(Address from, Address externalAddr)
+        public async Task AddPermission(Address from, Address externalAddr)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             Runtime.Expect(from != externalAddr, "target must be different");
 
@@ -150,9 +151,9 @@ namespace Phantasma.Business.Contracts
             Runtime.Notify(EventKind.AddressLink, from, externalAddr);
         }
 
-        public void DeletePermission(Address from, Address externalAddr)
+        public async Task DeletePermission(Address from, Address externalAddr)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
             Runtime.Expect(from != externalAddr, "target must be different");
 
@@ -164,34 +165,34 @@ namespace Phantasma.Business.Contracts
             Runtime.Notify(EventKind.AddressUnlink, from, externalAddr);
         }
 
-        public void MigratePermission(Address target, Address oldAddr, Address newAddr)
+        public async Task MigratePermission(Address target, Address oldAddr, Address newAddr)
         {
-            Runtime.Expect(Runtime.IsWitness(oldAddr), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(oldAddr), "invalid witness");
 
             var permissions = _permissionMap.Get<Address, StorageList>(target);
 
             if (target != oldAddr)
             {
                 Runtime.Expect(HasPermission(oldAddr, target), $"not permissions from {oldAddr} for target {target}");
-                permissions.Remove<Address>(oldAddr);
+                permissions.Remove(oldAddr);
                 Runtime.Notify(EventKind.AddressUnlink, target, oldAddr);
             }
 
             if (newAddr != target)
             {
                 Runtime.Expect(!HasPermission(newAddr, target), $"{newAddr} already has permissions for target {target}");
-                permissions.Add<Address>(newAddr);
+                permissions.Add(newAddr);
                 Runtime.Notify(EventKind.AddressLink, target, newAddr);
             }
         }
 
-        public void Migrate(Address from, Address target)
+        public async Task Migrate(Address from, Address target)
         {
             Runtime.Expect(Runtime.PreviousContext.Name == "account", "invalid context");
 
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
 
-            Runtime.Expect(!_dataQuotas.ContainsKey<Address>(target), "target address already in use");
+            Runtime.Expect(!_dataQuotas.ContainsKey(target), "target address already in use");
             _dataQuotas.Migrate<Address, BigInteger>(from, target);
 
             _permissionMap.Migrate<Address, StorageList>(from, target);

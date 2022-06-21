@@ -5,6 +5,7 @@ using Phantasma.Core;
 using Phantasma.Core.Context;
 using Phantasma.Shared.Performance;
 using Phantasma.Business.Tokens;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business.Contracts
 {
@@ -37,7 +38,7 @@ namespace Phantasma.Business.Contracts
         internal Timestamp _lastInflationDate;
         internal bool _inflationReady;
 
-        public void AllowGas(Address from, Address target, BigInteger price, BigInteger limit)
+        public async Task AllowGas(Address from, Address target, BigInteger price, BigInteger limit)
         {
             if (Runtime.IsReadOnlyMode())
             {
@@ -51,7 +52,7 @@ namespace Phantasma.Business.Contracts
 
             Runtime.Expect(from.IsUser, "must be a user address");
             Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName, "must be entry context");
-            Runtime.Expect(Runtime.IsWitness(from), $"invalid witness -> {from}");
+            Runtime.Expect(await Runtime.IsWitness(from), $"invalid witness -> {from}");
             Runtime.Expect(target.IsSystem, "destination must be system address");
 
             Runtime.Expect(price > 0, "price must be positive amount");
@@ -95,7 +96,7 @@ namespace Phantasma.Business.Contracts
                 Runtime.Notify(EventKind.GasEscrow, from, new GasEventData(target, price, limit));
         }
         
-        public void ApplyInflation(Address from)
+        public async Task ApplyInflation(Address from)
         {
             Runtime.Expect(_inflationReady, "inflation not ready");
 
@@ -121,7 +122,7 @@ namespace Phantasma.Business.Contracts
             var rewardList = new List<Address>();
             foreach (var addr in masters)
             {
-                var masterDate = Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetMasterDate), addr).AsTimestamp();
+                var masterDate = await Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetMasterDate), addr).AsTimestamp();
 
                 if (masterDate <= _lastInflationDate)
                 {
@@ -142,11 +143,11 @@ namespace Phantasma.Business.Contracts
 
                 stakeAmount = UnitConversion.ToBigInteger(2, DomainSettings.StakingTokenDecimals);
 
-                Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, this.Address, rewardAmount);
+                await Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, this.Address, rewardAmount);
 
                 var crownAddress = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
-                Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, crownAddress, stakeAmount);
-                Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Stake), crownAddress, stakeAmount);
+                await Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, crownAddress, stakeAmount);
+                await Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Stake), crownAddress, stakeAmount);
 
                 foreach (var addr in rewardList)
                 {
@@ -159,10 +160,10 @@ namespace Phantasma.Business.Contracts
 
                     var rom = Serialization.Serialize(reward);
 
-                    var tokenID = Runtime.MintToken(DomainSettings.RewardTokenSymbol, this.Address, this.Address, rom, new byte[0], 0);
-                    Runtime.InfuseToken(DomainSettings.RewardTokenSymbol, this.Address, tokenID, DomainSettings.FuelTokenSymbol, rewardFuel);
-                    Runtime.InfuseToken(DomainSettings.RewardTokenSymbol, this.Address, tokenID, DomainSettings.StakingTokenSymbol, rewardStake);
-                    Runtime.TransferToken(DomainSettings.RewardTokenSymbol, this.Address, addr, tokenID);
+                    var tokenID = await Runtime.MintToken(DomainSettings.RewardTokenSymbol, this.Address, this.Address, rom, new byte[0], 0);
+                    await Runtime.InfuseToken(DomainSettings.RewardTokenSymbol, this.Address, tokenID, DomainSettings.FuelTokenSymbol, rewardFuel);
+                    await Runtime.InfuseToken(DomainSettings.RewardTokenSymbol, this.Address, tokenID, DomainSettings.StakingTokenSymbol, rewardStake);
+                    await Runtime.TransferToken(DomainSettings.RewardTokenSymbol, this.Address, addr, tokenID);
                 }
 
                 _rewardAccum -= rewardList.Count * rewardFuel;
@@ -174,30 +175,30 @@ namespace Phantasma.Business.Contracts
 
             var refillAmount = inflationAmount / 50;
             var cosmicAddress = SmartContract.GetAddressForNative(NativeContractKind.Swap);
-            Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, cosmicAddress, refillAmount);
+            await Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, cosmicAddress, refillAmount);
             inflationAmount -= refillAmount;
 
             var phantomOrg = Runtime.GetOrganization(DomainSettings.PhantomForceOrganizationName);
             if (phantomOrg != null)
             {
                 var phantomFunding = inflationAmount / 3;
-                Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, phantomOrg.Address, phantomFunding);
+                await Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, phantomOrg.Address, phantomFunding);
                 inflationAmount -= phantomFunding;
 
                 if (phantomOrg.Size == 1)
                 {
-                    Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Stake), phantomOrg.Address, phantomFunding);
+                    await Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Stake), phantomOrg.Address, phantomFunding);
                 }
             }
 
             var bpOrg = Runtime.GetOrganization(DomainSettings.ValidatorsOrganizationName);
             if (bpOrg != null)
             {
-                Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, bpOrg.Address, inflationAmount);
+                await Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, bpOrg.Address, inflationAmount);
 
                 if (bpOrg.Size == 1)
                 {
-                    Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Stake), bpOrg.Address, inflationAmount);
+                    await Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Stake), bpOrg.Address, inflationAmount);
                 }
             }
 
@@ -207,7 +208,7 @@ namespace Phantasma.Business.Contracts
             _inflationReady = false;
         }
 
-        public void SpendGas(Address from)
+        public async Task SpendGas(Address from)
         {
             if (Runtime.IsReadOnlyMode())
             {
@@ -215,7 +216,7 @@ namespace Phantasma.Business.Contracts
             }
 
             Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName, "must be entry context");
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(await Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(_allowanceMap.ContainsKey(from), "no gas allowance found");
 
             var availableAmount = _allowanceMap.Get<Address, BigInteger>(from);

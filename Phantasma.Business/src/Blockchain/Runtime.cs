@@ -678,7 +678,7 @@ namespace Phantasma.Business
                 // propagate events to the other runtime
                 foreach (var evt in runtime.Events)
                 {
-                    this.Notify(evt.Kind, evt.Address, evt.Data, evt.Contract);
+                    Notify(evt.Kind, evt.Address, evt.Data, evt.Contract);
                 }
 
                 return TriggerResult.Success;
@@ -770,7 +770,7 @@ namespace Phantasma.Business
             else
             if (address.IsUser && Nexus.HasGenesis && OptimizedHasAddressScript(RootStorage, address))
             {
-                 TriggerResult triggerResult;
+                TriggerResult triggerResult;
                 using (var m = new ProfileMarker("InvokeTriggerOnAccount"))
                     triggerResult = await InvokeTriggerOnAccount(false, address, AccountTrigger.OnWitness, address);
 
@@ -989,47 +989,47 @@ namespace Phantasma.Business
             return Chain.GetTransactionHashesForAddress(address);
         }
 
-        public ValidatorEntry GetValidatorByIndex(int index)
+        public Task<ValidatorEntry> GetValidatorByIndex(int index)
         {
             return Nexus.GetValidatorByIndex(index);
         }
 
-        public ValidatorEntry[] GetValidators()
+        public Task<ValidatorEntry[]> GetValidators()
         {
             return Nexus.GetValidators();
         }
 
-        public bool IsPrimaryValidator(Address address)
+        public Task<bool> IsPrimaryValidator(Address address)
         {
             return Nexus.IsPrimaryValidator(address);
         }
 
-        public bool IsSecondaryValidator(Address address)
+        public Task<bool> IsSecondaryValidator(Address address)
         {
             return Nexus.IsSecondaryValidator(address);
         }
 
-        public int GetPrimaryValidatorCount()
+        public Task<int> GetPrimaryValidatorCount()
         {
             return Nexus.GetPrimaryValidatorCount();
         }
 
-        public int GetSecondaryValidatorCount()
+        public Task<int> GetSecondaryValidatorCount()
         {
             return Nexus.GetSecondaryValidatorCount();
         }
 
-        public bool IsKnownValidator(Address address)
+        public Task<bool> IsKnownValidator(Address address)
         {
             return Nexus.IsKnownValidator(address);
         }
 
-        public bool IsStakeMaster(Address address)
+        public Task<bool> IsStakeMaster(Address address)
         {
             return Nexus.IsStakeMaster(this.RootStorage, address);
         }
 
-        public BigInteger GetStake(Address address)
+        public Task<BigInteger> GetStake(Address address)
         {
             return Nexus.GetStakeFromAddress(this.RootStorage, address);
         }

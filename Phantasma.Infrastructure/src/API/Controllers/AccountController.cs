@@ -70,7 +70,7 @@ namespace Phantasma.Infrastructure.Controllers
         [APIInfo(typeof(string), "Returns the address that owns a given name.", false, 60)]
         [APIFailCase("address is invalid", "ABCD123")]
         [HttpGet("LookUpName")]
-        public string LookUpName([APIParameter("Name of account", "blabla")] string name)
+        public async Task<string> LookUpName([APIParameter("Name of account", "blabla")] string name)
         {
             if (!ValidationUtils.IsValidIdentifier(name))
             {
@@ -79,7 +79,7 @@ namespace Phantasma.Infrastructure.Controllers
 
             var nexus = NexusAPI.GetNexus();
 
-            var address = nexus.LookUpName(nexus.RootStorage, name);
+            var address = await nexus.LookUpName(nexus.RootStorage, name);
             if (address.IsNull)
             {
                 throw new APIException("name not owned");

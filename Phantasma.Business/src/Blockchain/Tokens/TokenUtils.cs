@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Phantasma.Core;
 using Phantasma.Core.Context;
 using Phantasma.Shared.Types;
+using System.Threading.Tasks;
 
 namespace Phantasma.Business.Tokens
 {
@@ -180,7 +181,7 @@ namespace Phantasma.Business.Tokens
             abi = new ContractInterface(methods, Enumerable.Empty<ContractEvent>());
         }
 
-        private static VMObject ExecuteScript(StorageContext storage, IChain chain, byte[] script, ContractInterface abi, string methodName, params object[] args)
+        private static async Task<VMObject> ExecuteScript(StorageContext storage, IChain chain, byte[] script, ContractInterface abi, string methodName, params object[] args)
         {
             var method = abi.FindMethod(methodName);
 
@@ -207,7 +208,7 @@ namespace Phantasma.Business.Tokens
                 vm.Stack.Push(VMObject.FromObject(arg));
             }
 
-            var result = vm.Execute();
+            var result = await vm.Execute();
             if (result == ExecutionState.Halt)
             {
                 return vm.Stack.Pop();
@@ -216,11 +217,11 @@ namespace Phantasma.Business.Tokens
             throw new Exception("Script execution failed for: " + method.name);
         }
 
-        public static void FetchProperty(StorageContext storage, IChain chain, string methodName, ITokenSeries series, BigInteger tokenID, Action<string, VMObject> callback)
+        public static async Task FetchProperty(StorageContext storage, IChain chain, string methodName, ITokenSeries series, BigInteger tokenID, Action<string, VMObject> callback)
         {
             if (series.ABI.HasMethod(methodName))
             {
-                var result = ExecuteScript(storage, chain, series.Script, series.ABI, methodName, tokenID);
+                var result = await ExecuteScript(storage, chain, series.Script, series.ABI, methodName, tokenID);
 
                 string propName = methodName;
 
@@ -243,11 +244,11 @@ namespace Phantasma.Business.Tokens
             FetchProperty(storage, chain, methodName, token.Script, token.ABI, callback);
         }
 
-        public static void FetchProperty(StorageContext storage, IChain chain, string methodName, byte[] script, ContractInterface abi, Action<string, VMObject> callback)
+        public static async Task FetchProperty(StorageContext storage, IChain chain, string methodName, byte[] script, ContractInterface abi, Action<string, VMObject> callback)
         {
             if (abi.HasMethod(methodName))
             {
-                var result = ExecuteScript(storage, chain, script, abi, methodName);
+                var result = await ExecuteScript(storage, chain, script, abi, methodName);
 
                 string propName = methodName;
 
