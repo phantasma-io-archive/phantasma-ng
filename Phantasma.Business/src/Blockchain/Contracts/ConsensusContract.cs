@@ -193,7 +193,7 @@ namespace Phantasma.Business.Contracts
 
             if (subject.StartsWith(SystemPoll))
             {
-                Runtime.Expect(Runtime.IsPrimaryValidator(from), "must be validator");
+                Runtime.Expect(await Runtime.IsPrimaryValidator(from), "must be validator");
 
                 if (subject.StartsWith(SystemPoll + "stake."))
                 {
@@ -254,7 +254,7 @@ namespace Phantasma.Business.Contracts
                 {
                     Runtime.Expect(choices[i].value.Length == Address.LengthInBytes, "election choices must be public addresses");
                     var address = Address.FromBytes(choices[i].value);
-                    Runtime.Expect(Runtime.IsKnownValidator(address), "election choice must be active or waiting validator");
+                    Runtime.Expect(await Runtime.IsKnownValidator(address), "election choice must be active or waiting validator");
                 }
             }
 
@@ -365,7 +365,7 @@ namespace Phantasma.Business.Contracts
         {
             if (subject.StartsWith(SystemPoll))
             {
-                var validatorCount = Runtime.GetPrimaryValidatorCount();
+                var validatorCount = await Runtime.GetPrimaryValidatorCount();
                 if (validatorCount <= 1)
                 {
                     return await Runtime.IsWitness(Runtime.GenesisAddress);

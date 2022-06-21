@@ -86,7 +86,7 @@ namespace Phantasma.Business.Contracts
             BigInteger requiredSize = archive.Size;
 
             var targetUsedSize = GetUsedSpace(target);
-            var targetStakedAmount = Runtime.GetStake(target);
+            var targetStakedAmount = await Runtime.GetStake(target);
             var targetAvailableSize = CalculateStorageSizeForStake(targetStakedAmount);
             targetAvailableSize -= targetUsedSize;
 
@@ -223,9 +223,9 @@ namespace Phantasma.Business.Contracts
             return usedSize;
         }
 
-        public BigInteger GetAvailableSpace(Address from)
+        public async Task<BigInteger> GetAvailableSpace(Address from)
         {
-            var stakedAmount = Runtime.GetStake(from);
+            var stakedAmount = await Runtime.GetStake(from);
             var totalSize = CalculateStorageSizeForStake(stakedAmount);
 
             if (from.IsSystem)
@@ -259,7 +259,7 @@ namespace Phantasma.Business.Contracts
             return result;
         }
 
-        public void WriteData(Address target, byte[] key, byte[] value)
+        public async Task WriteData(Address target, byte[] key, byte[] value)
         {
             ValidateKey(key);
 
@@ -276,7 +276,7 @@ namespace Phantasma.Business.Contracts
             if (writeSize > deleteSize)
             {
                 var diff = writeSize - deleteSize;
-                var availableSize = GetAvailableSpace(target);
+                var availableSize = await GetAvailableSpace(target);
                 Runtime.Expect(availableSize >= diff, $"not enough storage space available: requires " + diff + ", only have: " + availableSize);
             }
 
@@ -290,9 +290,9 @@ namespace Phantasma.Business.Contracts
                 usedQuota = writeSize; // fix for data written in previous protocol
             }
 
-            _dataQuotas.Set<Address, BigInteger>(target, usedQuota);
+            _dataQuotas.Set(target, usedQuota);
 
-            _dataQuotas.Set<Address, BigInteger>(target, usedQuota);
+            _dataQuotas.Set(target, usedQuota);
 
             var temp = Runtime.Storage.Get(key);
             Runtime.Expect(temp.Length == value.Length, "storage write corruption");

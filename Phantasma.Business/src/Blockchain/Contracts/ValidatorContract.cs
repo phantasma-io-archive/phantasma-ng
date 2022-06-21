@@ -194,7 +194,7 @@ namespace Phantasma.Business.Contracts
             if (primaryValidators > _initialValidatorCount) // for initial validators stake is not verified because it doesn't exist yet.
             {
                 var requiredStake = await Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetMasterThreshold), target).AsNumber(); ;
-                var stakedAmount = Runtime.GetStake(target);
+                var stakedAmount = await Runtime.GetStake(target);
 
                 Runtime.Expect(stakedAmount >= requiredStake, "not enough stake");
             }

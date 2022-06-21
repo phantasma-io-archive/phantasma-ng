@@ -31,7 +31,7 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(await Runtime.IsWitness(target), "invalid witness");
             Runtime.Expect(ValidationUtils.IsValidIdentifier(name), "invalid name");
 
-            var stake = Runtime.GetStake(target);
+            var stake = await Runtime.GetStake(target);
             Runtime.Expect(stake >= UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals), "must have something staked");
 
             Runtime.Expect(name != Runtime.NexusName, "name already used for nexus");
@@ -83,7 +83,7 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(target != Runtime.GenesisAddress, "address must not be genesis");
             Runtime.Expect(await Runtime.IsWitness(target), "invalid witness");
 
-            var stake = Runtime.GetStake(target);
+            var stake = await Runtime.GetStake(target);
             Runtime.Expect(stake >= UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals), "must have something staked");
 
             Runtime.Expect(script.Length < 1024, "invalid script length");
@@ -244,7 +244,7 @@ namespace Phantasma.Business.Contracts
                 await Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Migrate), from, target);
             }
 
-            if (Runtime.IsKnownValidator(from))
+            if (await Runtime.IsKnownValidator(from))
             {
                 await Runtime.CallNativeContext(NativeContractKind.Validator, nameof(ValidatorContract.Migrate), from, target);
             }

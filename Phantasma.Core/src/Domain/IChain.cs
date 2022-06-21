@@ -59,7 +59,7 @@ public interface IChain
     SmartContract GetContractByName(StorageContext storage, string name);
     void UpgradeContract(StorageContext storage, string name, byte[] script, ContractInterface abi);
     void KillContract(StorageContext storage, string name);
-    Phantasma.Core.ExecutionContext GetContractContext(StorageContext storage, SmartContract contract);
+    ExecutionContext GetContractContext(StorageContext storage, SmartContract contract);
     Address GetContractOwner(StorageContext storage, Address contractAddress);
     Hash GetLastBlockHash();
     Hash GetBlockHashAtHeight(BigInteger height);
@@ -78,8 +78,8 @@ public interface IChain
     IChainTask StartTask(StorageContext storage, Address from, string contractName, ContractMethod method, uint frequency, uint delay, TaskFrequencyMode mode, BigInteger gasLimit);
     bool StopTask(StorageContext storage, BigInteger taskID);
     IChainTask GetTask(StorageContext storage, BigInteger taskID);
-    Address GetValidator(StorageContext storage, Timestamp targetTime);
-    void CloseBlock(Block block, StorageChangeSetContext storage);
-    Address LookUpName(StorageContext storage, string name);
+    Task<Address> GetValidator(StorageContext storage, Timestamp targetTime);
+    Task CloseBlock(Block block, StorageChangeSetContext storage);
+    Task<Address> LookUpName(StorageContext storage, string name);
     Task<string> GetNameFromAddress(StorageContext storage, Address address);
 }

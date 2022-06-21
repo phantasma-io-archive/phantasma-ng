@@ -956,24 +956,24 @@ namespace Phantasma.Business
             return GetChainByName(parentName);
         }
 
-        public Address LookUpName(string name)
+        public Task<Address> LookUpName(string name)
         {
-            return Chain.LookUpName(this.RootStorage, name);
+            return Chain.LookUpName(RootStorage, name);
         }
 
-        public bool HasAddressScript(Address from)
+        public Task<bool> HasAddressScript(Address from)
         {
-            return Nexus.HasAddressScript(this.RootStorage, from);
+            return Nexus.HasAddressScript(RootStorage, from);
         }
 
-        public byte[] GetAddressScript(Address from)
+        public Task<byte[]> GetAddressScript(Address from)
         {
-            return Nexus.LookUpAddressScript(this.RootStorage, from);
+            return Nexus.LookUpAddressScript(RootStorage, from);
         }
 
         public async Task<string> GetAddressName(Address from)
         {
-            return await Chain.GetNameFromAddress(this.RootStorage, from);
+            return await Chain.GetNameFromAddress(RootStorage, from);
         }
 
         public Event[] GetTransactionEvents(Hash transactionHash)
@@ -1089,7 +1089,7 @@ namespace Phantasma.Business
 
             Runtime.Expect(owner.IsUser, "owner address must be user address");
 
-            Runtime.Expect(Runtime.IsStakeMaster(owner), "needs to be master");
+            Runtime.Expect(await Runtime.IsStakeMaster(owner), "needs to be master");
             Runtime.Expect(await Runtime.IsWitness(owner), "invalid witness");
 
             var pow = Runtime.Transaction.Hash.GetDifficulty();
@@ -1182,7 +1182,7 @@ namespace Phantasma.Business
             Runtime.Expect(org.IsMember(creator), "creator does not belong to organization");
 
             Runtime.Expect(creator.IsUser, "owner address must be user address");
-            Runtime.Expect(Runtime.IsStakeMaster(creator), "needs to be master");
+            Runtime.Expect(await Runtime.IsStakeMaster(creator), "needs to be master");
             Runtime.Expect(await Runtime.IsWitness(creator), "invalid witness");
 
             name = name.ToLowerInvariant();
@@ -1203,7 +1203,7 @@ namespace Phantasma.Business
             Runtime.Expect(!string.IsNullOrEmpty(name), "name required");
 
             Runtime.Expect(owner.IsUser, "owner address must be user address");
-            Runtime.Expect(Runtime.IsStakeMaster(owner), "needs to be master");
+            Runtime.Expect(await Runtime.IsStakeMaster(owner), "needs to be master");
             Runtime.Expect(await Runtime.IsWitness(owner), "invalid witness");
 
             Runtime.Expect(Nexus.CreateFeed(RootStorage, owner, name, mode), "feed creation failed");
@@ -1739,9 +1739,9 @@ namespace Phantasma.Business
             org.MigrateMember(this, admin, source, destination);
         }
 
-        public Address GetValidator(Timestamp time)
+        public Task<Address> GetValidator(Timestamp time)
         {
-            return this.Chain.GetValidator(this.RootStorage, time);
+            return Chain.GetValidator(RootStorage, time);
         }
 
 
@@ -1753,12 +1753,12 @@ namespace Phantasma.Business
                 return genesisBlock.Timestamp;
             }
 
-            return this.Time;
+            return Time;
         }
 
         public Address GetContractOwner(Address address)
         {
-            return this.Chain.GetContractOwner(this.Storage, address);
+            return Chain.GetContractOwner(Storage, address);
         }
 
         #region TASKS
@@ -1806,7 +1806,7 @@ namespace Phantasma.Business
 
             vm.Expect(await IsWitness(task.Owner), "invalid witness");
 
-            vm.Expect(this.Chain.StopTask(this.Storage, task.ID), "failed to stop task");
+            vm.Expect(Chain.StopTask(Storage, task.ID), "failed to stop task");
 
             this.Notify(EventKind.TaskStop, task.Owner, task.ID);
         }
@@ -1823,7 +1823,7 @@ namespace Phantasma.Business
                 return CurrentTask;
             }
 
-            return this.Chain.GetTask(this.Storage, taskID);
+            return Chain.GetTask(Storage, taskID);
         }
         #endregion
 

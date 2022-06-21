@@ -1252,7 +1252,7 @@ namespace Phantasma.Business
             if (vm.Nexus.HasGenesis)
             {
                 //Runtime.Expect(org != DomainSettings.ValidatorsOrganizationName, "cannot deploy contract via this organization");
-                vm.Expect(vm.IsStakeMaster(from), "needs to be master");
+                vm.Expect(await vm.IsStakeMaster(from), "needs to be master");
             }
 
             vm.Expect(await vm.IsWitness(from), "invalid witness");
@@ -1344,7 +1344,7 @@ namespace Phantasma.Business
             var from = vm.PopAddress();
             vm.Expect(from.IsUser, "address must be user");
 
-            vm.Expect(vm.IsStakeMaster(from), "needs to be master");
+            vm.Expect(await vm.IsStakeMaster(from), "needs to be master");
 
             vm.Expect(await vm.IsWitness(from), "invalid witness");
 

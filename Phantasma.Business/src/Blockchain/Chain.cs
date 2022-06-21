@@ -458,7 +458,7 @@ namespace Phantasma.Business
             //TODO: remove this
             Address expectedValidator;
             using (var m = new ProfileMarker("GetValidator"))
-                expectedValidator = Nexus.HasGenesis ? GetValidator(Nexus.RootStorage, block.Timestamp) : Nexus.GetGenesisAddress(Nexus.RootStorage);
+                expectedValidator = Nexus.HasGenesis ? await GetValidator(Nexus.RootStorage, block.Timestamp) : Nexus.GetGenesisAddress(Nexus.RootStorage);
 
             var migrationFound = false;
             var migratedAddress = Address.Null;
@@ -1422,8 +1422,8 @@ namespace Phantasma.Business
             var diff = targetTime - validationSlotTime;
 
             int validatorIndex = (int)(diff / slotDuration);
-            var validatorCount = Nexus.GetPrimaryValidatorCount();
-            var chainIndex = Nexus.GetIndexOfChain(this.Name);
+            var validatorCount = await Nexus.GetPrimaryValidatorCount();
+            var chainIndex = Nexus.GetIndexOfChain(Name);
 
             if (chainIndex < 0)
             {
@@ -1531,14 +1531,14 @@ namespace Phantasma.Business
         }
         #endregion
 
-        public Address LookUpName(StorageContext storage, string name)
+        public async Task<Address> LookUpName(StorageContext storage, string name)
         {
             if (IsContractDeployed(storage, name))
             {
                 return SmartContract.GetAddressForName(name);
             }
 
-            return Nexus.LookUpName(storage, name);
+            return await Nexus.LookUpName(storage, name);
         }
 
         public async Task<string> GetNameFromAddress(StorageContext storage, Address address)

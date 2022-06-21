@@ -27,7 +27,7 @@ namespace Phantasma.Core
         Block GetBlockByHash(Hash hash);
         Block GetBlockByHeight(BigInteger height);
 
-        Address GetValidator(Timestamp time);
+        Task<Address> GetValidator(Timestamp time);
 
         bool HasGenesis { get; }
         string NexusName { get; }
@@ -95,9 +95,9 @@ namespace Phantasma.Core
         Task<VMObject> CallContext(string contextName, uint jumpOffset, string methodName, params object[] args);
         Task<VMObject> CallInterop(string methodName, params object[] args);
 
-        Address LookUpName(string name);
-        bool HasAddressScript(Address from);
-        byte[] GetAddressScript(Address from);
+        Task<Address> LookUpName(string name);
+        Task<bool> HasAddressScript(Address from);
+        Task<byte[]> GetAddressScript(Address from);
         Task<string> GetAddressName(Address from);
 
         Event[] GetTransactionEvents(Hash transactionHash);
