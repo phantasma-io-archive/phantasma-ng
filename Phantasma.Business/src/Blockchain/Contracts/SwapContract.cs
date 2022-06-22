@@ -17,8 +17,8 @@ namespace Phantasma.Business.Contracts
 
         public LPTokenContentROM(string Symbol0, string Symbol1, BigInteger ID)
         {
-            this.Symbol0 = "";
-            this.Symbol1 = "";
+            this.Symbol0 = Symbol0;
+            this.Symbol1 = Symbol1;
             this.ID = ID;
         }
 
@@ -680,7 +680,7 @@ namespace Phantasma.Business.Contracts
 
             var url = "https://www.22series.com/part_info?id=*";
             Tokens.TokenUtils.GenerateNFTDummyScript(DomainSettings.LiquidityTokenSymbol, $"{DomainSettings.LiquidityTokenSymbol} #*", $"{DomainSettings.LiquidityTokenSymbol} #*", url, url, out nftScript, out nftABI);
-            Runtime.CreateTokenSeries(DomainSettings.LiquidityTokenSymbol, this.Address, 1, 0, TokenSeriesMode.Duplicated, nftScript, nftABI);
+            Runtime.CreateTokenSeries(DomainSettings.LiquidityTokenSymbol, this.Address, 1, 0, TokenSeriesMode.Unique, nftScript, nftABI);
 
             // check how much SOUL we have here
             var soulTotal = Runtime.GetBalance(DomainSettings.StakingTokenSymbol, this.Address);
@@ -1257,7 +1257,10 @@ namespace Phantasma.Business.Contracts
             }
             else
             {
-                Runtime.Expect(tradeRatioAmount == tradeRatio, $"TradeRatio < 0 | {tradeRatio} != {tradeRatioAmount}");
+                // Ratio Base on the real price of token
+                // TODO: Ask if this is gonna be implemented this way.
+                //Runtime.Expect(tradeRatioAmount == tradeRatio, $"TradeRatio < 0 | {tradeRatio} != {tradeRatioAmount}");
+                tradeRatio = tradeRatioAmount;
             }
             
             Runtime.Expect( ValidateRatio(tempAm0, tempAm1, tradeRatio), $"ratio is not true. {tradeRatio}, new {tempAm0} {tempAm1} {tempAm0 / tempAm1} {amount0/ amount1}");
@@ -1286,7 +1289,7 @@ namespace Phantasma.Business.Contracts
             _pools.Set<string, Pool>($"{symbol0}_{symbol1}", pool);
 
             // Give LP Token to the address
-            LPTokenContentROM nftROM = new LPTokenContentROM(pool.Symbol0, pool.Symbol1, 0);
+            LPTokenContentROM nftROM = new LPTokenContentROM(pool.Symbol0, pool.Symbol1, Runtime.GenerateUID());
             LPTokenContentRAM nftRAM = new LPTokenContentRAM(amount0, amount1, TLP);
 
             var nftID = Runtime.MintToken(DomainSettings.LiquidityTokenSymbol, this.Address, from, VMObject.FromStruct(nftROM).AsByteArray(), VMObject.FromStruct(nftRAM).AsByteArray(), DEXSeriesID);
@@ -1438,7 +1441,7 @@ namespace Phantasma.Business.Contracts
                 // CALCULATE BASED ON THIS lp_amount = (SOUL_USER  * LP_TOTAL )/  SOUL_TOTAL
                 // TODO: calculate the amounts according to the ratio...
                 BigInteger nftID = 0;
-                LPTokenContentROM nftROM = new LPTokenContentROM(pool.Symbol0, pool.Symbol1, 0);
+                LPTokenContentROM nftROM = new LPTokenContentROM(pool.Symbol0, pool.Symbol1, Runtime.GenerateUID());
                 LPTokenContentRAM nftRAM = new LPTokenContentRAM();
                 BigInteger lp_amount = 0;
 
