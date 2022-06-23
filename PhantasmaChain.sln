@@ -24,6 +24,18 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Business.Tests", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Shared.Tests", "Phantasma.Shared\tests\Phantasma.Shared.Tests.csproj", "{779A54F9-5662-49F3-A01F-43822522481F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{589358C5-AFDB-433B-AA89-233B3E50D2BD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{FCB1477E-61E5-4D18-9282-2E01AE05C229}"
+	ProjectSection(SolutionItems) = preProject
+		.github\pull_request_template.md = .github\pull_request_template.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{0141C984-E5AE-467E-AD26-E7E3B9C15CFC}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\dotnet-core.yml = .github\workflows\dotnet-core.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -159,8 +171,9 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{F4749737-2E38-47B4-A5E2-436E99DB672C} = {F7CCB749-3D6F-4224-9044-4665CB3E6ED5}
 		{A99DFE65-B9A8-4B8A-B578-C637AF46E395} = {F7CCB749-3D6F-4224-9044-4665CB3E6ED5}
+		{FCB1477E-61E5-4D18-9282-2E01AE05C229} = {589358C5-AFDB-433B-AA89-233B3E50D2BD}
+		{0141C984-E5AE-467E-AD26-E7E3B9C15CFC} = {FCB1477E-61E5-4D18-9282-2E01AE05C229}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2118B4E7-09F1-45EA-A596-12BF1C492CA1}
