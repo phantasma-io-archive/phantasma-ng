@@ -255,8 +255,22 @@ namespace Phantasma.Business.Contracts
         public const string SwapMakerFeePercentTag = "swap.fee.maker";
         public const string SwapTakerFeePercentTag = "swap.fee.taker";
 
-        // returns how many tokens would be obtained by trading from one type of another
+
         public BigInteger GetRate(string fromSymbol, string toSymbol, BigInteger amount)
+        {
+            if (_DEXversion >= 1)
+            {
+                return GetRateV3(fromSymbol, toSymbol, amount);
+            }
+            else
+            {
+                return GetRateV1(fromSymbol, toSymbol, amount);
+            }
+
+            return 0;
+        }
+        // returns how many tokens would be obtained by trading from one type of another
+        public BigInteger GetRateV1(string fromSymbol, string toSymbol, BigInteger amount)
         {
             Runtime.Expect(fromSymbol != toSymbol, "invalid pair");
 
@@ -1524,11 +1538,16 @@ namespace Phantasma.Business.Contracts
             BigInteger poolRatio = 0; 
             BigInteger tradeRatioAmount = 0;
 
+            Console.WriteLine($"Division: {UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals)}");
+
+            
             if (UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals) > 0)
                 poolRatio = UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals);
             else
                 poolRatio = UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals);
 
+            Console.WriteLine($"Is Pool Ratio 0? : {poolRatio}");
+            
             // Calculate Amounts if they are 0
             if (amount0 == 0)
             {
@@ -1542,6 +1561,7 @@ namespace Phantasma.Business.Contracts
                 }
             }
 
+            Console.WriteLine($"tradeRatio Division? : {UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals)}");
 
             if (amount1 * 100 / UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals) > 0)
                 tradeRatioAmount = amount0 * 100 / UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals);
@@ -1575,6 +1595,7 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(ValidateRatio(tempAm1, tempAm0*100, poolRatio), $"ratio is not true. {poolRatio}, new {tempAm0} {tempAm1} {tempAm0 / tempAm1} {amount0 / UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals)}");
 
             // Update the user NFT
+            Console.WriteLine("Before Updateding the NFT");
             var lpKey = GetLPTokensKey(from, pool.Symbol0, pool.Symbol1);
             var nftID = _lp_tokens.Get<string, BigInteger>(lpKey);
             var nft = Runtime.ReadToken(DomainSettings.LiquidityTokenSymbol, nftID);
@@ -1584,7 +1605,10 @@ namespace Phantasma.Business.Contracts
             BigInteger oldAmount0 = nftRAM.Amount0;
             BigInteger oldAmount1 = nftRAM.Amount1;
             BigInteger oldLP = nftRAM.Liquidity;
+            Console.WriteLine($"new LP Division? : {(pool.Amount0-nftRAM.Amount0)}");
             BigInteger newLiquidity = newAmount0 * (pool.TotalLiquidity - nftRAM.Liquidity) / (pool.Amount0-nftRAM.Amount0);
+
+            Console.WriteLine($"LP Division? : {(pool.Amount0)}");
 
             liquidity = (amount0 * (pool.TotalLiquidity)) / (pool.Amount0);
             
