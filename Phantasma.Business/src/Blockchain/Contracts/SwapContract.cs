@@ -1128,7 +1128,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         private void RemoveFromLPTokens(Address from, BigInteger NFTID, string symbol0, string symbol1)
         {
             var lptokenKey = GetLPTokensKey(from, symbol0, symbol1);
-            Runtime.Expect(!_lp_tokens.ContainsKey<string>(lptokenKey), "The user is not on the list.");
+            Runtime.Expect(_lp_tokens.ContainsKey<string>(lptokenKey), "The user is not on the list.");
             _lp_tokens.Remove<string>(lptokenKey);
             RemoveFromLPHolders(from, symbol0, symbol1);
         }
@@ -1545,16 +1545,12 @@ namespace Phantasma.Business.Blockchain.Contracts
             BigInteger poolRatio = 0; 
             BigInteger tradeRatioAmount = 0;
 
-            Console.WriteLine($"Division: {UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals)}");
-
             
             if (UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals) > 0)
                 poolRatio = UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals);
             else
                 poolRatio = UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals);
 
-            Console.WriteLine($"Is Pool Ratio 0? : {poolRatio}");
-            
             // Calculate Amounts if they are 0
             if (amount0 == 0)
             {
@@ -1567,8 +1563,6 @@ namespace Phantasma.Business.Blockchain.Contracts
                     amount1 = UnitConversion.ConvertDecimals((amount0 / 100 / poolRatio), DomainSettings.FiatTokenDecimals, token1Info.Decimals);
                 }
             }
-
-            Console.WriteLine($"tradeRatio Division? : {UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals)}");
 
             if (amount1 * 100 / UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals) > 0)
                 tradeRatioAmount = amount0 * 100 / UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals);
@@ -1602,7 +1596,6 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(ValidateRatio(tempAm1, tempAm0*100, poolRatio), $"ratio is not true. {poolRatio}, new {tempAm0} {tempAm1} {tempAm0 / tempAm1} {amount0 / UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals)}");
 
             // Update the user NFT
-            Console.WriteLine("Before Updateding the NFT");
             var lpKey = GetLPTokensKey(from, pool.Symbol0, pool.Symbol1);
             var nftID = _lp_tokens.Get<string, BigInteger>(lpKey);
             var nft = Runtime.ReadToken(DomainSettings.LiquidityTokenSymbol, nftID);
@@ -1613,7 +1606,29 @@ namespace Phantasma.Business.Blockchain.Contracts
             BigInteger oldAmount1 = nftRAM.Amount1;
             BigInteger oldLP = nftRAM.Liquidity;
             Console.WriteLine($"new LP Division? : {(pool.Amount0-nftRAM.Amount0)}");
-            BigInteger newLiquidity = newAmount0 * (pool.TotalLiquidity - nftRAM.Liquidity) / (pool.Amount0-nftRAM.Amount0);
+            Console.WriteLine($"Pool Amount : {(pool.Amount0)} | NFT -> {nftRAM.Amount0}");
+            BigInteger division = pool.Amount0 - nftRAM.Amount0;
+            BigInteger lp = pool.TotalLiquidity - nftRAM.Liquidity;
+            
+            if (pool.Amount0 - nftRAM.Amount0 <= 0)
+            {
+                division = 1;
+            }
+
+            if (lp == 0)
+            {
+                lp = 1;
+            }
+            BigInteger newLiquidity = 0;
+            if (pool.Amount0 == nftRAM.Amount0)
+            {
+                newLiquidity = (BigInteger) Sqrt(newAmount0 * newAmount1);
+            }
+            else
+            {
+                newLiquidity = newAmount0 * (lp) / division;
+            }
+            
 
             Console.WriteLine($"LP Division? : {(pool.Amount0)}");
 
@@ -1648,12 +1663,29 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
 
             // Update the pool values
-            pool.Amount0 = (pool.Amount0 - oldAmount0) + amount0;
-            pool.Amount1 = (pool.Amount1 - oldAmount1) + amount1;
+            if (pool.Amount0 == oldAmount0)
+            {
+                pool.Amount0 = newAmount0;
+                pool.Amount1 = newAmount1;
+                
+                pool.TotalLiquidity = newLiquidity;
+            }
+            else
+            {
+                pool.Amount0 = (pool.Amount0 - oldAmount0) + amount0;
+                pool.Amount1 = (pool.Amount1 - oldAmount1) + amount1;
 
-            pool.TotalLiquidity = pool.TotalLiquidity - oldLP + newLiquidity;
+                pool.TotalLiquidity = pool.TotalLiquidity - oldLP + newLiquidity;
+            }
 
-            _pools.Set<string, Pool>($"{pool.Symbol0}_{pool.Symbol1}", pool);
+            if (pool.Amount0 == 0)
+            {
+                _pools.Remove($"{pool.Symbol0}_{pool.Symbol1}");
+            }
+            else
+            {
+                _pools.Set<string, Pool>($"{pool.Symbol0}_{pool.Symbol1}", pool);
+            }
         }
 
         private bool ValidateTrade(BigInteger amount0, BigInteger amount1, Pool pool, bool isBuying = false)
