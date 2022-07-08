@@ -669,6 +669,8 @@ namespace Phantasma.Business.Blockchain.Contracts
             BigInteger totalFees = total*3/100;
             BigInteger feeForUsers = totalFees * 100 / UserPercent;
             BigInteger feeForOwner = totalFees * 100 / GovernancePercent;
+            pool.Amount0 += amount;
+            pool.Amount1 -= total;
             pool.FeesForUsers += feeForUsers;
             pool.FeesForOwner += feeForOwner;
 
@@ -1645,6 +1647,8 @@ namespace Phantasma.Business.Blockchain.Contracts
                 // Burn NFT
                 Runtime.BurnToken(DomainSettings.LiquidityTokenSymbol, from, nftID);
                 RemoveFromLPTokens(from, nftID, pool.Symbol0, pool.Symbol1);
+                Runtime.TransferTokens(pool.Symbol0, this.Address, from, oldAmount0);
+                Runtime.TransferTokens(pool.Symbol1, this.Address, from, oldAmount1);
             }
             else
             {
