@@ -1366,7 +1366,7 @@ namespace Phantasma.Business
         public bool WriteArchive(IArchive archive, int blockIndex, byte[] content)
         {
             //TODO: Determine correct max size for content
-            Expect(content.Length <= DomainSettings.ScriptMaxSize, $"{nameof(content)} exceeds maximum length");
+            Expect(content.Length <= DomainSettings.ArchiveMaxSize, $"{nameof(content)} exceeds maximum length");
            
             if (archive == null)
             {
