@@ -14,6 +14,12 @@ namespace Phantasma.Business
 {
     public class RuntimeVM : GasMachine, IRuntime
     {
+        const int maxNameLength = 255;
+        const int maxUrlLength = 2048;
+        const int maxArgs = 64;
+        const int maxAddressSize = 34;
+        const int maxScriptSize = short.MaxValue;
+
         public Timestamp Time { get; private set; }
         public Transaction Transaction { get; private set; }
         public IChain Chain { get; private set; }
@@ -134,6 +140,9 @@ namespace Phantasma.Business
 
         public VMObject CallInterop(string methodName, params object[] args)
         {
+            Expect(methodName.Length <= maxNameLength, $"{nameof(methodName)} exceeds max length");
+            Expect(args.Length <= maxArgs, "Allowed number of arguments exceeded");
+
             PushArgsIntoStack(args);
             if (ExecuteInterop(methodName) == ExecutionState.Running)
             {
@@ -173,6 +182,8 @@ namespace Phantasma.Business
 
         public override Phantasma.Core.ExecutionContext LoadContext(string contextName)
         {
+            Expect(contextName.Length <= maxNameLength, $"{nameof(contextName)} exceeds max length");
+          
             if (contextName.Contains("#"))
             {
                 var split = contextName.Split('#');
@@ -222,6 +233,10 @@ namespace Phantasma.Business
 
         public VMObject CallContext(string contextName, uint jumpOffset, string methodName, params object[] args)
         {
+            Expect(contextName.Length <= maxNameLength, $"{nameof(contextName)} exceeds max length");
+            Expect(methodName.Length <= maxNameLength, $"{nameof(methodName)} exceeds max length");
+            Expect(args.Length <= maxArgs, "Allowed number of arguments exceeded");
+
             var tempContext = this.PreviousContext;
             this.PreviousContext = this.CurrentContext;
 
@@ -269,6 +284,10 @@ namespace Phantasma.Business
 
         public void Notify(EventKind kind, Address address, byte[] bytes, string contract)
         {
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
+            Expect(bytes.Length <= maxScriptSize, $"{nameof(bytes)} exceeds maximum length");
+            Expect(contract.Length <= maxNameLength, $"{nameof(contract)} exceeds max length");
+           
             switch (kind)
             {
                 case EventKind.GasEscrow:
@@ -351,6 +370,10 @@ namespace Phantasma.Business
 
         public bool IsMintingAddress(Address address, string symbol)
         {
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
+            Expect(symbol.Length <= maxNameLength, $"{nameof(symbol)} exceeds max length");
+
+
             //if (ProtocolVersion < 3 && address == GenesisAddress)
             //{
             //    return true;
@@ -444,6 +467,8 @@ namespace Phantasma.Business
         // returns value in FIAT token
         public BigInteger GetTokenPrice(string symbol)
         {
+            Expect(symbol.Length <= maxNameLength, $"{nameof(symbol)} exceeds max length");
+            
             if (symbol == DomainSettings.FiatTokenSymbol)
             {
                 return UnitConversion.GetUnitValue(DomainSettings.FiatTokenDecimals);
@@ -525,6 +550,10 @@ namespace Phantasma.Business
         #region TRIGGERS
         public TriggerResult InvokeTriggerOnAccount(bool allowThrow, Address address, AccountTrigger trigger, params object[] args)
         {
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
+            Expect(args.Length <= maxArgs, "Allowed number of arguments exceeded");
+
+
             if (address.IsNull)
             {
                 return TriggerResult.Failure;
@@ -626,14 +655,32 @@ namespace Phantasma.Business
 
         }
 
+        private void ExpectValidToken(IToken token, string msg = "invalid token: ")
+        {
+            Expect(token.Name.Length <= maxNameLength, $"{msg + nameof(token.Name)} exceeds max length");
+            Expect(token.Symbol.Length <= maxNameLength, $"{msg + nameof(token.Symbol)} exceeds max length");
+            Expect(token.Owner.GetSize() <= maxAddressSize, $"{msg + nameof(token.Owner)} exceeds max address size");
+            Expect(token.Script.Length <= maxScriptSize, $"{msg + nameof(token.Script)} exceeds maximum length");
+            //TODO: Guard against bad ABI?
+        }
+
         public TriggerResult InvokeTriggerOnToken(bool allowThrow, IToken token, TokenTrigger trigger, params object[] args)
         {
+            Expect(args.Length <= maxArgs, "Allowed number of arguments exceeded");
+            ExpectValidToken(token);
+
             return InvokeTrigger(allowThrow, token.Script, token.Symbol, token.ABI, trigger.ToString(), args);
         }
 
         public TriggerResult InvokeTrigger(bool allowThrow, byte[] script, string contextName, ContractInterface abi, string triggerName, params object[] args)
         {
-            if (script == null || script.Length == 0 || abi == null)
+            Expect(script.Length <= maxScriptSize, $"{nameof(script)} exceeds maximum length");
+            Expect(contextName.Length <= maxNameLength, $"{nameof(contextName)} exceeds max length");
+            Expect(triggerName.Length <= maxNameLength, $"{nameof(triggerName)} exceeds max length");
+            Expect(args.Length <= maxArgs, "Allowed number of arguments exceeded");
+
+            if (script == null 
+                || script.Length == 0 || abi == null)
             {
                 return TriggerResult.Missing;
             }
@@ -694,6 +741,8 @@ namespace Phantasma.Business
 
         public bool IsWitness(Address address)
         {
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
+          
             if (address.IsInterop)
             {
                 return false;
@@ -836,41 +885,58 @@ namespace Phantasma.Business
 
         public IContract GetContract(string name)
         {
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
+            
             throw new NotImplementedException();
         }
 
         public bool TokenExists(string symbol)
         {
+            Expect(symbol.Length <= maxNameLength, $"{nameof(symbol)} exceeds max length");
+           
             return Nexus.TokenExists(RootStorage, symbol);
         }
 
         public bool NFTExists(string symbol, BigInteger tokenID)
         {
+            Expect(symbol.Length <= maxNameLength, $"{nameof(symbol)} exceeds max length");
+         
             return Nexus.HasNFT(RootStorage, symbol, tokenID);
         }
 
         public bool TokenExists(string symbol, string platform)
         {
+            Expect(symbol.Length <= maxNameLength, $"{nameof(symbol)} exceeds max length");
+            Expect(platform.Length <= maxNameLength, $"{nameof(platform)} exceeds max length");
+
             return Nexus.TokenExistsOnPlatform(symbol, platform, RootStorage);
         }
 
         public bool FeedExists(string name)
         {
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
+
             return Nexus.FeedExists(RootStorage, name);
         }
 
         public bool PlatformExists(string name)
         {
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
+          
             return Nexus.PlatformExists(RootStorage, name);
         }
 
         public bool ContractExists(string name)
         {
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
+           
             return Nexus.ContractExists(RootStorage, name);
         }
 
         public bool ContractDeployed(string name)
         {
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
+           
             return Chain.IsContractDeployed(this.Storage, name);
         }
 
@@ -896,6 +962,8 @@ namespace Phantasma.Business
 
         public bool AddOwnerToArchive(Hash hash, Address address)
         {
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
+            
             var archive = Nexus.GetArchive(this.RootStorage, hash);
             if (archive == null)
             {
@@ -912,6 +980,8 @@ namespace Phantasma.Business
 
         public bool RemoveOwnerFromArchive(Hash hash, Address address)
         {
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
+          
             var archive = Nexus.GetArchive(this.RootStorage, hash);
             if (archive == null)
             {
@@ -936,37 +1006,44 @@ namespace Phantasma.Business
 
         public bool ChainExists(string name)
         {
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
             return Nexus.ChainExists(this.RootStorage, name);
         }
 
         public int GetIndexOfChain(string name)
         {
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
             return Nexus.GetIndexOfChain(name);
         }
 
         public IChain GetChainParent(string name)
         {
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
             var parentName = Nexus.GetParentChainByName(name);
             return this.GetChainByName(parentName);
         }
 
         public Address LookUpName(string name)
         {
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
             return this.Chain.LookUpName(this.RootStorage, name);
         }
 
         public bool HasAddressScript(Address from)
         {
+            Expect(from.GetSize() <= maxAddressSize, $"{nameof(from)} exceeds max address size");
             return Nexus.HasAddressScript(this.RootStorage, from);
         }
 
         public byte[] GetAddressScript(Address from)
         {
+            Expect(from.GetSize() <= maxAddressSize, $"{nameof(from)} exceeds max address size");
             return Nexus.LookUpAddressScript(this.RootStorage, from);
         }
 
         public string GetAddressName(Address from)
         {
+            Expect(from.GetSize() <= maxAddressSize, $"{nameof(from)} exceeds max address size");
             return Chain.GetNameFromAddress(this.RootStorage, from);
         }
 
@@ -980,6 +1057,7 @@ namespace Phantasma.Business
 
         public Hash[] GetTransactionHashesForAddress(Address address)
         {
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
             return Chain.GetTransactionHashesForAddress(address);
         }
 
@@ -995,11 +1073,13 @@ namespace Phantasma.Business
 
         public bool IsPrimaryValidator(Address address)
         {
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
             return Nexus.IsPrimaryValidator(address);
         }
 
         public bool IsSecondaryValidator(Address address)
         {
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
             return Nexus.IsSecondaryValidator(address);
         }
 
@@ -1015,16 +1095,19 @@ namespace Phantasma.Business
 
         public bool IsKnownValidator(Address address)
         {
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
             return Nexus.IsKnownValidator(address);
         }
 
         public bool IsStakeMaster(Address address)
         {
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
             return Nexus.IsStakeMaster(this.RootStorage, address);
         }
 
         public BigInteger GetStake(Address address)
         {
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
             return Nexus.GetStakeFromAddress(this.RootStorage, address);
         }
 
@@ -1035,6 +1118,9 @@ namespace Phantasma.Business
 
         public BigInteger GetBalance(string symbol, Address address)
         {
+            Expect(symbol.Length <= maxNameLength, $"{nameof(symbol)} exceeds max length");
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
+           
             Expect(TokenExists(symbol), $"Token does not exist ({symbol})");
             var token = GetToken(symbol);
             return Chain.GetTokenBalance(this.Storage, token, address);
@@ -1042,18 +1128,24 @@ namespace Phantasma.Business
 
         public BigInteger[] GetOwnerships(string symbol, Address address)
         {
+            Expect(symbol.Length <= maxNameLength, $"{nameof(symbol)} exceeds max length");
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
             Expect(TokenExists(symbol), $"Token does not exist ({symbol})");
             return Chain.GetOwnedTokens(this.Storage, symbol, address);
         }
 
         public BigInteger GetTokenSupply(string symbol)
         {
+            Expect(symbol.Length <= maxNameLength, $"{nameof(symbol)} exceeds max length");
             Expect(TokenExists(symbol), $"Token does not exist ({symbol})");
             return Chain.GetTokenSupply(this.Storage, symbol);
         }
 
         public void SetPlatformTokenHash(string symbol, string platform, Hash hash)
         {
+            Expect(symbol.Length <= maxNameLength, $"{nameof(symbol)} exceeds max length");
+            Expect(platform.Length <= maxNameLength, $"{nameof(platform)} exceeds max length");
+
             var Runtime = this;
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
@@ -1078,6 +1170,11 @@ namespace Phantasma.Business
 
         public void CreateToken(Address owner, string symbol, string name, BigInteger maxSupply, int decimals, TokenFlags flags, byte[] script, ContractInterface abi)
         {
+            Expect(owner.GetSize() <= maxAddressSize, $"{nameof(owner)} exceeds max address size");
+            Expect(symbol.Length <= maxNameLength, $"{nameof(symbol)} exceeds max length");
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
+            Expect(script.Length <= maxScriptSize, $"{nameof(script)} exceeds maximum length");
+
             var Runtime = this;
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
@@ -1162,6 +1259,11 @@ namespace Phantasma.Business
 
         public void CreateChain(Address creator, string organization, string name, string parentName)
         {
+            Expect(creator.GetSize() <= maxAddressSize, $"{nameof(creator)} exceeds max address size");
+            Expect(organization.Length <= maxNameLength, $"{nameof(organization)} exceeds max length");
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
+            Expect(parentName.Length <= maxNameLength, $"{nameof(parentName)} exceeds max length");
+           
             var Runtime = this;
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
@@ -1188,6 +1290,9 @@ namespace Phantasma.Business
 
         public void CreateFeed(Address owner, string name, FeedMode mode)
         {
+            Expect(owner.GetSize() <= maxAddressSize, $"{nameof(owner)} exceeds max address size");
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
+            
             var Runtime = this;
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
@@ -1207,6 +1312,12 @@ namespace Phantasma.Business
 
         public BigInteger CreatePlatform(Address from, string name, string externalAddress, Address interopAddress, string fuelSymbol)
         {
+            Expect(from.GetSize() <= maxAddressSize, $"{nameof(from)} exceeds max address size");
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
+            Expect(externalAddress.Length <= maxNameLength, $"{nameof(externalAddress)} exceeds max length");
+            Expect(interopAddress.GetSize() <= maxAddressSize, $"{nameof(interopAddress)} exceeds max address size");
+            Expect(fuelSymbol.Length <= maxNameLength, $"{nameof(fuelSymbol)} exceeds max length");
+
             var Runtime = this;
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
@@ -1224,6 +1335,11 @@ namespace Phantasma.Business
 
         public void CreateOrganization(Address from, string ID, string name, byte[] script)
         {
+            Expect(from.GetSize() <= maxAddressSize, $"{nameof(from)} exceeds max address size");
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
+            Expect(ID.Length <= maxNameLength, $"{nameof(ID)} exceeds max length");
+            Expect(script.Length <= maxScriptSize, $"{nameof(script)} exceeds maximum length");
+
             var Runtime = this;
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
@@ -1241,6 +1357,9 @@ namespace Phantasma.Business
 
         public IArchive CreateArchive(MerkleTree merkleTree, Address owner, string name, BigInteger size, Timestamp time, IArchiveEncryption encryption)
         {
+            Expect(owner.GetSize() <= maxAddressSize, $"{nameof(owner)} exceeds max address size");
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
+
             // TODO validation
             var archive = Nexus.CreateArchive(this.RootStorage, merkleTree, owner, name, size, time, encryption);
 
@@ -1252,6 +1371,9 @@ namespace Phantasma.Business
 
         public bool WriteArchive(IArchive archive, int blockIndex, byte[] content)
         {
+            //TODO: Determine correct max size for content
+            Expect(content.Length <= maxScriptSize, $"{nameof(content)} exceeds maximum length");
+           
             if (archive == null)
             {
                 return false;
@@ -1274,6 +1396,7 @@ namespace Phantasma.Business
                 return false;
             }
 
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
             var parentName = Nexus.GetParentChainByName(Chain.Name);
             var target = Nexus.GetChainByAddress(address);
             return target.Name == parentName;
@@ -1281,29 +1404,36 @@ namespace Phantasma.Business
 
         public bool IsAddressOfChildChain(Address address)
         {
+            Expect(address.GetSize() <= maxAddressSize, $"{nameof(address)} exceeds max address size");
             var parentName = Nexus.GetParentChainByAddress(address);
             return Chain.Name == parentName;
         }
 
         public bool IsNameOfParentChain(string name)
-        {
+        {          
             if (this.IsRootChain())
             {
                 return false;
             }
 
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
             var parentName = Nexus.GetParentChainByName(Chain.Name);
             return name == parentName;
         }
 
         public bool IsNameOfChildChain(string name)
         {
+            Expect(name.Length <= maxNameLength, $"{nameof(name)} exceeds max length");
             var parentName = Nexus.GetParentChainByName(name);
             return Chain.Name == parentName;
         }
 
         public void MintTokens(string symbol, Address from, Address target, BigInteger amount)
         {
+            Expect(symbol.Length <= maxNameLength, $"{nameof(symbol)} exceeds max length");
+            Expect(from.GetSize() <= maxAddressSize, $"{nameof(from)} exceeds max address size");
+            Expect(target.GetSize() <= maxAddressSize, $"{nameof(target)} exceeds max address size");
+
             var Runtime = this;
 
             Runtime.Expect(IsWitness(from), "must be from a valid witness");
@@ -1323,6 +1453,10 @@ namespace Phantasma.Business
 
         public BigInteger MintToken(string symbol, Address from, Address target, byte[] rom, byte[] ram, BigInteger seriesID)
         {
+            Expect(symbol.Length <= maxNameLength, $"{nameof(symbol)} exceeds max length");
+            Expect(from.GetSize() <= maxAddressSize, $"{nameof(from)} exceeds max address size");
+            Expect(target.GetSize() <= maxAddressSize, $"{nameof(target)} exceeds max address size");
+
             var Runtime = this;
             Runtime.Expect(Runtime.TokenExists(symbol), "invalid token");
             IToken token;
