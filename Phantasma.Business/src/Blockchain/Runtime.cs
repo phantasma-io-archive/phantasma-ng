@@ -1140,26 +1140,25 @@ namespace Phantasma.Business
             Expect(symbol.Length <= DomainSettings.NameMaxLength, $"{nameof(symbol)} exceeds max length");
             Expect(platform.Length <= DomainSettings.NameMaxLength, $"{nameof(platform)} exceeds max length");
 
-            var Runtime = this;
-            Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
+            Expect(this.IsRootChain(), "must be root chain");
 
-            Runtime.Expect(Runtime.IsWitness(Runtime.GenesisAddress), "invalid witness, must be genesis");
+            Expect(IsWitness(GenesisAddress), "invalid witness, must be genesis");
 
-            Runtime.Expect(platform != DomainSettings.PlatformName, "external token chain required");
-            Runtime.Expect(hash != Hash.Null, "hash cannot be null");
+            Expect(platform != DomainSettings.PlatformName, "external token chain required");
+            Expect(hash != Hash.Null, "hash cannot be null");
 
-            var pow = Runtime.Transaction.Hash.GetDifficulty();
-            Runtime.Expect(pow >= (int)ProofOfWork.Minimal, "expected proof of work");
+            var pow = Transaction.Hash.GetDifficulty();
+            Expect(pow >= (int)ProofOfWork.Minimal, "expected proof of work");
 
-            Runtime.Expect(Runtime.PlatformExists(platform), "platform not found");
+            Expect(PlatformExists(platform), "platform not found");
 
-            Runtime.Expect(!string.IsNullOrEmpty(symbol), "token symbol required");
-            Runtime.Expect(ValidationUtils.IsValidTicker(symbol), "invalid symbol");
-            //Runtime.Expect(!Runtime.TokenExists(symbol, platform), $"token {symbol}/{platform} already exists");
+            Expect(!string.IsNullOrEmpty(symbol), "token symbol required");
+            Expect(ValidationUtils.IsValidTicker(symbol), "invalid symbol");
+            //Expect(!TokenExists(symbol, platform), $"token {symbol}/{platform} already exists");
 
-            Runtime.Expect(!string.IsNullOrEmpty(platform), "chain name required");
+            Expect(!string.IsNullOrEmpty(platform), "chain name required");
 
-            Nexus.SetPlatformTokenHash(symbol, platform, hash, this.RootStorage);
+            Nexus.SetPlatformTokenHash(symbol, platform, hash, RootStorage);
         }
 
         public void CreateToken(Address owner, string symbol, string name, BigInteger maxSupply, int decimals, TokenFlags flags, byte[] script, ContractInterface abi)
@@ -1169,58 +1168,57 @@ namespace Phantasma.Business
             Expect(name.Length <= DomainSettings.NameMaxLength, $"{nameof(name)} exceeds max length");
             Expect(script.Length <= DomainSettings.ScriptMaxSize, $"{nameof(script)} exceeds maximum length");
 
-            var Runtime = this;
-            Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
+            Expect(this.IsRootChain(), "must be root chain");
 
-            Runtime.Expect(owner.IsUser, "owner address must be user address");
+            Expect(owner.IsUser, "owner address must be user address");
 
-            Runtime.Expect(Runtime.IsStakeMaster(owner), "needs to be master");
-            Runtime.Expect(Runtime.IsWitness(owner), "invalid witness");
+            Expect(IsStakeMaster(owner), "needs to be master");
+            Expect(IsWitness(owner), "invalid witness");
 
-            var pow = Runtime.Transaction.Hash.GetDifficulty();
-            Runtime.Expect(pow >= (int)ProofOfWork.Minimal, "expected proof of work");
+            var pow = Transaction.Hash.GetDifficulty();
+            Expect(pow >= (int)ProofOfWork.Minimal, "expected proof of work");
 
-            Runtime.Expect(!string.IsNullOrEmpty(symbol), "token symbol required");
-            Runtime.Expect(!string.IsNullOrEmpty(name), "token name required");
+            Expect(!string.IsNullOrEmpty(symbol), "token symbol required");
+            Expect(!string.IsNullOrEmpty(name), "token name required");
 
-            Runtime.Expect(ValidationUtils.IsValidTicker(symbol), "invalid symbol");
-            Runtime.Expect(!Runtime.TokenExists(symbol), "token already exists");
+            Expect(ValidationUtils.IsValidTicker(symbol), "invalid symbol");
+            Expect(!TokenExists(symbol), "token already exists");
 
-            Runtime.Expect(maxSupply >= 0, "token supply cant be negative");
-            Runtime.Expect(decimals >= 0, "token decimals cant be negative");
-            Runtime.Expect(decimals <= DomainSettings.MAX_TOKEN_DECIMALS, $"token decimals cant exceed {DomainSettings.MAX_TOKEN_DECIMALS}");
+            Expect(maxSupply >= 0, "token supply cant be negative");
+            Expect(decimals >= 0, "token decimals cant be negative");
+            Expect(decimals <= DomainSettings.MAX_TOKEN_DECIMALS, $"token decimals cant exceed {DomainSettings.MAX_TOKEN_DECIMALS}");
 
             if (symbol == DomainSettings.FuelTokenSymbol)
             {
-                Runtime.Expect(flags.HasFlag(TokenFlags.Fuel), "token should be native");
+                Expect(flags.HasFlag(TokenFlags.Fuel), "token should be native");
             }
             else
             {
-                Runtime.Expect(!flags.HasFlag(TokenFlags.Fuel), "token can't be native");
+                Expect(!flags.HasFlag(TokenFlags.Fuel), "token can't be native");
             }
 
             if (symbol == DomainSettings.StakingTokenSymbol)
             {
-                Runtime.Expect(flags.HasFlag(TokenFlags.Stakable), "token should be stakable");
+                Expect(flags.HasFlag(TokenFlags.Stakable), "token should be stakable");
             }
 
             if (symbol == DomainSettings.FiatTokenSymbol)
             {
-                Runtime.Expect(flags.HasFlag(TokenFlags.Fiat), "token should be fiat");
+                Expect(flags.HasFlag(TokenFlags.Fiat), "token should be fiat");
             }
 
             if (!flags.HasFlag(TokenFlags.Fungible))
             {
-                Runtime.Expect(!flags.HasFlag(TokenFlags.Divisible), "non-fungible token must be indivisible");
+                Expect(!flags.HasFlag(TokenFlags.Divisible), "non-fungible token must be indivisible");
             }
 
             if (flags.HasFlag(TokenFlags.Divisible))
             {
-                Runtime.Expect(decimals > 0, "divisible token must have decimals");
+                Expect(decimals > 0, "divisible token must have decimals");
             }
             else
             {
-                Runtime.Expect(decimals == 0, "indivisible token can't have decimals");
+                Expect(decimals == 0, "indivisible token can't have decimals");
             }
 
             var token = Nexus.CreateToken(RootStorage, symbol, name, owner, maxSupply, decimals, flags, script, abi);
@@ -1229,7 +1227,7 @@ namespace Phantasma.Business
 
             if (constructor != null)
             {
-                Runtime.CallContext(symbol, constructor, owner);
+                this.CallContext(symbol, constructor, owner);
             }
 
             var rootChain = (Chain)this.GetRootChain();
@@ -1242,13 +1240,13 @@ namespace Phantasma.Business
             Expect(!currentOwner.IsNull, "missing or invalid token owner");
             Expect(currentOwner == owner, "token owner constructor failure");
 
-            var fuelCost = Runtime.GetGovernanceValue(Nexus.FuelPerTokenDeployTag);
+            var fuelCost = GetGovernanceValue(Nexus.FuelPerTokenDeployTag);
             // governance value is in usd fiat, here convert from fiat to fuel amount
-            fuelCost = Runtime.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
+            fuelCost = this.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
             // burn the "cost" tokens
-            Runtime.BurnTokens(DomainSettings.FuelTokenSymbol, owner, fuelCost);
+            BurnTokens(DomainSettings.FuelTokenSymbol, owner, fuelCost);
 
-            Runtime.Notify(EventKind.TokenCreate, owner, symbol);
+            this.Notify(EventKind.TokenCreate, owner, symbol);
         }
 
         public void CreateChain(Address creator, string organization, string name, string parentName)
@@ -1258,28 +1256,27 @@ namespace Phantasma.Business
             Expect(name.Length <= DomainSettings.NameMaxLength, $"{nameof(name)} exceeds max length");
             Expect(parentName.Length <= DomainSettings.NameMaxLength, $"{nameof(parentName)} exceeds max length");
            
-            var Runtime = this;
-            Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
+            Expect(this.IsRootChain(), "must be root chain");
 
-            var pow = Runtime.Transaction.Hash.GetDifficulty();
-            Runtime.Expect(pow >= (int)ProofOfWork.Minimal, "expected proof of work");
+            var pow = Transaction.Hash.GetDifficulty();
+            Expect(pow >= (int)ProofOfWork.Minimal, "expected proof of work");
 
-            Runtime.Expect(!string.IsNullOrEmpty(name), "name required");
-            Runtime.Expect(!string.IsNullOrEmpty(parentName), "parent chain required");
+            Expect(!string.IsNullOrEmpty(name), "name required");
+            Expect(!string.IsNullOrEmpty(parentName), "parent chain required");
 
-            Runtime.Expect(Runtime.OrganizationExists(organization), "invalid organization");
-            var org = Runtime.GetOrganization(organization);
-            Runtime.Expect(org.IsMember(creator), "creator does not belong to organization");
+            Expect(OrganizationExists(organization), "invalid organization");
+            var org = GetOrganization(organization);
+            Expect(org.IsMember(creator), "creator does not belong to organization");
 
-            Runtime.Expect(creator.IsUser, "owner address must be user address");
-            Runtime.Expect(Runtime.IsStakeMaster(creator), "needs to be master");
-            Runtime.Expect(Runtime.IsWitness(creator), "invalid witness");
+            Expect(creator.IsUser, "owner address must be user address");
+            Expect(IsStakeMaster(creator), "needs to be master");
+            Expect(IsWitness(creator), "invalid witness");
 
             name = name.ToLowerInvariant();
-            Runtime.Expect(!name.Equals(parentName, StringComparison.OrdinalIgnoreCase), "same name as parent");
+            Expect(!name.Equals(parentName, StringComparison.OrdinalIgnoreCase), "same name as parent");
 
             Nexus.CreateChain(RootStorage, organization, name, parentName);
-            Runtime.Notify(EventKind.ChainCreate, creator, name);
+            this.Notify(EventKind.ChainCreate, creator, name);
         }
 
         public void CreateFeed(Address owner, string name, FeedMode mode)
@@ -1287,21 +1284,20 @@ namespace Phantasma.Business
             Expect(owner.GetSize() <= DomainSettings.AddressMaxSize, $"{nameof(owner)} exceeds max address size");
             Expect(name.Length <= DomainSettings.NameMaxLength, $"{nameof(name)} exceeds max length");
             
-            var Runtime = this;
-            Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
+            Expect(this.IsRootChain(), "must be root chain");
 
-            var pow = Runtime.Transaction.Hash.GetDifficulty();
-            Runtime.Expect(pow >= (int)ProofOfWork.Minimal, "expected proof of work");
+            var pow = Transaction.Hash.GetDifficulty();
+            Expect(pow >= (int)ProofOfWork.Minimal, "expected proof of work");
 
-            Runtime.Expect(!string.IsNullOrEmpty(name), "name required");
+            Expect(!string.IsNullOrEmpty(name), "name required");
 
-            Runtime.Expect(owner.IsUser, "owner address must be user address");
-            Runtime.Expect(Runtime.IsStakeMaster(owner), "needs to be master");
-            Runtime.Expect(Runtime.IsWitness(owner), "invalid witness");
+            Expect(owner.IsUser, "owner address must be user address");
+            Expect(IsStakeMaster(owner), "needs to be master");
+            Expect(IsWitness(owner), "invalid witness");
 
-            Runtime.Expect(Nexus.CreateFeed(RootStorage, owner, name, mode), "feed creation failed");
+            Expect(Nexus.CreateFeed(RootStorage, owner, name, mode), "feed creation failed");
 
-            Runtime.Notify(EventKind.FeedCreate, owner, name);
+            this.Notify(EventKind.FeedCreate, owner, name);
         }
 
         public BigInteger CreatePlatform(Address from, string name, string externalAddress, Address interopAddress, string fuelSymbol)
@@ -1312,18 +1308,17 @@ namespace Phantasma.Business
             Expect(interopAddress.GetSize() <= DomainSettings.AddressMaxSize, $"{nameof(interopAddress)} exceeds max address size");
             Expect(fuelSymbol.Length <= DomainSettings.NameMaxLength, $"{nameof(fuelSymbol)} exceeds max length");
 
-            var Runtime = this;
-            Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
+            Expect(this.IsRootChain(), "must be root chain");
 
-            Runtime.Expect(from == Runtime.GenesisAddress, "(CreatePlatform) must be genesis");
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Expect(from == GenesisAddress, "(CreatePlatform) must be genesis");
+            Expect(IsWitness(from), "invalid witness");
 
-            Runtime.Expect(ValidationUtils.IsValidIdentifier(name), "invalid platform name");
+            Expect(ValidationUtils.IsValidIdentifier(name), "invalid platform name");
 
             var platformID = Nexus.CreatePlatform(RootStorage, externalAddress, interopAddress, name, fuelSymbol);
-            Runtime.Expect(platformID > 0, $"creation of platform with id {platformID} failed");
+            Expect(platformID > 0, $"creation of platform with id {platformID} failed");
 
-            Runtime.Notify(EventKind.PlatformCreate, from, name);
+            this.Notify(EventKind.PlatformCreate, from, name);
             return platformID;
         }
 
@@ -1334,19 +1329,18 @@ namespace Phantasma.Business
             Expect(ID.Length <= DomainSettings.NameMaxLength, $"{nameof(ID)} exceeds max length");
             Expect(script.Length <= DomainSettings.ScriptMaxSize, $"{nameof(script)} exceeds maximum length");
 
-            var Runtime = this;
-            Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
+            Expect(this.IsRootChain(), "must be root chain");
 
-            Runtime.Expect(from == Runtime.GenesisAddress, $"(CreateOrganization) must be genesis from: {from} genesis: {Runtime.GenesisAddress}");
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Expect(from == GenesisAddress, $"(CreateOrganization) must be genesis from: {from} genesis: {GenesisAddress}");
+            Expect(IsWitness(from), "invalid witness");
 
-            Runtime.Expect(ValidationUtils.IsValidIdentifier(ID), "invalid organization name");
+            Expect(ValidationUtils.IsValidIdentifier(ID), "invalid organization name");
 
-            Runtime.Expect(!Nexus.OrganizationExists(RootStorage, ID), "organization already exists");
+            Expect(!Nexus.OrganizationExists(RootStorage, ID), "organization already exists");
 
-            Nexus.CreateOrganization(this.RootStorage, ID, name, script);
+            Nexus.CreateOrganization(RootStorage, ID, name, script);
 
-            Runtime.Notify(EventKind.OrganizationCreate, from, ID);
+            this.Notify(EventKind.OrganizationCreate, from, ID);
         }
 
         public IArchive CreateArchive(MerkleTree merkleTree, Address owner, string name, BigInteger size, Timestamp time, IArchiveEncryption encryption)
@@ -1357,8 +1351,7 @@ namespace Phantasma.Business
             // TODO validation
             var archive = Nexus.CreateArchive(this.RootStorage, merkleTree, owner, name, size, time, encryption);
 
-            var Runtime = this;
-            Runtime.Notify(EventKind.FileCreate, owner, archive.Hash);
+            this.Notify(EventKind.FileCreate, owner, archive.Hash);
 
             return archive;
         }
@@ -1428,18 +1421,16 @@ namespace Phantasma.Business
             Expect(from.GetSize() <= DomainSettings.AddressMaxSize, $"{nameof(from)} exceeds max address size");
             Expect(target.GetSize() <= DomainSettings.AddressMaxSize, $"{nameof(target)} exceeds max address size");
 
-            var Runtime = this;
+            Expect(IsWitness(from), "must be from a valid witness");
 
-            Runtime.Expect(IsWitness(from), "must be from a valid witness");
+            Expect(amount > 0, "amount must be positive and greater than zero");
 
-            Runtime.Expect(amount > 0, "amount must be positive and greater than zero");
-
-            Runtime.Expect(Runtime.TokenExists(symbol), "invalid token");
+            Expect(TokenExists(symbol), "invalid token");
             IToken token;
             using (var m = new ProfileMarker("Runtime.GetToken"))
-                token = Runtime.GetToken(symbol);
-            Runtime.Expect(token.Flags.HasFlag(TokenFlags.Fungible), "token must be fungible");
-            Runtime.Expect(!token.Flags.HasFlag(TokenFlags.Fiat), "token can't be fiat");
+                token = GetToken(symbol);
+            Expect(token.Flags.HasFlag(TokenFlags.Fungible), "token must be fungible");
+            Expect(!token.Flags.HasFlag(TokenFlags.Fiat), "token can't be fiat");
 
             using (var m = new ProfileMarker("Nexus.MintTokens"))
                 Nexus.MintTokens(this, token, from, target, Chain.Name, amount);
@@ -1451,27 +1442,27 @@ namespace Phantasma.Business
             Expect(from.GetSize() <= DomainSettings.AddressMaxSize, $"{nameof(from)} exceeds max address size");
             Expect(target.GetSize() <= DomainSettings.AddressMaxSize, $"{nameof(target)} exceeds max address size");
 
-            var Runtime = this;
-            Runtime.Expect(Runtime.TokenExists(symbol), "invalid token");
+            Expect(TokenExists(symbol), "invalid token");
             IToken token;
             using (var m = new ProfileMarker("Runtime.GetToken"))
-                token = Runtime.GetToken(symbol);
-            Runtime.Expect(!token.IsFungible(), "token must be non-fungible");
-            // TODO should not be necessary, verified by trigger
-            //Runtime.Expect(IsWitness(target), "invalid witness");
+                token = GetToken(symbol);
+            Expect(!token.IsFungible(), "token must be non-fungible");
             
-            Runtime.Expect(IsWitness(from), "must be from a valid witness");
-            Runtime.Expect(Runtime.IsRootChain(), "can only mint nft in root chain");
+            // TODO should not be necessary, verified by trigger
+            //Expect(IsWitness(target), "invalid witness");
+            
+            Expect(IsWitness(from), "must be from a valid witness");
+            Expect(this.IsRootChain(), "can only mint nft in root chain");
 
-            Runtime.Expect(rom.Length <= TokenContent.MaxROMSize, "ROM size exceeds maximum allowed, received: " + rom.Length + ", maximum: " + TokenContent.MaxROMSize);
-            Runtime.Expect(ram.Length <= TokenContent.MaxRAMSize, "RAM size exceeds maximum allowed, received: " + ram.Length + ", maximum: " + TokenContent.MaxRAMSize);
+            Expect(rom.Length <= TokenContent.MaxROMSize, "ROM size exceeds maximum allowed, received: " + rom.Length + ", maximum: " + TokenContent.MaxROMSize);
+            Expect(ram.Length <= TokenContent.MaxRAMSize, "RAM size exceeds maximum allowed, received: " + ram.Length + ", maximum: " + TokenContent.MaxRAMSize);
 
             Address creator = from;
 
             BigInteger tokenID;
             using (var m = new ProfileMarker("Nexus.CreateNFT"))
-                tokenID = Nexus.GenerateNFT(this, symbol, Runtime.Chain.Name, creator, rom, ram, seriesID);
-            Runtime.Expect(tokenID > 0, "invalid tokenID");
+                tokenID = Nexus.GenerateNFT(this, symbol, Chain.Name, creator, rom, ram, seriesID);
+            Expect(tokenID > 0, "invalid tokenID");
 
             using (var m = new ProfileMarker("Nexus.MintToken"))
                 Nexus.MintToken(this, token, from, target, Chain.Name, tokenID);
