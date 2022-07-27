@@ -1655,7 +1655,7 @@ namespace Phantasma.Business.Contracts
 
 
             // If the new amount will be = 0 then burn the NFT
-            if (oldAmount0 - newAmount0 == 0)
+            if (newAmount0 == 0)
             {
                 // Burn NFT
                 Runtime.BurnToken(DomainSettings.LiquidityTokenSymbol, from, nftID);
@@ -1689,8 +1689,8 @@ namespace Phantasma.Business.Contracts
             }
             else
             {
-                pool.Amount0 = (pool.Amount0 - oldAmount0) + amount0;
-                pool.Amount1 = (pool.Amount1 - oldAmount1) + amount1;
+                pool.Amount0 = (pool.Amount0 - oldAmount0) + newAmount0;
+                pool.Amount1 = (pool.Amount1 - oldAmount1) + newAmount1;
 
                 pool.TotalLiquidity = pool.TotalLiquidity - oldLP + newLiquidity;
             }
