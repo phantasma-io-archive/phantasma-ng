@@ -371,7 +371,7 @@ namespace Phantasma.Business
         {
             if (vm.GasTarget.IsNull)
             {
-                new VMException(vm, "Gas target is now available yet");
+                throw new VMException(vm, "Gas target is now available yet");
             }
 
             var result = new VMObject();
