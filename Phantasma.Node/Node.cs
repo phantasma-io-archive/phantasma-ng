@@ -166,7 +166,7 @@ namespace Phantasma.Node
 
         private string PromptGenerator()
         {
-            var height = this.ExecuteAPIR("getBlockHeight", new string[] { "main" });
+            var height = NexusAPI.Nexus.RootChain.Height.ToString();
             return string.Format(prompt, height.Trim(new char[] { '"' }));
         }
 
@@ -413,32 +413,6 @@ namespace Phantasma.Node
             Log.Information("Termination complete...");
             Environment.Exit(0);
         }
-
-        public string ExecuteAPIR(string name, string[] args)
-        {
-            // TODO fix
-            /*var result = _nexusApi.Execute(name, args);
-            if (result == null)
-            {
-                return "";
-            }
-
-            return result;*/
-            return null;
-        }
-
-        public void ExecuteAPI(string name, string[] args)
-        {
-            // TODO fix
-            /*
-            var result = _nexusApi.Execute(name, args);
-            if (result == null)
-            {
-                Logger.Warning("API returned null value...");
-                return;
-            }
-
-            Logger.Information(result);*/
-        }
+        
     }
 }
