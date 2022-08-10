@@ -76,8 +76,11 @@ public class VirtualMachineTest
     public void registerContext_test()
     {
         VirtualMachine = new VirtualTestMachine(new byte[]{0}, 0, "test");
-        VirtualMachine.RegisterContext("test", new ScriptContext("testScript", new byte[]{0}, 0));
+        var context = new ScriptContext("testScript", new byte[] {0}, 0);
+        VirtualMachine.RegisterContext("test", context);
         
+        // Fact
+        VirtualMachine.FindContext("test").ShouldBe(context);
     }
     
     [Fact]
