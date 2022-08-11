@@ -124,8 +124,7 @@ namespace Phantasma.Core
             {
                 ByteArrayUtils.CopyBytes(key.PublicKey, 0, bytes, 2, 32);
             }
-            else
-            if (key.PublicKey.Length == 33)
+            else if (key.PublicKey.Length == 33)
             {
                 ByteArrayUtils.CopyBytes(key.PublicKey, 0, bytes, 1, 33);
             }

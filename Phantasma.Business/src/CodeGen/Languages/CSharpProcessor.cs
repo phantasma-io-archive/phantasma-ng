@@ -57,8 +57,7 @@ namespace Phantasma.Business.Languages
                     node.reference = ExpectIdentifier(tokens, ref index, true);
                     ExpectDelimiter(tokens, ref index, ";");
                 }
-                else
-                if (token.text == "namespace")
+                else if (token.text == "namespace")
                 {
                     var namespaceID = ExpectIdentifier(tokens, ref index, true);
 

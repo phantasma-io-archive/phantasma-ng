@@ -15,8 +15,7 @@ namespace Phantasma.Business.Core.Nodes
             {
                 ((BlockNode)owner).declarations.Add(this);
             }
-            else
-            if (owner is ParameterNode)
+            else if (owner is ParameterNode)
             {
                 ((ParameterNode)owner).decl = this;
             }
