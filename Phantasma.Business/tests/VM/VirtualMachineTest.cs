@@ -8,8 +8,6 @@ namespace Phantasma.Business.Tests.VM;
 
 public class VirtualMachineTest
 {
-    
-
     public class VirtualTestMachine : VirtualMachine
     {
         public VirtualTestMachine(byte[] script, uint offset, string contextName) : base(script, offset, contextName)
