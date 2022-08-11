@@ -102,14 +102,12 @@ namespace Phantasma.Business.Contracts
                 {
                     poll.state = PollState.Inactive;
                 }
-                else
-                if (Runtime.Time >= poll.startTime && Runtime.Time<poll.endTime && poll.state == PollState.Inactive)
+                else if (Runtime.Time >= poll.startTime && Runtime.Time<poll.endTime && poll.state == PollState.Inactive)
                 {
                     poll.state = PollState.Active;
                     _pollList.Add<string>(subject);
                 }
-                else
-                if ((Runtime.Time >= poll.endTime || poll.totalVotes >= MaxVotesPerPoll) && poll.state == PollState.Active)
+                else if ((Runtime.Time >= poll.endTime || poll.totalVotes >= MaxVotesPerPoll) && poll.state == PollState.Active)
                 {
                     // its time to count votes...
                     BigInteger totalVotes = 0;
@@ -159,13 +157,11 @@ namespace Phantasma.Business.Contracts
                     {
                         poll.state = PollState.Failure;
                     }
-                    else
-                    if (poll.mode == ConsensusMode.Majority && percentage < 51)
+                    else if (poll.mode == ConsensusMode.Majority && percentage < 51)
                     {
                         poll.state = PollState.Failure;
                     }
-                    else
-                    if (poll.mode == ConsensusMode.Popularity && ties > 0)
+                    else if (poll.mode == ConsensusMode.Popularity && ties > 0)
                     {
                         poll.state = PollState.Failure;
                     }

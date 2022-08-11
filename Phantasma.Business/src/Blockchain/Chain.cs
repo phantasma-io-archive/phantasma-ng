@@ -407,8 +407,7 @@ namespace Phantasma.Business
                     {
                         throw new DuplicatedTransactionException(tx.Hash, $"transaction {tx.Hash} appears more than once in the block being minted");
                     }
-                    else
-                    if (txBlockMap.ContainsKey<Hash>(tx.Hash))
+                    else if (txBlockMap.ContainsKey<Hash>(tx.Hash))
                     {
                         var previousBlockHash = txBlockMap.Get<Hash, Hash>(tx.Hash);
                         throw new DuplicatedTransactionException(tx.Hash, $"transaction {tx.Hash} already added to previous block {previousBlockHash}");
@@ -1496,8 +1495,7 @@ namespace Phantasma.Business
                     targets.Add(validator.address);
                 }
             }
-            else
-            if (totalAvailable > 0)
+            else if (totalAvailable > 0)
             {
                 targets.Add(Nexus.GetGenesisAddress(rootStorage));
             }

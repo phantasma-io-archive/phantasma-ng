@@ -161,8 +161,7 @@ namespace Phantasma.Business
                         throw new VMException(this, "VM changeset modified in read-only mode");
                     }
                 }
-                else
-                if (PaidGas < UsedGas && Nexus.HasGenesis && !DelayPayment)
+                else if (PaidGas < UsedGas && Nexus.HasGenesis && !DelayPayment)
                 {
                     throw new VMException(this, $"VM unpaid gas {PaidGas}/{UsedGas}");
                 }
@@ -262,9 +261,9 @@ namespace Phantasma.Business
             }
         }
 
-        public void Notify(EventKind kind, Address address, byte[] bytes)
+        public void Notify(EventKind kind, Address address, byte[] data)
         {
-            Notify(kind, address, bytes, CurrentContext.Name);
+            Notify(kind, address, data, CurrentContext.Name);
         }
 
         public void Notify(EventKind kind, Address address, byte[] bytes, string contract)
@@ -761,8 +760,7 @@ namespace Phantasma.Business
             {
                 accountResult = true;
             }
-            else
-            if (address.IsUser && Nexus.HasGenesis && OptimizedHasAddressScript(RootStorage, address))
+            else if (address.IsUser && Nexus.HasGenesis && OptimizedHasAddressScript(RootStorage, address))
             {
                  TriggerResult triggerResult;
                 using (var m = new ProfileMarker("InvokeTriggerOnAccount"))
@@ -784,8 +782,7 @@ namespace Phantasma.Business
                     using (var m = new ProfileMarker("Transaction.IsSignedBy"))
                         accountResult = this.Transaction.IsSignedBy(address);
                 }
-                else
-                if (this.CurrentTask != null)
+                else if (this.CurrentTask != null)
                 {
                     accountResult = address == this.CurrentTask.Owner && this.CurrentContext.Name == this.CurrentTask.ContextName;
                 }
@@ -1160,7 +1157,7 @@ namespace Phantasma.Business
             Runtime.Notify(EventKind.TokenCreate, owner, symbol);
         }
 
-        public void CreateChain(Address creator, string organization, string name, string parentName)
+        public void CreateChain(Address creator, string organization, string name, string parentChain)
         {
             var Runtime = this;
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
@@ -1169,7 +1166,7 @@ namespace Phantasma.Business
             Runtime.Expect(pow >= (int)ProofOfWork.Minimal, "expected proof of work");
 
             Runtime.Expect(!string.IsNullOrEmpty(name), "name required");
-            Runtime.Expect(!string.IsNullOrEmpty(parentName), "parent chain required");
+            Runtime.Expect(!string.IsNullOrEmpty(parentChain), "parent chain required");
 
             Runtime.Expect(Runtime.OrganizationExists(organization), "invalid organization");
             var org = Runtime.GetOrganization(organization);
@@ -1180,9 +1177,9 @@ namespace Phantasma.Business
             Runtime.Expect(Runtime.IsWitness(creator), "invalid witness");
 
             name = name.ToLowerInvariant();
-            Runtime.Expect(!name.Equals(parentName, StringComparison.OrdinalIgnoreCase), "same name as parent");
+            Runtime.Expect(!name.Equals(parentChain, StringComparison.OrdinalIgnoreCase), "same name as parent");
 
-            Nexus.CreateChain(RootStorage, organization, name, parentName);
+            Nexus.CreateChain(RootStorage, organization, name, parentChain);
             Runtime.Notify(EventKind.ChainCreate, creator, name);
         }
 
@@ -1250,7 +1247,7 @@ namespace Phantasma.Business
             return archive;
         }
 
-        public bool WriteArchive(IArchive archive, int blockIndex, byte[] content)
+        public bool WriteArchive(IArchive archive, int blockIndex, byte[] data)
         {
             if (archive == null)
             {
@@ -1263,7 +1260,7 @@ namespace Phantasma.Business
                 return false;
             }
 
-            Nexus.WriteArchiveBlock((Archive)archive, blockIndex, content);
+            Nexus.WriteArchiveBlock((Archive)archive, blockIndex, data);
             return true;
         }
 
@@ -1488,8 +1485,7 @@ namespace Phantasma.Business
                     Nexus.MintToken(this, token, from, to, sourceChain, value);
                 }
             }
-            else
-            if (PlatformExists(targetChain))
+            else if (PlatformExists(targetChain))
             {
                 Runtime.Expect(targetChain != DomainSettings.PlatformName, "invalid platform as target chain");
                 Nexus.BurnTokens(this, token, from, to, targetChain, value);
@@ -1497,8 +1493,7 @@ namespace Phantasma.Business
                 var swap = new ChainSwap(DomainSettings.PlatformName, sourceChain, Transaction.Hash, targetChain, targetChain, Hash.Null);
                 this.Chain.RegisterSwap(this.Storage, to, swap);
             }
-            else
-            if (sourceChain == this.Chain.Name)
+            else if (sourceChain == this.Chain.Name)
             {
                 Runtime.Expect(IsNameOfParentChain(targetChain) || IsNameOfChildChain(targetChain), "target must be parent or child chain");
                 Runtime.Expect(to.IsUser, "destination must be user address");
@@ -1531,8 +1526,7 @@ namespace Phantasma.Business
                 var swap = new ChainSwap(DomainSettings.PlatformName, sourceChain, Transaction.Hash, DomainSettings.PlatformName, targetChain, Hash.Null);
                 this.Chain.RegisterSwap(this.Storage, to, swap);
             }
-            else
-            if (targetChain == this.Chain.Name)
+            else if (targetChain == this.Chain.Name)
             {
                 Runtime.Expect(IsNameOfParentChain(sourceChain) || IsNameOfChildChain(sourceChain), "source must be parent or child chain");
                 Runtime.Expect(!to.IsInterop, "destination cannot be interop address");

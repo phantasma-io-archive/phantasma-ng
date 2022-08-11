@@ -63,8 +63,7 @@ namespace Phantasma.Business
                                 Expect(Address.IsValidAddress(text), $"expected valid address");
                                 addr = Address.FromText(text);
                             }
-                            else
-                            if (temp.Type == VMType.Bytes)
+                            else if (temp.Type == VMType.Bytes)
                             {
                                 var bytes = temp.AsByteArray();
                                 addr = Serialization.Unserialize<Address>(bytes);

@@ -228,8 +228,7 @@ namespace Phantasma.Business.Tokens
                 {
                     propName = propName.Substring(2);
                 }
-                else
-                if (propName.StartsWith("get"))
+                else if (propName.StartsWith("get"))
                 {
                     propName = propName.Substring(3);
                 }
@@ -255,8 +254,7 @@ namespace Phantasma.Business.Tokens
                 {
                     propName = propName.Substring(2);
                 }
-                else
-                if (propName.StartsWith("get"))
+                else if (propName.StartsWith("get"))
                 {
                     propName = propName.Substring(3);
                 }

@@ -138,8 +138,7 @@ namespace Phantasma.Business.Contracts
                     RegisterHistory(hash, withdraw.hash, DomainSettings.PlatformName, Runtime.Chain.Name, transfer.sourceAddress, hash, platform, chain, withdraw.destination, transfer.Symbol, transfer.Value);
                     swapCount++;
                 }
-                else
-                if (swapAddresses != null)
+                else if (swapAddresses != null)
                 {
                     foreach (var entry in swapAddresses)
                     {
