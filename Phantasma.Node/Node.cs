@@ -397,17 +397,17 @@ namespace Phantasma.Node
                 Log.Information("Termination already in progress...");
             }
 
-            if (Prompt.running)
+            if (Prompt.Running)
             {
-                Prompt.running = false;
+                Prompt.Running = false;
             }
 
             this.OnStop();
 
             //Thread.Sleep(3000);
-            if (Prompt.running)
+            if (Prompt.Running)
             {
-                Prompt.running = false;
+                Prompt.Running = false;
             }
 
             Log.Information("Termination complete...");
