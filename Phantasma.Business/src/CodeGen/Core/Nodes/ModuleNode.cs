@@ -9,7 +9,7 @@ namespace Phantasma.Business.Core.Nodes
 
         public StatementNode body;
 
-        public ModuleNode() : base(null)
+        public ModuleNode() : base()
         {
         }
 
