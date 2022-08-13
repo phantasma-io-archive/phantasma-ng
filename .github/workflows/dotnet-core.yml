@@ -30,7 +30,7 @@ jobs:
       run: echo "COVERAGE_FILE_LIST=$(ls -m coverage/**/coverage.cobertura.xml | tr -d '\n')" >> $GITHUB_ENV
 
     - name: Code Coverage Summary Report
-      uses: irongut/CodeCoverageSummary@v1.2.0
+      uses: irongut/CodeCoverageSummary@v1.3.0
       with:
         filename: ${{ env.COVERAGE_FILE_LIST }}
         badge: true
