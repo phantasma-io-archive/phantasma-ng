@@ -8,13 +8,11 @@ namespace Phantasma.Shared.Tests;
 
 public class ThrowTests
 {
-    [Theory]
-    [InlineData(null)]
-    [InlineData((ICollection)null)]
-    public void IfNull_should_throw_ArgumentNullException_when_null(object argumentValue)
+    [Fact]
+    public void IfNull_should_throw_ArgumentNullException_when_null()
     {
         // Act
-        var result = Should.Throw<ArgumentNullException>(() => Throw.IfNull(argumentValue, "testArgument"));
+        var result = Should.Throw<ArgumentNullException>(() => Throw.IfNull(null, "testArgument"));
 
         // Assert
         result.ParamName.ShouldBe("testArgument");
