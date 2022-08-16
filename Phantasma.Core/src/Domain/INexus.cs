@@ -20,7 +20,7 @@ public interface INexus
     void Attach(IOracleObserver observer);
     void Detach(IOracleObserver observer);
     void Notify(StorageContext storage);
-    void LoadNexus(StorageContext storage);
+    bool LoadNexus(StorageContext storage);
     IKeyValueStoreAdapter CreateKeyStoreAdapter(string name);
     Block FindBlockByTransaction(Transaction tx);
     Block FindBlockByTransactionHash(Hash hash);

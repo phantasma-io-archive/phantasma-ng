@@ -77,7 +77,11 @@ public class Nexus : INexus
 
         if (HasGenesis)
         {
-            LoadNexus(storage);
+            var res = LoadNexus(storage);
+            if (!res)
+            {
+                throw new ChainException("failed load nexus for chain");
+            }
         }
         else
         {
@@ -118,13 +122,18 @@ public class Nexus : INexus
         }
     }
 
-    public void LoadNexus(StorageContext storage)
+    public bool LoadNexus(StorageContext storage)
     {
         var chainList = this.GetChains(storage);
         foreach (var chainName in chainList)
         {
-            GetChainByName(chainName);
+           var chain = GetChainByName(chainName);
+           if (chain is null)
+           {
+               return false;
+           }
         }
+        return true;
     }
 
     private Dictionary<string, IKeyValueStoreAdapter> _keystoreCache = new Dictionary<string, IKeyValueStoreAdapter>();
