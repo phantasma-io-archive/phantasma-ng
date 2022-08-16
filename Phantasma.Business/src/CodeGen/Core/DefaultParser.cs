@@ -224,8 +224,7 @@ namespace Phantasma.Business.Core
                 {
                     return statement;
                 }
-                else
-                if (statement != null)
+                else if (statement != null)
                 {
                     block.statements.Add(statement);
                 }
@@ -249,8 +248,7 @@ namespace Phantasma.Business.Core
                 term = ParseExpression(tokens, ref index, owner);
                 ExpectDelimiter(tokens, ref index, ")");
             }
-            else
-            if (Lexer.IsLiteral(tokens[index].kind))
+            else if (Lexer.IsLiteral(tokens[index].kind))
             {
                 LiteralKind litKind;
 
@@ -259,8 +257,7 @@ namespace Phantasma.Business.Core
                 node.kind = litKind;
                 term = node;
             }
-            else
-            if (tokens[index].kind == Token.Kind.Operator)
+            else if (tokens[index].kind == Token.Kind.Operator)
             {
                 var node = new UnaryExpressionNode(owner);
                 node.op = tokens[index].text;

@@ -12,7 +12,7 @@ namespace Phantasma.Node.Oracles
     {
         public readonly string URL;
 
-        private string apiToken;
+        private readonly string apiToken;
         private readonly Address platformAddress;
         private static readonly string platformName = NeoWallet.NeoPlatform;
 
@@ -24,8 +24,7 @@ namespace Phantasma.Node.Oracles
             {
                 url = url.Substring(8);
             }
-            else
-            if (url.StartsWith("http://"))
+            else if (url.StartsWith("http://"))
             {
                 url = url.Substring(7);
             }

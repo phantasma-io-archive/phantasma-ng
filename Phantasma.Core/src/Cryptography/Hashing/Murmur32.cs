@@ -18,7 +18,6 @@ namespace Phantasma.Core.Hashing
             const uint c2 = 0x1b873593;
 
             uint h1 = seed;
-            uint streamLength = 0;
 
             uint end = offset + length;
             while (offset < end)
@@ -69,7 +68,6 @@ namespace Phantasma.Core.Hashing
             }
 
             // finalization, magic chants to wrap it all up
-            h1 ^= streamLength;
             h1 = fmix(h1);
 
             return h1;

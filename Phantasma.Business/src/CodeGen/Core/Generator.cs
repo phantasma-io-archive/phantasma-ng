@@ -175,8 +175,7 @@ namespace Phantasma.Business.Core
                                         {
                                             val = (BigInteger)i.literal.value;
                                         }
-                                        else 
-                                        if (i.literal.value is int)
+                                        else if (i.literal.value is int)
                                         {
                                             val = new BigInteger((int)i.literal.value);
                                         }

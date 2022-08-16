@@ -29,43 +29,35 @@ namespace Phantasma.Business
             {
                 sb.EmitLoad(target_reg, (string)arg);
             }
-            else
-            if (arg is int)
+            else if (arg is int)
             {
                 sb.EmitLoad(target_reg, new BigInteger((int)arg));
             }
-            else 
-            if (arg is long)
+            else if (arg is long)
             {
                 sb.EmitLoad(target_reg, new BigInteger((long)arg));
             }
-            else
-            if (arg is BigInteger)
+            else if (arg is BigInteger)
             {
                 sb.EmitLoad(target_reg, (BigInteger)arg);
             }
-            else
-            if (arg is bool)
+            else if (arg is bool)
             {
                 sb.EmitLoad(target_reg, (bool)arg);
             }
-            else
-            if (arg is byte[])
+            else if (arg is byte[])
             {
                 sb.EmitLoad(target_reg, (byte[])arg, VMType.Bytes);
             }
-            else
-            if (arg is Enum)
+            else if (arg is Enum)
             {
                 sb.EmitLoad(target_reg, (Enum)arg);
             }
-            else
-            if (arg is Timestamp)
+            else if (arg is Timestamp)
             {
                 sb.EmitLoad(target_reg, (Timestamp)arg);
             }
-            else
-            if (arg is ISerializable)
+            else if (arg is ISerializable)
             {
                 sb.EmitLoad(target_reg, (ISerializable)arg);
             }

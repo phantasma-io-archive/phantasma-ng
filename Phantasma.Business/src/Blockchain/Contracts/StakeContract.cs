@@ -142,8 +142,7 @@ namespace Phantasma.Business.Contracts
             {
                 referenceDate = referenceTime;
             }
-            else
-            if (_lastMasterClaim.Value == 0)
+            else if (_lastMasterClaim.Value == 0)
             {
                 if (Runtime.HasGenesis)
                 {

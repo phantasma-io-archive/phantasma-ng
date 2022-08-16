@@ -87,6 +87,7 @@ namespace Phantasma.Business
 
         public new void Clear()
         {
+            throw new NotImplementedException();
         }
     }
 }

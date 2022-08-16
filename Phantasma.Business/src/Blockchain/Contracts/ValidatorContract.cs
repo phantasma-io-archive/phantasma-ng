@@ -268,8 +268,7 @@ namespace Phantasma.Business.Contracts
                 var newValidators = GetValidatorCount(ValidatorType.Primary);
                 Runtime.Expect(newValidators > primaryValidators, "number of primary validators did not change");
             }
-            else
-            if (type == ValidatorType.Secondary)
+            else if (type == ValidatorType.Secondary)
             {
                 var newValidators = GetValidatorCount(ValidatorType.Secondary);
                 Runtime.Expect(newValidators > secondaryValidators, "number of secondary validators did not change");
