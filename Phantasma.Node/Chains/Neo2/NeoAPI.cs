@@ -274,12 +274,8 @@ namespace Phantasma.Node.Chains
 
             if (stackArray.Count() > 0)
             {
-                foreach (var child in stackArray)
-                {
-                    var item = ParseStackItems(child);
-                    return item;
-                    //items.Add(item);
-                }
+                var item = ParseStackItems(stackArray.Current);
+                return item;
             }
 
             return null;
