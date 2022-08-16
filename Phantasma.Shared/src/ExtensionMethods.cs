@@ -79,6 +79,12 @@ namespace Phantasma.Shared
         public static void MoveToTail<T>(this List<T> list, T item, Predicate<T> pred)
         {
             int idx = list.FindIndex(pred);
+
+            if (idx == -1)
+            {
+                return;
+            }
+
             list.RemoveAt(idx);
             list.Add(item);
         }
