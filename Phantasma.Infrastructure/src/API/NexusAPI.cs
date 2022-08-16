@@ -18,11 +18,11 @@ namespace Phantasma.Infrastructure;
 
 public static class NexusAPI
 {
-    public static Nexus Nexus;
-    public static ITokenSwapper TokenSwapper;
-    public static NodeRpcClient TRPC;
+    public static Nexus Nexus { get; set; }
+    public static ITokenSwapper TokenSwapper { get; set; }
+    public static NodeRpcClient TRPC { get; set; }
 
-    public static bool ApiLog;
+    public static bool ApiLog { get; set; }
 
     public const int PaginationMaxResults = 99999;
 
