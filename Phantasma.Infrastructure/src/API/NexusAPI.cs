@@ -183,13 +183,11 @@ public static class NexusAPI
                         {
                             properties.Add(new TokenPropertyResult() { Key = "ImageURL", Value = "https://phantasma.io/img/crown.png" });
                         }
-                        else
-                        if (symbol == DomainSettings.RewardTokenSymbol && method.name == "getInfoURL")
+                        else if (symbol == DomainSettings.RewardTokenSymbol && method.name == "getInfoURL")
                         {
                             properties.Add(new TokenPropertyResult() { Key = "InfoURL", Value = "https://phantasma.io/crown/" + ID });
                         }
-                        else
-                        if (symbol == DomainSettings.RewardTokenSymbol && method.name == "getName")
+                        else if (symbol == DomainSettings.RewardTokenSymbol && method.name == "getName")
                         {
                             properties.Add(new TokenPropertyResult() { Key = "Name", Value = "Crown #" + info.MintID });
                         }

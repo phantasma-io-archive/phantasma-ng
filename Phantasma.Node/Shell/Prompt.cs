@@ -16,7 +16,11 @@ namespace Phantasma.Node.Shell
         private static XmlSerializer xmls = new XmlSerializer(typeof(List<List<char>>)); // TODO use json
         private static List<string> historyList = new List<string>(); 
         private static List<List<char>> inputHistory = new List<List<char>>();
-        public static bool running = true; 
+        public static bool Running
+        {
+            get;
+            set;
+        }
 
         private static bool InputIsOnNewLine(List<char> input, int inputPosition)
         {
@@ -246,7 +250,7 @@ namespace Phantasma.Node.Shell
             IEnumerator<string> wordIterator = null;
             LoadHistory(history);
 
-            while (running)
+            while (Running)
             {
                 string completion = null;
                 List<char> input = new List<char>();

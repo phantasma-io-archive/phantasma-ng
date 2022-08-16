@@ -22,10 +22,5 @@ namespace Phantasma.Business.Tests
             transaction.Payload.ShouldBe(null);
         }
 
-        [Fact]
-        public void is_signed_by()
-        {
-            
-        }
     }
 }

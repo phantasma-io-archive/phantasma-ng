@@ -59,8 +59,7 @@ namespace Phantasma.Shared.Utils
             {
                 result = entries[key];
             }
-            else 
-            if (defaultVal != null)
+            else if (defaultVal != null)
             {
                 result = defaultVal;
             }

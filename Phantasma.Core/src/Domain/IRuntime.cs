@@ -142,17 +142,17 @@ namespace Phantasma.Core
         public void RegisterPlatformAddress(string platform, Address localAddress, string externalAddress);
 
         public void MintTokens(string symbol, Address from, Address target, BigInteger amount);
-        public void BurnTokens(string symbol, Address from, BigInteger amount);
+        public void BurnTokens(string symbol, Address target, BigInteger amount);
         public void TransferTokens(string symbol, Address source, Address destination, BigInteger amount);
         public void SwapTokens(string sourceChain, Address from, string targetChain, Address to, string symbol, BigInteger value);
 
         public BigInteger MintToken(string symbol, Address from, Address target, byte[] rom, byte[] ram, BigInteger seriesID);
-        public void BurnToken(string symbol, Address from, BigInteger tokenID);
+        public void BurnToken(string symbol, Address target, BigInteger tokenID);
         public void InfuseToken(string symbol, Address from, BigInteger tokenID, string infuseSymbol, BigInteger value);
         public void TransferToken(string symbol, Address source, Address destination, BigInteger tokenID);
         public void WriteToken(Address from, string tokenSymbol, BigInteger tokenID, byte[] ram);
         public TokenContent ReadToken(string tokenSymbol, BigInteger tokenID);
-        public ITokenSeries CreateTokenSeries(string tokenSymbol, Address from, BigInteger seriesID, BigInteger maxSupply, TokenSeriesMode mode, byte[] script, ContractInterface abi);
+        public ITokenSeries CreateTokenSeries(string symbol, Address from, BigInteger seriesID, BigInteger maxSupply, TokenSeriesMode mode, byte[] script, ContractInterface abi);
         public ITokenSeries GetTokenSeries(string symbol, BigInteger seriesID);
 
         public byte[] ReadOracle(string URL);

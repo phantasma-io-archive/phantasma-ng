@@ -295,8 +295,7 @@ namespace Phantasma.Business.Contracts
             {
                 Runtime.Notify(EventKind.Crowdsale, from, new SaleEventData() { kind = SaleEventKind.HardCap, saleHash = saleHash });
             }
-            else
-            if (previousSupply < sale.GlobalSoftCap && nextSupply >= sale.GlobalSoftCap)
+            else if (previousSupply < sale.GlobalSoftCap && nextSupply >= sale.GlobalSoftCap)
             {
                 Runtime.Notify(EventKind.Crowdsale, from, new SaleEventData() { kind = SaleEventKind.SoftCap, saleHash = saleHash });
             }

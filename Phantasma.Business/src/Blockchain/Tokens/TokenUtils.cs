@@ -186,7 +186,7 @@ namespace Phantasma.Business.Tokens
 
             if (method == null)
             {
-                throw new Exception("ABI is missing: " + method.name);
+                throw new Exception("ABI is missing: " + methodName);
             }
 
             var changeSet = storage as StorageChangeSetContext;
@@ -228,8 +228,7 @@ namespace Phantasma.Business.Tokens
                 {
                     propName = propName.Substring(2);
                 }
-                else
-                if (propName.StartsWith("get"))
+                else if (propName.StartsWith("get"))
                 {
                     propName = propName.Substring(3);
                 }
@@ -255,8 +254,7 @@ namespace Phantasma.Business.Tokens
                 {
                     propName = propName.Substring(2);
                 }
-                else
-                if (propName.StartsWith("get"))
+                else if (propName.StartsWith("get"))
                 {
                     propName = propName.Substring(3);
                 }

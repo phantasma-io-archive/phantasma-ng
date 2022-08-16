@@ -123,15 +123,13 @@ namespace Phantasma.Business.Core
             {
                 result += $" := {a.target} {symbol} {b.target}";
             }
-            else
-            if (a != null)
+            else if (a != null)
             {
                 if (op == Opcode.Assign)
                 {
                     result += $" := {a.target}";
                 }
-                else
-                if (symbol != null)
+                else if (symbol != null)
                 {
                     if (symbol == "-")
                     {

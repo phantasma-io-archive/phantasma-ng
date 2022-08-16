@@ -296,8 +296,7 @@ namespace Phantasma.Business.Contracts
                 var genesisTime = Runtime.GetGenesisTime();
                 _lastInflationDate = genesisTime;
             }
-            else
-            if (!_inflationReady)
+            else if (!_inflationReady)
             {
                 var infDiff = Runtime.Time - _lastInflationDate;
                 var inflationPeriod = SecondsInDay * 90;

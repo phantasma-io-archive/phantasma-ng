@@ -574,8 +574,7 @@ public class Nexus : INexus
 
             CreateSeries(storage, tokenInfo, 0, maxSupply, TokenSeriesMode.Unique, nftScript, nftABI);
         }
-        else
-        if (symbol == DomainSettings.RewardTokenSymbol)
+        else if (symbol == DomainSettings.RewardTokenSymbol)
         {
             byte[] nftScript;
             ContractInterface nftABI;
@@ -926,8 +925,7 @@ public class Nexus : INexus
         {
             Runtime.Notify(EventKind.TokenStake, source, new TokenEventData(token.Symbol, amount, Runtime.Chain.Name));
         }
-        else
-        if (source.IsSystem && (source == Runtime.CurrentContext.Address || isInfusion))
+        else if (source.IsSystem && (source == Runtime.CurrentContext.Address || isInfusion))
         {
             Runtime.Notify(EventKind.TokenClaim, destination, new TokenEventData(token.Symbol, amount, Runtime.Chain.Name));
         }
@@ -972,8 +970,7 @@ public class Nexus : INexus
         {
             Runtime.Notify(EventKind.TokenStake, source, new TokenEventData(token.Symbol, tokenID, Runtime.Chain.Name));
         }
-        else
-        if (source.IsSystem && (source == Runtime.CurrentContext.Address || isInfusion))
+        else if (source.IsSystem && (source == Runtime.CurrentContext.Address || isInfusion))
         {
             Runtime.Notify(EventKind.TokenClaim, destination, new TokenEventData(token.Symbol, tokenID, Runtime.Chain.Name));
         }

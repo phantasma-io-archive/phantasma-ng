@@ -10,11 +10,11 @@ namespace Phantasma.Node.Shell
 {
     class SpookShell
     {
-        private Node _node;
+        public Node Node { get; }
 
         public SpookShell(string[] args, Node node)
         {
-            _node = node;
+            this.Node = node;
         }
 
 

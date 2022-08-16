@@ -307,8 +307,7 @@ namespace Phantasma.Business.Assembler
             {
                 regCount = VirtualMachine.DefaultRegisterCount;
             }
-            else
-            if (Arguments[1].IsNumber())
+            else if (Arguments[1].IsNumber())
             {
                 regCount = (byte)Arguments[1].AsNumber();
             }
@@ -338,8 +337,7 @@ namespace Phantasma.Business.Assembler
 
                 sb.EmitExtCall(extCall);
             }
-            else
-            if (Arguments[0].IsRegister())
+            else if (Arguments[0].IsRegister())
             {
                 var reg = Arguments[0].AsRegister();
                 sb.Emit(Opcode.EXTCALL, new byte[] { reg });
@@ -408,8 +406,7 @@ namespace Phantasma.Business.Assembler
                     src_a_reg
                 });
             }
-            else
-            if (Arguments[0].IsRegister() && Arguments[1].IsRegister() && Arguments[2].IsRegister())
+            else if (Arguments[0].IsRegister() && Arguments[1].IsRegister() && Arguments[2].IsRegister())
             {
                 var src_a_reg = Arguments[0].AsRegister();
                 var src_b_reg = Arguments[1].AsRegister();
@@ -441,30 +438,24 @@ namespace Phantasma.Business.Assembler
 
                 VMType type = VMType.None;
 
-                if (Arguments.Length == 3)
+                if (Arguments.Length == 3 && !Enum.TryParse(Arguments[2], out type))
                 {
-                    if (!Enum.TryParse(Arguments[2], out type))
-                    {
-                        throw new CompilerException(LineNumber, ERR_INVALID_ARGUMENT);
-                    }
+                    throw new CompilerException(LineNumber, ERR_INVALID_ARGUMENT);
                 }
 
                 if (Arguments[1].IsBytes())
                 {
                     sb.EmitLoad(reg, Arguments[1].AsBytes());
                 }
-                else
-                if (Arguments[1].IsBool())
+                else if (Arguments[1].IsBool())
                 {
                     sb.EmitLoad(reg, Arguments[1].AsBool());
                 }
-                else
-                if (Arguments[1].IsString())
+                else if (Arguments[1].IsString())
                 {
                     sb.EmitLoad(reg, Arguments[1].AsString());
                 }
-                else
-                if (Arguments[1].IsNumber())
+                else if (Arguments[1].IsNumber())
                 {
                     if (type == VMType.Enum)
                     {
@@ -487,8 +478,7 @@ namespace Phantasma.Business.Assembler
                             sb.Emit(Opcode.LOAD, bytes);
                         }
                     }
-                    else
-                    if (type != VMType.None)
+                    else if (type != VMType.None)
                     {
                         throw new CompilerException(LineNumber, ERR_INVALID_TYPE);
                     }
@@ -550,8 +540,7 @@ namespace Phantasma.Business.Assembler
             {
                 sb.Emit(this._opcode.Value);
             }
-            else
-            if (Arguments.Length == 1)
+            else if (Arguments.Length == 1)
             {
                 if (Arguments[0].IsRegister())
                 {

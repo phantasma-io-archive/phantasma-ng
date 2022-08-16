@@ -132,8 +132,7 @@ namespace Phantasma.Business.Core
                             {
                                 BreakIntoTokens(tokens, ref s, ref baseIndex, ref index);
                             }
-                            else
-                            if ((isWhitespace && !wasWhitespace) || isDelimiter)
+                            else if ((isWhitespace && !wasWhitespace) || isDelimiter)
                             {
                                 BreakIntoTokens(tokens, ref s, ref baseIndex, ref index);
                             }
@@ -143,8 +142,7 @@ namespace Phantasma.Business.Core
                                 state = State.String;
                                 BreakIntoTokens(tokens, ref s, ref baseIndex, ref index);
                             }
-                            else
-                            if (!isWhitespace)
+                            else if (!isWhitespace)
                             {
                                 s += c;
                             }

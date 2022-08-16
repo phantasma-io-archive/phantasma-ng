@@ -38,9 +38,14 @@ namespace Phantasma.Business.Core.Nodes
     {
         public readonly CompilerNode Owner;
 
+        public CompilerNode()
+        {
+            this.Owner = null;
+        }
+        
         public CompilerNode(CompilerNode owner)
         {
-            if (owner == null && !(this is ModuleNode))
+            if (owner == null)
             {
                 throw new Exception("Owner cannot be null");
             }

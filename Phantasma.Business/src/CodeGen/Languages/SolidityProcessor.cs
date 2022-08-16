@@ -125,8 +125,7 @@ namespace Phantasma.Business.Languages
                     ExpectValue(tokens, ref index, Token.Kind.Invalid, ParserException.Kind.UnexpectedToken); // TODO this is a hack
                     ExpectDelimiter(tokens, ref index, ";");
                 }
-                else
-                if (token.text == "contract")
+                else if (token.text == "contract")
                 {
                     var name = ExpectIdentifier(tokens, ref index, true);
 
@@ -219,8 +218,7 @@ namespace Phantasma.Business.Languages
             {
                 method.visibility = Visibility.Private;
             }
-            else
-            if (attrs.Contains("internal"))
+            else if (attrs.Contains("internal"))
             {
                 method.visibility = Visibility.Internal;
             }

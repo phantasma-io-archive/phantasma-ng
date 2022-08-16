@@ -8,8 +8,6 @@ namespace Phantasma.Business.Tests.VM;
 
 public class VirtualMachineTest
 {
-    
-
     public class VirtualTestMachine : VirtualMachine
     {
         public VirtualTestMachine(byte[] script, uint offset, string contextName) : base(script, offset, contextName)
@@ -76,8 +74,11 @@ public class VirtualMachineTest
     public void registerContext_test()
     {
         VirtualMachine = new VirtualTestMachine(new byte[]{0}, 0, "test");
-        VirtualMachine.RegisterContext("test", new ScriptContext("testScript", new byte[]{0}, 0));
+        var context = new ScriptContext("testScript", new byte[] {0}, 0);
+        VirtualMachine.RegisterContext("test", context);
         
+        // Fact
+        VirtualMachine.FindContext("test").ShouldBe(context);
     }
     
     [Fact]
