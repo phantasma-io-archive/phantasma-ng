@@ -1,28 +1,28 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=2ab9733f_002Da4b4_002D456e_002Db9a8_002D07aa65bbe9d0/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="opcode_add_error_test" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;TestAncestor&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.InstructionTest.opcode_add_error_test&lt;/TestId&gt;&#xD;
-  &lt;/TestAncestor&gt;&#xD;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=2ab9733f_002Da4b4_002D456e_002Db9a8_002D07aa65bbe9d0/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="opcode_add_error_test" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;TestAncestor&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.InstructionTest.opcode_add_error_test&lt;/TestId&gt;
+  &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=34f7db97_002D563b_002D424d_002D98c0_002Dff5ff4f58efe/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="opcode_add_error_test #2" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;TestAncestor&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.InstructionTest&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.execute_test&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.switchContext_test&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.validateOpcode_test&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.getDumpFileName_test&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.pushFrame_test&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.peekFrame_test&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.setCurrentContext_test&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.findContext_test&lt;/TestId&gt;&#xD;
-  &lt;/TestAncestor&gt;&#xD;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=34f7db97_002D563b_002D424d_002D98c0_002Dff5ff4f58efe/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="opcode_add_error_test #2" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;TestAncestor&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.InstructionTest&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.execute_test&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.switchContext_test&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.validateOpcode_test&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.getDumpFileName_test&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.pushFrame_test&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.peekFrame_test&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.setCurrentContext_test&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.VirtualMachineTest.findContext_test&lt;/TestId&gt;
+  &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=c5294430_002D1d73_002D452d_002D8656_002D9f917e587fc6/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="null_transaction_test" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;TestAncestor&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.TransactionTest.null_transaction_test&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.BlockTest.null_block_test&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.DebugInfoTest.null_debugRange_test&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.DebugInfoTest.someValue_debugRange_test&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.DebugInfoTest.someValue_debugInfo_test&lt;/TestId&gt;&#xD;
-  &lt;/TestAncestor&gt;&#xD;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=c5294430_002D1d73_002D452d_002D8656_002D9f917e587fc6/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="null_transaction_test" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;TestAncestor&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.TransactionTest.null_transaction_test&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.BlockTest.null_block_test&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.DebugInfoTest.null_debugRange_test&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.DebugInfoTest.someValue_debugRange_test&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::14165ECB-87D0-4746-A9D8-88E775FF1160::net6.0::Phantasma.Business.Tests.VM.DebugInfoTest.someValue_debugInfo_test&lt;/TestId&gt;
+  &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
