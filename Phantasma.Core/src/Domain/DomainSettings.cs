@@ -108,5 +108,11 @@ namespace Phantasma.Core
 
         public static readonly string InfusionName = "infusion";
         public static readonly Address InfusionAddress = SmartContract.GetAddressForName(InfusionName);
+
+        public const int NameMaxLength = 255;
+        public const int UrlMaxLength = 2048;
+        public const int ArgsMax = 64;
+        public const int AddressMaxSize = 34;
+        public const int ScriptMaxSize = short.MaxValue;
     }
 }

@@ -11,7 +11,7 @@ namespace Phantasma.Core
     {
         public const int Length = 32;
 
-        public static readonly Hash Null = Hash.FromBytes(new byte[Length]);
+        public static readonly Hash Null = FromBytes(new byte[Length]);
 
         private byte[] _data;
     
