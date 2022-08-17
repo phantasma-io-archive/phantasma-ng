@@ -137,7 +137,7 @@ namespace Phantasma.Business
                         .SpendGas(this.CurrentBlock.Validator)
                         .EndScript();
 
-                    var transaction = new Transaction(this.Nexus.Name, this.Name, script, this.CurrentBlock.Timestamp.Value + 1, "SYSTEM");
+                    var transaction = new Transaction(this.Nexus.Name, this.Name, script, validatorAddress, this.CurrentBlock.Timestamp.Value + 1, "SYSTEM");
 
                     transaction.Sign(this.ValidatorKeys);
                     systemTransactions.Add(transaction);
@@ -152,10 +152,8 @@ namespace Phantasma.Business
             return systemTransactions;
         }
 
-        public (CodeType, string) CheckTx(ByteString serializedTx)
+        public (CodeType, string) CheckTx(Transaction tx)
         {
-            var txString = serializedTx.ToStringUtf8();
-            var tx = Transaction.Unserialize(Base16.Decode(txString));
             Log.Information("check tx " + tx.Hash);
 
             if (tx.Expiration < Timestamp.Now)
@@ -176,6 +174,12 @@ namespace Phantasma.Business
                 return (CodeType.UnsignedTx, "Transaction is not signed");
             }
 
+            if (!tx.IsSignedBy(tx.Sender))
+            {
+                Log.Information("check tx 4 " + tx.Hash);
+                return (CodeType.NotSignedBySender, "Transaction is not signed by sender");
+            }
+
             // TODO make sure we do not overflow
             //if (!VerifyBlockBeforeAdd(block))
             //{
@@ -185,6 +189,14 @@ namespace Phantasma.Business
             Log.Information("check tx 4 " + tx.Hash);
             return (CodeType.Ok, "");
         }
+        public (CodeType, string) CheckTx(ByteString serializedTx)
+        {
+            var txString = serializedTx.ToStringUtf8();
+            var tx = Transaction.Unserialize(Base16.Decode(txString));
+            Log.Information("check tx " + tx.Hash);
+
+            return CheckTx(tx);
+        }
 
         public TransactionResult DeliverTx(ByteString serializedTx)
         {
@@ -193,6 +205,18 @@ namespace Phantasma.Business
             var tx = Transaction.Unserialize(Base16.Decode(txString));
 
             Log.Information($"Deliver tx {tx}");
+
+            var (codeType, message) = CheckTx(tx);
+            if (codeType != CodeType.Ok)
+            {
+                Log.Error("Transaction {0} check error: {1}", result.Hash, message);
+                this.CurrentChangeSet.Clear();
+                result.Code = 1;
+                result.Codespace = message;
+
+                return result;
+            }
+
             try
             {
                 CurrentTransactions.Add(tx);
@@ -1380,7 +1404,7 @@ namespace Phantasma.Business
                     .SpendGas(task.Owner)
                     .EndScript();
 
-                transaction = new Transaction(this.Nexus.Name, this.Name, taskScript, block.Timestamp.Value + 1, "TASK");
+                transaction = new Transaction(this.Nexus.Name, this.Name, taskScript, task.Owner, block.Timestamp.Value + 1, "TASK");
 
                 var txResult = ExecuteTransaction(-1, transaction, transaction.Script, block.Validator, block.Timestamp, changeSet,
                             block.Notify, oracle, task, minimumFee);

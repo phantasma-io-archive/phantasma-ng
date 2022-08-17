@@ -1317,7 +1317,7 @@ public class Nexus : INexus
 
         var script = sb.EndScript();
 
-        var tx = new Transaction(this.Name, DomainSettings.RootChainName, script, Timestamp.Now + TimeSpan.FromDays(300));
+        var tx = new Transaction(this.Name, DomainSettings.RootChainName, script, owner.Address, Timestamp.Now + TimeSpan.FromDays(300));
         tx.Mine(ProofOfWork.Minimal);
         tx.Sign(owner);
 
@@ -1339,7 +1339,7 @@ public class Nexus : INexus
         var script = //SpendGas(owner.Address).
             sb.EndScript();
 
-        var tx = new Transaction(Name, DomainSettings.RootChainName, script, Timestamp.Now + TimeSpan.FromDays(300));
+        var tx = new Transaction(Name, DomainSettings.RootChainName, script, owner.Address, Timestamp.Now + TimeSpan.FromDays(300));
         tx.Mine((int)ProofOfWork.Moderate);
         tx.Sign(owner);
         return tx;

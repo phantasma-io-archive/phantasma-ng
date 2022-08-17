@@ -237,6 +237,9 @@ namespace Phantasma.Infrastructure
         [APIDescription("List of signatures that signed the transaction")]
         public SignatureResult[] signatures { get; set; }
 
+        [APIDescription("Sender of the transaction")]
+        public string sender { get; set; }
+
         [APIDescription("Expiration time of the transaction")]
         public uint expiration { get; set; }
     }
