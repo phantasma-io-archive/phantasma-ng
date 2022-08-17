@@ -89,74 +89,60 @@ namespace Phantasma.Core
             {
                 writer.Write((byte)(((bool)obj) ? 1 : 0));
             }
-            else
-            if (type == typeof(byte))
+            else if (type == typeof(byte))
             {
                 writer.Write((byte)obj);
             }
-            else
-            if (type == typeof(long))
+            else if (type == typeof(long))
             {
                 writer.Write((long)obj);
             }
-            else
-            if (type == typeof(int))
+            else if (type == typeof(int))
             {
                 writer.Write((int)obj);
             }
-            else
-            if (type == typeof(ushort))
+            else if (type == typeof(ushort))
             {
                 writer.Write((ushort)obj);
             }
-            else
-            if (type == typeof(sbyte))
+            else if (type == typeof(sbyte))
             {
                 writer.Write((sbyte)obj);
             }
-            else
-            if (type == typeof(ulong))
+            else if (type == typeof(ulong))
             {
                 writer.Write((ulong)obj);
             }
-            else
-            if (type == typeof(uint))
+            else if (type == typeof(uint))
             {
                 writer.Write((uint)obj);
             }
-            else
-            if (type == typeof(ushort))
+            else if (type == typeof(ushort))
             {
                 writer.Write((ushort)obj);
             }
-            else
-            if (type == typeof(string))
+            else if (type == typeof(string))
             {
                 writer.WriteVarString((string)obj);
             }
-            else
-            if (type == typeof(decimal))
+            else if (type == typeof(decimal))
             {
                 writer.Write((decimal)obj);
             }
-            else
-            if (type == typeof(BigInteger))
+            else if (type == typeof(BigInteger))
             {
                 writer.WriteBigInteger((BigInteger)obj);
             }
-            else
-            if (type == typeof(Timestamp))
+            else if (type == typeof(Timestamp))
             {
                 writer.Write(((Timestamp)obj).Value);
             }
-            else
-            if (typeof(ISerializable).IsAssignableFrom(type))
+            else if (typeof(ISerializable).IsAssignableFrom(type))
             {
                 var serializable = (ISerializable)obj;
                 serializable.SerializeData(writer);
             }
-            else
-            if (type.IsArray)
+            else if (type.IsArray)
             {
                 var array = (Array)obj;
                 if (array == null)
@@ -175,14 +161,12 @@ namespace Phantasma.Core
                     }
                 }
             }
-            else
-            if (type.IsEnum)
+            else if (type.IsEnum)
             {
                 uint val = (uint)Convert.ChangeType(obj, typeof(uint));
                 writer.WriteVarInt(val);
             }
-            else
-            if (type.IsStructOrClass()) // check if struct or class
+            else if (type.IsStructOrClass()) // check if struct or class
             {
                 var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
 

@@ -260,8 +260,7 @@ namespace Phantasma.Core
                 {
                     result = val.Type;
                 }
-                else
-                if (val.Type != result)
+                else if (val.Type != result)
                 {
                     return VMType.None;
                 }                
@@ -496,8 +495,7 @@ namespace Phantasma.Core
                 var bytes = (byte[])fieldValue;
                 fieldValue = Serialization.Unserialize(bytes, fieldType);
             }
-            else
-            if (fieldType.IsEnum)
+            else if (fieldType.IsEnum)
             {
                 fieldValue = Enum.Parse(fieldType, fieldValue.ToString());
             }
@@ -793,8 +791,7 @@ namespace Phantasma.Core
             {
                 children = GetChildren();
             }
-            else
-            if (this.Type == VMType.None)
+            else if (this.Type == VMType.None)
             {
                 this.Type = VMType.Struct;
                 children = new Dictionary<VMObject, VMObject>();
@@ -1183,8 +1180,7 @@ namespace Phantasma.Core
                     var elementType = type.GetElementType();
                     return this.ToArray(elementType);
                 }
-                else
-                if (type.IsStructOrClass())
+                else if (type.IsStructOrClass())
                 {
                     return this.ToStruct(type);
                 }
