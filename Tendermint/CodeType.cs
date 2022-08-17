@@ -7,5 +7,6 @@
         Expired = 2,
         InvalidChain = 3,
         UnsignedTx = 4,
+        NotSignedBySender = 5
     }
 }

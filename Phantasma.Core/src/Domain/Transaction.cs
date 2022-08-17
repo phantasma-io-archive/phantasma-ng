@@ -12,12 +12,14 @@ using Phantasma.Core.ECC;
 
 namespace Phantasma.Core
 {
-    public sealed class Transaction : ISerializable
+    public sealed class Transaction : ITransaction, ISerializable
     {
         public byte[] Script { get; private set; }
 
         public string NexusName { get; private set; }
         public string ChainName { get; private set; }
+        
+        public Address Sender { get; private set; }
 
         public Timestamp Expiration { get; private set; }
 
@@ -49,6 +51,7 @@ namespace Phantasma.Core
             writer.WriteVarString(this.NexusName);
             writer.WriteVarString(this.ChainName);
             writer.WriteByteArray(this.Script);
+            writer.WriteAddress(this.Sender);
             writer.Write(this.Expiration.Value);
             writer.WriteByteArray(this.Payload);
 
@@ -73,18 +76,19 @@ namespace Phantasma.Core
 
         }
 
-        public Transaction(string nexusName, string chainName, byte[] script, Timestamp expiration, string payload) : this(nexusName, chainName, script, expiration, Encoding.UTF8.GetBytes(payload))
+        public Transaction(string nexusName, string chainName, byte[] script, Address sender, Timestamp expiration, string payload) : this(nexusName, chainName, script, sender, expiration, Encoding.UTF8.GetBytes(payload))
         {
         }
 
         // transactions are always created unsigned, call Sign() to generate signatures
-        public Transaction(string nexusName, string chainName, byte[] script, Timestamp expiration, byte[] payload = null)
+        public Transaction(string nexusName, string chainName, byte[] script, Address sender, Timestamp expiration, byte[] payload = null)
         {
             Throw.IfNull(script, nameof(script));
 
             this.NexusName = nexusName;
             this.ChainName = chainName;
             this.Script = script;
+            this.Sender = sender;
             this.Expiration = expiration;
             this.Payload = payload != null ? payload :new byte[0];
 
@@ -169,6 +173,7 @@ namespace Phantasma.Core
             this.NexusName = reader.ReadVarString();
             this.ChainName = reader.ReadVarString();
             this.Script = reader.ReadByteArray();
+            this.Sender = reader.ReadAddress();
             this.Expiration = reader.ReadUInt32();
             this.Payload = reader.ReadByteArray();
 
