@@ -117,10 +117,6 @@ namespace Phantasma.Core
             {
                 writer.Write((uint)obj);
             }
-            else if (type == typeof(ushort))
-            {
-                writer.Write((ushort)obj);
-            }
             else if (type == typeof(string))
             {
                 writer.WriteVarString((string)obj);
