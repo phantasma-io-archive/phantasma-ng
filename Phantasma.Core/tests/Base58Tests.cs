@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
@@ -15,7 +16,7 @@ public class Base58
         var encodedString = Core.Base58.Encode(byteArray);
         var decodedBytes = Core.Base58.Decode(encodedString);
         decodedBytes.ShouldBe(byteArray);
-        Utils.GetStringFromByteArray(decodedBytes).ShouldBe(testString);
+        GetStringFromByteArray(decodedBytes).ShouldBe(testString);
     }
 
     [TestMethod]
@@ -26,11 +27,19 @@ public class Base58
         var encodedString = Core.Base58.Encode(byteArray);
         var decodedBytes = Core.Base58.Decode(encodedString);
         decodedBytes.ShouldBe(byteArray);
-        Utils.GetStringFromByteArray(decodedBytes).ShouldBe(testString);
+        GetStringFromByteArray(decodedBytes).ShouldBe(testString);
     }
 
     /*[TestMethod]
     public void wrong_input_test()
     {
     }*/
+
+    private static string GetStringFromByteArray(byte[] array)
+    {
+        using var stream = new MemoryStream(array);
+        using var streamReader = new StreamReader(stream);
+
+        return streamReader.ReadToEnd();
+    }
 }
