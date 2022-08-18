@@ -120,8 +120,7 @@ namespace Phantasma.Core.Context
 
                     return null;
                 }
-                else
-                if (key[0] == (byte)'<' && key[i] == (byte)'>')
+                else if (key[0] == (byte)'<' && key[i] == (byte)'>')
                 {
                     int index = i + 1;
                     var first = key.Take(index - 1).Skip(1).ToArray();

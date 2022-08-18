@@ -880,8 +880,8 @@ namespace Phantasma.Business.Contracts
             
             var index = 0;
             var count = tradingList.Count();
-            TradingVolume tempTrading = new TradingVolume();
             bool changed = false;
+            TradingVolume tempTrading;
             while (index < count)
             {
                 tempTrading = tradingList.Get<TradingVolume>(index);
@@ -1295,7 +1295,7 @@ namespace Phantasma.Business.Contracts
             // Token1 Address
             Address token1Address = TokenUtils.GetContractAddress(symbol1);            
 
-            BigInteger TLP = (BigInteger)Sqrt(amount0 * amount1);
+            BigInteger TLP = Sqrt(amount0 * amount1);
 
             // Create the pool
             Pool pool = new Pool(symbol0, symbol1, token0Address.Text, token1Address.Text, amount0, amount1, feeRatio, TLP);
