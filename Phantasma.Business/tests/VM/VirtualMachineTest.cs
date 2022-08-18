@@ -81,26 +81,30 @@ public class VirtualMachineTest
         VirtualMachine.FindContext("test").ShouldBe(context);
     }
     
-    [Fact]
-    public void execute_test()
+    [Theory]
+    [InlineData(new byte[] { }, "Constraint failed: Outside of script range => 0 / 0")]
+    [InlineData(new byte[] { 0 }, "Constraint failed: Outside of script range => 1 / 1")]
+    public void Execute_should_throw_VMException(byte[] script, string expected)
     {
-        VirtualMachine = new VirtualTestMachine(new byte[]{}, 0, "test");
+        // Arrange
+        var sut = new VirtualTestMachine(script, 0, "test");
 
-        Should.Throw<VMException>(() =>
-        {
-            VirtualMachine.Execute();
-        });
+        // Act
+        var result = Should.Throw<VMException>(() => sut.Execute());
+
+        // Assert
+        result.Message.ShouldBe(expected);
     }
-    
+
     [Fact]
-    public void pushFrame_test()
+    public void PushFrame_should_not_throw()
     {
-        VirtualMachine = new VirtualTestMachine(new byte[]{}, 0, "test");
-        ExecutionContext executionContext = VirtualMachine.CurrentContext;
-        Should.NotThrow(() =>
-        {
-            VirtualMachine.PushFrame(executionContext, 0, 1);
-        });
+        // Arrange
+        var sut = new VirtualTestMachine(new byte[] { }, 0, "test");
+        var executionContext = sut.CurrentContext;
+
+        // Act & Assert
+        Should.NotThrow(() => sut.PushFrame(executionContext, 0, 1));
     }
     
     [Fact]
