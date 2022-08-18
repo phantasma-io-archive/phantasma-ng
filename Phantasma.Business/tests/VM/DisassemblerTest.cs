@@ -1,50 +1,84 @@
-﻿using Xunit;
+﻿using System;
+using System.Linq;
+using Phantasma.Core;
+using Shouldly;
+using Xunit;
 
 namespace Phantasma.Business.Tests.VM;
 
 public class DisassemblerTest
 {
-    [Fact(Skip = "Test needs to be fixed")]
-    public void null_disassembler_test()
+    [Fact]
+    public void GetInstructions_should_return_list_of_instructions_for_contract_call()
     {
-        var disassembler = new Disassembler(new byte[] { 0, 5, 10 });
+        // Arrange
+        var sut = new Disassembler(Constants.TestContractCallScript);
+
+        // Act
+        var result = sut.Instructions.ToArray();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldNotBeEmpty();
+        result.Length.ShouldBe(76);
     }
 
-    [Fact(Skip = "Test needs to be fixed")]
-    public void getinstructions_disassembler_test()
+    [Fact]
+    public void GetInstructions_should_return_list_of_instructions_for_nft_transfer()
     {
-        var disassembler = new Disassembler(new byte[] { 0, 5, 10 });
+        // Arrange
+        var sut = new Disassembler(Constants.TestTransferNftScript);
+
+        // Act
+        var result = sut.Instructions.ToArray();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldNotBeEmpty();
+        result.Length.ShouldBe(31);
     }
 
-    [Fact(Skip = "Test needs to be fixed")]
-    public void tostring_disassembler_test()
+    [Theory]
+    [InlineData(new byte[] { (int)Opcode.CTX, 1, 2 }, "000: CTX r1, r2")]
+    [InlineData(new byte[] { (int)Opcode.MOVE, 100, 7 }, "000: MOVE r100, r7")]
+    [InlineData(new byte[] { (int)Opcode.COPY, 255, 254 }, "000: COPY r255, r254")]
+    [InlineData(new byte[] { (int)Opcode.SWAP, 4, 8 }, "000: SWAP r4, r8")]
+    [InlineData(new byte[] { (int)Opcode.RET }, "000: RET")]
+    [InlineData(new byte[] { (int)Opcode.POP, 1 }, "000: POP r1")]
+    [InlineData(new byte[] { (int)Opcode.PUSH, 2 }, "000: PUSH r2")]
+    [InlineData(new byte[] { (int)Opcode.EXTCALL, 3 }, "000: EXTCALL r3")]
+    //[InlineData(new byte[] { (int)Opcode.THROW, 4 }, "000: THROW r4")]
+    [InlineData(new byte[] { (int)Opcode.INC, 78 }, "000: INC r78")]
+    [InlineData(new byte[] { (int)Opcode.DEC, 45 }, "000: DEC r45")]
+    [InlineData(new byte[] { (int)Opcode.SWITCH, 33 }, "000: SWITCH r33")]
+    //[InlineData(new byte[] { (int)Opcode.AND, 1, 1, 1 }, "000: AND r1, r1, r1")]
+    public void ToString_should_return_expected_value(byte[] script, string expected)
     {
-        var disassembler = new Disassembler(new byte[] { 0, 5, 10 });
+        // Arrange
+        var sut = new Disassembler(script);
+
+        // Act
+        var result = sut.ToString();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBe(expected);
     }
 
-    [Fact(Skip = "Test needs to be fixed")]
-    public void read8_disassembler_test()
+    [Fact]
+    public void ToString_for_opcode_load_should_return_expected_value()
     {
-        var disassembler = new Disassembler(new byte[] { 0, 5, 10 });
-    }
+        // Arrange
+        var sut = new Disassembler(new byte[]
+        {
+            (int)Opcode.LOAD, 0, (int)VMType.Number, 2, 112, 23, (int)Opcode.PUSH, 0
+        });
 
-    [Fact(Skip = "Test needs to be fixed")]
-    public void read16_disassembler_test()
-    {
-    }
+        // Act
+        var result = sut.ToString();
 
-    [Fact(Skip = "Test needs to be fixed")]
-    public void read32_disassembler_test()
-    {
-    }
-
-    [Fact(Skip = "Test needs to be fixed")]
-    public void read64_disassembler_test()
-    {
-    }
-
-    [Fact(Skip = "Test needs to be fixed")]
-    public void readbytes_disassembler_test()
-    {
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBe($"000: LOAD r0, 6000{Environment.NewLine}006: PUSH r0");
     }
 }

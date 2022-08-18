@@ -1,4 +1,5 @@
-﻿using Phantasma.Shared;
+﻿using System;
+using Phantasma.Shared;
 using Phantasma.Core;
 using System.Collections.Generic;
 
@@ -7,10 +8,10 @@ namespace Phantasma.Business
     public class Disassembler
     {
         private uint _instructionPointer;
-        private byte[] _script;
+        private readonly byte[] _script;
+        private readonly List<Instruction> _instructions;
 
-        private List<Instruction> _instructions;
-        public IEnumerable<Instruction> Instructions => _instructions;
+        public IEnumerable<Instruction> Instructions => _instructions.AsReadOnly();
 
         public Disassembler(byte[] script)
         {
@@ -34,7 +35,7 @@ namespace Phantasma.Business
                 {
                     case Opcode.RET:
                         {
-                            temp.Args = new object[0];
+                            temp.Args = Array.Empty<object>();
                             result.Add(temp);
                             return result;
                         }
@@ -175,7 +176,7 @@ namespace Phantasma.Business
 
                     default:
                         {
-                            temp.Args = new object[0];
+                            temp.Args = Array.Empty<object>();
                             break;
                         }
                 }
@@ -188,7 +189,7 @@ namespace Phantasma.Business
 
         public override string ToString()
         {
-            return string.Join(System.Environment.NewLine , this.Instructions);
+            return string.Join(Environment.NewLine, Instructions);
         }
 
         #region IO 
@@ -263,8 +264,5 @@ namespace Phantasma.Business
             return result;
         }
         #endregion
-
     }
-
-
 }
