@@ -77,7 +77,7 @@ public class CacheMiddleware
 
         try
         {
-            var memoryBodyStream = new MemoryStream();
+            using var memoryBodyStream = new MemoryStream();
             httpContext.Response.Body = memoryBodyStream;
 
             await _next(httpContext);

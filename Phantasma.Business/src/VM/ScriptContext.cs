@@ -419,11 +419,12 @@ namespace Phantasma.Business
                 Trace.WriteLine(ex.ToString());
                 SetState(ExecutionState.Fault);
 
-                if (!(ex is VMException))
+                if (ex is not VMException)
                 {
                     ex = new VMException(frame.VM, ex.Message);
                 }
 
+                // ReSharper disable once PossibleIntendedRethrow
                 throw ex; 
             }
         }
