@@ -36,14 +36,14 @@ namespace Phantasma.Shared.Utils
                                 var response = httpClient.GetAsync(url, cts.Token).Result;
                                 using (var content = response.Content)
                                 {
-                                    stringResponse = content.ReadAsStringAsync().Result;
+                                    stringResponse = content.ReadAsStringAsync(cts.Token).Result;
                                 }
                                 break;
                             case RequestType.POST:
                                 {
                                     var content = new StringContent(postString, System.Text.Encoding.UTF8, "application/json");
                                     var responseContent = httpClient.PostAsync(url, content, cts.Token).Result.Content;
-                                    stringResponse = responseContent.ReadAsStringAsync().Result;
+                                    stringResponse = responseContent.ReadAsStringAsync(cts.Token).Result;
                                     break;
                                 }
                             default:
@@ -51,7 +51,7 @@ namespace Phantasma.Shared.Utils
                         }
                     }
 
-                    if (String.IsNullOrEmpty(stringResponse))
+                    if (string.IsNullOrEmpty(stringResponse))
                         return default;
 
                     if (typeof(T) == typeof(JsonDocument))
@@ -110,14 +110,14 @@ namespace Phantasma.Shared.Utils
                                 var response = await httpClient.GetAsync(url, cts.Token);
                                 using (var content = response.Content)
                                 {
-                                    stringResponse = await content.ReadAsStringAsync();
+                                    stringResponse = await content.ReadAsStringAsync(cts.Token);
                                 }
                                 break;
                             case RequestType.POST:
                                 {
-                                    var content = new StringContent(postString, System.Text.Encoding.UTF8, "application/json");
-                                    var responseContent = (await httpClient.PostAsync(url, content, cts.Token)).Content;
-                                    stringResponse = await responseContent.ReadAsStringAsync();
+                                    using var content = new StringContent(postString, System.Text.Encoding.UTF8, "application/json");
+                                    using var responseContent = (await httpClient.PostAsync(url, content, cts.Token)).Content;
+                                    stringResponse = await responseContent.ReadAsStringAsync(cts.Token);
                                     break;
                                 }
                             default:
@@ -125,7 +125,7 @@ namespace Phantasma.Shared.Utils
                         }
                     }
 
-                    if (String.IsNullOrEmpty(stringResponse))
+                    if (string.IsNullOrEmpty(stringResponse))
                         return default;
 
                     if (typeof(T) == typeof(JsonDocument))
@@ -151,7 +151,7 @@ namespace Phantasma.Shared.Utils
                 {
                     if (i < max)
                     {
-                        Thread.Sleep(1000 * i);
+                        await Task.Delay(TimeSpan.FromMilliseconds(1000 * i));
                     }
                     else
                     {

@@ -91,7 +91,7 @@ namespace Phantasma.Core.ECC
 
         public static byte[] FromDER(byte[] signature)
         {
-            var decoder = new Asn1InputStream(signature);
+            using var decoder = new Asn1InputStream(signature);
             var seq = decoder.ReadObject() as DerSequence;
             if (seq == null || seq.Count != 2)
                 throw new FormatException("Invalid DER Signature");

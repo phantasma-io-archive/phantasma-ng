@@ -9,383 +9,329 @@ namespace Phantasma.Business.Tests.VM;
 public class InstructionTest
 {
     [Fact]
-    public void null_test_test()
+    public void Default_instruction_should_return_nop()
     {
-        Instruction instruction = new Instruction();
+        // Arrange
+        var instruction = new Instruction();
 
-        Should.NotThrow(() =>
-        {
-            instruction.ToString();
-        });
+        // Act
+        var result = instruction.ToString();
+
+        // Assert
+        result.ShouldBe("000: NOP");
     }
-    
-    #region CTX
-    /// <summary>
-    /// It could be Opcodes
-    /// MOVE
-    /// COPY
-    /// SWAP
-    /// SIZE
-    /// SIGN
-    /// NOT
-    /// NEGATE
-    /// ABS
-    /// CTX
-    /// </summary>
-    [Fact]
-    public void opcode_move_error_no_args_test()
+
+    [Theory]
+    [InlineData(Opcode.MOVE)]
+    [InlineData(Opcode.COPY)]
+    [InlineData(Opcode.SWAP)]
+    [InlineData(Opcode.SIZE)]
+    [InlineData(Opcode.SIGN)]
+    [InlineData(Opcode.NOT)]
+    [InlineData(Opcode.NEGATE)]
+    [InlineData(Opcode.ABS)]
+    [InlineData(Opcode.CTX)]
+    public void Context_should_throw_when_no_args_are_provided(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.MOVE;
-        instruction.Args = new object[] {};
+        // Arrange
+        var instruction = new Instruction { Offset = 0, Opcode = opcode, Args = Array.Empty<object>() };
 
-        Should.Throw<Exception>(() =>
-        {
-            instruction.ToString();
-        });
+        // Act
+        var result = Should.Throw<Exception>(() => instruction.ToString());
+
+        // Assert
+        result.Message.ShouldBe("Index was outside the bounds of the array.");
     }
-    
-    [Fact]
-    public void opcode_move_error_invalid_args_test()
+
+    [Theory]
+    [InlineData(Opcode.MOVE)]
+    [InlineData(Opcode.COPY)]
+    [InlineData(Opcode.SWAP)]
+    [InlineData(Opcode.SIZE)]
+    [InlineData(Opcode.SIGN)]
+    [InlineData(Opcode.NOT)]
+    [InlineData(Opcode.NEGATE)]
+    [InlineData(Opcode.ABS)]
+    [InlineData(Opcode.CTX)]
+    public void Context_should_throw_with_invalid_arg_type(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.MOVE;
-        instruction.Args = new object[] {"arg1"};
+        // Arrange
+        var instruction = new Instruction { Offset = 0, Opcode = opcode, Args = new object[] { "arg1" } };
 
-        Should.Throw<Exception>(() =>
-        {
-            instruction.ToString();
-        });
+        // Act
+        var result = Should.Throw<Exception>(() => instruction.ToString());
+
+        // Assert
+        result.Message.ShouldBe("Unable to cast object of type 'System.String' to type 'System.Byte'.");
     }
-    
-    [Fact]
-    public void opcode_move_not_throw_test()
+
+    [Theory]
+    [InlineData(Opcode.MOVE)]
+    [InlineData(Opcode.COPY)]
+    [InlineData(Opcode.SWAP)]
+    [InlineData(Opcode.SIZE)]
+    [InlineData(Opcode.SIGN)]
+    [InlineData(Opcode.NOT)]
+    [InlineData(Opcode.NEGATE)]
+    [InlineData(Opcode.ABS)]
+    [InlineData(Opcode.CTX)]
+    public void Context_should_return_valid_instruction(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.MOVE;
-        byte arg1 = 0;
-        byte arg2 = 1;
-        instruction.Args = new object[] {arg1, arg2};
+        // Arrange
+        var instruction = new Instruction { Offset = 0, Opcode = opcode, Args = new object[] { (byte)0, (byte)1 } };
 
-        Should.NotThrow(() =>
-        {
-            instruction.ToString();
-        });
+        // Act
+        var result = instruction.ToString();
+
+        // Assert
+        result.ShouldBe($"000: {opcode} r0, r1");
     }
-    
-    [Fact]
-    public void opcode_move_result_test()
+
+    [Theory]
+    [InlineData(Opcode.ADD)]
+    [InlineData(Opcode.SUB)]
+    [InlineData(Opcode.MUL)]
+    [InlineData(Opcode.DIV)]
+    [InlineData(Opcode.MOD)]
+    [InlineData(Opcode.SHR)]
+    [InlineData(Opcode.SHL)]
+    [InlineData(Opcode.MIN)]
+    [InlineData(Opcode.MAX)]
+    public void Math_should_throw_when_no_args_are_provided(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.MOVE;
-        byte arg1 = 0;
-        byte arg2 = 1;
-        instruction.Args = new object[] {arg1, arg2};
+        // Arrange
+        var instruction = new Instruction { Offset = 0, Opcode = opcode, Args = Array.Empty<object>() };
 
-        Should.NotThrow(() =>
-        {
-            instruction.ToString().ShouldBe("000: MOVE r0, r1");
-        });
+        // Act
+        var result = Should.Throw<Exception>(() => instruction.ToString());
+
+        // Assert
+        result.Message.ShouldBe("Index was outside the bounds of the array.");
     }
-    #endregion
-    
-    #region Math
-    /// <summary>
-    /// It could be Opcodes
-    /// ADD
-    /// SUB
-    /// MUL
-    /// DIV
-    /// MOD
-    /// SHR
-    /// SHL
-    /// MIN
-    /// MAX
-    /// </summary>
-    [Fact]
-    public void opcode_add_error_test()
+
+    [Theory]
+    [InlineData(Opcode.ADD)]
+    [InlineData(Opcode.SUB)]
+    [InlineData(Opcode.MUL)]
+    [InlineData(Opcode.DIV)]
+    [InlineData(Opcode.MOD)]
+    [InlineData(Opcode.SHR)]
+    [InlineData(Opcode.SHL)]
+    [InlineData(Opcode.MIN)]
+    [InlineData(Opcode.MAX)]
+    public void Math_should_throw_with_invalid_arg_type(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.ADD;
-        byte arg1 = 0;
-        byte arg2 = 1;
-        byte arg3 = 1;
-        instruction.Args = new object[] {arg1, arg2, ""};
+        // Arrange
+        var instruction =
+            new Instruction { Offset = 0, Opcode = opcode, Args = new object[] { "arg1", "arg2", "arg3" } };
 
-        Should.Throw<Exception>(() =>
-        {
-            instruction.ToString();
-        });
+        // Act
+        var result = Should.Throw<Exception>(() => instruction.ToString());
+
+        // Assert
+        result.Message.ShouldBe("Unable to cast object of type 'System.String' to type 'System.Byte'.");
     }
-    
-    [Fact]
-    public void opcode_add_not_throw_test()
+
+    [Theory]
+    [InlineData(Opcode.ADD)]
+    [InlineData(Opcode.SUB)]
+    [InlineData(Opcode.MUL)]
+    [InlineData(Opcode.DIV)]
+    [InlineData(Opcode.MOD)]
+    [InlineData(Opcode.SHR)]
+    [InlineData(Opcode.SHL)]
+    [InlineData(Opcode.MIN)]
+    [InlineData(Opcode.MAX)]
+    public void Math_should_return_valid_instruction(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.ADD;
-        byte arg1 = 0;
-        byte arg2 = 1;
-        byte arg3 = 1;
-        instruction.Args = new object[] {arg1, arg2, arg3};
+        // Arrange
+        var instruction =
+            new Instruction { Offset = 0, Opcode = opcode, Args = new object[] { (byte)0, (byte)1, (byte)2 } };
 
-        Should.NotThrow(() =>
-        {
-            instruction.ToString();
-        });
+        // Act
+        var result = instruction.ToString();
+
+        // Assert
+        result.ShouldBe($"000: {opcode} r0, r1, r2");
     }
-    
-    [Fact]
-    public void opcode_add_result_test()
+
+    [Theory]
+    [InlineData(Opcode.POP)]
+    [InlineData(Opcode.PUSH)]
+    [InlineData(Opcode.EXTCALL)]
+    [InlineData(Opcode.DEC)]
+    [InlineData(Opcode.INC)]
+    [InlineData(Opcode.SWITCH)]
+    public void Array_should_throw_when_no_args_are_provided(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.ADD;
-        byte arg1 = 0;
-        byte arg2 = 1;
-        byte arg3 = 2;
-        instruction.Args = new object[] {arg1, arg2, arg3};
+        // Arrange
+        var instruction = new Instruction { Offset = 0, Opcode = opcode, Args = Array.Empty<object>() };
 
-        Should.NotThrow(() =>
-        {
-            instruction.ToString().ShouldBe("000: ADD r0, r1, r2");
-        });
+        // Act
+        var result = Should.Throw<Exception>(() => instruction.ToString());
+
+        // Assert
+        result.Message.ShouldBe("Index was outside the bounds of the array.");
     }
-    #endregion
-    
-    #region Arrays
-    /// <summary>
-    /// Opcodes : 
-    /// POP
-    /// PUSH
-    /// EXTCALL
-    /// DEC
-    /// INC
-    /// SWITCH
-    /// </summary>
-    [Fact]
-    public void opcode_pop_error_no_args_test()
+
+    [Theory]
+    [InlineData(Opcode.POP)]
+    [InlineData(Opcode.PUSH)]
+    [InlineData(Opcode.EXTCALL)]
+    [InlineData(Opcode.DEC)]
+    [InlineData(Opcode.INC)]
+    [InlineData(Opcode.SWITCH)]
+    public void Array_should_throw_with_invalid_arg_type(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.POP;
-        instruction.Args = new object[] {};
+        // Arrange
+        var instruction = new Instruction { Offset = 0, Opcode = opcode, Args = new object[] { "arg1" } };
 
-        Should.Throw<Exception>(() =>
-        {
-            instruction.ToString();
-        });
+        // Act
+        var result = Should.Throw<Exception>(() => instruction.ToString());
+
+        // Assert
+        result.Message.ShouldBe("Unable to cast object of type 'System.String' to type 'System.Byte'.");
     }
-    
-    [Fact]
-    public void opcode_pop_error_invalid_args_test()
+
+    [Theory]
+    [InlineData(Opcode.POP)]
+    [InlineData(Opcode.PUSH)]
+    [InlineData(Opcode.EXTCALL)]
+    [InlineData(Opcode.DEC)]
+    [InlineData(Opcode.INC)]
+    [InlineData(Opcode.SWITCH)]
+    public void Array_should_return_valid_instruction(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.POP;
-        instruction.Args = new object[] {"arg1"};
+        // Arrange
+        var instruction = new Instruction { Offset = 0, Opcode = opcode, Args = new object[] { (byte)0 } };
 
-        Should.Throw<Exception>(() =>
-        {
-            instruction.ToString();
-        });
+        // Act
+        var result = instruction.ToString();
+
+        // Assert
+        result.ShouldBe($"000: {opcode} r0");
     }
-    
-    [Fact]
-    public void opcode_pop_not_throw_test()
+
+    [Theory]
+    [InlineData(Opcode.CALL)]
+    public void Call_should_throw_when_no_args_are_provided(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.POP;
-        byte arg1 = 0;
-        instruction.Args = new object[] {arg1};
+        // Arrange
+        var instruction = new Instruction { Offset = 0, Opcode = opcode, Args = Array.Empty<object>() };
 
-        Should.NotThrow(() =>
-        {
-            instruction.ToString();//.ShouldBe("000: ADD r0, r1, r2");
-        });
+        // Act
+        var result = Should.Throw<Exception>(() => instruction.ToString());
+
+        // Assert
+        result.Message.ShouldBe("Index was outside the bounds of the array.");
     }
-    
-    [Fact]
-    public void opcode_pop_result_test()
+
+    [Theory]
+    [InlineData(Opcode.CALL)]
+    public void Call_should_throw_with_invalid_arg_type(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.POP;
-        byte arg1 = 0;
-        instruction.Args = new object[] {arg1};
+        // Arrange
+        var instruction = new Instruction { Offset = 0, Opcode = opcode, Args = new object[] { "arg1", "arg2" } };
 
-        Should.NotThrow(() =>
-        {
-            instruction.ToString().ShouldBe("000: POP r0");
-        });
+        // Act
+        var result = Should.Throw<Exception>(() => instruction.ToString());
+
+        // Assert
+        result.Message.ShouldBe("Unable to cast object of type 'System.String' to type 'System.Byte'.");
     }
-    #endregion
-    
-    #region Call
-    [Fact]
-    public void opcode_call_error_no_args_test()
+
+    [Theory]
+    [InlineData(Opcode.CALL)]
+    public void Call_should_return_valid_instruction(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.CALL;
-        instruction.Args = new object[] {};
+        // Arrange
+        var instruction = new Instruction { Offset = 0, Opcode = opcode, Args = new object[] { (byte)0, (ushort)1 } };
 
-        Should.Throw<Exception>(() =>
-        {
-            instruction.ToString();
-        });
+        // Act
+        var result = instruction.ToString();
+
+        // Assert
+        result.ShouldBe($"000: {opcode}0, 1");
     }
-    
-    [Fact]
-    public void opcode_call_error_invalid_args_test()
+
+    [Theory]
+    [InlineData(Opcode.LOAD)]
+    public void Load_should_throw_when_no_args_are_provided(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.CALL;
-        instruction.Args = new object[] {"arg1"};
+        // Arrange
+        var instruction = new Instruction { Offset = 0, Opcode = opcode, Args = Array.Empty<object>() };
 
-        Should.Throw<Exception>(() =>
-        {
-            instruction.ToString();
-        });
+        // Act
+        var result = Should.Throw<Exception>(() => instruction.ToString());
+
+        // Assert
+        result.Message.ShouldBe("Index was outside the bounds of the array.");
     }
-    
-    [Fact]
-    public void opcode_call_not_throw_test()
+
+    [Theory]
+    [InlineData(Opcode.LOAD)]
+    public void Load_should_throw_with_invalid_arg_type(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.CALL;
-        byte arg1 = 0;
-        ushort arg2 = 1;
-        instruction.Args = new object[] {arg1, arg2};
+        // Arrange
+        var instruction = new Instruction { Offset = 0, Opcode = opcode, Args = new object[] { "arg1" } };
 
-        Should.NotThrow(() =>
-        {
-            instruction.ToString();
-        });
+        // Act
+        var result = Should.Throw<Exception>(() => instruction.ToString());
+
+        // Assert
+        result.Message.ShouldBe("Unable to cast object of type 'System.String' to type 'System.Byte'.");
     }
-    
-    [Fact]
-    public void opcode_call_result_test()
+
+    [Theory]
+    [InlineData(Opcode.LOAD)]
+    public void Load_should_return_valid_instruction_with_string(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.CALL;
-        byte arg1 = 0;
-        ushort arg2 = 1;
-        instruction.Args = new object[] {arg1, arg2};
-
-        Should.NotThrow(() =>
+        // Arrange
+        var instruction = new Instruction
         {
-            instruction.ToString().ShouldBe("000: CALL0, 1");
-        });
+            Offset = 0,
+            Opcode = opcode,
+            Args = new object[] { (byte)0, VMType.String, Encoding.UTF8.GetBytes("test") }
+        };
+
+        // Act
+        var result = instruction.ToString();
+
+        // Assert
+        result.ShouldBe($"000: {opcode} r0, \"test\"");
     }
-    #endregion
-    
-    #region LOAD
-    [Fact]
-    public void opcode_load_error_no_args_test()
+
+    [Theory]
+    [InlineData(Opcode.LOAD)]
+    public void Load_should_return_valid_instruction_with_number(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.LOAD;
-        instruction.Args = new object[] {};
-
-        Should.Throw<Exception>(() =>
+        // Arrange
+        var instruction = new Instruction
         {
-            instruction.ToString();
-        });
+            Offset = 0, Opcode = opcode, Args = new object[] { (byte)0, VMType.Number, new byte[] { 2 } }
+        };
+
+        // Act
+        var result = instruction.ToString();
+
+        // Assert
+        result.ShouldBe($"000: {opcode} r0, 2");
     }
-    
-    [Fact]
-    public void opcode_load_error_invalid_args_test()
+
+    [Theory]
+    [InlineData(Opcode.LOAD)]
+    public void Load_should_return_valid_instruction_with_bool(Opcode opcode)
     {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.LOAD;
-        instruction.Args = new object[] {"arg1"};
-
-        Should.Throw<Exception>(() =>
+        // Arrange
+        var instruction = new Instruction
         {
-            instruction.ToString();
-        });
-    }
-    
-    [Fact]
-    public void opcode_load_not_throw_test()
-    {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.LOAD;
-        byte arg1 = 0;
-        VMType arg2 = VMType.String;
-        byte[] arg3 = Encoding.UTF8.GetBytes("test");
-        instruction.Args = new object[] {arg1, arg2, arg3};
+            Offset = 0, Opcode = opcode, Args = new object[] { (byte)0, VMType.Bool, BitConverter.GetBytes(true) }
+        };
 
-        Should.NotThrow(() =>
-        {
-            instruction.ToString();
-        });
-    }
-    
-    [Fact]
-    public void opcode_load_result_string_test()
-    {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.LOAD;
-        byte arg1 = 0;
-        VMType arg2 = VMType.String;
-        byte[] arg3 = Encoding.UTF8.GetBytes("test");
-        instruction.Args = new object[] {arg1, arg2, arg3};
+        // Act
+        var result = instruction.ToString();
 
-        Should.NotThrow(() =>
-        {
-            instruction.ToString().ShouldBe("000: LOAD r0, \"test\"");
-        });
+        // Assert
+        result.ShouldBe($"000: {opcode} r0, 01");
     }
-    
-    [Fact]
-    public void opcode_load_result_number_test()
-    {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.LOAD;
-        byte arg1 = 0;
-        VMType arg2 = VMType.Number;
-        byte[] arg3 = new byte[] { 2}; // 512 | 255 | 127 
-        instruction.Args = new object[] {arg1, arg2, arg3};
-
-        Should.NotThrow(() =>
-        {
-            instruction.ToString().ShouldBe("000: LOAD r0, 2");
-        });
-    }
-    
-    [Fact]
-    public void opcode_load_result_other_test()
-    {
-        Instruction instruction = new Instruction();
-        instruction.Offset = 0;
-        instruction.Opcode = Opcode.LOAD;
-        byte arg1 = 0;
-        VMType arg2 = VMType.Bool;
-        bool test = true;
-        byte[] arg3 = BitConverter.GetBytes(test);
-        instruction.Args = new object[] {arg1, arg2, arg3};
-
-        Should.NotThrow(() =>
-        {
-            instruction.ToString().ShouldBe("000: LOAD r0, 01");
-        });
-    }
-    #endregion
-
 }

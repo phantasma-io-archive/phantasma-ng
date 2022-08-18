@@ -224,7 +224,7 @@ namespace Phantasma.Shared
                     break;
             }
 
-            while (ex.InnerException != null)
+            while (ex?.InnerException != null)
             {
                 safeguard++;
                 ex = ex.InnerException;

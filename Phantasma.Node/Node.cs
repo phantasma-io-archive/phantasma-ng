@@ -26,6 +26,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
+using Phantasma.Shared.Utils;
 
 namespace Phantasma.Node
 {

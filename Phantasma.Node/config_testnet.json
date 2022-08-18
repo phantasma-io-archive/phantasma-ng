@@ -39,7 +39,7 @@
     "PerformanceMetrics": {
         "CountsEnabled": false,
         "AveragesEnabled": false,
-        "LongRunningRequestThreshold": 500,
+        "LongRunningRequestThreshold": 500
     },
     "Node": {
       "web.logs": false,
