@@ -129,7 +129,7 @@ namespace Phantasma.Business.VM
             this.CurrentContext = context;
         }
 
-        public ExecutionContext FindContext(string contextName)
+        public virtual ExecutionContext FindContext(string contextName)
         {
             if (_contextMap.ContainsKey(contextName))
             {

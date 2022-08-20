@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Business.Assembler;
 using Phantasma.Core;
+using Phantasma.Shared.Types;
 
 namespace Phantasma.Business.Tests.VM;
 
@@ -493,6 +495,16 @@ internal class ScriptContextConstants
             @"ret"
         }.ToArray());
 
+    public static byte[] Or4Script =>
+        AssemblerUtils.BuildScript(new List<string>
+        {
+            $@"load r1, true",
+            $@"load r2, false",
+            @"or r1, r2, r3",
+            @"push r3",
+            @"ret"
+        }.ToArray());
+
     public static byte[] OrExceptionScript =>
         AssemblerUtils.BuildScript(new List<string>
         {
@@ -515,14 +527,14 @@ internal class ScriptContextConstants
 
     public static byte[] Xor2Script =>
         new ScriptBuilder().EmitLoad(1, TestEnum.Value0).EmitLoad(2, TestEnum.Value0)
-            .Emit(Opcode.OR, new byte[] { 1, 2, 3 }).EmitPush(3).EndScript();
+            .Emit(Opcode.XOR, new byte[] { 1, 2, 3 }).EmitPush(3).EndScript();
 
     public static byte[] Xor3Script =>
         AssemblerUtils.BuildScript(new List<string>
         {
             @"load r1, 1",
             @"load r2, 1",
-            @"or r1, r2, r3",
+            @"xor r1, r2, r3",
             @"push r3",
             @"ret"
         }.ToArray());
@@ -537,7 +549,7 @@ internal class ScriptContextConstants
             @"ret"
         }.ToArray());
 
-    public static byte[] EqualsScript =>
+    public static byte[] Equals1Script =>
         AssemblerUtils.BuildScript(new List<string>
         {
             $@"load r1, true",
@@ -547,11 +559,21 @@ internal class ScriptContextConstants
             @"ret"
         }.ToArray());
 
-    public static byte[] LessThanScript =>
+    public static byte[] Equals2Script =>
         AssemblerUtils.BuildScript(new List<string>
         {
             $@"load r1, 1",
-            $@"load r2, 0",
+            $@"load r2, 1",
+            @"equal r1, r2, r3",
+            @"push r3",
+            @"ret"
+        }.ToArray());
+
+    public static byte[] LessThanScript =>
+        AssemblerUtils.BuildScript(new List<string>
+        {
+            $@"load r1, 0",
+            $@"load r2, 1",
             @"lt r1, r2, r3",
             @"push r3",
             @"ret"
@@ -587,11 +609,21 @@ internal class ScriptContextConstants
             @"ret"
         }.ToArray());
 
-    public static byte[] LessThanOrEqualsScript =>
+    public static byte[] LessThanOrEquals1Script =>
         AssemblerUtils.BuildScript(new List<string>
         {
             $@"load r1, 1",
-            $@"load r2, 0",
+            $@"load r2, 1",
+            @"lte r1, r2, r3",
+            @"push r3",
+            @"ret"
+        }.ToArray());
+
+    public static byte[] LessThanOrEquals2Script =>
+        AssemblerUtils.BuildScript(new List<string>
+        {
+            $@"load r1, 0",
+            $@"load r2, 1",
             @"lte r1, r2, r3",
             @"push r3",
             @"ret"
@@ -607,11 +639,21 @@ internal class ScriptContextConstants
             @"ret"
         }.ToArray());
 
-    public static byte[] GreaterThanOrEqualsScript =>
+    public static byte[] GreaterThanOrEquals1Script =>
         AssemblerUtils.BuildScript(new List<string>
         {
             $@"load r1, 1",
             $@"load r2, 0",
+            @"gte r1, r2, r3",
+            @"push r3",
+            @"ret"
+        }.ToArray());
+
+    public static byte[] GreaterThanOrEquals2Script =>
+        AssemblerUtils.BuildScript(new List<string>
+        {
+            $@"load r1, 1",
+            $@"load r2, 1",
             @"gte r1, r2, r3",
             @"push r3",
             @"ret"
@@ -664,10 +706,19 @@ internal class ScriptContextConstants
             @"ret"
         }.ToArray());
 
-    public static byte[] SignScript =>
+    public static byte[] Sign1Script =>
         AssemblerUtils.BuildScript(new List<string>
         {
             @"load r1, -1123124",
+            @"sign r1, r2",
+            @"push r2",
+            @"ret"
+        }.ToArray());
+
+    public static byte[] Sign2Script =>
+        AssemblerUtils.BuildScript(new List<string>
+        {
+            @"load r1, 0",
             @"sign r1, r2",
             @"push r2",
             @"ret"
@@ -718,7 +769,7 @@ internal class ScriptContextConstants
             @"ret"
         }.ToArray());
 
-    public static byte[] AddScript =>
+    public static byte[] Add1Script =>
         AssemblerUtils.BuildScript(new List<string>
         {
             $@"load r1, 123098123049830982903580234959875213840923849203758942357834091",
@@ -728,11 +779,31 @@ internal class ScriptContextConstants
             @"ret"
         }.ToArray());
 
-    public static byte[] AddExceptionScript =>
+    public static byte[] Add2Script =>
         AssemblerUtils.BuildScript(new List<string>
         {
-            $@"load r1, true",
+            $"load r1, \\\"abc\\\"",
             $"load r2, \\\"abc\\\"",
+            @"add r1, r2, r3",
+            @"push r3",
+            @"ret"
+        }.ToArray());
+
+    public static byte[] AddException1Script =>
+        AssemblerUtils.BuildScript(new List<string>
+        {
+            $@"load r1, 1",
+            $"load r2, \\\"abc\\\"",
+            @"add r1, r2, r3",
+            @"push r3",
+            @"ret"
+        }.ToArray());
+
+    public static byte[] AddException2Script =>
+        AssemblerUtils.BuildScript(new List<string>
+        {
+            $"load r1, \\\"abc\\\"",
+            $"load r2, 1",
             @"add r1, r2, r3",
             @"push r3",
             @"ret"
@@ -751,7 +822,7 @@ internal class ScriptContextConstants
     public static byte[] SubExceptionScript =>
         AssemblerUtils.BuildScript(new List<string>
         {
-            $@"load r1, true",
+            $@"load r1, 1",
             $"load r2, \\\"abc\\\"",
             @"sub r1, r2, r3",
             @"push r3",
@@ -763,7 +834,7 @@ internal class ScriptContextConstants
         {
             $@"load r1, 123098123049830982903580234959875213840923849203758942357834091",
             $@"load r2, 123098123049830982903580234959875213840923849203758942357834091",
-            @"sub r1, r2, r3",
+            @"mul r1, r2, r3",
             @"push r3",
             @"ret"
         }.ToArray());
@@ -771,9 +842,9 @@ internal class ScriptContextConstants
     public static byte[] MulExceptionScript =>
         AssemblerUtils.BuildScript(new List<string>
         {
-            $@"load r1, true",
+            $@"load r1, 1",
             $"load r2, \\\"abc\\\"",
-            @"sub r1, r2, r3",
+            @"mul r1, r2, r3",
             @"push r3",
             @"ret"
         }.ToArray());
@@ -791,7 +862,7 @@ internal class ScriptContextConstants
     public static byte[] DivExceptionScript =>
         AssemblerUtils.BuildScript(new List<string>
         {
-            $@"load r1, true",
+            $@"load r1, 1",
             $"load r2, \\\"abc\\\"",
             @"div r1, r2, r3",
             @"push r3",
@@ -811,7 +882,7 @@ internal class ScriptContextConstants
     public static byte[] ModExceptionScript =>
         AssemblerUtils.BuildScript(new List<string>
         {
-            $@"load r1, true",
+            $@"load r1, 1",
             $"load r2, \\\"abc\\\"",
             @"mod r1, r2, r3",
             @"push r3",
@@ -831,7 +902,7 @@ internal class ScriptContextConstants
     public static byte[] ShiftLeftExceptionScript =>
         AssemblerUtils.BuildScript(new List<string>
         {
-            $@"load r1, true",
+            $@"load r1, 1",
             $"load r2, \\\"abc\\\"",
             @"shl r1, r2, r3",
             @"push r3",
@@ -843,7 +914,7 @@ internal class ScriptContextConstants
         {
             $@"load r1, 123098123049830982903580234959875213840923849203758942357834091",
             $@"load r2, 100",
-            @"shl r1, r2, r3",
+            @"shr r1, r2, r3",
             @"push r3",
             @"ret"
         }.ToArray());
@@ -851,9 +922,9 @@ internal class ScriptContextConstants
     public static byte[] ShiftRightExceptionScript =>
         AssemblerUtils.BuildScript(new List<string>
         {
-            $@"load r1, true",
+            $@"load r1, 1",
             $"load r2, \\\"abc\\\"",
-            @"shl r1, r2, r3",
+            @"shr r1, r2, r3",
             @"push r3",
             @"ret"
         }.ToArray());
@@ -871,7 +942,7 @@ internal class ScriptContextConstants
     public static byte[] MinExceptionScript =>
         AssemblerUtils.BuildScript(new List<string>
         {
-            $@"load r1, true",
+            $@"load r1, 1",
             $"load r2, \\\"abc\\\"",
             @"min r1, r2, r3",
             @"push r3",
@@ -893,7 +964,27 @@ internal class ScriptContextConstants
         {
             $@"load r1, true",
             $"load r2, \\\"abc\\\"",
-            @"min r1, r2, r3",
+            @"max r1, r2, r3",
+            @"push r3",
+            @"ret"
+        }.ToArray());
+
+    public static byte[] PowScript =>
+        AssemblerUtils.BuildScript(new List<string>
+        {
+            $@"load r1, 3",
+            $@"load r2, 3",
+            @"pow r1, r2, r3",
+            @"push r3",
+            @"ret"
+        }.ToArray());
+
+    public static byte[] PowExceptionScript =>
+        AssemblerUtils.BuildScript(new List<string>
+        {
+            $@"load r1, 1",
+            $"load r2, \\\"abc\\\"",
+            @"pow r1, r2, r3",
             @"push r3",
             @"ret"
         }.ToArray());
@@ -1039,7 +1130,7 @@ internal class ScriptContextConstants
             @"ret"
         }.ToArray());
 
-    public static byte[] SizeScript =>
+    public static byte[] Size1Script =>
         AssemblerUtils.BuildScript(new List<string>
         {
             "load r1, \"Hello world\"",
@@ -1047,6 +1138,39 @@ internal class ScriptContextConstants
             @"push r2",
             @"ret"
         }.ToArray());
+
+    public static byte[] Size2Script =>
+        AssemblerUtils.BuildScript(new List<string>
+        {
+            "load r1, 1",
+            "size r1, r2",
+            @"push r2",
+            @"ret"
+        }.ToArray());
+
+    public static byte[] Size3Script =>
+        AssemblerUtils.BuildScript(new List<string>
+        {
+            "load r1, true",
+            "size r1, r2",
+            @"push r2",
+            @"ret"
+        }.ToArray());
+
+    public static byte[] Size4Script =>
+        AssemblerUtils.BuildScript(new List<string>
+        {
+            "load r1, 0x000000",
+            "size r1, r2",
+            @"push r2",
+            @"ret"
+        }.ToArray());
+
+    public static byte[] Size5Script =>
+        new ScriptBuilder().EmitLoad(1, TestEnum.Value0).Emit(Opcode.SIZE, new byte[]{ 1, 2 }).EmitPush(3).EndScript();
+
+    public static byte[] Size6Script =>
+        new ScriptBuilder().EmitLoad(1, Timestamp.Now).Emit(Opcode.SIZE, new byte[]{ 1, 2 }).EmitPush(3).EndScript();
 
     public static byte[] SizeExceptionScript =>
         AssemblerUtils.BuildScript(new List<string>
