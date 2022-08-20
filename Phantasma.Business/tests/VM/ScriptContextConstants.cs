@@ -1172,15 +1172,6 @@ internal class ScriptContextConstants
     public static byte[] Size6Script =>
         new ScriptBuilder().EmitLoad(1, Timestamp.Now).Emit(Opcode.SIZE, new byte[]{ 1, 2 }).EmitPush(3).EndScript();
 
-    public static byte[] SizeExceptionScript =>
-        AssemblerUtils.BuildScript(new List<string>
-        {
-            $"load r1, 100",
-            @"size r1, r2",
-            @"push r2",
-            @"ret"
-        }.ToArray());
-
     internal enum TestEnum
     {
         Value0,

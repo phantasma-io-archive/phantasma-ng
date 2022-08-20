@@ -1513,20 +1513,6 @@ public class ScriptContextTest
         result.ShouldBe(ExecutionState.Halt);
     }
 
-    [Theory(Skip = "According to reference this should throw")]
-    [ScriptContextAutoData]
-    public void Execute_should_throw_VMException_for_size([Frozen] Mock<TestGasMachine> vmMock)
-    {
-        // Arrange
-        var (sut, frame) = ArrangeScriptContextTest(vmMock.Object, SizeExceptionScript);
-
-        // Act
-        var result = Should.Throw<VMException>(() => sut.Execute(frame, new Stack<VMObject>()));
-
-        // Assert
-        result.Message.ShouldBe("Invalid cast: expected String, got int");
-    }
-
     private static (ScriptContext, ExecutionFrame) ArrangeScriptContextTest(IVirtualMachine vm, byte[] script,
         int registerCount = VirtualMachine.DefaultRegisterCount)
     {
