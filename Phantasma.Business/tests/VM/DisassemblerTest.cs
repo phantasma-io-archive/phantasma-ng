@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Phantasma.Business.VM;
 using Phantasma.Core;
@@ -14,7 +14,7 @@ public class DisassemblerTest
     public void GetInstructions_should_return_list_of_instructions_for_contract_call()
     {
         // Arrange
-        var sut = new Disassembler(Constants.TestContractCallScript);
+        var sut = new Disassembler(ScriptContextConstants.CustomContractScript);
 
         // Act
         var result = sut.Instructions.ToArray();
@@ -29,7 +29,7 @@ public class DisassemblerTest
     public void GetInstructions_should_return_list_of_instructions_for_nft_transfer()
     {
         // Arrange
-        var sut = new Disassembler(Constants.TestTransferNftScript);
+        var sut = new Disassembler(ScriptContextConstants.TransferNftScript);
 
         // Act
         var result = sut.Instructions.ToArray();
@@ -71,10 +71,8 @@ public class DisassemblerTest
     public void ToString_for_opcode_load_should_return_expected_value()
     {
         // Arrange
-        var sut = new Disassembler(new byte[]
-        {
-            (int)Opcode.LOAD, 0, (int)VMType.Number, 2, 112, 23, (int)Opcode.PUSH, 0
-        });
+        var sut = new Disassembler(new ScriptBuilder().EmitLoad(0, new byte[] { 112, 23 }, VMType.Number).EmitPush(0)
+            .ToScript());
 
         // Act
         var result = sut.ToString();

@@ -94,7 +94,7 @@ namespace Phantasma.Business.VM
             this.CurrentFrame = frame;
         }
 
-        public uint PopFrame()
+        public virtual uint PopFrame()
         {
             Throw.If(frames.Count < 2, "Not enough frames available");
 
@@ -152,7 +152,7 @@ namespace Phantasma.Business.VM
             return ExecutionState.Running;
         }
 
-        public ExecutionState SwitchContext(ExecutionContext context, uint instructionPointer)
+        public virtual ExecutionState SwitchContext(ExecutionContext context, uint instructionPointer)
         {
             if (context == null)
             {
