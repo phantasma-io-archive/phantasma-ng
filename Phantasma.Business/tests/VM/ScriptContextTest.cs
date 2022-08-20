@@ -171,7 +171,7 @@ public class ScriptContextTest
         result.ShouldBe(ExecutionState.Halt);
     }
 
-    [Theory(Skip = "Unexpected error: Script execution failed: stack is empty @ POP : 45")]
+    [Theory]
     [ScriptContextAutoData]
     public void Execute_should_not_throw_for_token_triggers([Frozen] Mock<TestGasMachine> vmMock)
     {
@@ -185,7 +185,7 @@ public class ScriptContextTest
         result.ShouldBe(ExecutionState.Halt);
     }
 
-    [Theory(Skip = "Unexpected error: Script execution failed: stack is empty @ POP : 45")]
+    [Theory]
     [ScriptContextAutoData]
     public void Execute_should_not_throw_for_token_triggers_event([Frozen] Mock<TestGasMachine> vmMock)
     {
@@ -213,7 +213,7 @@ public class ScriptContextTest
         result.ShouldBe(ExecutionState.Halt);
     }
 
-    [Theory(Skip = "Unexpected error: Script execution failed: stack is empty @ POP : 58")]
+    [Theory]
     [ScriptContextAutoData]
     public void Execute_should_not_throw_for_account_triggers_event_propagation([Frozen] Mock<TestGasMachine> vmMock)
     {
@@ -242,11 +242,12 @@ public class ScriptContextTest
         result.ShouldBe(ExecutionState.Halt);
     }
 
-    [Theory(Skip = "Unexpected error: Script execution failed: stack is empty @ POP : 58")]
+    [Theory]
     [ScriptContextAutoData]
     public void Execute_should_not_throw_for_copy([Frozen] Mock<TestGasMachine> vmMock)
     {
         // Arrange
+        vmMock.Setup(machine => machine.ExecuteInterop(It.IsAny<string>())).Returns(ExecutionState.Running);
         var (sut, frame) = ArrangeScriptContextTest(vmMock.Object, CopyScript);
 
         // Act

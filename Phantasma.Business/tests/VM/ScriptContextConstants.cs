@@ -116,6 +116,12 @@ internal class ScriptContextConstants
             $@"load $triggerReceive, ""{TokenTrigger.OnReceive}""",
             $@"load $triggerBurn, ""{TokenTrigger.OnBurn}""",
             $@"load $triggerMint, ""{TokenTrigger.OnMint}""",
+            
+            "push r1",
+            "push r2",
+            "push r3",
+            "push r4",
+            
             "pop $currentTrigger",
             "equal $triggerSend, $currentTrigger, $comparisonResult",
             "jmpif $comparisonResult, @sendHandler",
@@ -146,6 +152,12 @@ internal class ScriptContextConstants
             $@"load $triggerReceive, ""{TokenTrigger.OnReceive}""",
             $@"load $triggerBurn, ""{TokenTrigger.OnBurn}""",
             $@"load $triggerMint, ""{TokenTrigger.OnMint}""",
+                        
+            "push r1",
+            "push r2",
+            "push r3",
+            "push r4",
+            
             "pop $currentTrigger",
 
             //$"equal $triggerSend, $currentTrigger, $comparisonResult",
@@ -229,6 +241,17 @@ internal class ScriptContextConstants
             $@"load $triggerBurn, ""{AccountTrigger.OnBurn}""",
             $@"load $triggerMint, ""{AccountTrigger.OnMint}""",
             $@"load $triggerWitness, ""{AccountTrigger.OnWitness}""",
+            
+            "push r1",
+            "push r2",
+            "push r3",
+            "push r4",
+            "push r5",
+            "push r6",
+            "push r7",
+            "push r8",
+            "push r9",
+            
             "pop $currentTrigger",
             "pop $currentAddress",
             "equal $triggerWitness, $currentTrigger, $comparisonResult",
@@ -291,7 +314,7 @@ internal class ScriptContextConstants
         AssemblerUtils.BuildScript(new List<string>
         {
             //put a DebugClass with x = {r1} on register 1
-            //$@"load r1, {value}",
+            $@"load r1, 2",
             "load r5, 1",
             "push r5",
             "extcall \\\"PushDebugStruct\\\"",
