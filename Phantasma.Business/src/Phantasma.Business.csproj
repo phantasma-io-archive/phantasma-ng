@@ -13,4 +13,7 @@
     <ProjectReference Include="../../Tendermint/Tendermint.csproj" />
     <ProjectReference Include="../../Tendermint.RPC/Tendermint.RPC.csproj" />
   </ItemGroup>
+  <ItemGroup>
+      <InternalsVisibleTo Include="Phantasma.Business.Tests" />
+  </ItemGroup>
 </Project>
