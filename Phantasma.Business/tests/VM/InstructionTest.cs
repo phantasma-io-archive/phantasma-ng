@@ -253,7 +253,7 @@ public class InstructionTest
         var result = instruction.ToString();
 
         // Assert
-        result.ShouldBe($"000: {opcode}0, 1");
+        result.ShouldBe($"000: {opcode} r0, 1");
     }
 
     [Theory]
