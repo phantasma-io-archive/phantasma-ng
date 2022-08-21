@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using Phantasma.Business.Assembler;
 using Phantasma.Core;
@@ -50,12 +51,12 @@ internal class ScriptContextConstants
             }.ToArray()).SpendGas(DefaultFromAddress).EndScript();
 
     public static byte[] MigrateContractScript =>
-        new ScriptBuilder().AllowGas(DefaultFromAddress, Address.Null, 100000, 6000)
+        ScriptUtils.BeginScript().AllowGas(DefaultFromAddress, Address.Null, 100000, 6000)
             .CallContract("validator", "Migrate", DefaultFromAddress, DefaultToAddress).SpendGas(DefaultFromAddress)
             .EndScript();
 
     public static byte[] SettleTransactionScript =>
-        new ScriptBuilder()
+        ScriptUtils.BeginScript()
             .CallContract("interop", "SettleTransaction", DefaultFromAddress, "platform",
                 "0x000000000000000000000000000000000000dead")
             .CallContract("swap", "SwapFee", DefaultFromAddress, "TEST",
@@ -471,7 +472,7 @@ internal class ScriptContextConstants
         }.ToArray());
 
     public static byte[] And2Script =>
-        new ScriptBuilder().EmitLoad(1, TestEnum.Value0).EmitLoad(2, TestEnum.Value0)
+        ScriptUtils.BeginScript().EmitLoad(1, TestEnum.Value0).EmitLoad(2, TestEnum.Value0)
             .Emit(Opcode.AND, new byte[] { 1, 2, 3 }).EmitPush(3).EndScript();
 
     public static byte[] And3Script =>
@@ -505,7 +506,7 @@ internal class ScriptContextConstants
         }.ToArray());
 
     public static byte[] Or2Script =>
-        new ScriptBuilder().EmitLoad(1, TestEnum.Value0).EmitLoad(2, TestEnum.Value0)
+        ScriptUtils.BeginScript().EmitLoad(1, TestEnum.Value0).EmitLoad(2, TestEnum.Value0)
             .Emit(Opcode.OR, new byte[] { 1, 2, 3 }).EmitPush(3).EndScript();
 
     public static byte[] Or3Script =>
@@ -549,7 +550,7 @@ internal class ScriptContextConstants
         }.ToArray());
 
     public static byte[] Xor2Script =>
-        new ScriptBuilder().EmitLoad(1, TestEnum.Value0).EmitLoad(2, TestEnum.Value0)
+        ScriptUtils.BeginScript().EmitLoad(1, TestEnum.Value0).EmitLoad(2, TestEnum.Value0)
             .Emit(Opcode.XOR, new byte[] { 1, 2, 3 }).EmitPush(3).EndScript();
 
     public static byte[] Xor3Script =>
@@ -1190,14 +1191,13 @@ internal class ScriptContextConstants
         }.ToArray());
 
     public static byte[] Size5Script =>
-        new ScriptBuilder().EmitLoad(1, TestEnum.Value0).Emit(Opcode.SIZE, new byte[]{ 1, 2 }).EmitPush(3).EndScript();
+        ScriptUtils.BeginScript().EmitLoad(1, TestEnum.Value0).Emit(Opcode.SIZE, new byte[]{ 1, 2 }).EmitPush(3).EndScript();
 
     public static byte[] Size6Script =>
-        new ScriptBuilder().EmitLoad(1, Timestamp.Now).Emit(Opcode.SIZE, new byte[]{ 1, 2 }).EmitPush(3).EndScript();
+        ScriptUtils.BeginScript().EmitLoad(1, Timestamp.Now).Emit(Opcode.SIZE, new byte[]{ 1, 2 }).EmitPush(3).EndScript();
 
     internal enum TestEnum
     {
-        Value0,
-        Value1
+        Value0
     }
 }
