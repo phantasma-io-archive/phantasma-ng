@@ -124,4 +124,20 @@ public class DisassemblerTest
         result.ShouldNotBeNull();
         result.ShouldBe($"000: LOAD r1, 6000{Environment.NewLine}006: PUSH r1{Environment.NewLine}008: RET");
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2048)]
+    public void ReadVar_internal_should_read_bytes(int length)
+    {
+        // Arrange
+        var sut = new Disassembler(new ScriptBuilder().EmitLoad(1, new byte[length]).EmitPush(1)
+            .EndScript());
+
+        // Act
+        var result = Should.NotThrow(() => sut.ToString());
+
+        // Assert
+        result.ShouldNotBeNull();
+    }
 }
