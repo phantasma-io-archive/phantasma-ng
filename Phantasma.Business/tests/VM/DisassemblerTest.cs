@@ -114,8 +114,8 @@ public class DisassemblerTest
     public void ToString_should_return_expected_value_for_load()
     {
         // Arrange
-        var sut = new Disassembler(new ScriptBuilder().EmitLoad(1, new byte[] { 112, 23 }, VMType.Number).EmitPush(1)
-            .EndScript());
+        var sut = new Disassembler(ScriptUtils.BeginScript().EmitLoad(1, new byte[] { 112, 23 }, VMType.Number)
+            .EmitPush(1).EndScript());
 
         // Act
         var result = sut.ToString();
@@ -131,8 +131,7 @@ public class DisassemblerTest
     public void ReadVar_internal_should_read_bytes(int length)
     {
         // Arrange
-        var sut = new Disassembler(new ScriptBuilder().EmitLoad(1, new byte[length]).EmitPush(1)
-            .EndScript());
+        var sut = new Disassembler(ScriptUtils.BeginScript().EmitLoad(1, new byte[length]).EmitPush(1).EndScript());
 
         // Act
         var result = Should.NotThrow(() => sut.ToString());

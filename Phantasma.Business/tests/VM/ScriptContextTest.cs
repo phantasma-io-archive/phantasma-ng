@@ -40,7 +40,7 @@ public class ScriptContextTest
     {
         // Arrange
         var (sut, frame) = ArrangeScriptContextTest(vmMock.Object,
-            new ScriptBuilder().EmitLoad(0, Timestamp.Now).EmitPush(0).EndScript());
+            ScriptUtils.BeginScript().EmitLoad(0, Timestamp.Now).EmitPush(0).EndScript());
         var stack = new Stack<VMObject>();
 
         // Act & Assert
@@ -1244,7 +1244,8 @@ public class ScriptContextTest
 
     [Theory]
     [ScriptContextAutoData]
-    public void Execute_should_throw_VMException_for_context_switching_when_execution_state_is_faulted([Frozen] Mock<TestGasMachine> vmMock)
+    public void Execute_should_throw_VMException_for_context_switching_when_execution_state_is_faulted(
+        [Frozen] Mock<TestGasMachine> vmMock)
     {
         // Arrange
         vmMock.Setup(machine => machine.SwitchContext(It.IsAny<ExecutionContext>(), It.IsAny<uint>()))
@@ -1261,11 +1262,11 @@ public class ScriptContextTest
 
     [Theory]
     [ScriptContextAutoData]
-    public void Execute_should_throw_VMException_for_context_switching_when_context_is_null([Frozen] Mock<TestGasMachine> vmMock)
+    public void Execute_should_throw_VMException_for_context_switching_when_context_is_null(
+        [Frozen] Mock<TestGasMachine> vmMock)
     {
         // Arrange
-        vmMock.Setup(machine => machine.FindContext(It.IsAny<string>()))
-            .Returns((ExecutionContext)null);
+        vmMock.Setup(machine => machine.FindContext(It.IsAny<string>())).Returns((ExecutionContext)null);
         vmMock.Setup(machine => machine.PopFrame()).Returns(0u);
         var (sut, frame) = ArrangeScriptContextTest(vmMock.Object, ContextSwitchingScript);
 
