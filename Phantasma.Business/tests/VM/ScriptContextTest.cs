@@ -1389,7 +1389,7 @@ public class ScriptContextTest
         result.Message.ShouldBe("Invalid cast during concat opcode");
     }
 
-    [Theory(Skip = "Range is not implemented in assembler")]
+    [Theory]
     [ScriptContextAutoData]
     public void Execute_should_not_throw_for_range([Frozen] Mock<TestGasMachine> vmMock)
     {
