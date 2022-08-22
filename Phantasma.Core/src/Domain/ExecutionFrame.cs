@@ -6,15 +6,19 @@ namespace Phantasma.Core.Domain
     {
         public VMObject[] Registers { get; }
 
-        public uint Offset { get; } // current instruction pointer **before** the frame was entered
+        /// <summary>
+        ///     Current instruction pointer **before** the frame was entered.
+        /// </summary>
+        public uint Offset { get; }
+        
         public ExecutionContext Context { get; }
         public IVirtualMachine VM { get; }
 
-        public ExecutionFrame(IVirtualMachine VM, uint offset, ExecutionContext context, int registerCount)
+        public ExecutionFrame(IVirtualMachine vm, uint offset, ExecutionContext context, int registerCount)
         {
-            this.VM = VM;
-            this.Offset = offset;
-            this.Context = context;
+            VM = vm;
+            Offset = offset;
+            Context = context;
 
             Registers = new VMObject[registerCount];
 
