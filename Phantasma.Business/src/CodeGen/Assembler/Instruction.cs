@@ -96,6 +96,10 @@ namespace Phantasma.Business.CodeGen.Assembler
                         Process3Reg(sb);
                         break;
 
+                    case Opcode.RANGE:
+                        ProcessRange(sb);
+                        break;
+
                     case Opcode.LOAD:
                         ProcessLoad(sb);
                         break;
@@ -420,6 +424,38 @@ namespace Phantasma.Business.CodeGen.Assembler
                     src_b_reg,
                     src_c_reg
                 });
+            }
+            else
+            {
+                throw new CompilerException(LineNumber, ERR_INVALID_ARGUMENT);
+            }
+        }
+
+        private void ProcessRange(ScriptBuilder sb)
+        {
+            if (Arguments.Length != 4)
+            {
+                throw new CompilerException(LineNumber, ERR_INCORRECT_NUMBER);
+            }
+            
+            if (Arguments[0].IsRegister() && Arguments[1].IsRegister())
+            {
+                var srcReg = Arguments[0].AsRegister();
+                var dstReg = Arguments[1].AsRegister();
+                
+                 if (Arguments[2].IsNumber() && Arguments[3].IsNumber())
+                {
+                    var index = (int)Arguments[2].AsNumber();
+                    var len = (int)Arguments[3].AsNumber();
+
+                    sb.Emit(Opcode.RANGE, new byte[] { srcReg, dstReg });
+                    sb.EmitVarBytes(index);
+                    sb.EmitVarBytes(len);
+                }
+                else
+                {
+                    throw new CompilerException(LineNumber, ERR_INVALID_ARGUMENT);
+                }
             }
             else
             {
