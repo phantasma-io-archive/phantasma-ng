@@ -415,6 +415,62 @@ public class ScriptContextTest
 
     [Theory]
     [ScriptContextAutoData]
+    public void Execute_should_not_throw_for_cast([Frozen] Mock<TestGasMachine> vmMock)
+    {
+        // Arrange
+        var (sut, frame) = ArrangeScriptContextTest(vmMock.Object, CastScript);
+
+        // Act
+        var result = Should.NotThrow(() => sut.Execute(frame, new Stack<VMObject>()));
+
+        // Assert
+        result.ShouldBe(ExecutionState.Halt);
+    }
+
+    [Theory]
+    [ScriptContextAutoData]
+    public void Execute_should_not_throw_for_count_1([Frozen] Mock<TestGasMachine> vmMock)
+    {
+        // Arrange
+        var (sut, frame) = ArrangeScriptContextTest(vmMock.Object, Count1Script);
+
+        // Act
+        var result = Should.NotThrow(() => sut.Execute(frame, new Stack<VMObject>()));
+
+        // Assert
+        result.ShouldBe(ExecutionState.Halt);
+    }
+
+    [Theory]
+    [ScriptContextAutoData]
+    public void Execute_should_not_throw_for_count_2([Frozen] Mock<TestGasMachine> vmMock)
+    {
+        // Arrange
+        var (sut, frame) = ArrangeScriptContextTest(vmMock.Object, Count2Script);
+
+        // Act
+        var result = Should.NotThrow(() => sut.Execute(frame, new Stack<VMObject>()));
+
+        // Assert
+        result.ShouldBe(ExecutionState.Halt);
+    }
+
+    [Theory]
+    [ScriptContextAutoData]
+    public void Execute_should_not_throw_for_clear([Frozen] Mock<TestGasMachine> vmMock)
+    {
+        // Arrange
+        var (sut, frame) = ArrangeScriptContextTest(vmMock.Object, ClearScript);
+
+        // Act
+        var result = Should.NotThrow(() => sut.Execute(frame, new Stack<VMObject>()));
+
+        // Assert
+        result.ShouldBe(ExecutionState.Halt);
+    }
+
+    [Theory]
+    [ScriptContextAutoData]
     public void Execute_should_not_throw_for_and_1([Frozen] Mock<TestGasMachine> vmMock)
     {
         // Arrange
@@ -1507,6 +1563,20 @@ public class ScriptContextTest
     {
         // Arrange
         var (sut, frame) = ArrangeScriptContextTest(vmMock.Object, Size6Script);
+
+        // Act
+        var result = Should.NotThrow(() => sut.Execute(frame, new Stack<VMObject>()));
+
+        // Assert
+        result.ShouldBe(ExecutionState.Halt);
+    }
+
+    [Theory]
+    [ScriptContextAutoData]
+    public void Execute_should_not_throw_for_unpack([Frozen] Mock<TestGasMachine> vmMock)
+    {
+        // Arrange
+        var (sut, frame) = ArrangeScriptContextTest(vmMock.Object, UnpackScript);
 
         // Act
         var result = Should.NotThrow(() => sut.Execute(frame, new Stack<VMObject>()));
