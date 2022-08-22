@@ -23,6 +23,17 @@ public class ExecutionFrameTests
         result.ShouldNotBeNull();
     }
 
+    [Fact]
+    public void Context_should_match_provided_context()
+    {
+        // Arrange
+        var executionContext = new TestExecutionContext();
+        var sut = new ExecutionFrame(new TestVm(), 0, executionContext, 5);
+
+        // Assert
+        sut.Context.ShouldBe(executionContext);
+    }
+
     [Theory]
     [InlineData(-1)]
     [InlineData(5)]
@@ -123,7 +134,7 @@ public class ExecutionFrameTests
     [ExcludeFromCodeCoverage]
     private class TestExecutionContext : ExecutionContext
     {
-        public override string Name => "TestExeutionContext";
+        public override string Name => "TestExecutionContext";
 
         public override ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack)
         {
