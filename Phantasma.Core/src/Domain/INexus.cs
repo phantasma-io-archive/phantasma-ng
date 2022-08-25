@@ -11,6 +11,7 @@ public interface INexus
     IChain RootChain { get; }
     StorageContext RootStorage { get; init;  }
     bool HasGenesis { get; set; }
+    BigInteger MaxGas { get; set; }
 
     string NexusProtocolVersionTag { get;  }
     string FuelPerContractDeployTag { get;  }
