@@ -276,6 +276,7 @@ namespace Phantasma.Node
         public int BlockTime { get; } = 0;
         public int MinimumFee { get; } = 100000;
         public int MinimumPow { get; } = 0;
+        public int MaxGas { get; } = 10000;
 
         public bool WebLogs { get; }
 
@@ -302,6 +303,7 @@ namespace Phantasma.Node
             this.BlockTime = section.GetValueEx<Int32>("block.time");
             this.MinimumFee = section.GetValueEx<Int32>("minimum.fee");
             this.MinimumPow = section.GetValueEx<Int32>("minimum.pow");
+            this.MaxGas = section.GetValueEx<Int32>("max.gas");
 
             int maxPow = 5; // should be a constant like MinimumBlockTime
             if (this.MinimumPow < 0 || this.MinimumPow > maxPow)
