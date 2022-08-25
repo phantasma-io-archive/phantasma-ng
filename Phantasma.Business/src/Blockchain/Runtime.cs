@@ -411,7 +411,7 @@ namespace Phantasma.Business.Blockchain
             ExpectEnumIsDefined(opcode, nameof(opcode));
 
             // required for allowing transactions to occur pre-minting of native token
-            if (readOnlyMode || !Nexus.HasGenesis)
+            if (!Nexus.HasGenesis)
             {
                 return ExecutionState.Running;
             }
@@ -442,7 +442,7 @@ namespace Phantasma.Business.Blockchain
             }
 
             // required for allowing transactions to occur pre-minting of native token
-            if (readOnlyMode || !Nexus.HasGenesis)
+            if (!Nexus.HasGenesis)
             {
                 return ExecutionState.Running;
             }
