@@ -68,7 +68,7 @@ namespace Phantasma.Business.Blockchain
             this.GasPrice = 0;
             this.PaidGas = 0;
             this.GasTarget = Address.Null;
-            this.MaxGas = 10000;  // a minimum amount required for allowing calls to Gas contract etc
+            this.MaxGas = Nexus.MaxGas;
             this.CurrentTask = currentTask;
             this.DelayPayment = delayPayment;
             this.Validator = validator;
