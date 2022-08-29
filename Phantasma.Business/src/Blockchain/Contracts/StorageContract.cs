@@ -11,6 +11,10 @@ namespace Phantasma.Business.Contracts
 
         public const string KilobytesPerStakeTag = "storage.stake.kb";
         public const string FreeStoragePerContractTag = "storage.contract.kb";
+        
+        public static readonly  BigInteger KilobytesPerStakeDefault = 40;
+        public static readonly  BigInteger FreeStoragePerContractDefault = 1024;
+
 
         public const int DefaultForeignSpacedPercent = 20;
 

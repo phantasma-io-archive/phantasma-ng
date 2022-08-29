@@ -74,6 +74,9 @@ namespace Phantasma.Business.Contracts
         public const string MaximumPollLengthTag = "poll.max.length";
         public const string MaxEntriesPerPollTag = "poll.max.entries";
         public const string PollVoteLimitTag = "poll.vote.limit";
+        public static readonly BigInteger PollVoteLimitDefault = 50000;
+        public static readonly BigInteger MaxEntriesPerPollDefault = 10;
+        public static readonly BigInteger MaximumPollLengthDefault = MinimumPollLength * 90;
 
         public const string SystemPoll = "system.";
 

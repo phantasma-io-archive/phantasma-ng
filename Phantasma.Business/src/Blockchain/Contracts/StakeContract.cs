@@ -45,16 +45,21 @@ namespace Phantasma.Business.Contracts
         private BigInteger _currentEnergyRatioDivisor;
 
         public static readonly BigInteger DefaultMasterThreshold = UnitConversion.ToBigInteger(50000, DomainSettings.StakingTokenDecimals);
-        public readonly static BigInteger MasterClaimGlobalAmount = UnitConversion.ToBigInteger(125000, DomainSettings.StakingTokenDecimals);
+        public static readonly BigInteger MasterClaimGlobalAmount = UnitConversion.ToBigInteger(125000, DomainSettings.StakingTokenDecimals);
         public static BigInteger MinimumValidStake => UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
 
         public const string MasterStakeThresholdTag = "stake.master.threshold";
         public const string VotingStakeThresholdTag = "stake.vote.threshold";
-        public const string StakeSingleBonusPercentTag = "stake.bonus.percent";
-        public const string StakeMaxBonusPercentTag = "stake.bonus.max";
+        public static readonly BigInteger VotingStakeThresholdDefault = UnitConversion.ToBigInteger(1000, DomainSettings.StakingTokenDecimals);
 
-        public readonly static BigInteger MaxVotingPowerBonus = 1000;
-        public readonly static BigInteger DailyVotingBonus = 1;
+        public const string StakeSingleBonusPercentTag = "stake.bonus.percent";
+        public static readonly BigInteger StakeSingleBonusPercentDefault = 5;
+
+        public const string StakeMaxBonusPercentTag = "stake.bonus.max";
+        public static readonly BigInteger StakeMaxBonusPercentDefault = 100;
+        
+        public static readonly BigInteger MaxVotingPowerBonus = 1000;
+        public static readonly BigInteger DailyVotingBonus = 1;
 
         public const uint DefaultEnergyRatioDivisor = 500; // used as 1/500, will initially generate 0.002 per staked token
 

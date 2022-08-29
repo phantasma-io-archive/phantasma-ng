@@ -254,6 +254,10 @@ namespace Phantasma.Business.Contracts
 
         public const string SwapMakerFeePercentTag = "swap.fee.maker";
         public const string SwapTakerFeePercentTag = "swap.fee.taker";
+        
+        public static readonly BigInteger SwapMakerFeePercentDefault = 2;
+        public static readonly BigInteger SwapTakerFeePercentDefault = 5;
+
 
 
         public BigInteger GetRate(string fromSymbol, string toSymbol, BigInteger amount)
