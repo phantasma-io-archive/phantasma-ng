@@ -11,8 +11,15 @@ namespace Phantasma.Business.Blockchain.Contracts
         public override NativeContractKind Kind => NativeContractKind.Validator;
 
         public const string ValidatorCountTag = "validator.count";
+        public static readonly BigInteger ValidatorCountDefault = 5;
+
+        
         public const string ValidatorRotationTimeTag = "validator.rotation.time";
+        public static readonly BigInteger ValidatorRotationTimeDefault = 120;
+
         public const string ValidatorPollTag = "elections";
+        
+
 
 #pragma warning disable 0649
         private StorageMap _validators; // <BigInteger, ValidatorInfo>

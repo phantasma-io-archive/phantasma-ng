@@ -34,6 +34,10 @@ public class Nexus : INexus
     public string NexusProtocolVersionTag => "nexus.protocol.version";
     public string FuelPerContractDeployTag => "nexus.contract.cost";
     public string FuelPerTokenDeployTag => "nexus.token.cost";
+    
+    public static readonly BigInteger FuelPerContractDeployDefault = UnitConversion.ToBigInteger(10, DomainSettings.FiatTokenDecimals);
+    public static readonly BigInteger FuelPerTokenDeployDefault = UnitConversion.ToBigInteger(100, DomainSettings.FiatTokenDecimals);
+
 
     public string Name { get; init; }
 
@@ -1422,7 +1426,7 @@ public class Nexus : INexus
 
                  {
                      ValidatorContract.ValidatorCountTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         5, new ChainConstraint[]
+                         ValidatorContract.ValidatorCountDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MustIncrease}
                      })
@@ -1430,7 +1434,7 @@ public class Nexus : INexus
 
                  {
                      ValidatorContract.ValidatorRotationTimeTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         120, new ChainConstraint[]
+                         ValidatorContract.ValidatorRotationTimeDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 30},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 3600},
@@ -1439,7 +1443,7 @@ public class Nexus : INexus
 
                  {
                      ConsensusContract.PollVoteLimitTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         50000, new ChainConstraint[]
+                         ConsensusContract.PollVoteLimitDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 100},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 500000},
@@ -1448,7 +1452,7 @@ public class Nexus : INexus
 
                  {
                      ConsensusContract.MaxEntriesPerPollTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         10, new ChainConstraint[]
+                         ConsensusContract.MaxEntriesPerPollDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 2},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 1000},
@@ -1457,7 +1461,7 @@ public class Nexus : INexus
 
                  {
                      ConsensusContract.MaximumPollLengthTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         86400 * 90, new ChainConstraint[]
+                         ConsensusContract.MaximumPollLengthDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 86400 * 2},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 86400 * 120},
@@ -1475,7 +1479,7 @@ public class Nexus : INexus
 
                  {
                      StakeContract.StakeSingleBonusPercentTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         5, new ChainConstraint[]
+                         StakeContract.StakeSingleBonusPercentDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 0},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 100 },
@@ -1484,7 +1488,7 @@ public class Nexus : INexus
 
                  {
                      StakeContract.StakeMaxBonusPercentTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         100, new ChainConstraint[]
+                         StakeContract.StakeMaxBonusPercentDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 50},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 500 },
@@ -1493,7 +1497,7 @@ public class Nexus : INexus
 
                  {
                      StakeContract.VotingStakeThresholdTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         UnitConversion.ToBigInteger(1000, DomainSettings.StakingTokenDecimals), new ChainConstraint[]
+                         StakeContract.VotingStakeThresholdDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals)},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = UnitConversion.ToBigInteger(10000, DomainSettings.StakingTokenDecimals)},
@@ -1502,7 +1506,7 @@ public class Nexus : INexus
 
                  {
                      SwapContract.SwapMakerFeePercentTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         2, new ChainConstraint[]
+                         SwapContract.SwapMakerFeePercentDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 0},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 20},
@@ -1513,7 +1517,7 @@ public class Nexus : INexus
 
                  {
                      SwapContract.SwapTakerFeePercentTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         5, new ChainConstraint[]
+                         SwapContract.SwapTakerFeePercentDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 1},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 20},
@@ -1523,7 +1527,7 @@ public class Nexus : INexus
 
                  {
                      StorageContract.KilobytesPerStakeTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         40, new ChainConstraint[]
+                         StorageContract.KilobytesPerStakeDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 1},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 10000},
@@ -1532,7 +1536,7 @@ public class Nexus : INexus
 
                  {
                      StorageContract.FreeStoragePerContractTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         1024, new ChainConstraint[]
+                         StorageContract.FreeStoragePerContractDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 0},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 1024 * 512},
@@ -1541,7 +1545,7 @@ public class Nexus : INexus
 
                  {
                      FuelPerContractDeployTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         UnitConversion.ToBigInteger(10, DomainSettings.FiatTokenDecimals), new ChainConstraint[]
+                         FuelPerContractDeployDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 0},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = UnitConversion.ToBigInteger(1000, DomainSettings.FiatTokenDecimals)},
@@ -1550,7 +1554,7 @@ public class Nexus : INexus
 
                  {
                      FuelPerTokenDeployTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         UnitConversion.ToBigInteger(100, DomainSettings.FiatTokenDecimals), new ChainConstraint[]
+                         FuelPerTokenDeployDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 0},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = UnitConversion.ToBigInteger(1000, DomainSettings.FiatTokenDecimals)},
