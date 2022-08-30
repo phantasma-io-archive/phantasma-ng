@@ -582,7 +582,7 @@ namespace Phantasma.Business.VM
             {
                 var src = Read8();
                 Expect(src < frame.Registers.Length, "invalid src register");
-
+                
                 var method = frame.Registers[src].AsString();
                             
                 var state = frame.VM.ExecuteInterop(method);
@@ -908,7 +908,7 @@ namespace Phantasma.Business.VM
 
             Expect(src < frame.Registers.Length, "invalid src register");
             Expect(dst < frame.Registers.Length, "invalid dst register");
-
+            
             var val = frame.Registers[src].AsBool();
 
             frame.Registers[dst].SetValue(!val);
@@ -939,7 +939,8 @@ namespace Phantasma.Business.VM
                 case VMType.Bool:
                     {
                         Expect(valB.Type == VMType.Bool, $"expected {valA.Type} for logical op");
-
+                        
+                        
                         var a = valA.AsBool();
                         var b = valB.AsBool();
 
@@ -987,7 +988,7 @@ namespace Phantasma.Business.VM
                 case VMType.Number:
                     {
                         Expect(valB.Type == VMType.Number, $"expected {valA.Type} for logical op");
-
+                        
                         var numA = valA.AsNumber();
                         var numB = valB.AsNumber();
 
@@ -1147,6 +1148,8 @@ namespace Phantasma.Business.VM
             Expect(src < frame.Registers.Length, "invalid src register");
             Expect(dst < frame.Registers.Length, "invalid dst register");
 
+            Expect(frame.Registers[src].Type is VMType.Number or VMType.String or VMType.Timestamp or VMType.Bytes, $"Invalid VM Register type: {frame.Registers[src].Type}");
+            
             var val = frame.Registers[src].AsNumber();
             frame.Registers[dst].SetValue(-val);
         }
@@ -1162,7 +1165,7 @@ namespace Phantasma.Business.VM
             var dst = Read8();
             Expect(src < frame.Registers.Length, "invalid src register");
             Expect(dst < frame.Registers.Length, "invalid dst register");
-
+            
             var val = frame.Registers[src].AsNumber();
             frame.Registers[dst].SetValue(val < 0 ? -val : val);
         }
@@ -1191,11 +1194,12 @@ namespace Phantasma.Business.VM
             Expect(srcA < frame.Registers.Length, "invalid srcA register");
             Expect(srcB < frame.Registers.Length, "invalid srcB register");
             Expect(dst < frame.Registers.Length, "invalid dst register");
+            
 
             if (opcode == Opcode.ADD && frame.Registers[srcA].Type == VMType.String)
             {
                 Expect(frame.Registers[srcB].Type == VMType.String, "invalid string as right operand");
-
+                
                 var a = frame.Registers[srcA].AsString();
                 var b = frame.Registers[srcB].AsString();
 
