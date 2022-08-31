@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
-namespace Phantasma.Business.Core.Nodes
+namespace Phantasma.Business.CodeGen.Core.Nodes
 {
     public class DeclarationNode : CompilerNode
     {

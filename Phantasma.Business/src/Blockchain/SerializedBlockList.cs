@@ -1,10 +1,11 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
-using System.Collections.Generic;
-using Phantasma.Core;
-using System;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Business;
+namespace Phantasma.Business.Blockchain;
 
 public class SerializedBlockList {
 

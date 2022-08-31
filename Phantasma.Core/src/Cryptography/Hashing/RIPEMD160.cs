@@ -1,6 +1,6 @@
 ﻿using Org.BouncyCastle.Crypto.Digests;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Cryptography.Hashing
 {
     public class RIPEMD160 
     {

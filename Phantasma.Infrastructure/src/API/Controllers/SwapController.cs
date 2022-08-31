@@ -1,12 +1,13 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Business.Contracts;
-using Phantasma.Core;
-using Phantasma.Business;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Infrastructure.Pay.Chains;
 
-namespace Phantasma.Infrastructure.Controllers
+namespace Phantasma.Infrastructure.API.Controllers
 {
     public class SwapController : BaseControllerV1
     {
@@ -90,11 +91,11 @@ namespace Phantasma.Infrastructure.Controllers
                 case DomainSettings.PlatformName:
                     address = Address.FromText(account);
                     break;
-                case Infrastructure.Chains.NeoWallet.NeoPlatform:
-                    address = Infrastructure.Chains.NeoWallet.EncodeAddress(account);
+                case NeoWallet.NeoPlatform:
+                    address = NeoWallet.EncodeAddress(account);
                     break;
-                case Infrastructure.Chains.EthereumWallet.EthereumPlatform:
-                    address = Infrastructure.Chains.EthereumWallet.EncodeAddress(account);
+                case EthereumWallet.EthereumPlatform:
+                    address = EthereumWallet.EncodeAddress(account);
                     break;
                 case Pay.Chains.BSCWallet.BSCPlatform:
                     address = Pay.Chains.BSCWallet.EncodeAddress(account);

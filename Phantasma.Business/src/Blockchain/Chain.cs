@@ -1,23 +1,27 @@
-using System.Text;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
+using System.Text;
 using Google.Protobuf;
-using Phantasma.Business.Contracts;
-using Phantasma.Business.Tokens;
-using Phantasma.Core;
-using Phantasma.Core.Context;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Utils;
 using Phantasma.Shared;
+using Phantasma.Shared.Performance;
 using Phantasma.Shared.Types;
 using Phantasma.Shared.Utils;
-using Phantasma.Shared.Performance;
 using Serilog;
+using Tendermint;
 using Tendermint.Types;
-using Types;
 using TValidatorUpdate = Tendermint.Abci.ValidatorUpdate;
-using System.Collections.Generic;
-using System;
-using System.Linq;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
     public sealed class Chain : IChain
     {

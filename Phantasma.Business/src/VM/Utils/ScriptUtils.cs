@@ -1,9 +1,9 @@
 using System;
 using System.Numerics;
-using Phantasma.Core;
+using Phantasma.Core.Domain;
 using Phantasma.Shared.Types;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.VM.Utils
 {
     public static class ScriptUtils
     {

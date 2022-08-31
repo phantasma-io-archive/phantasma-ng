@@ -1,9 +1,10 @@
-using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Core;
-using Phantasma.Core.Context;
+using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
     public class Organization : IOrganization
     {

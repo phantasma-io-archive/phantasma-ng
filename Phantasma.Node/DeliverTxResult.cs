@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using Phantasma.Core;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Business;
+namespace Phantasma.Node;
 public class DeliverTxResult
 {
     public Hash Hash { get; set; }

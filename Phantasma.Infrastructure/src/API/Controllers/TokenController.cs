@@ -1,12 +1,13 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
-using Microsoft.AspNetCore.Mvc;
-using Phantasma.Business.Tokens;
-using Phantasma.Core;
+using System.Linq;
 using System.Numerics;
+using Microsoft.AspNetCore.Mvc;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Infrastructure.Controllers
+namespace Phantasma.Infrastructure.API.Controllers
 {
     public class TokenController : BaseControllerV1
     {

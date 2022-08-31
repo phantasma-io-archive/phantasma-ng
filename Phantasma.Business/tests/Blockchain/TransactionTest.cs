@@ -1,18 +1,16 @@
-using Phantasma.Core;
+using Phantasma.Core.Cryptography;
 using Shouldly;
-using System.Text.Json.Nodes;
-using System.Collections.Generic;
 using Xunit;
-using static Phantasma.Core.WalletLink;
+using Transaction = Phantasma.Core.Domain.Transaction;
 
-namespace Phantasma.Business.Tests
+namespace Phantasma.Business.Tests.Blockchain
 {
     public class TransactionTest
     {
         [Fact]
         public void null_transaction_test()
         {
-            var transaction = new Phantasma.Core.Transaction();
+            var transaction = new Transaction();
             transaction.NexusName.ShouldBe(null);
             transaction.ChainName.ShouldBe(null);
             transaction.Hash.ShouldBeOfType<Hash>();

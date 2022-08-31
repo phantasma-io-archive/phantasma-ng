@@ -13,8 +13,8 @@ public class Base58
     {
         const string testString = "0815";
         var byteArray = Encoding.ASCII.GetBytes(testString);
-        var encodedString = Core.Base58.Encode(byteArray);
-        var decodedBytes = Core.Base58.Decode(encodedString);
+        var encodedString = Numerics.Base58.Encode(byteArray);
+        var decodedBytes = Numerics.Base58.Decode(encodedString);
         decodedBytes.ShouldBe(byteArray);
         GetStringFromByteArray(decodedBytes).ShouldBe(testString);
     }
@@ -24,8 +24,8 @@ public class Base58
     {
         const string testString = "Sepp";
         var byteArray = Encoding.ASCII.GetBytes(testString);
-        var encodedString = Core.Base58.Encode(byteArray);
-        var decodedBytes = Core.Base58.Decode(encodedString);
+        var encodedString = Numerics.Base58.Encode(byteArray);
+        var decodedBytes = Numerics.Base58.Decode(encodedString);
         decodedBytes.ShouldBe(byteArray);
         GetStringFromByteArray(decodedBytes).ShouldBe(testString);
     }

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.CodeGen
 {
     public class CompilerException : Exception
     {

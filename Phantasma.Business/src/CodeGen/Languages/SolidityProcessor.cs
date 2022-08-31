@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Phantasma.Business.Core;
-using Phantasma.Business.Core.Nodes;
+using Phantasma.Business.CodeGen.Core;
+using Phantasma.Business.CodeGen.Core.Nodes;
 
-namespace Phantasma.Business.Languages
+namespace Phantasma.Business.CodeGen.Languages
 {
     public class SolidityProcessor : LanguageProcessor
     {

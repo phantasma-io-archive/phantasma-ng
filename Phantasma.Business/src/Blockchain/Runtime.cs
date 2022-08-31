@@ -1,16 +1,19 @@
-using System.Text;
-using System.Numerics;
-using Phantasma.Core;
-using Phantasma.Core.Context;
-using Phantasma.Shared.Types;
-using Phantasma.Shared.Performance;
-using Phantasma.Business.Storage;
-using Phantasma.Business.Tokens;
-using Phantasma.Business.Contracts;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
+using System.Numerics;
+using System.Text;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.VM;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Shared.Performance;
+using Phantasma.Shared.Types;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
     public class RuntimeVM : GasMachine, IRuntime
     {

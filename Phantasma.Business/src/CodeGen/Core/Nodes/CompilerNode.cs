@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 
-namespace Phantasma.Business.Core.Nodes
+namespace Phantasma.Business.CodeGen.Core.Nodes
 {
     public enum Visibility
     {

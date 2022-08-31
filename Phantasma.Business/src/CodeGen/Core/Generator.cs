@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Business.Core.Nodes;
-using Phantasma.Business;
-using Phantasma.Core;
+using System.Numerics;
+using Phantasma.Business.CodeGen.Core.Nodes;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Business.Core
+namespace Phantasma.Business.CodeGen.Core
 {
     public class ByteBusinesserator
     {

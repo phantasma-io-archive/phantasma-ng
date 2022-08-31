@@ -1,6 +1,6 @@
-﻿using Phantasma.Business.Core.Nodes;
+﻿using Phantasma.Business.CodeGen.Core.Nodes;
 
-namespace Phantasma.Business.Core
+namespace Phantasma.Business.CodeGen.Core
 {
     public class Instruction
     {

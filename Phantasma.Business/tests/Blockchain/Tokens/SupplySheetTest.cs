@@ -1,4 +1,4 @@
-﻿namespace Phantasma.Business.Tests.Tokens;
+﻿namespace Phantasma.Business.Tests.Blockchain.Tokens;
 
 public class SupplySheetTest
 {

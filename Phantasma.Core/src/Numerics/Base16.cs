@@ -1,6 +1,4 @@
-﻿using Phantasma.Shared;
-
-namespace Phantasma.Core
+﻿namespace Phantasma.Core.Numerics
 {
     public static class Base16
     {

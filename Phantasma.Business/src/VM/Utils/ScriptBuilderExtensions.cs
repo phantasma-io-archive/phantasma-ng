@@ -1,8 +1,9 @@
 ﻿using System.Numerics;
-using Phantasma.Core;
-using Phantasma.Business.Contracts;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.VM.Utils
 {
     public static class ScriptBuilderExtensions
     {

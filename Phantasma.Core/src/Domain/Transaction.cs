@@ -1,16 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Linq;
-using System.Collections.Generic;
-
-using Phantasma.Core;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Utils;
 using Phantasma.Shared;
 using Phantasma.Shared.Types;
-using Phantasma.Core.EdDSA;
-using Phantasma.Core.ECC;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public sealed class Transaction : ITransaction, ISerializable
     {

@@ -1,8 +1,9 @@
 using System.Numerics;
-using Phantasma.Core.Context;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Storage.Context;
 using Phantasma.Shared.Types;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public interface IRuntime
     {

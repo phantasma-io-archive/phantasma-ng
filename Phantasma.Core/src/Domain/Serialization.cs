@@ -5,10 +5,11 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Text;
+using Phantasma.Core.Utils;
 using Phantasma.Shared;
 using Phantasma.Shared.Types;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public interface ISerializable
     {

@@ -1,11 +1,13 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
-using System.Collections.Generic;
-using Phantasma.Core;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Utils;
 using Phantasma.Shared;
 using Phantasma.Shared.Types;
 
-namespace Phantasma.Business.Storage
+namespace Phantasma.Business.Blockchain.Storage
 {
     public class Archive: IArchive, ISerializable
     {

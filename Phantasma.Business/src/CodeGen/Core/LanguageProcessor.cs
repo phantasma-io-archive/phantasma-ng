@@ -1,8 +1,8 @@
 ﻿using System;
-using Phantasma.Business.Languages;
+using Phantasma.Business.CodeGen.Languages;
 using Phantasma.Shared;
 
-namespace Phantasma.Business.Core
+namespace Phantasma.Business.CodeGen.Core
 {
     public enum Language
     {

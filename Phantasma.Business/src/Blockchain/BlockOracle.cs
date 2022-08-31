@@ -1,10 +1,11 @@
 ﻿using System;
-using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Core;
+using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
 using Phantasma.Shared.Types;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
     public class BlockOracleReader : OracleReader
     {

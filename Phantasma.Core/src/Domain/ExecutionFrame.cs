@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public class ExecutionFrame
     {

@@ -1,8 +1,9 @@
-using System.Text;
 using System.Numerics;
-using Phantasma.Core;
+using System.Text;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.VM
 {
     public struct Instruction
     {

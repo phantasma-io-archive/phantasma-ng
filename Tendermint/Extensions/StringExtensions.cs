@@ -2,7 +2,7 @@
 using System.Text;
 using Google.Protobuf;
 
-namespace Types.Extensions
+namespace Tendermint.Extensions
 {
     public static class StringExtensions
     {

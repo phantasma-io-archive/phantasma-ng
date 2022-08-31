@@ -1,6 +1,6 @@
 ﻿using Org.BouncyCastle.Crypto.Digests;
 
-namespace Phantasma.Core.Hashing
+namespace Phantasma.Core.Cryptography.Hashing
 {
     public static class SHA3Keccak
     {

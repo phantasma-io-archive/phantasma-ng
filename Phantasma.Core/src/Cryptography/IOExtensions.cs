@@ -1,9 +1,10 @@
 ﻿using System;
 using System.IO;
-using Phantasma.Core.ECC;
-using Phantasma.Core.EdDSA;
+using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Cryptography.EdDSA;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Cryptography
 {
     public static class IOExtensions
     {

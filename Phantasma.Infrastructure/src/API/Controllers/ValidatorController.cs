@@ -1,8 +1,7 @@
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Core;
 
-namespace Phantasma.Infrastructure.Controllers
+namespace Phantasma.Infrastructure.API.Controllers
 {
     public class ValidatorController : BaseControllerV1
     {

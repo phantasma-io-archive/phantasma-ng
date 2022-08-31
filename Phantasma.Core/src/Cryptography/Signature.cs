@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Cryptography
 {
     public abstract class Signature: ISerializable
     {

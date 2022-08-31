@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
+using Phantasma.Business.VM.Utils;
 using Phantasma.Core;
+using Phantasma.Core.Cryptography;
 
 namespace Phantasma.Business.Tests;
 

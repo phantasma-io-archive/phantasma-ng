@@ -1,16 +1,17 @@
-﻿using System.Numerics;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using Neo;
 using Neo.Network.P2P.Payloads;
 using Neo.Wallets;
 using Phantasma.Shared.Utils;
+
 //using Phantasma.Neo.Core;
 //using Phantasma.Neo.Utils;
 
-namespace Phantasma.Node.Chains
+namespace Phantasma.Node.Chains.Neo2
 {
     public class ApplicationLog
     {

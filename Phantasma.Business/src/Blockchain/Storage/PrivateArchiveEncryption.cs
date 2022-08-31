@@ -1,8 +1,9 @@
-﻿using System;
-using System.IO;
-using Phantasma.Core;
+﻿using System.IO;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 
-namespace Phantasma.Business.Storage
+namespace Phantasma.Business.Blockchain.Storage
 {
     public class PrivateArchiveEncryption : IArchiveEncryption
     {

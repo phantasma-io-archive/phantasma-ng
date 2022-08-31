@@ -1,11 +1,13 @@
 using System;
-using System.Text;
 using System.Numerics;
-using Phantasma.Core;
-using Phantasma.Core.Context;
+using System.Text;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
 using Phantasma.Shared.Utils;
 
-namespace Phantasma.Business.Tokens
+namespace Phantasma.Business.Blockchain.Tokens
 {
     public class BalanceException : Exception
     {

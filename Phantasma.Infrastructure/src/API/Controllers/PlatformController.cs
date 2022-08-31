@@ -1,11 +1,9 @@
-using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Core;
-using Serilog;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Infrastructure.Controllers
+namespace Phantasma.Infrastructure.API.Controllers
 {
     public class PlatformController : BaseControllerV1
     {

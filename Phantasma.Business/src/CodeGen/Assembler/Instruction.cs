@@ -1,8 +1,10 @@
 ﻿using System;
 using System.IO;
-using Phantasma.Core;
+using Phantasma.Business.VM;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Business.Assembler
+namespace Phantasma.Business.CodeGen.Assembler
 {
     internal class Instruction : Semanteme
     {

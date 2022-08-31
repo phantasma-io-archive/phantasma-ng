@@ -1,7 +1,8 @@
 // notes: Keep the structs here simple only using primitive C# types or arrays
-using Phantasma.Core;
 
-namespace Phantasma.Infrastructure
+using Phantasma.Core.Domain;
+
+namespace Phantasma.Infrastructure.API
 {
     public class BalanceResult
     {

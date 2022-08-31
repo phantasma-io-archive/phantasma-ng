@@ -1,9 +1,9 @@
 ﻿using System;
-using Phantasma.Shared;
-using Phantasma.Core;
 using System.Collections.Generic;
+using Phantasma.Core.Domain;
+using Phantasma.Shared;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.VM
 {
     public class Disassembler
     {

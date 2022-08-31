@@ -1,4 +1,4 @@
-﻿namespace Phantasma.Business.Tests.Contracts;
+﻿namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
 public class AccountContractTest
 {

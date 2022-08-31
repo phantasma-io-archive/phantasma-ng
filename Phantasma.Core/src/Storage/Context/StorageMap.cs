@@ -1,12 +1,14 @@
 ﻿using System;
-using System.Text;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
+using System.Text;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 using Phantasma.Shared;
 using Phantasma.Shared.Utils;
 
-namespace Phantasma.Core.Context
+namespace Phantasma.Core.Storage.Context
 {
     public struct StorageMap : IStorageCollection
     {

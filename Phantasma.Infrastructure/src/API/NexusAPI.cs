@@ -1,20 +1,22 @@
-using System.Text;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
+using System.Text;
 using System.Text.Json;
+using System.Threading;
+using Phantasma.Business.Blockchain;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 using Phantasma.Shared;
-using Phantasma.Core;
-using Phantasma.Business;
-using Phantasma.Business.Tokens;
-using Phantasma.Business.Storage;
-using Phantasma.Business.Contracts;
 using Phantasma.Shared.Utils;
 using Tendermint.RPC;
-using System;
-using System.Linq;
-using System.Threading;
 
-namespace Phantasma.Infrastructure;
+namespace Phantasma.Infrastructure.API;
 
 public static class NexusAPI
 {
@@ -193,7 +195,7 @@ public static class NexusAPI
                         }
                         else
                         {
-                            Business.Tokens.TokenUtils.FetchProperty(Nexus.RootStorage, chain, method.name, series, ID, (propName, propValue) =>
+                            TokenUtils.FetchProperty(Nexus.RootStorage, chain, method.name, series, ID, (propName, propValue) =>
                             {
                                 string temp;
                                 if (propValue.Type == VMType.Bytes)

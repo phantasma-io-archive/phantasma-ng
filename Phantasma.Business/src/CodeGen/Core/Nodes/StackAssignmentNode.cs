@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 
-namespace Phantasma.Business.Core.Nodes
+namespace Phantasma.Business.CodeGen.Core.Nodes
 {
     public class StackAssignmentNode : StatementNode
     {

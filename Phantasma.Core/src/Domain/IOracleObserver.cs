@@ -1,6 +1,6 @@
-using Phantasma.Core.Context;
+using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public interface IOracleObserver
     {

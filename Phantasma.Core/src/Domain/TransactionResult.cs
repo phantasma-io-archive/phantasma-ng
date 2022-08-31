@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
-using Phantasma.Core;
+using Phantasma.Core.Cryptography;
 
-namespace Phantasma.Core;
+namespace Phantasma.Core.Domain;
 
 public class TransactionResult
 {

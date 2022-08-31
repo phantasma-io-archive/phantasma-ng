@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
 using Shouldly;
 using Xunit;
 

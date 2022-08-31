@@ -1,7 +1,4 @@
-using Phantasma.Shared.Utils;
-using System;
-
-namespace Phantasma.Core
+namespace Phantasma.Core.Cryptography
 {
     public static class Entropy
     {

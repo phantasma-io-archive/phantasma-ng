@@ -1,10 +1,10 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Collections.Generic;
-using Phantasma.Core;
 using System.Text.Json;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.VM
 {
     public struct DebugRange
     {

@@ -1,8 +1,7 @@
-﻿using System.Numerics;
-using Phantasma.Core;
+﻿using Phantasma.Core.Domain;
 using Phantasma.Shared;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
     public sealed class CustomContract : SmartContract, ICustomContract
     {

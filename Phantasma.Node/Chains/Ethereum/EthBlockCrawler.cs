@@ -1,26 +1,23 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Threading;
-
 using Nethereum.BlockchainProcessing;
 using Nethereum.BlockchainProcessing.Processor;
 using Nethereum.Contracts;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.StandardTokenEIP20.ContractDefinition;
 using Nethereum.Web3;
-
-using Phantasma.Core;
-
-using Phantasma.Infrastructure.Chains;
-
+using Phantasma.Business.Blockchain;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Node.Interop;
-
-using InteropTransfers = System.Collections.Generic.Dictionary<string,
-      System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<Phantasma.Core.InteropTransfer>>>;
-using System.Linq;
 using Serilog;
+using InteropTransfers = System.Collections.Generic.Dictionary<string,
+      System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<Phantasma.Core.Domain.InteropTransfer>>>;
 
-namespace Phantasma.Node.Chains
+namespace Phantasma.Node.Chains.Ethereum
 {
     public class CrawledBlock
     {
@@ -82,7 +79,7 @@ namespace Phantasma.Node.Chains
                     );
         }
 
-        public InteropTransfers ExtractInteropTransfers(Business.Nexus nexus, string[] swapAddresses)
+        public InteropTransfers ExtractInteropTransfers(Nexus nexus, string[] swapAddresses)
         {
             var interopTransfers = new InteropTransfers();
             lock (transactions)

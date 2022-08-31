@@ -1,4 +1,6 @@
-using Phantasma.Core;
+using Phantasma.Core.Domain;
+
+namespace Phantasma.Business.Blockchain.Contracts;
 
 public static class ContractNames
 {

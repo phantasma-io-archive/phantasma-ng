@@ -1,8 +1,10 @@
 ﻿using System.IO;
 using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Utils;
 using Phantasma.Shared;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public class TokenSeries : ITokenSeries
     {

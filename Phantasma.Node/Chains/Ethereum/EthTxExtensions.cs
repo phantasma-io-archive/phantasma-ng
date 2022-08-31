@@ -1,6 +1,7 @@
+using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Util;
 
-namespace Nethereum.RPC.Eth.DTOs
+namespace Phantasma.Node.Chains.Ethereum
 {
     public static class EthTXExtension
     {

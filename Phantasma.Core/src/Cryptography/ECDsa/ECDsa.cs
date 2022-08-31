@@ -1,13 +1,13 @@
+using System;
+using System.Linq;
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.Sec;
 using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Security;
-using System;
-using System.Linq;
 
-namespace Phantasma.Core.ECC
+namespace Phantasma.Core.Cryptography.ECDsa
 {
     public enum ECDsaCurve
     {

@@ -7,7 +7,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>phantasma-node</AssemblyName>
     <OutputType>Exe</OutputType>
-    <RootNamespace>Phantasma</RootNamespace>
+    <RootNamespace>Phantasma.Node</RootNamespace>
     <Company>Phantasma.io</Company>
     <Description>Phantasma.Node</Description>
     <Product>Phantasma.Node</Product>

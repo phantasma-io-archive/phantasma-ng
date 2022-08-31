@@ -1,13 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Diagnostics;
-using System.Collections.Generic;
-using Phantasma.Core;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
 using Phantasma.Shared;
 using Phantasma.Shared.Performance;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.VM
 {
 
     public abstract class VirtualMachine: IVirtualMachine
@@ -18,7 +19,7 @@ namespace Phantasma.Business
 
         public readonly static string EntryContextName = "entry";
 
-        private readonly Phantasma.Core.ExecutionContext entryContext;
+        private readonly ExecutionContext entryContext;
 
 
         public Stack<VMObject> Stack { get; } = new Stack<VMObject>();
@@ -38,8 +39,8 @@ namespace Phantasma.Business
             } 
         }
 
-        public Phantasma.Core.ExecutionContext CurrentContext { get; set; }
-        public Phantasma.Core.ExecutionContext PreviousContext { get; set; }
+        public ExecutionContext CurrentContext { get; set; }
+        public ExecutionContext PreviousContext { get; set; }
 
         private Stack<Address> _activeAddresses = new Stack<Address>();
         public Stack<Address> ActiveAddresses => _activeAddresses;

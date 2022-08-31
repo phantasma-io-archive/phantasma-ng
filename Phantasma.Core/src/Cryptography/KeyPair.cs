@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Linq;
-using Phantasma.Core.EdDSA;
+using Phantasma.Core.Cryptography.EdDSA;
 using Phantasma.Shared;
 using Phantasma.Shared.Utils;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Cryptography
 {
     public interface IKeyPair
     {

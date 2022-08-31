@@ -1,4 +1,4 @@
-﻿namespace Types
+﻿namespace Tendermint
 {
     public enum CodeType : uint
     {

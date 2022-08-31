@@ -1,7 +1,8 @@
 using System;
+using Phantasma.Core.Cryptography;
 
 //TODO
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public class ChainException : Exception
     {
