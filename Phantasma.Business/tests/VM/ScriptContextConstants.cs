@@ -1,7 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
-using Phantasma.Business.Assembler;
-using Phantasma.Core;
+using Phantasma.Business.CodeGen.Assembler;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 using Phantasma.Shared.Types;
 
 namespace Phantasma.Business.Tests.VM;
