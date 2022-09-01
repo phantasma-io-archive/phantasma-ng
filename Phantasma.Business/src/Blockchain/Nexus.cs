@@ -1556,6 +1556,13 @@ public class Nexus : INexus
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = UnitConversion.ToBigInteger(1000, DomainSettings.FiatTokenDecimals)},
                      })
                  },
+                 {
+                   GovernanceContract.GasMinimumFeeTag, new KeyValuePair<BigInteger, ChainConstraint[]>(GovernanceContract.GasMinimumFeeDefault, new[]
+                   {
+                       new ChainConstraint {Kind = ConstraintKind.MinValue, Value = GovernanceContract.GasMinimumFeeDefault},
+                       new ChainConstraint {Kind = ConstraintKind.MustIncrease}
+                   })  
+                 },
              }, initialValidators)},
         };
 

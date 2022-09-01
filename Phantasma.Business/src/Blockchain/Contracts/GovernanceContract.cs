@@ -38,6 +38,9 @@ namespace Phantasma.Business.Blockchain.Contracts
         internal StorageList _nameList;
 #pragma warning restore 0649
 
+        public const string GasMinimumFeeTag = "governance.gas.minimumfee";
+        public static readonly BigInteger GasMinimumFeeDefault = 100000;
+        
         public GovernanceContract() : base()
         {
         }

@@ -65,7 +65,7 @@ namespace Phantasma.Business.Blockchain
             //Throw.IfNull(transaction, nameof(transaction));
 
             this.TransactionIndex = index;
-            this.MinimumFee = 1;
+            this.MinimumFee = GetGovernanceValue(GovernanceContract.GasMinimumFeeTag);
             this.GasPrice = 0;
             this.PaidGas = 0;
             this.GasTarget = Address.Null;
@@ -1932,7 +1932,7 @@ namespace Phantasma.Business.Blockchain
             ExpectNameLength(contractName, nameof(contractName));
             ExpectValidContractMethod(method);
             ExpectEnumIsDefined(mode, nameof(mode));
-
+            
             Expect(gasLimit >= 999, "invalid gas limit");
 
             Expect(ValidationUtils.IsValidIdentifier(contractName), "invalid contract name");
