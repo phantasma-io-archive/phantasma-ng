@@ -892,7 +892,7 @@ namespace Phantasma.Business.Contracts
         }
 
         /// <summary>
-        /// 
+        /// Update the trading volume
         /// </summary>
         /// <param name="pool"></param>
         /// <param name="Amount">Always in SOUL AMOUNT!</param>
