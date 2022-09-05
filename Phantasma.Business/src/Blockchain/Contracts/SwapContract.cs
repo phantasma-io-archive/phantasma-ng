@@ -338,6 +338,8 @@ namespace Phantasma.Business.Contracts
             if (pool.Symbol0 == fromSymbol)
             {
                 tokenAmount = pool.Amount1 * (1 - feeAmount / 100) * amount / (pool.Amount0 + (1 - feeAmount / 100) * amount);
+                if (toInfo.Decimals == 0)
+                    tokenAmount = (int) tokenAmount;
                 canBeTraded = ValidateTrade(amount, tokenAmount, pool, true);
                 //power = (BigInteger)Math.Pow((long)(pool.Amount0 - amount), 2);
                 //rateForSwap = pool.Amount0 * pool.Amount1 * 10000000000 / power;
@@ -346,10 +348,15 @@ namespace Phantasma.Business.Contracts
             {
 
                 tokenAmount = pool.Amount0 * (1-feeAmount / 100) * amount / (pool.Amount1 + (1 - feeAmount / 100) * amount);
+                Console.WriteLine($"Test-> {tokenAmount}");
+                if (toInfo.Decimals == 0)
+                    tokenAmount = (int) tokenAmount;
                 canBeTraded = ValidateTrade(tokenAmount, amount, pool, false);
                 //power = (BigInteger)Math.Pow((long)(pool.Amount1 + amount), 2);
                 //rateForSwap =  pool.Amount0 * pool.Amount1 * 10000000000 / power;
             }
+
+            Console.WriteLine($"Test-> {tokenAmount}");
 
             rate = tokenAmount;
             Runtime.Expect(canBeTraded, "Can't be traded, the trade is not valid.");
@@ -608,7 +615,7 @@ namespace Phantasma.Business.Contracts
 
             var total = GetRate(fromSymbol, toSymbol, amount);
             Runtime.Expect(total > 0, "amount to swap needs to be larger than zero");
-
+            
 
             if (!PoolIsReal(fromSymbol, toSymbol)){
                 var rate = GetRate(fromSymbol, "SOUL", amount);
@@ -659,16 +666,31 @@ namespace Phantasma.Business.Contracts
             // Trading volume
             if (fromSymbol == DomainSettings.StakingTokenSymbol)
                 UpdateTradingVolume(pool, amount);
-            else
+            else if ( toSymbol ==  DomainSettings.StakingTokenSymbol)
                 UpdateTradingVolume(pool, total);
             
             // Handle Fees
-            BigInteger totalFees = total*3/100;
-            BigInteger feeForUsers = totalFees * 100 / UserPercent;
-            BigInteger feeForOwner = totalFees * 100 / GovernancePercent;
+            // Fees are always based on SOUL traded.
+            BigInteger totalFees = 0;
+            BigInteger feeForUsers = 0;
+            BigInteger feeForOwner = 0;
+            if (fromSymbol == DomainSettings.StakingTokenSymbol)
+            {
+                totalFees = amount*3/100;
+                feeForUsers = totalFees * 100 / UserPercent;
+                feeForOwner = totalFees * 100 / GovernancePercent;
+            }
+            else if (toSymbol == DomainSettings.StakingTokenSymbol)
+            {
+                totalFees = total*3/100;
+                feeForUsers = totalFees * 100 / UserPercent;
+                feeForOwner = totalFees * 100 / GovernancePercent;
+            }
+            
+            pool.Amount0 += amount;
+            pool.Amount1 -= total;
             pool.FeesForUsers += feeForUsers;
             pool.FeesForOwner += feeForOwner;
-
             DistributeFee(feeForUsers, pool.Symbol0, pool.Symbol1);
 
             // Save Pool
@@ -1125,7 +1147,7 @@ namespace Phantasma.Business.Contracts
         private void RemoveFromLPTokens(Address from, BigInteger NFTID, string symbol0, string symbol1)
         {
             var lptokenKey = GetLPTokensKey(from, symbol0, symbol1);
-            Runtime.Expect(!_lp_tokens.ContainsKey<string>(lptokenKey), "The user is not on the list.");
+            Runtime.Expect(_lp_tokens.ContainsKey<string>(lptokenKey), "The user is not on the list.");
             _lp_tokens.Remove<string>(lptokenKey);
             RemoveFromLPHolders(from, symbol0, symbol1);
         }
@@ -1542,16 +1564,12 @@ namespace Phantasma.Business.Contracts
             BigInteger poolRatio = 0; 
             BigInteger tradeRatioAmount = 0;
 
-            Console.WriteLine($"Division: {UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals)}");
-
             
             if (UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals) > 0)
                 poolRatio = UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals);
             else
                 poolRatio = UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals);
 
-            Console.WriteLine($"Is Pool Ratio 0? : {poolRatio}");
-            
             // Calculate Amounts if they are 0
             if (amount0 == 0)
             {
@@ -1564,8 +1582,6 @@ namespace Phantasma.Business.Contracts
                     amount1 = UnitConversion.ConvertDecimals((amount0 / 100 / poolRatio), DomainSettings.FiatTokenDecimals, token1Info.Decimals);
                 }
             }
-
-            Console.WriteLine($"tradeRatio Division? : {UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals)}");
 
             if (amount1 * 100 / UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals) > 0)
                 tradeRatioAmount = amount0 * 100 / UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals);
@@ -1599,41 +1615,64 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(ValidateRatio(tempAm1, tempAm0*100, poolRatio), $"ratio is not true. {poolRatio}, new {tempAm0} {tempAm1} {tempAm0 / tempAm1} {amount0 / UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals)}");
 
             // Update the user NFT
-            Console.WriteLine("Before Updateding the NFT");
             var lpKey = GetLPTokensKey(from, pool.Symbol0, pool.Symbol1);
             var nftID = _lp_tokens.Get<string, BigInteger>(lpKey);
             var nft = Runtime.ReadToken(DomainSettings.LiquidityTokenSymbol, nftID);
             LPTokenContentRAM nftRAM = VMObject.FromBytes(nft.RAM).AsStruct<LPTokenContentRAM>();
-            BigInteger newAmount0 = nftRAM.Amount0 - amount0;
-            BigInteger newAmount1 = nftRAM.Amount1 - amount1;
-            BigInteger oldAmount0 = nftRAM.Amount0;
-            BigInteger oldAmount1 = nftRAM.Amount1;
+            BigInteger oldAmount0 = nftRAM.Liquidity * pool.Amount0 / pool.TotalLiquidity;
+            BigInteger oldAmount1 = nftRAM.Liquidity * pool.Amount1 / pool.TotalLiquidity;
+            BigInteger newAmount0 = oldAmount0 - amount0;
+            BigInteger newAmount1 = oldAmount1 - amount1;
             BigInteger oldLP = nftRAM.Liquidity;
             Console.WriteLine($"new LP Division? : {(pool.Amount0-nftRAM.Amount0)}");
-            BigInteger newLiquidity = newAmount0 * (pool.TotalLiquidity - nftRAM.Liquidity) / (pool.Amount0-nftRAM.Amount0);
+            Console.WriteLine($"Pool Amount : {(pool.Amount0)} | NFT -> {nftRAM.Amount0}");
+            BigInteger division = pool.Amount0 - nftRAM.Amount0;
+            BigInteger lp = pool.TotalLiquidity - nftRAM.Liquidity;
+            
+            if (pool.Amount0 - nftRAM.Amount0 <= 0)
+            {
+                division = 1;
+            }
+
+            if (lp == 0)
+            {
+                lp = 1;
+            }
+            BigInteger newLiquidity = 0;
+            if (pool.Amount0 == oldAmount0)
+            {
+                newLiquidity = (BigInteger) Sqrt(newAmount0 * newAmount1);
+            }
+            else
+            {
+                newLiquidity = newAmount0 * (lp) / division;
+            }
+            
 
             Console.WriteLine($"LP Division? : {(pool.Amount0)}");
 
-            liquidity = (amount0 * (pool.TotalLiquidity)) / (pool.Amount0);
+            liquidity = (amount0 * pool.TotalLiquidity) / (pool.Amount0);
             
             Runtime.Expect(nftRAM.Liquidity - liquidity >= 0, "Trying to remove more than you have...");
 
-            //Console.WriteLine($"BeforeLP:{nftRAM.Liquidity} - LiquidityToRemove:{liquidity} | FinalLP:{newLiquidity}");
+            Console.WriteLine($"BeforeLP:{nftRAM.Liquidity} - LiquidityToRemove:{liquidity} | FinalLP:{newLiquidity}");
 
 
             // If the new amount will be = 0 then burn the NFT
-            if (nftRAM.Liquidity - liquidity == 0)
+            if (newAmount0 == 0)
             {
                 // Burn NFT
                 Runtime.BurnToken(DomainSettings.LiquidityTokenSymbol, from, nftID);
                 RemoveFromLPTokens(from, nftID, pool.Symbol0, pool.Symbol1);
+                Runtime.TransferTokens(pool.Symbol0, this.Address, from, oldAmount0);
+                Runtime.TransferTokens(pool.Symbol1, this.Address, from, oldAmount1);
             }
             else
             {
-                Runtime.Expect(nftRAM.Amount0 - amount0 > 0, $"Lower Amount for symbol {symbol0}. | You have {nftRAM.Amount0} {symbol0}, trying to remove {amount0} {symbol0}");
+                Runtime.Expect(oldAmount0 - amount0 > 0, $"Lower Amount for symbol {symbol0}. | You have {oldAmount0} {symbol0}, trying to remove {amount0} {symbol0}");
                 nftRAM.Amount0 = newAmount0;
 
-                Runtime.Expect(nftRAM.Amount1 - amount1 > 0, $"Lower Amount for symbol {symbol1}. | You have {nftRAM.Amount1} {symbol1}, trying to remove {amount1} {symbol1}");
+                Runtime.Expect(oldAmount1 - amount1 > 0, $"Lower Amount for symbol {symbol1}. | You have {oldAmount1} {symbol1}, trying to remove {amount1} {symbol1}");
                 nftRAM.Amount1 = newAmount1;
 
                 Runtime.TransferTokens(symbol0, this.Address, from, amount0);
@@ -1645,12 +1684,29 @@ namespace Phantasma.Business.Contracts
             }
 
             // Update the pool values
-            pool.Amount0 = (pool.Amount0 - oldAmount0) + amount0;
-            pool.Amount1 = (pool.Amount1 - oldAmount1) + amount1;
+            if (pool.Amount0 == oldAmount0)
+            {
+                pool.Amount0 = newAmount0;
+                pool.Amount1 = newAmount1;
+                
+                pool.TotalLiquidity = newLiquidity;
+            }
+            else
+            {
+                pool.Amount0 = (pool.Amount0 - oldAmount0) + newAmount0;
+                pool.Amount1 = (pool.Amount1 - oldAmount1) + newAmount1;
 
-            pool.TotalLiquidity = pool.TotalLiquidity - oldLP + newLiquidity;
+                pool.TotalLiquidity = pool.TotalLiquidity - oldLP + newLiquidity;
+            }
 
-            _pools.Set<string, Pool>($"{pool.Symbol0}_{pool.Symbol1}", pool);
+            if (pool.Amount0 == 0)
+            {
+                _pools.Remove($"{pool.Symbol0}_{pool.Symbol1}");
+            }
+            else
+            {
+                _pools.Set<string, Pool>($"{pool.Symbol0}_{pool.Symbol1}", pool);
+            }
         }
 
         private bool ValidateTrade(BigInteger amount0, BigInteger amount1, Pool pool, bool isBuying = false)
