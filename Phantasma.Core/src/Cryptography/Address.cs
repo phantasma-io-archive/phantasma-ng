@@ -1,13 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Collections.Generic;
+using Phantasma.Core.Cryptography.Hashing;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
 using Phantasma.Shared;
 using Phantasma.Shared.Utils;
-using Phantasma.Core.Hashing;
-using System.Linq;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Cryptography
 {
     public enum AddressKind
     {

@@ -1,12 +1,11 @@
-﻿using K4os.Compression.LZ4;
-using Org.BouncyCastle.Utilities;
-using System;
+﻿using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
 using System.IO.Compression;
+using K4os.Compression.LZ4;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Utils
 {
     public static class CompressionUtils
     {

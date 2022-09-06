@@ -1,10 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Collections.Generic;
-using Phantasma.Business.Core.Nodes;
+using Phantasma.Business.CodeGen.Core.Nodes;
 
-namespace Phantasma.Business.Core
+namespace Phantasma.Business.CodeGen.Core
 {
     public class ParserException: Exception
     {

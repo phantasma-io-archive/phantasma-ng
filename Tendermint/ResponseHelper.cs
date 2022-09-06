@@ -1,7 +1,7 @@
 ﻿using Google.Protobuf;
 using Tendermint.Abci;
 
-namespace Types
+namespace Tendermint
 {
     public static class ResponseHelper
     {

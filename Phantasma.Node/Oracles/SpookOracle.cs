@@ -1,20 +1,22 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Collections.Generic;
-
-using Phantasma.Business;
-using Phantasma.Core;
-using Phantasma.Shared.Types;
-using Phantasma.Infrastructure.Chains;
-using Phantasma.Core.Context;
+using Neo;
+using Phantasma.Business.Blockchain;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Infrastructure.API;
+using Phantasma.Infrastructure.Pay.Chains;
+using Phantasma.Node.Chains.Neo2;
 using Phantasma.Node.Interop;
+using Phantasma.Shared.Types;
+using Serilog;
 using NeoBlock = Neo.Network.P2P.Payloads.Block;
 using NeoTx = Neo.Network.P2P.Payloads.Transaction;
-using Neo;
-using Serilog;
-using Phantasma.Infrastructure;
-using Phantasma.Node.Chains;
 
 namespace Phantasma.Node.Oracles
 {
@@ -163,7 +165,7 @@ namespace Phantasma.Node.Oracles
             switch (platform)
             {
                 case NeoWallet.NeoPlatform:
-                    return Phantasma.Core.UnitConversion.ToBigInteger(0.1m, DomainSettings.FiatTokenDecimals);
+                    return UnitConversion.ToBigInteger(0.1m, DomainSettings.FiatTokenDecimals);
 
                 case EthereumWallet.EthereumPlatform:
 

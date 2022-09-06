@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Business.Contracts;
-using Phantasma.Core;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Core.Cryptography;
 
-namespace Phantasma.Infrastructure.Controllers
+namespace Phantasma.Infrastructure.API.Controllers
 {
     public class SaleController : BaseControllerV1
     {

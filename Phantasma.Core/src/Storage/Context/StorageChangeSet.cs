@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using Phantasma.Shared;
 
-namespace Phantasma.Core.Context
+namespace Phantasma.Core.Storage.Context
 {
     public struct StorageChangeSetEntry
     {

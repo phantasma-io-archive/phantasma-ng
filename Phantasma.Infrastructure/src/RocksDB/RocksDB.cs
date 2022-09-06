@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Phantasma.Core;
+using Phantasma.Core.Storage;
 using Phantasma.Shared;
 using RocksDbSharp;
 using Serilog;
 
-namespace Phantasma.Infrastructure
+namespace Phantasma.Infrastructure.RocksDB
 {
     public class DBPartition : IKeyValueStoreAdapter
     {

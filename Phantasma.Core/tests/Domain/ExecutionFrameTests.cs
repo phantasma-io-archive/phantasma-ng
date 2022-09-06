@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
 using Shouldly;
 using Xunit;
 
@@ -19,6 +21,17 @@ public class ExecutionFrameTests
 
         // Assert
         result.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Context_should_match_provided_context()
+    {
+        // Arrange
+        var executionContext = new TestExecutionContext();
+        var sut = new ExecutionFrame(new TestVm(), 0, executionContext, 5);
+
+        // Assert
+        sut.Context.ShouldBe(executionContext);
     }
 
     [Theory]
@@ -121,7 +134,7 @@ public class ExecutionFrameTests
     [ExcludeFromCodeCoverage]
     private class TestExecutionContext : ExecutionContext
     {
-        public override string Name => "TestExeutionContext";
+        public override string Name => "TestExecutionContext";
 
         public override ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack)
         {

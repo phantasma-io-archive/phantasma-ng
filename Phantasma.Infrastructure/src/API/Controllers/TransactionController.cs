@@ -1,13 +1,15 @@
-using Microsoft.AspNetCore.Mvc;
-using Phantasma.Core;
-using Phantasma.Business;
-using Phantasma.Core.Context;
-using Phantasma.Shared.Types;
-using System.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Microsoft.AspNetCore.Mvc;
+using Phantasma.Business.Blockchain;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Shared.Types;
 
-namespace Phantasma.Infrastructure.Controllers
+namespace Phantasma.Infrastructure.API.Controllers
 {
     public class TransactionController : BaseControllerV1
     {

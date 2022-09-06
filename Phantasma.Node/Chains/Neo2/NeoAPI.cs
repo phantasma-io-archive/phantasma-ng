@@ -2,16 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Text.Json;
 using System.Threading;
 using Neo;
-using Neo.VM;
-using NeoVMT = Neo.VM.Types;
-using Neo.SmartContract;
-using Neo.Wallets;
 using Neo.Network.P2P.Payloads;
-using System.Text.Json;
+using Neo.SmartContract;
+using Neo.VM;
+using Neo.Wallets;
+using NeoVMT = Neo.VM.Types;
 
-namespace Phantasma.Node.Chains
+namespace Phantasma.Node.Chains.Neo2
 {
     public class NeoBlockIterator
     {

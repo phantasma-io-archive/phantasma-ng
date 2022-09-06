@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Phantasma.Core.Context
+namespace Phantasma.Core.Storage.Context
 {
     public interface IStorageCollection
     {

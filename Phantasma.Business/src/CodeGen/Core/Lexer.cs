@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Phantasma.Business.Core
+namespace Phantasma.Business.CodeGen.Core
 {
     public enum LiteralKind
     {

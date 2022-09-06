@@ -1,19 +1,24 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System;
-using System.Numerics;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
-
-using Phantasma.Core;
-using Phantasma.Core.Context;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Utils;
+using Phantasma.Infrastructure.API;
+using Phantasma.Infrastructure.API.Controllers;
+using Phantasma.Infrastructure.Pay.Chains;
+using Phantasma.Node.Chains.Ethereum;
+using Phantasma.Node.Chains.Neo2;
 using Phantasma.Shared.Types;
-using Phantasma.Business;
-using Phantasma.Business.Contracts;
-using Phantasma.Infrastructure.Chains;
-using Phantasma.Infrastructure;
-using Phantasma.Node.Chains;
 using Serilog;
+using TransactionResult = Phantasma.Infrastructure.API.TransactionResult;
 
 namespace Phantasma.Node.Interop
 {
@@ -530,7 +535,7 @@ namespace Phantasma.Node.Interop
 
             var nexus = NexusAPI.GetNexus();
 
-            var tx = new Transaction(nexus.Name, "main", script, Timestamp.Now + TimeSpan.FromMinutes(5), Node.TxIdentifier);
+            var tx = new Transaction(nexus.Name, "main", script, SwapKeys.Address, Timestamp.Now + TimeSpan.FromMinutes(5), Node.TxIdentifier);
             tx.Sign(SwapKeys);
 
             var bytes = tx.ToByteArray(true);
@@ -538,7 +543,7 @@ namespace Phantasma.Node.Interop
             var txData = Base16.Encode(bytes);
             try
             {
-                var transactionController = new Infrastructure.Controllers.TransactionController();
+                var transactionController = new TransactionController();
                 transactionController.SendRawTransaction(txData);
             }
             catch(Exception ex)
@@ -701,10 +706,10 @@ namespace Phantasma.Node.Interop
                     {
                         try
                         {
-                            var transactionController = new Infrastructure.Controllers.TransactionController();
+                            var transactionController = new TransactionController();
                             var result = transactionController.GetTransaction(swap.settleHash.ToString());
 
-                            var tx = (Phantasma.Infrastructure.TransactionResult)result;
+                            var tx = (TransactionResult)result;
                             swap.status = SwapStatus.Finished;
                         }
                         catch (Exception ex)

@@ -1,12 +1,14 @@
-﻿using Phantasma.Core;
-using Phantasma.Core.ECC;
+﻿using System;
+using System.Linq;
+using Nethereum.Hex.HexConvertors.Extensions;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Numerics;
+
 //using Phantasma.Ethereum.Hex.HexConvertors.Extensions;
 //using Phantasma.Ethereum.Util;
-using Nethereum.Hex.HexConvertors.Extensions;
-using System;
-using System.Linq;
 
-namespace Phantasma.Node.Chains
+namespace Phantasma.Node.Chains.Ethereum
 {
     public class EthereumKey : IKeyPair
     {

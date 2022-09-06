@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Numerics;
-using Phantasma.Core;
+using System.Text;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Utils;
 using Phantasma.Shared;
 using Phantasma.Shared.Types;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.VM.Utils
 {
     public class ScriptBuilder
     {

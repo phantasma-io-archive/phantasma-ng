@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
-using Phantasma.Infrastructure;
+using Phantasma.Infrastructure.API;
 using Phantasma.Node.Caching;
 
 namespace Phantasma.Node.Middleware;

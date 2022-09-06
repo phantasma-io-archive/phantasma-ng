@@ -3,7 +3,7 @@ The MurmurHash3 algorithm was created by Austin Appleby and put into the public 
 This version was modified based on a version written by Elliott B. Edwards
  */
 
-namespace Phantasma.Core.Hashing
+namespace Phantasma.Core.Cryptography.Hashing
 {
     public static class Murmur32 
     {

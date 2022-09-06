@@ -1,9 +1,9 @@
-﻿using Phantasma.Business.Core.Nodes;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Phantasma.Business.CodeGen.Core.Nodes;
 
-namespace Phantasma.Business.Core
+namespace Phantasma.Business.CodeGen.Core
 {
     public abstract class DefaultParser: Parser
     {

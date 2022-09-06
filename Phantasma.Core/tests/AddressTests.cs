@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Phantasma.Core.Cryptography;
 using Shouldly;
 
 namespace Phantasma.Core.Tests;

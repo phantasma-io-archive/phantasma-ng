@@ -1,7 +1,9 @@
 using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
 using Phantasma.Shared.Types;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public enum TriggerResult
     {

@@ -1,5 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
+using Phantasma.Core.Domain;
 using Shouldly;
 
 namespace Phantasma.Core.Tests;

@@ -1,16 +1,18 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Collections.Generic;
-using Phantasma.Core;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.VM;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Storage.Context;
 using Phantasma.Shared;
 using Phantasma.Shared.Types;
-using Phantasma.Core.Context;
-using Phantasma.Business.Contracts;
-using Phantasma.Business.Tokens;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
     public static class ExtCalls
     {

@@ -1,7 +1,8 @@
 // notes: Keep the structs here simple only using primitive C# types or arrays
-using Phantasma.Core;
 
-namespace Phantasma.Infrastructure
+using Phantasma.Core.Domain;
+
+namespace Phantasma.Infrastructure.API
 {
     public class BalanceResult
     {
@@ -236,6 +237,9 @@ namespace Phantasma.Infrastructure
 
         [APIDescription("List of signatures that signed the transaction")]
         public SignatureResult[] signatures { get; set; }
+
+        [APIDescription("Sender of the transaction")]
+        public string sender { get; set; }
 
         [APIDescription("Expiration time of the transaction")]
         public uint expiration { get; set; }

@@ -2,18 +2,18 @@
 using System.Collections.Generic;
 using System.Numerics;
 using System.Threading.Tasks;
-using Nethereum.Web3;
-using Nethereum.Web3.Accounts;
-using Nethereum.Hex.HexTypes;
 using Nethereum.Contracts;
+using Nethereum.Hex.HexTypes;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.StandardTokenEIP20.ContractDefinition;
-
-using Phantasma.Core;
-using Phantasma.Infrastructure;
+using Nethereum.Web3;
+using Nethereum.Web3.Accounts;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Infrastructure.API;
 using Transaction = Nethereum.RPC.Eth.DTOs.Transaction;
 
-namespace Phantasma.Node.Chains
+namespace Phantasma.Node.Chains.Ethereum
 {
     public enum EthTransferResult
     {
@@ -146,7 +146,7 @@ namespace Phantasma.Node.Chains
             {
                 var bytes = nexus.GetOracleReader().Read<byte[]>(DateTime.Now, DomainExtensions.GetOracleFeeURL("ethereum"));
                 var fees = new BigInteger(bytes);
-                var gasPrice = Core.UnitConversion.ToDecimal(fees / Settings.Default.Oracle.EthGasLimit, 9);
+                var gasPrice = UnitConversion.ToDecimal(fees / Settings.Default.Oracle.EthGasLimit, 9);
 
                 result = EthUtils.RunSync(() => GetWeb3Client().Eth.GetEtherTransferService()
                         .TransferEtherAsync(toAddress, amount, gasPrice, Settings.Default.Oracle.EthGasLimit));

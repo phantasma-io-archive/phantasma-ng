@@ -1,23 +1,25 @@
 using System;
-using System.Linq;
-using System.Text;
-using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Business;
+using System.Linq;
+using System.Numerics;
+using System.Text;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Utils;
 using Phantasma.Shared;
-using Phantasma.Shared.Types;
 using Phantasma.Shared.Performance;
+using Phantasma.Shared.Types;
 using Phantasma.Shared.Utils;
-using Phantasma.Core;
-using Phantasma.Core.Context;
-using Phantasma.Business.Storage;
-using Phantasma.Business.Tokens;
-using Phantasma.Business.Contracts;
 using Serilog;
-using Tendermint.Abci;
-using Types;
 
-namespace Phantasma.Business;
+namespace Phantasma.Business.Blockchain;
 
 public class Nexus : INexus
 {
@@ -1327,7 +1329,7 @@ public class Nexus : INexus
 
         var script = sb.EndScript();
 
-        var tx = new Transaction(this.Name, DomainSettings.RootChainName, script, Timestamp.Now + TimeSpan.FromDays(300));
+        var tx = new Transaction(this.Name, DomainSettings.RootChainName, script, owner.Address, Timestamp.Now + TimeSpan.FromDays(300));
         tx.Mine(ProofOfWork.Minimal);
         tx.Sign(owner);
 
@@ -1349,7 +1351,7 @@ public class Nexus : INexus
         var script = //SpendGas(owner.Address).
             sb.EndScript();
 
-        var tx = new Transaction(Name, DomainSettings.RootChainName, script, Timestamp.Now + TimeSpan.FromDays(300));
+        var tx = new Transaction(Name, DomainSettings.RootChainName, script, owner.Address, Timestamp.Now + TimeSpan.FromDays(300));
         tx.Mine((int)ProofOfWork.Moderate);
         tx.Sign(owner);
         return tx;
@@ -1557,6 +1559,13 @@ public class Nexus : INexus
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 0},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = UnitConversion.ToBigInteger(1000, DomainSettings.FiatTokenDecimals)},
                      })
+                 },
+                 {
+                   GovernanceContract.GasMinimumFeeTag, new KeyValuePair<BigInteger, ChainConstraint[]>(GovernanceContract.GasMinimumFeeDefault, new[]
+                   {
+                       new ChainConstraint {Kind = ConstraintKind.MinValue, Value = GovernanceContract.GasMinimumFeeDefault},
+                       new ChainConstraint {Kind = ConstraintKind.MustIncrease}
+                   })  
                  },
              }, initialValidators)},
         };

@@ -1,11 +1,10 @@
-using System;
 using System.IO;
-using System.Linq;
 using System.Numerics;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Utils;
 using Phantasma.Shared;
-using Phantasma.Shared.Utils;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Cryptography
 {
     // Merkle tree implemented as a binary heap
     public class MerkleTree: ISerializable

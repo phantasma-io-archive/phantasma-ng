@@ -1,14 +1,17 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Numerics;
+using System.Text;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.EdDSA;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Utils;
 using Phantasma.Shared.Types;
-using Phantasma.Core;
-using Phantasma.Core.EdDSA;
-using Phantasma.Core.Context;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public struct RelayMessage : ISerializable
     {

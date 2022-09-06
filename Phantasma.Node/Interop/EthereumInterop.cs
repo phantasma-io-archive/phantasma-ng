@@ -1,26 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Linq;
-using System.Text.Json;
-using System.Numerics;
-
-using Phantasma.Business;
-using Phantasma.Infrastructure.Chains;
-using Phantasma.Core;
-using Phantasma.Core.Context;
-using Phantasma.Shared.Utils;
-using Phantasma.Node.Chains;
-
-using Nethereum.RPC.Eth.DTOs;
-using Nethereum.Contracts;
-using Nethereum.StandardTokenEIP20.ContractDefinition;
-
-using EthereumKey = Phantasma.Node.Chains.EthereumKey;
 using System.Net.Http;
+using System.Numerics;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using Nethereum.Contracts;
+using Nethereum.RPC.Eth.DTOs;
+using Nethereum.StandardTokenEIP20.ContractDefinition;
+using Phantasma.Business.Blockchain;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Infrastructure.Pay.Chains;
+using Phantasma.Node.Chains.Ethereum;
+using Phantasma.Shared.Utils;
 using Serilog;
+using EthereumKey = Phantasma.Node.Chains.Ethereum.EthereumKey;
 
 namespace Phantasma.Node.Interop
 {
@@ -738,7 +737,7 @@ namespace Phantasma.Node.Interop
                 }
             }
 
-            var total = Core.UnitConversion.ToDecimal(amount, token.Decimals);
+            var total = UnitConversion.ToDecimal(amount, token.Decimals);
 
             var ethKeys = EthereumKey.FromWIF(this.WIF);
 

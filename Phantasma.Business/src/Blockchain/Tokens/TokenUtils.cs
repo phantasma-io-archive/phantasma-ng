@@ -1,13 +1,16 @@
 ﻿using System;
-using System.Linq;
-using System.Text;
-using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Core;
-using Phantasma.Core.Context;
+using System.Linq;
+using System.Numerics;
+using System.Text;
+using Phantasma.Business.CodeGen.Assembler;
+using Phantasma.Business.VM;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Storage.Context;
 using Phantasma.Shared.Types;
 
-namespace Phantasma.Business.Tokens
+namespace Phantasma.Business.Blockchain.Tokens
 {
     public static class TokenUtils
     {
@@ -171,7 +174,7 @@ namespace Phantasma.Business.Tokens
 
             DebugInfo debugInfo;
             Dictionary<string, int> labels;
-            script = Assembler.AssemblerUtils.BuildScript(asm, "dummy", out debugInfo, out labels);
+            script = AssemblerUtils.BuildScript(asm, "dummy", out debugInfo, out labels);
 
             var standardABI = GetNFTStandard();
 

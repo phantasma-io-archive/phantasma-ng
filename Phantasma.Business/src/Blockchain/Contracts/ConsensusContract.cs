@@ -1,10 +1,11 @@
 ﻿using System.Linq;
 using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Storage.Context;
 using Phantasma.Shared.Types;
-using Phantasma.Core;
-using Phantasma.Core.Context;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public enum ConsensusMode
     {

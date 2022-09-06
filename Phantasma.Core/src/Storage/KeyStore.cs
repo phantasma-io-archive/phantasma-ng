@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Phantasma.Core.Domain;
 using Phantasma.Shared;
 using Phantasma.Shared.Utils;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Storage
 {
     public interface IKeyValueStoreAdapter
     {

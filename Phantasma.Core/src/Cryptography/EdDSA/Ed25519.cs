@@ -1,8 +1,8 @@
-﻿using Phantasma.Shared;
-using Org.BouncyCastle.Crypto.Parameters;
+﻿using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
+using Phantasma.Shared;
 
-namespace Phantasma.Core.EdDSA
+namespace Phantasma.Core.Cryptography.EdDSA
 {
     public static class Ed25519
     {

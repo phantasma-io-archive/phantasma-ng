@@ -1,7 +1,7 @@
 ﻿using System;
 using Google.Protobuf;
 
-namespace Types.Extensions
+namespace Tendermint.Extensions
 {
     public static class IntExtensions
     {

@@ -1,18 +1,17 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Security.Cryptography;
-using System.Text;
-using Phantasma.Core;
-using Neo;
-using Neo.Wallets;
 using Neo.Network.P2P.Payloads;
+using Neo.Wallets;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 using Transaction = Neo.Network.P2P.Payloads.Transaction;
 
-namespace Phantasma.Node.Chains
+namespace Phantasma.Node.Chains.Neo2
 {
     public static class NeoUtils
     {
@@ -65,7 +64,7 @@ namespace Phantasma.Node.Chains
             byte[] buffer;
             try
             {
-                buffer = Core.Base58.Decode(address);
+                buffer = Base58.Decode(address);
 
             }
             catch
@@ -310,16 +309,16 @@ namespace Phantasma.Node.Chains
             return unixEpoch.AddSeconds(timestamp);
         }
 
-        public static Phantasma.Core.Address ExtractAddress(this Witness witness)
+        public static Address ExtractAddress(this Witness witness)
         {
             if (witness.VerificationScript.Length == 0)
             {
-                return Phantasma.Core.Address.Null;
+                return Address.Null;
             }
             var bytes = new byte[34];
-            bytes[0] = (byte)Phantasma.Core.AddressKind.User;
+            bytes[0] = (byte)AddressKind.User;
             Phantasma.Shared.Utils.ByteArrayUtils.CopyBytes(witness.VerificationScript, 1, bytes, 1, 33);
-            return Phantasma.Core.Address.FromBytes(bytes);
+            return Address.FromBytes(bytes);
         }
 
         public static void Sign(this Transaction tx, NeoKeys key, IEnumerable<Witness> witnesses = null)

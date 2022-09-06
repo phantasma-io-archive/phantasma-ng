@@ -1,6 +1,6 @@
-﻿using Phantasma.Core;
+﻿using Phantasma.Core.Domain;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
     public static class TransactionExtensions
     {

@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Numerics;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Utils
 {
     public static class IOUtils
     {

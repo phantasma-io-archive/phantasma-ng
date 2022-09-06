@@ -1,7 +1,7 @@
-﻿using Phantasma.Business.Core.Nodes;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Phantasma.Business.CodeGen.Core.Nodes;
 
-namespace Phantasma.Business.Core
+namespace Phantasma.Business.CodeGen.Core
 {
     public class Compiler
     {

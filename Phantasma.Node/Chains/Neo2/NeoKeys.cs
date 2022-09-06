@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Linq;
 using Neo;
-using Phantasma.Core;
-using Phantasma.Core.ECC;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.ECDsa;
 using NeoSmartContract = Neo.SmartContract;
 using NeoSmartContractHelper = Neo.SmartContract.Helper;
 using NeoWallets = Neo.Wallets;
 using NeoWalletsHelper = Neo.Wallets.Helper;
 
-namespace Phantasma.Node.Chains
+namespace Phantasma.Node.Chains.Neo2
 {
     public class NeoKeys : IKeyPair
     {

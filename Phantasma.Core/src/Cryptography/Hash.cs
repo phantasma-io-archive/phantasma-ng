@@ -2,10 +2,13 @@ using System;
 using System.IO;
 using System.Numerics;
 using System.Text;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
 using Phantasma.Shared;
 using Phantasma.Shared.Utils;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Cryptography
 {
     public struct Hash : ISerializable, IComparable<Hash>, IEquatable<Hash>
     {

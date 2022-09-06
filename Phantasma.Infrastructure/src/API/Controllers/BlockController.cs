@@ -1,9 +1,9 @@
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Core;
-using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
 
-namespace Phantasma.Infrastructure.Controllers
+namespace Phantasma.Infrastructure.API.Controllers
 {
     public class BlockController : BaseControllerV1
     {

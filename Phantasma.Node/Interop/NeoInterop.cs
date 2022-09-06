@@ -1,22 +1,22 @@
 ﻿using System;
-using System.Numerics;
+using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-
-using Phantasma.Core;
-using Phantasma.Infrastructure;
-using Phantasma.Infrastructure.Chains;
-using Phantasma.Core.Context;
-using Phantasma.Node.Chains;
-
+using Neo;
 using Neo.Network.P2P.Payloads;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Infrastructure.Pay;
+using Phantasma.Infrastructure.Pay.Chains;
+using Phantasma.Node.Chains.Neo2;
+using Serilog;
 using NeoBlock = Neo.Network.P2P.Payloads.Block;
 using NeoTx = Neo.Network.P2P.Payloads.Transaction;
-using Neo;
-using Serilog;
 
 namespace Phantasma.Node.Interop
 {
@@ -489,7 +489,7 @@ namespace Phantasma.Node.Interop
                         CryptoCurrencyInfo tokenInfo;
                         if (NeoTokenInfo.TryGetValue(token, out tokenInfo))
                         {
-                            amount = Core.UnitConversion.ToBigInteger(
+                            amount = UnitConversion.ToBigInteger(
                                     (long)output.Value, tokenInfo.Decimals);
                         }
                         else
@@ -775,7 +775,7 @@ namespace Phantasma.Node.Interop
                 }
             }
 
-            var total = Core.UnitConversion.ToDecimal(amount, token.Decimals);
+            var total = UnitConversion.ToDecimal(amount, token.Decimals);
 
             var neoKeys = NeoKeys.FromWIF(this.WIF);
 

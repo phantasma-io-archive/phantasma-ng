@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Shouldly;
 using Xunit;
 
@@ -244,6 +244,7 @@ public class ThrowTests
         result.Message.ShouldStartWith("Cannot be inside the range");
     }
 
+    [ExcludeFromCodeCoverage]
     private struct TestStruct
     {
         public string Name { get; set; }

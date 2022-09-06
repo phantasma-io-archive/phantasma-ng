@@ -2,13 +2,14 @@ using System;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Phantasma.Business;
-using Phantasma.Core;
-//using Phantasma.Ethereum.Hex.HexConvertors.Extensions;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Org.BouncyCastle.Crypto.Digests;
+using Phantasma.Business.Blockchain;
+using Phantasma.Core.Cryptography;
 
-namespace Phantasma.Node.Chains
+//using Phantasma.Ethereum.Hex.HexConvertors.Extensions;
+
+namespace Phantasma.Node.Chains.Ethereum
 {
     public static class EthUtils
     {
@@ -24,7 +25,7 @@ namespace Phantasma.Node.Chains
             return task.GetAwaiter().GetResult();
         }
 
-        public static string FindSymbolFromAsset(Business.Nexus nexus, string assetID)
+        public static string FindSymbolFromAsset(Nexus nexus, string assetID)
         {
             if (assetID.StartsWith("0x"))
             {

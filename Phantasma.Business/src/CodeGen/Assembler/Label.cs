@@ -1,4 +1,6 @@
-﻿namespace Phantasma.Business.Assembler
+﻿using Phantasma.Business.VM.Utils;
+
+namespace Phantasma.Business.CodeGen.Assembler
 {
     internal class Label : Semanteme
     {

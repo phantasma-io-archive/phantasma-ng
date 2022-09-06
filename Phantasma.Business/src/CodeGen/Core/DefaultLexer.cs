@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace Phantasma.Business.Core
+namespace Phantasma.Business.CodeGen.Core
 {
     public class DefaultLexer: Lexer
     {

@@ -1,4 +1,4 @@
-﻿namespace Phantasma.Infrastructure
+﻿namespace Phantasma.Infrastructure.API
 {
     public static class DefaultAvatar
     {

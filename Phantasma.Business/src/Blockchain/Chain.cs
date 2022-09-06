@@ -1,23 +1,27 @@
-using System.Text;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
+using System.Text;
 using Google.Protobuf;
-using Phantasma.Business.Contracts;
-using Phantasma.Business.Tokens;
-using Phantasma.Core;
-using Phantasma.Core.Context;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Utils;
 using Phantasma.Shared;
+using Phantasma.Shared.Performance;
 using Phantasma.Shared.Types;
 using Phantasma.Shared.Utils;
-using Phantasma.Shared.Performance;
 using Serilog;
+using Tendermint;
 using Tendermint.Types;
-using Types;
 using TValidatorUpdate = Tendermint.Abci.ValidatorUpdate;
-using System.Collections.Generic;
-using System;
-using System.Linq;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
     public sealed class Chain : IChain
     {
@@ -137,7 +141,7 @@ namespace Phantasma.Business
                         .SpendGas(this.CurrentBlock.Validator)
                         .EndScript();
 
-                    var transaction = new Transaction(this.Nexus.Name, this.Name, script, this.CurrentBlock.Timestamp.Value + 1, "SYSTEM");
+                    var transaction = new Transaction(this.Nexus.Name, this.Name, script, validatorAddress, this.CurrentBlock.Timestamp.Value + 1, "SYSTEM");
 
                     transaction.Sign(this.ValidatorKeys);
                     systemTransactions.Add(transaction);
@@ -152,10 +156,8 @@ namespace Phantasma.Business
             return systemTransactions;
         }
 
-        public (CodeType, string) CheckTx(ByteString serializedTx)
+        public (CodeType, string) CheckTx(Transaction tx)
         {
-            var txString = serializedTx.ToStringUtf8();
-            var tx = Transaction.Unserialize(Base16.Decode(txString));
             Log.Information("check tx " + tx.Hash);
 
             if (tx.Expiration < Timestamp.Now)
@@ -176,6 +178,12 @@ namespace Phantasma.Business
                 return (CodeType.UnsignedTx, "Transaction is not signed");
             }
 
+            if (!tx.IsSignedBy(tx.Sender))
+            {
+                Log.Information("check tx 4 " + tx.Hash);
+                return (CodeType.NotSignedBySender, "Transaction is not signed by sender");
+            }
+
             // TODO make sure we do not overflow
             //if (!VerifyBlockBeforeAdd(block))
             //{
@@ -185,6 +193,14 @@ namespace Phantasma.Business
             Log.Information("check tx 4 " + tx.Hash);
             return (CodeType.Ok, "");
         }
+        public (CodeType, string) CheckTx(ByteString serializedTx)
+        {
+            var txString = serializedTx.ToStringUtf8();
+            var tx = Transaction.Unserialize(Base16.Decode(txString));
+            Log.Information("check tx " + tx.Hash);
+
+            return CheckTx(tx);
+        }
 
         public TransactionResult DeliverTx(ByteString serializedTx)
         {
@@ -193,6 +209,18 @@ namespace Phantasma.Business
             var tx = Transaction.Unserialize(Base16.Decode(txString));
 
             Log.Information($"Deliver tx {tx}");
+
+            var (codeType, message) = CheckTx(tx);
+            if (codeType != CodeType.Ok)
+            {
+                Log.Error("Transaction {0} check error: {1}", result.Hash, message);
+                this.CurrentChangeSet.Clear();
+                result.Code = 1;
+                result.Codespace = message;
+
+                return result;
+            }
+
             try
             {
                 CurrentTransactions.Add(tx);
@@ -586,7 +614,6 @@ namespace Phantasma.Business
             {
                 runtime = new RuntimeVM(index, script, offset, this, validator, time, transaction, changeSet, oracle, task, false);
             }
-            runtime.MinimumFee = minimumFee;
 
             ExecutionState state;
             using (var m = new ProfileMarker("runtime.Execute"))
@@ -1379,7 +1406,7 @@ namespace Phantasma.Business
                     .SpendGas(task.Owner)
                     .EndScript();
 
-                transaction = new Transaction(this.Nexus.Name, this.Name, taskScript, block.Timestamp.Value + 1, "TASK");
+                transaction = new Transaction(this.Nexus.Name, this.Name, taskScript, task.Owner, block.Timestamp.Value + 1, "TASK");
 
                 var txResult = ExecuteTransaction(-1, transaction, transaction.Script, block.Validator, block.Timestamp, changeSet,
                             block.Notify, oracle, task, minimumFee);

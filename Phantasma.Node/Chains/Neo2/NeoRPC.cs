@@ -1,23 +1,23 @@
 ﻿using System;
-using System.Numerics;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Numerics;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Neo;
 using Neo.Wallets;
-using Neo.Network.P2P.Payloads;
-using Phantasma.Core;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
 using Phantasma.Shared.Utils;
-using System.Text.Json;
-using System.Linq;
 using Block = Neo.Network.P2P.Payloads.Block;
 using Transaction = Neo.Network.P2P.Payloads.Transaction;
 
 //using Phantasma.Neo.Utils;
 //using Phantasma.Storage;
 
-namespace Phantasma.Node.Chains
+namespace Phantasma.Node.Chains.Neo2
 {
     public abstract class NeoRPC : NeoAPI
     {

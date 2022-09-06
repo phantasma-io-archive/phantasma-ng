@@ -1,14 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Collections.Generic;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Cryptography.Hashing;
+using Phantasma.Core.Numerics;
 using Phantasma.Shared;
 using Phantasma.Shared.Utils;
-using Phantasma.Core;
-using Phantasma.Core.ECC;
-using Phantasma.Core.Hashing;
 
-namespace Phantasma.Infrastructure.Chains
+namespace Phantasma.Infrastructure.Pay.Chains
 {
     public class EthereumWallet : CryptoWallet
     {
@@ -62,7 +63,7 @@ namespace Phantasma.Infrastructure.Chains
 
             var pubKey = new byte[33];
             ByteArrayUtils.CopyBytes(bytes, 0, pubKey, 0, bytes.Length);
-            return Core.Address.FromInterop(EthereumID, pubKey);
+            return Core.Cryptography.Address.FromInterop(EthereumID, pubKey);
         }
 
         public static bool IsValidAddress(string addressText)

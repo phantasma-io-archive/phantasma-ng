@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Text;
+using Phantasma.Business.VM;
 using Phantasma.Core;
+using Phantasma.Core.Domain;
 using Shouldly;
 using Xunit;
 
@@ -251,7 +253,7 @@ public class InstructionTest
         var result = instruction.ToString();
 
         // Assert
-        result.ShouldBe($"000: {opcode}0, 1");
+        result.ShouldBe($"000: {opcode} r0, 1");
     }
 
     [Theory]

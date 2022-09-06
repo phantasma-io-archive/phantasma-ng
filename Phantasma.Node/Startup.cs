@@ -1,19 +1,13 @@
 ﻿using System;
+using System.Linq;
 using System.Security.Principal;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using Foundatio.Caching;
 using Foundatio.Extensions.Hosting.Startup;
 using Foundatio.Messaging;
 using Foundatio.Serializer;
-using Phantasma.Node.Authentication;
-using Phantasma.Node.Caching;
-using Phantasma.Node.Converters;
-using Phantasma.Node.Events;
-using Phantasma.Node.Hosting;
-using Phantasma.Node.Metrics;
-using Phantasma.Node.Middleware;
-using Phantasma.Node.Swagger;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -22,10 +16,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using Phantasma.Infrastructure.API.Controllers;
+using Phantasma.Node.Authentication;
+using Phantasma.Node.Caching;
+using Phantasma.Node.Converters;
+using Phantasma.Node.Events;
+using Phantasma.Node.Hosting;
+using Phantasma.Node.Metrics;
+using Phantasma.Node.Middleware;
+using Phantasma.Node.Swagger;
 using Serilog;
 using StackExchange.Redis;
-using System.Linq;
-using System.Threading;
 
 namespace Phantasma.Node;
 
@@ -133,7 +134,7 @@ public class Startup
         var assembly = System.Reflection.Assembly.Load("Phantasma.Infrastructure");
 
         var controllers = assembly.GetTypes()
-                .Where(type => typeof(Infrastructure.Controllers.BaseControllerV1).IsAssignableFrom(type));
+                .Where(type => typeof(BaseControllerV1).IsAssignableFrom(type));
         Log.Information($"Found {controllers.Count()} controllers");
 
         services.AddMvc().AddApplicationPart(assembly).AddControllersAsServices();

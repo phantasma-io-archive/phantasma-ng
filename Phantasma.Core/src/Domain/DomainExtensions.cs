@@ -1,7 +1,9 @@
 using System;
 using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public static class DomainExtensions
     {

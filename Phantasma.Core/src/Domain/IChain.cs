@@ -1,13 +1,14 @@
 using System.Collections.Generic;
 using System.Numerics;
 using Google.Protobuf;
-using Phantasma.Core.Context;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Storage.Context;
 using Phantasma.Shared.Types;
+using Tendermint;
 using Tendermint.Types;
 using TValidatorUpdate = Tendermint.Abci.ValidatorUpdate;
-using Types;
 
-namespace Phantasma.Core;
+namespace Phantasma.Core.Domain;
 
 public interface IChain
 {
@@ -58,7 +59,7 @@ public interface IChain
     SmartContract GetContractByName(StorageContext storage, string name);
     void UpgradeContract(StorageContext storage, string name, byte[] script, ContractInterface abi);
     void KillContract(StorageContext storage, string name);
-    Phantasma.Core.ExecutionContext GetContractContext(StorageContext storage, SmartContract contract);
+    ExecutionContext GetContractContext(StorageContext storage, SmartContract contract);
     Address GetContractOwner(StorageContext storage, Address contractAddress);
     Hash GetLastBlockHash();
     Hash GetBlockHashAtHeight(BigInteger height);

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using Phantasma.Business.VM;
 using Phantasma.Core;
+using Phantasma.Core.Domain;
 using Shouldly;
 using Xunit;
 

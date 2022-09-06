@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
-using Phantasma.Core;
+using Phantasma.Core.Cryptography;
 
-namespace Phantasma.Infrastructure
+namespace Phantasma.Infrastructure.Pay
 {
     [Flags]
     public enum CryptoCurrencyCaps

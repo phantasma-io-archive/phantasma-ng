@@ -1,14 +1,14 @@
-﻿using Phantasma.Core;
-using Phantasma.Core.Hashing;
-using Phantasma.Infrastructure;
-using Phantasma.Shared;
-using Phantasma.Shared.Utils;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Phantasma.Core.ECC;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Cryptography.Hashing;
+using Phantasma.Core.Numerics;
+using Phantasma.Shared;
+using Phantasma.Shared.Utils;
 
-namespace Phantasma.Pay.Chains
+namespace Phantasma.Infrastructure.Pay.Chains
 {
     public class BSCWallet : CryptoWallet
     {
@@ -47,7 +47,7 @@ namespace Phantasma.Pay.Chains
 
             var pubKey = new byte[33];
             ByteArrayUtils.CopyBytes(bytes, 0, pubKey, 0, bytes.Length);
-            return Core.Address.FromInterop(BSCID, pubKey);
+            return Core.Cryptography.Address.FromInterop(BSCID, pubKey);
         }
 
         public static bool IsValidAddress(string addressText)

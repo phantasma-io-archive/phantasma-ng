@@ -1,6 +1,8 @@
 using System.IO;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public struct OracleFeed: IFeed, ISerializable
     {

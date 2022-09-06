@@ -1,14 +1,17 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
-using System.Collections.Generic;
+using System.Text;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
 using Phantasma.Shared;
 using Phantasma.Shared.Types;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public enum VMType
     {

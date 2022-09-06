@@ -1,8 +1,10 @@
 ﻿using System;
 using System.IO;
-using Phantasma.Core;
+using Phantasma.Business.VM;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Business.Assembler
+namespace Phantasma.Business.CodeGen.Assembler
 {
     internal class Instruction : Semanteme
     {
@@ -92,6 +94,10 @@ namespace Phantasma.Business.Assembler
                     case Opcode.PUT:
                     case Opcode.GET:
                         Process3Reg(sb);
+                        break;
+
+                    case Opcode.RANGE:
+                        ProcessRange(sb);
                         break;
 
                     case Opcode.LOAD:
@@ -418,6 +424,38 @@ namespace Phantasma.Business.Assembler
                     src_b_reg,
                     src_c_reg
                 });
+            }
+            else
+            {
+                throw new CompilerException(LineNumber, ERR_INVALID_ARGUMENT);
+            }
+        }
+
+        private void ProcessRange(ScriptBuilder sb)
+        {
+            if (Arguments.Length != 4)
+            {
+                throw new CompilerException(LineNumber, ERR_INCORRECT_NUMBER);
+            }
+            
+            if (Arguments[0].IsRegister() && Arguments[1].IsRegister())
+            {
+                var srcReg = Arguments[0].AsRegister();
+                var dstReg = Arguments[1].AsRegister();
+                
+                 if (Arguments[2].IsNumber() && Arguments[3].IsNumber())
+                {
+                    var index = (int)Arguments[2].AsNumber();
+                    var len = (int)Arguments[3].AsNumber();
+
+                    sb.Emit(Opcode.RANGE, new byte[] { srcReg, dstReg });
+                    sb.EmitVarBytes(index);
+                    sb.EmitVarBytes(len);
+                }
+                else
+                {
+                    throw new CompilerException(LineNumber, ERR_INVALID_ARGUMENT);
+                }
             }
             else
             {

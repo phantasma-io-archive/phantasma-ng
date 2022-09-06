@@ -1,6 +1,6 @@
 using System;
 
-namespace Phantasma.Infrastructure
+namespace Phantasma.Infrastructure.API
 {
     public class APIException : Exception
     {

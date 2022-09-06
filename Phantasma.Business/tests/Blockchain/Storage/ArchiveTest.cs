@@ -1,4 +1,4 @@
-﻿namespace Phantasma.Business.Tests.Storage;
+﻿namespace Phantasma.Business.Tests.Blockchain.Storage;
 
 public class ArchiveTest
 {

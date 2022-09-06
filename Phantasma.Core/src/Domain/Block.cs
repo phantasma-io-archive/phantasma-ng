@@ -1,13 +1,14 @@
-﻿using System.IO;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Collections.Generic;
-using Phantasma.Core;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Utils;
 using Phantasma.Shared;
 using Phantasma.Shared.Types;
-using System;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public sealed class Block : ISerializable
     {

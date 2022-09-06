@@ -1,13 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Collections.Generic;
-using Phantasma.Business.Tokens;
-using Phantasma.Core;
-using Phantasma.Core.Context;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public struct LPTokenContentROM: ISerializable
     {

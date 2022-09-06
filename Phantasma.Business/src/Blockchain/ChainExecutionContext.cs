@@ -1,13 +1,14 @@
 ﻿using System;
-using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Business.Contracts;
-using Phantasma.Core;
+using System.Numerics;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.VM;
+using Phantasma.Core.Domain;
 using Phantasma.Shared.Performance;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
-    public class ChainExecutionContext : Phantasma.Core.ExecutionContext
+    public class ChainExecutionContext : ExecutionContext
     {
         public readonly SmartContract Contract;
 

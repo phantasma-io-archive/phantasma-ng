@@ -1,12 +1,11 @@
-using Phantasma.Core;
-using Shouldly;
-using System.Text.Json.Nodes;
 using System.Collections.Generic;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
 using Phantasma.Shared.Types;
+using Shouldly;
 using Xunit;
-using static Phantasma.Core.WalletLink;
 
-namespace Phantasma.Business.Tests
+namespace Phantasma.Business.Tests.Blockchain
 {
     public class BlockTest
     {

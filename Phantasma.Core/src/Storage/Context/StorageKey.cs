@@ -1,8 +1,9 @@
-using System.Numerics;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using Phantasma.Core.Numerics;
 
-namespace Phantasma.Core.Context
+namespace Phantasma.Core.Storage.Context
 {
     public class StorageKeyComparer : IEqualityComparer<StorageKey>
     {

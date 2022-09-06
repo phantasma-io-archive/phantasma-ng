@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using Phantasma.Core.Cryptography;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public interface IVirtualMachine
     {

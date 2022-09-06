@@ -1,4 +1,4 @@
-﻿namespace Phantasma.Core
+﻿namespace Phantasma.Core.Cryptography
 {
     public enum SignatureKind
     {

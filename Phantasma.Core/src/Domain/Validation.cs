@@ -1,6 +1,7 @@
+using Phantasma.Core.Cryptography;
 using Phantasma.Shared.Types;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public enum ValidatorType
     {

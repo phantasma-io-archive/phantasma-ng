@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
+using Phantasma.Core.Cryptography;
 using Phantasma.Shared.Types;
 
-namespace Phantasma.Core;
+namespace Phantasma.Core.Domain;
 
 public interface IArchive
 {

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public struct OracleEntry
     {

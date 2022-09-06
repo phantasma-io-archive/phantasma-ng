@@ -1,8 +1,10 @@
 ﻿using System.IO;
 using System.Numerics;
-using Phantasma.Core;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
     public class ChainTask: IChainTask
     {

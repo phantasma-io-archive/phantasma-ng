@@ -1,10 +1,10 @@
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Core;
-using Phantasma.Business.Contracts;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Infrastructure.Controllers
+namespace Phantasma.Infrastructure.API.Controllers
 {
     public class NexusController : BaseControllerV1
     {

@@ -1,15 +1,14 @@
 ﻿using System;
-using System.Numerics;
-using System.Diagnostics;
 using System.Collections.Generic;
-using Grpc.Core;
-using Phantasma.Core;
+using System.Diagnostics;
+using System.Numerics;
+using Phantasma.Core.Domain;
 using Phantasma.Shared;
 using Phantasma.Shared.Performance;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.VM
 {
-    public class ScriptContext : Phantasma.Core.ExecutionContext
+    public class ScriptContext : ExecutionContext
     {
         public static readonly byte[] EmptyScript = new byte[] { (byte)Opcode.RET };
 
@@ -1316,7 +1315,7 @@ namespace Phantasma.Business
 
                 var contextName = frame.Registers[src].AsString();
 
-                Phantasma.Core.ExecutionContext context = frame.VM.FindContext(contextName);
+                ExecutionContext context = frame.VM.FindContext(contextName);
 
                 if (context == null)
                 {
@@ -1339,7 +1338,7 @@ namespace Phantasma.Business
                 var src = Read8();
                 Expect(src < frame.Registers.Length, "invalid src register");
 
-                var context = frame.Registers[src].AsInterop<Phantasma.Core.ExecutionContext>();
+                var context = frame.Registers[src].AsInterop<ExecutionContext>();
 
                 _state = frame.VM.SwitchContext(context, InstructionPointer);
 

@@ -1,8 +1,8 @@
 using System.Numerics;
-using Phantasma.Core;
-using Phantasma.Core.Context;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public enum ConstraintKind
     {
@@ -38,6 +38,9 @@ namespace Phantasma.Business.Contracts
         internal StorageList _nameList;
 #pragma warning restore 0649
 
+        public const string GasMinimumFeeTag = "governance.gas.minimumfee";
+        public static readonly BigInteger GasMinimumFeeDefault = 100000;
+        
         public GovernanceContract() : base()
         {
         }

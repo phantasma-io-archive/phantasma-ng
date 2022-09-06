@@ -1,4 +1,5 @@
-﻿using Shouldly;
+﻿using Phantasma.Core.Utils;
+using Shouldly;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Utils;

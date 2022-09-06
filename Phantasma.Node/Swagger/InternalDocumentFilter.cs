@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
-using Phantasma.Infrastructure;
+using Phantasma.Infrastructure.API;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Phantasma.Node.Swagger;

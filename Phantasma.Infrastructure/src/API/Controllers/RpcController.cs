@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Phantasma.Infrastructure.Controllers
+namespace Phantasma.Infrastructure.API.Controllers
 {
     public class RpcController : BaseRpcControllerV1
     {
