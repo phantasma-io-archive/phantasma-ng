@@ -265,19 +265,23 @@ namespace Phantasma.Business.Blockchain
 
         public byte[] Commit()
         {
-            Block lastBlock = null;
+            Log.Information($"Committing block {this.CurrentBlock.Height}");
             try
             {
                 AddBlock(this.CurrentBlock, this.CurrentTransactions, 0, this.CurrentChangeSet);
-                lastBlock = this.CurrentBlock;
-                this.CurrentBlock = null;
-                this.CurrentTransactions.Clear();
-                Log.Information($"Committed block {lastBlock.Height}");
             }
             catch (Exception e)
             {
-                Log.Error("Error during commit: " + e);
+                // Commit cannot throw anything, an error in this phase has to stop the node!
+                Log.Error($"Critical failure {e}");
+                Environment.Exit(-1);
             }
+
+            Block lastBlock = this.CurrentBlock;
+            this.CurrentBlock = null;
+            this.CurrentTransactions.Clear();
+
+            Log.Information($"Committed block {lastBlock.Height}");
 
             return lastBlock.Hash.ToByteArray();
         }
