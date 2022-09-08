@@ -766,7 +766,7 @@ namespace Phantasma.Business.Blockchain
             var oracle = Nexus.GetOracleReader();
             var changeSet = new StorageChangeSetContext(storage);
             uint offset = 0;
-            var vm = new RuntimeVM(-1, script, offset, this, Address.Null, time, null, changeSet, oracle, ChainTask.Null, true);
+            var vm = new RuntimeVM(-1, script, offset, this, Address.Null, time, Transaction.Null, changeSet, oracle, ChainTask.Null, true);
 
             var state = vm.Execute();
 
