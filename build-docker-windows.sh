@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #VERSION=0.35.6
-VERSION=0.34.20
+VERSION=0.34.21
 TESTNET_ROOT='./DOCKER/testnet'
 PUBLISH_ROOT='./Phantasma.Node/bin/Debug/net6.0/linux-x64/publish/'
 NODE_PROJ='Phantasma.Node/Phantasma.Node.csproj'
