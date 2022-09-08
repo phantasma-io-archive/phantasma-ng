@@ -1281,7 +1281,7 @@ public class Nexus : INexus
         sb.CallInterop(deployInterop, owner.Address, ContractNames.StakeContractName);
         sb.CallInterop(deployInterop, owner.Address, ContractNames.StorageContractName);
         sb.CallInterop(deployInterop, owner.Address, ContractNames.ConsensusContractName);
-        sb.CallInterop(deployInterop, owner.Address, "market");
+        sb.CallInterop(deployInterop, owner.Address, ContractNames.MarketContractName);
 
         var orgInterop = "Nexus.CreateOrganization";
         var orgScript = new byte[0];
@@ -1322,8 +1322,11 @@ public class Nexus : INexus
             index++;
         }
 
-        sb.CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals)).
-        CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100, DomainSettings.FuelTokenDecimals));
+       //sb.CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address,
+       //        DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals))
+       //    .CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address,
+       //        DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100, DomainSettings.FuelTokenDecimals));
+       //    //CallContract(NativeContractKind.Swap, nameof(SwapContract.MigrateToV3), owner.Address, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100, DomainSettings.FuelTokenDecimals));
 
         sb.Emit(Opcode.RET);
 

@@ -1,0 +1,81 @@
+struct LPTokenContentROM
+{
+    Symbol0:string;
+    Symbol1:string;
+    ID:number;
+}
+
+struct LPTokenContentRAM 
+{
+    Amount0:number;
+    Amount1:number;
+    Liquidity:number;
+    ClaimedFees:number;
+}
+
+
+token LP {
+	import Runtime;
+	import Time;
+	import NFT;
+	
+	global _owner:address;
+	
+    const LP_SERIES: number = 1;
+	property name:string = "Phantasma Liquidity Provider";
+	property isTransferable:bool = false;
+	property isBurnable:bool = true;
+    property isFinite:bool = false;
+    property maxSupply:number = 0;
+	property owner:address = _owner;
+
+	nft LPNFT<LPTokenContentROM, LPTokenContentRAM> {
+		property name:string {
+			return "LP #" + _mintID;
+		}
+
+		property description:string {
+			return "Liqudity for pool " + _ROM.Symbol0 + " / " + _ROM.Symbol1;
+		}
+
+		property imageURL:string {
+			return "https://phantasma.io/img/lp.png";
+		}
+
+		property infoURL:string {
+			return "https://phantasma.io/lp/" + _tokenID;
+		}
+	}
+
+	constructor(owner:address)	{
+		_owner := owner;
+		NFT.createSeries(owner, $THIS_SYMBOL, 0, 0, TokenSeries.Unique, LPNFT);
+	}
+	
+	public Mint(from:address, rom:LPTokenContentROM, ram:LPTokenContentRAM ):number {
+	    Runtime.expect(Runtime.isWitness(_owner), "witness failed");
+	    local id:number := NFT.mint($THIS_ADDRESS, from, $THIS_SYMBOL, rom, ram, LP_SERIES);
+	    return id;
+	}
+	
+	trigger onUpgrade(from:address) 
+    {
+        Runtime.expect(Runtime.isWitness(_owner), "witness failed");
+        return;
+    }
+	
+	trigger onMigrate(from:address, to:address) {
+	    Runtime.expect(Runtime.isWitness(_owner), "witness failed");
+		if (from == _owner) {
+			_owner := to;
+		}
+	}
+	
+	trigger onMint(from:address, to:address, symbol:string, tokenID:number) 
+    {
+        local contractSymbol: string := $THIS_SYMBOL;
+        Runtime.expect(symbol == contractSymbol, "invalid symbol");
+        Runtime.expect(Runtime.isWitness(_owner), "witness failed");
+        return;
+    }
+}
