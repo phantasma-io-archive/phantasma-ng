@@ -228,7 +228,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             var changeSet = new StorageChangeSetContext(chain.Storage);
             var oracle = nexus.GetOracleReader();
             uint offset = 0;
-            var vm = new RuntimeVM(-1, script, offset, chain, Address.Null, Timestamp.Now, null, changeSet, oracle, ChainTask.Null, true);
+            var vm = new RuntimeVM(-1, script, offset, chain, Address.Null, Timestamp.Now, Transaction.Null, changeSet, oracle, ChainTask.Null, true);
 
             string error = null;
             ExecutionState state = ExecutionState.Fault;
