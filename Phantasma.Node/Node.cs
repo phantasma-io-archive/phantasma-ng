@@ -290,14 +290,7 @@ namespace Phantasma.Node
         {
             Log.Information($"Initializing nexus API...");
 
-            var readOnlyMode = Settings.Default.Node.Readonly;
-
             NexusAPI.ApiLog = Settings.Default.Node.ApiLog;
-
-            if (readOnlyMode)
-            {
-                Log.Warning($"Node will be running in read-only mode.");
-            }
         }
 
         private static JsonSerializerOptions GetDefaultSerializerOptions()
