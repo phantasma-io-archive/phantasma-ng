@@ -14,6 +14,8 @@ namespace Phantasma.Core
 {
     public sealed class Transaction : ISerializable
     {
+        public readonly static Transaction Null = null;
+
         public byte[] Script { get; private set; }
 
         public string NexusName { get; private set; }

@@ -103,7 +103,7 @@ namespace Phantasma.Core
 
         public static bool IsReadOnlyMode(this IRuntime runtime)
         {
-            return runtime.Transaction == null;
+            return runtime.Transaction == Transaction.Null;
         }
 
         public static bool IsRootChain(this IRuntime runtime)
