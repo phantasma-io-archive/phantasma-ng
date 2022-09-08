@@ -267,7 +267,6 @@ namespace Phantasma.Node
         public Timestamp GenesisTimestamp { get; }
         public bool ApiCache { get; }
         public bool ApiLog { get; }
-        public bool Readonly { get; }
 
         public string SenderHost { get; } = "localhost";
         public uint SenderThreads { get; } = 8;
@@ -356,7 +355,6 @@ namespace Phantasma.Node
             this.GenesisTimestampUint = section.GetValueEx<UInt32>("genesis.timestamp");
             this.GenesisTimestamp = new Timestamp((this.GenesisTimestampUint == 0) ? Timestamp.Now.Value : this.GenesisTimestampUint);
             this.ApiCache = section.GetValueEx<bool>("api.cache");
-            this.Readonly = section.GetValueEx<bool>("readonly");
 
             this.SenderHost = section.GetString("sender.host");
             this.SenderThreads = section.GetValueEx<UInt32>("sender.threads");
