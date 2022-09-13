@@ -40,6 +40,14 @@ namespace Phantasma.Business.Blockchain.Contracts
         internal Timestamp _lastInflationDate;
         internal bool _inflationReady;
 
+        /// <summary>
+        /// Method used the usage of Gas to do the transaction.
+        /// </summary>
+        /// <param name="from">Address of the user</param>
+        /// <param name="target">Address of the target</param>
+        /// <param name="price">Gas Price of the transaction</param>
+        /// <param name="limit">Gas Limit of the transaction</param>
+        /// <exception cref="BalanceException"></exception>
         public void AllowGas(Address from, Address target, BigInteger price, BigInteger limit)
         {
             if (Runtime.IsReadOnlyMode())
@@ -98,6 +106,10 @@ namespace Phantasma.Business.Blockchain.Contracts
                 Runtime.Notify(EventKind.GasEscrow, from, new GasEventData(target, price, limit));
         }
         
+        /// <summary>
+        /// Method used to Apply Inflation and Mint Crowns and distribute them.
+        /// </summary>
+        /// <param name="from">Address of the user</param>
         public void ApplyInflation(Address from)
         {
             Runtime.Expect(_inflationReady, "inflation not ready");
@@ -210,6 +222,10 @@ namespace Phantasma.Business.Blockchain.Contracts
             _inflationReady = false;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="from">Address of the user</param>
         public void SpendGas(Address from)
         {
             if (Runtime.IsReadOnlyMode())
@@ -287,6 +303,9 @@ namespace Phantasma.Business.Blockchain.Contracts
             CheckInflation();
         }
 
+        /// <summary>
+        /// Method used to check if the inflation is ready
+        /// </summary>
         private void CheckInflation()
         {
             if (!Runtime.HasGenesis)
@@ -308,6 +327,24 @@ namespace Phantasma.Business.Blockchain.Contracts
                     _inflationReady = true;
                 }
             }
+        }
+
+        /// <summary>
+        /// Method used to return the last inflation date.
+        /// </summary>
+        /// <returns></returns>
+        public Timestamp GetLastInflationDate()
+        {
+            return _lastInflationDate;
+        }
+
+        /// <summary>
+        /// Method use to return how many days are left until the next distribution.
+        /// </summary>
+        /// <returns></returns>
+        public uint GetDaysUntillDistribution()
+        {
+            return Runtime.Time - _lastInflationDate;
         }
     }
 }

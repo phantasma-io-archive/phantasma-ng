@@ -65,7 +65,6 @@ namespace Phantasma.Business.Blockchain
             //Throw.IfNull(transaction, nameof(transaction));
 
             this.TransactionIndex = index;
-            this.MinimumFee = GetGovernanceValue(GovernanceContract.GasMinimumFeeTag);
             this.GasPrice = 0;
             this.PaidGas = 0;
             this.GasTarget = Address.Null;
@@ -95,6 +94,8 @@ namespace Phantasma.Business.Blockchain
             }
 
             this.ProtocolVersion = Nexus.GetProtocolVersion(this.RootStorage);
+            this.MinimumFee = GetGovernanceValue(GovernanceContract.GasMinimumFeeTag);
+
 
             ExtCalls.RegisterWithRuntime(this);
         }
@@ -666,14 +667,11 @@ namespace Phantasma.Business.Blockchain
 
         public TriggerResult InvokeTrigger(bool allowThrow, byte[] script, string contextName, ContractInterface abi, string triggerName, params object[] args)
         {
-            ExpectScriptLength(script, nameof(script));
             ExpectNameLength(contextName, nameof(contextName));
-            ExpectValidContractInterface(abi);
             ExpectNameLength(triggerName, nameof(triggerName));
             ExpectArgsLength(args, nameof(args));
 
-            if (script == null
-                || script.Length == 0 || abi == null)
+            if (script == null || script.Length == 0 || abi == null)
             {
                 return TriggerResult.Missing;
             }
@@ -2143,7 +2141,7 @@ namespace Phantasma.Business.Blockchain
             Expect(rom.Length <= TokenContent.MaxROMSize, $"{prefix}ROM size exceeds maximum allowed, name: {name}, received: {rom.Length}, maximum:{TokenContent.MaxROMSize}");
         
         private void ExpectScriptLength(byte[] value, string name, string prefix = "") =>
-            Expect(value.Length <= DomainSettings.ScriptMaxSize, $"{prefix}{name} exceeds max length");
+            Expect(value != null ? value.Length <= DomainSettings.ScriptMaxSize : true, $"{prefix}{name} exceeds max length");
 
         private void ExpectTokenExists(string symbol, string prefix = "") =>
             Expect(TokenExists(symbol), $"{prefix}Token does not exist ({symbol})");
