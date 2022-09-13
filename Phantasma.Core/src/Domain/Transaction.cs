@@ -11,8 +11,6 @@ namespace Phantasma.Core.Domain
 {
     public sealed class Transaction : ITransaction, ISerializable
     {
-        public readonly static Transaction Null = null;
-
         public byte[] Script { get; private set; }
 
         public string NexusName { get; private set; }

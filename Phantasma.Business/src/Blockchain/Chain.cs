@@ -612,7 +612,7 @@ namespace Phantasma.Business.Blockchain
             RuntimeVM runtime;
             using (var m = new ProfileMarker("new RuntimeVM"))
             {
-                runtime = new RuntimeVM(index, script, offset, this, validator, time, transaction, changeSet, oracle, task);
+                runtime = new RuntimeVM(index, script, offset, this, validator, time, transaction, changeSet, oracle, task, false);
             }
 
             ExecutionState state;
@@ -766,7 +766,7 @@ namespace Phantasma.Business.Blockchain
             var oracle = Nexus.GetOracleReader();
             var changeSet = new StorageChangeSetContext(storage);
             uint offset = 0;
-            var vm = new RuntimeVM(-1, script, offset, this, Address.Null, time, Transaction.Null, changeSet, oracle, ChainTask.Null);
+            var vm = new RuntimeVM(-1, script, offset, this, Address.Null, time, null, changeSet, oracle, ChainTask.Null, true);
 
             var state = vm.Execute();
 
