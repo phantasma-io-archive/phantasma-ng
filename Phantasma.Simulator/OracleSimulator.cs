@@ -5,10 +5,10 @@ using Phantasma.Core.Numerics;
 using NativeBigInt = System.Numerics.BigInteger; // hack to overcome Phantasma.Numerics.BigInteger
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Domain;
-using Phantasma.Pay.Chains;
 using Phantasma.Core.Utils;
 using System;
 using Phantasma.Shared.Types;
+using Phantasma.Infrastructure.Pay.Chains;
 
 namespace Phantasma.Simulator
 {
