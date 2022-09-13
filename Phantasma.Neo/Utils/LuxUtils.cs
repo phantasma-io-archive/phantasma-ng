@@ -1,5 +1,10 @@
-﻿using Phantasma.Core.Cryptography;
+﻿using Phantasma.Cryptography;
+using Phantasma.Neo.Cryptography;
+using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
@@ -75,7 +80,7 @@ namespace Phantasma.Neo.Utils
             byte[] buffer;
             try
             {
-                buffer = Phantasma.Core.Numerics.Base58.Decode(address);
+                buffer = Numerics.Base58.Decode(address);
 
             }
             catch

@@ -9,10 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Phantasma.Business\src\Phantasma.Business.csproj" />
     <ProjectReference Include="..\Phantasma.Core\src\Phantasma.Core.csproj" />
-    <ProjectReference Include="..\Phantasma.Ethereum\Phantasma.Ethereum.csproj" />
-    <ProjectReference Include="..\Phantasma.Neo\Phantasma.Neo.csproj" />
-    <ProjectReference Include="..\Phantasma.Node\Phantasma.Node.csproj" />
-    <ProjectReference Include="..\Phantasma.Pay\Phantasma.Pay.csproj" />
     <ProjectReference Include="..\Phantasma.Shared\src\Phantasma.Shared.csproj" />
   </ItemGroup>
 

@@ -15,7 +15,6 @@ using Phantasma.Business.VM;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Shared;
 using System.Numerics;
-using Phantasma.Core.Log;
 
 namespace Phantasma.Simulator
 {
@@ -402,22 +401,21 @@ namespace Phantasma.Simulator
             return Enumerable.Empty<Block>();
         }
 
-        private Transaction MakeTransaction(IEnumerable<IKeyPair> signees, ProofOfWork pow, IChain chain, byte[] script, Address owner)
+        private Transaction MakeTransaction(IEnumerable<IKeyPair> signees, ProofOfWork pow, Chain chain, byte[] script)
         {
             if (!blockOpen)
             {
                 throw new Exception("Call BeginBlock first");
             }
 
+            var tx = new Transaction(Nexus.Name, chain.Name, script, CurrentTime + TimeSpan.FromSeconds(Mempool.MaxExpirationTimeDifferenceInSeconds / 2));
+
             Throw.If(!signees.Any(), "at least one signer required");
-
-            var tx = new Transaction(Nexus.Name, chain.Name, script, owner, CurrentTime + TimeSpan.FromSeconds(Mempool.MaxExpirationTimeDifferenceInSeconds / 2));
-
 
             Signature[] existing = tx.Signatures;
             var msg = tx.ToByteArray(false);
 
-            tx = new Transaction(Nexus.Name, chain.Name, script, owner, CurrentTime + TimeSpan.FromSeconds(Mempool.MaxExpirationTimeDifferenceInSeconds / 2));
+            tx = new Transaction(Nexus.Name, chain.Name, script, CurrentTime + TimeSpan.FromSeconds(Mempool.MaxExpirationTimeDifferenceInSeconds / 2));
 
             tx.Mine((int)pow);
 
@@ -448,7 +446,7 @@ namespace Phantasma.Simulator
             return GenerateCustomTransaction(owner, pow, Nexus.RootChain, scriptGenerator);
         }
 
-        public Transaction GenerateCustomTransaction(IKeyPair owner, ProofOfWork pow, IChain chain, Func<byte[]> scriptGenerator)
+        public Transaction GenerateCustomTransaction(IKeyPair owner, ProofOfWork pow, Chain chain, Func<byte[]> scriptGenerator)
         {
             var script = scriptGenerator();
 
@@ -738,7 +736,7 @@ namespace Phantasma.Simulator
             return tx;
         }
 
-        public Transaction GenerateTransfer(PhantasmaKeys source, Address dest, IChain chain, string tokenSymbol, BigInteger amount, List<PhantasmaKeys> signees = null)
+        public Transaction GenerateTransfer(PhantasmaKeys source, Address dest, Chain chain, string tokenSymbol, BigInteger amount, List<PhantasmaKeys> signees = null)
         {
             signees = signees ?? new List<PhantasmaKeys>();
             var found = false;
