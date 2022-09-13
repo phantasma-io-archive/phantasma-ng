@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
-using Org.BouncyCastle.Crypto.Generators;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.ECDsa;
 using Phantasma.Neo.Cryptography;
 using Phantasma.Neo.Utils;
-using Phantasma.Shared;
 
 namespace Phantasma.Neo.Core
 {
