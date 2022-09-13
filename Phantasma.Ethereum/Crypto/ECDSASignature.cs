@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Numerics;
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Math;
 
