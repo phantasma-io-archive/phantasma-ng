@@ -4,6 +4,7 @@ using Phantasma.Ethereum.RLP;
 using Phantasma.Ethereum.Signer.Crypto;
 using Phantasma.Ethereum.Util;
 using Org.BouncyCastle.Math;
+using System.Numerics;
 
 namespace Phantasma.Ethereum.Signer
 {

@@ -34,6 +34,7 @@ namespace Phantasma.Business.Blockchain
         public int TransactionIndex { get; private set; }
         public Address GasTarget { get; private set; }
         public bool DelayPayment { get; private set; }
+        public readonly bool readOnlyMode;
 
         public BigInteger MinimumFee;
 
@@ -51,7 +52,7 @@ namespace Phantasma.Business.Blockchain
 
         public RuntimeVM(int index, byte[] script, uint offset, IChain chain, Address validator, Timestamp time,
                 Transaction transaction, StorageChangeSetContext changeSet, IOracleReader oracle, IChainTask currentTask,
-                bool delayPayment = false, string contextName = null, RuntimeVM parentMachine = null)
+                bool readOnlyMode, bool delayPayment = false, string contextName = null, RuntimeVM parentMachine = null)
             : base(script, offset, contextName)
         {
             Shared.Throw.IfNull(chain, nameof(chain));
@@ -68,7 +69,7 @@ namespace Phantasma.Business.Blockchain
             this.GasPrice = 0;
             this.PaidGas = 0;
             this.GasTarget = Address.Null;
-            this.MaxGas = Nexus.MaxGas;
+            this.MaxGas = 10000;  // a minimum amount required for allowing calls to Gas contract etc
             this.CurrentTask = currentTask;
             this.DelayPayment = delayPayment;
             this.Validator = validator;
@@ -81,6 +82,7 @@ namespace Phantasma.Business.Blockchain
             this.Transaction = transaction;
             this.Oracle = oracle;
             this.changeSet = changeSet;
+            this.readOnlyMode = readOnlyMode;
 
             if (this.Chain != null && !Chain.IsRoot)
             {
@@ -158,7 +160,7 @@ namespace Phantasma.Business.Blockchain
 
             if (result == ExecutionState.Halt)
             {
-                if (this.IsReadOnlyMode())
+                if (readOnlyMode)
                 {
                     if (changeSet.Count() != _baseChangeSetCount)
                     {
@@ -409,7 +411,7 @@ namespace Phantasma.Business.Blockchain
             ExpectEnumIsDefined(opcode, nameof(opcode));
 
             // required for allowing transactions to occur pre-minting of native token
-            if (!Nexus.HasGenesis)
+            if (readOnlyMode || !Nexus.HasGenesis)
             {
                 return ExecutionState.Running;
             }
@@ -440,7 +442,7 @@ namespace Phantasma.Business.Blockchain
             }
 
             // required for allowing transactions to occur pre-minting of native token
-            if (!Nexus.HasGenesis)
+            if (readOnlyMode || !Nexus.HasGenesis)
             {
                 return ExecutionState.Running;
             }
@@ -682,7 +684,7 @@ namespace Phantasma.Business.Blockchain
                 return TriggerResult.Missing;
             }
 
-            var runtime = new RuntimeVM(-1, script, (uint)method.offset, this.Chain, this.Validator, this.Time, this.Transaction, this.changeSet, this.Oracle, ChainTask.Null, true, contextName, this);
+            var runtime = new RuntimeVM(-1, script, (uint)method.offset, this.Chain, this.Validator, this.Time, this.Transaction, this.changeSet, this.Oracle, ChainTask.Null, false, true, contextName, this);
 
             for (int i = args.Length - 1; i >= 0; i--)
             {
