@@ -33,5 +33,4 @@ jobs:
         username: ${{ secrets.USERNAME }}
         port: ${{ secrets.PORT }}
         key: ${{ secrets.SSHKEY }}
-        passphrase: ${{ secrets.PASSPHRASE }}
         script: cd ${{ secrets.COPY_TO }};sudo chown u+x ./testnet_startup.sh;sudo ./testnet_startup.sh;
