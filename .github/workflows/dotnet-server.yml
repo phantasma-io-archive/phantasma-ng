@@ -31,5 +31,5 @@ jobs:
         key: ${{ secrets.SSHKEY }}
         passphrase: ${{ secrets.PASSPHRASE }}
         script: |
-          cd ${{ secrets.FOLDER }};
+          cd ${{ secrets.FOLDER }}
           echo ${{ secrets.PASS }} | sudo -S -v | sudo chmod u+x ./testnet_startup.sh | sudo ./testnet_startup.sh
