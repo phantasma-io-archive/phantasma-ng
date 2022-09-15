@@ -32,6 +32,5 @@ jobs:
         passphrase: ${{ secrets.PASSPHRASE }}
         script: |
           mv -i ${{ secrets.FOLDER }} ${{ secrets.COPY_TO }}
-          rm -rf ${{ secrets.FOLDER }}
           cd ${{ secrets.COPY_TO }}
           echo ${{ secrets.PASS }} | sudo -S -v | sudo chmod u+x ./testnet_startup.sh | sudo ./testnet_startup.sh
