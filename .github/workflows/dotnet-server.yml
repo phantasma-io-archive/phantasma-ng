@@ -32,4 +32,4 @@ jobs:
         passphrase: ${{ secrets.PASSPHRASE }}
         script: |
           cd ${{ secrets.FOLDER }}
-          echo ${{ secrets.PASS }} | sudo -S -v chmod u+x ./testnet_startup.sh;
+          echo ${{ secrets.PASS }} | sudo -S chmod u+x ./testnet_startup.sh;
