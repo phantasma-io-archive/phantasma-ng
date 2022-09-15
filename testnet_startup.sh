@@ -5,10 +5,10 @@ if [[ $(id -u) -ne 0 ]] ; then echo "Please run as root" ; exit 1 ; fi
 docker container rm phantasma-devnet
 
 # Remove old images
-docker image prune -a
+docker image prune -a -y
 
 # Run the build script
-chown u+x ./build-script.sh
+chmod u+x ./build-docker.sh
 ./build-docker.sh
 
 # Run the testnet
