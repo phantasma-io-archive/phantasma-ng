@@ -215,10 +215,10 @@ namespace Phantasma.Node
                 nodeKeys = new PhantasmaKeys(Convert.FromBase64String(Settings.Default.Node.TendermintKey));
             }
 
-            if (nodeKeys is null)
-            {
-                nodeKeys = PhantasmaKeys.FromWIF(Settings.Default.Node.NodeWif);;
-            }
+            //if (nodeKeys is null)
+            //{
+            //    nodeKeys = PhantasmaKeys.FromWIF(Settings.Default.Node.NodeWif);
+            //}
 
             //TODO wallet module?
 

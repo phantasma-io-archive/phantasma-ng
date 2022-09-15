@@ -2116,7 +2116,7 @@ public class Nexus : INexus
 
     private BigInteger OptimizedGetGovernanceValue(StorageContext storage, string name)
     {
-        var valueMapKey = Encoding.UTF8.GetBytes($".{ContractNames.GovernanceContractName}._valueMap");
+        var valueMapKey = Encoding.UTF8.GetBytes($"{ContractNames.GovernanceContractName}_valueMap");
         var valueMap = new StorageMap(valueMapKey, storage);
 
         Throw.If(valueMap.ContainsKey(name) == false, "invalid value name");
