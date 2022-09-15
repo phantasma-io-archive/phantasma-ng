@@ -11,18 +11,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v2
-      with:
-        dotnet-version: 6.0.x
-
     - name: Copy Files via scp
       uses: appleboy/scp-action@master              
       with:
         host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
         port: ${{ secrets.PORT }}
+        username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSHKEY }}
+        passphrase: ${{ secrets.PASSPHRASE }}
         source: "./"
         target: ${{ secrets.COPY_TO }}
 
@@ -30,7 +26,8 @@ jobs:
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
         port: ${{ secrets.PORT }}
+        username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSHKEY }}
+        passphrase: ${{ secrets.PASSPHRASE }}
         script: cd ${{ secrets.COPY_TO }};sudo chown u+x ./testnet_startup.sh;sudo ./testnet_startup.sh;
