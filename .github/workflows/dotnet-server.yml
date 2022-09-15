@@ -31,7 +31,5 @@ jobs:
         key: ${{ secrets.SSHKEY }}
         passphrase: ${{ secrets.PASSPHRASE }}
         script: |
-          rm -rf ${{ secrets.COPY_TO }}
-          mv -i ${{ secrets.FOLDER }} ${{ secrets.COPY_TO }}
-          cd ${{ secrets.COPY_TO }}
+          cd ${{ secrets.FOLDER }}
           echo ${{ secrets.PASS }} | sudo -S -v | sudo chmod u+x ./testnet_startup.sh | sudo ./testnet_startup.sh
