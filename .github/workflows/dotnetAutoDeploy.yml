@@ -1,6 +1,11 @@
 name: Deploy Testnet
 
-on: [workflow_dispatch]
+on: 
+  workflow_dispatch:
+    inputs:
+        deploy:
+          description: Deploy command (Optional)    
+          required: false
 
 jobs:
   build:
