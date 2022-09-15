@@ -75,6 +75,9 @@ abci = "grpc"
 filter_peers = false
 
 
+priv_validator_key_file = "config/priv_validator_key.json"
+priv_validator_state_file = "data/priv_validator_state.json"
+
 #######################################################
 ###       Priv Validator Configuration              ###
 #######################################################
