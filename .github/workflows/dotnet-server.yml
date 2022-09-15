@@ -30,4 +30,4 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSHKEY }}
         passphrase: ${{ secrets.PASSPHRASE }}
-        script: cd ${{ secrets.FOLDER }};echo ${{ secrets.PASS }} | sudo -S -v | sudo -S chmod u+x ./testnet_startup.sh | sudo -S ./testnet_startup.sh;
+        script: cd ${{ secrets.FOLDER }};echo ${{ secrets.PASS }} | sudo -S -v | sudo chmod u+x ./testnet_startup.sh | sudo ./testnet_startup.sh;
