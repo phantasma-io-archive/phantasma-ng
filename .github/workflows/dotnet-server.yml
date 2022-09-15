@@ -33,3 +33,4 @@ jobs:
         script: |
           cd ${{ secrets.FOLDER }}
           echo ${{ secrets.PASS }} | sudo -S chmod u+x ./testnet_startup.sh;
+          echo ${{ secrets.PASS }} | sudo -S ./testnet_startup.sh;
