@@ -23,7 +23,6 @@ jobs:
         username: ${{ secrets.USERNAME }}
         port: ${{ secrets.PORT }}
         key: ${{ secrets.SSHKEY }}
-        passphrase: ${{ secrets.PASSPHRASE }}
         source: "./"
         target: ${{ secrets.COPY_TO }}
 
