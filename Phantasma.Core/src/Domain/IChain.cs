@@ -30,13 +30,8 @@ public interface IChain
     byte[] Commit();
     IEnumerable<TValidatorUpdate> EndBlock();
 
-
     string ToString();
     void AddBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee, StorageChangeSetContext changeSet);
-    StorageChangeSetContext ProcessBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee);
-
-    StorageChangeSetContext ProcessTransactions(Block block, IEnumerable<Transaction> transactions
-        , IOracleReader oracle, BigInteger minimumFee);
 
     BigInteger GetTokenBalance(StorageContext storage, IToken token, Address address);
     BigInteger GetTokenBalance(StorageContext storage, string symbol, Address address);

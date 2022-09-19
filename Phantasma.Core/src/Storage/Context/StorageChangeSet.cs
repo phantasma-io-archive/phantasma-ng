@@ -23,6 +23,11 @@ namespace Phantasma.Core.Storage.Context
             this.baseContext = baseContext;
         }
 
+        public StorageChangeSetContext Clone()
+        {
+            return new StorageChangeSetContext(this);
+        }
+
         public override void Clear()
         {
             _entries.Clear();

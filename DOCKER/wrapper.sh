@@ -16,4 +16,4 @@ screen -S node1p -dm bash -c 'cd /app/testnet/node1/publish/; rm -rf Storage; ./
 screen -S node2p -dm bash -c 'cd /app/testnet/node2/publish/; rm -rf Storage; ./phantasma-node --urls "http://*:5103"; exec sh'
 screen -S node3p -dm bash -c 'cd /app/testnet/node3/publish/; rm -rf Storage; ./phantasma-node --urls "http://*:5104"; exec sh'
 
-screen -rd node0p
+/bin/bash #screen -rd node0p

@@ -106,13 +106,16 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         // TODO checktx 
         try
         {
-            (CodeType code, string message) = _nexus.RootChain.CheckTx(request.Tx);
-
-            var response = new ResponseCheckTx();
-            response.Code = 0;
-            if (code == CodeType.Ok)    
+            if (request.Type == CheckTxType.New)
             {
-                return Task.FromResult(ResponseHelper.Check.Ok());
+                (CodeType code, string message) = _nexus.RootChain.CheckTx(request.Tx);
+
+                var response = new ResponseCheckTx();
+                response.Code = 0;
+                if (code == CodeType.Ok)    
+                {
+                    return Task.FromResult(ResponseHelper.Check.Ok());
+                }
             }
         }
         catch (Exception e)
@@ -126,36 +129,44 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     public override Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
     {
         var result = _nexus.RootChain.DeliverTx(request.Tx);
+        Console.WriteLine("deliver tx return");
 
         var bytes = Serialization.Serialize(result.Result);
+        Console.WriteLine("deliver tx serialize ");
+
         var response = new ResponseDeliverTx()
         {
             Code = result.Code,
+            // Codespace cannot be null!
             Codespace = result.Codespace,
             Data = ByteString.CopyFrom(bytes),
         };
 
-        if (response.Code == 0)
-        {
-            var newEvents = new List<Tendermint.Abci.Event>();
-            foreach (var evt in result.Events)
-            {
-                var newEvent = new Tendermint.Abci.Event();
-                var attributes = new EventAttribute[]
-                {
-                    new EventAttribute() { Key = "address", Value = evt.Address.ToString() },
-                    new EventAttribute() { Key = "contract", Value = evt.Contract },
-                    new EventAttribute() { Key = "data", Value = Base16.Encode(evt.Data) },
-                };
+        Console.WriteLine("1deliver tx check response");
+        Console.WriteLine("event count: " + result.Events != null);
+        //if (result.Events.Count() > 0)
+        //{
+        //    var newEvents = new List<Tendermint.Abci.Event>();
+        //    foreach (var evt in result.Events)
+        //    {
+        //        Console.WriteLine("event kind: " + evt.Kind.ToString());
+        //        var newEvent = new Tendermint.Abci.Event();
+        //        //var attributes = new EventAttribute[]
+        //        //{
+        //        //    // Value cannot be null!
+        //        //    new EventAttribute() { Key = "address", Value = evt.Address.ToString() },
+        //        //    new EventAttribute() { Key = "contract", Value = evt.Contract },
+        //        //    new EventAttribute() { Key = "data", Value = Base16.Encode(evt.Data) },
+        //        //};
 
-                newEvent.Type = evt.Kind.ToString();
-                newEvent.Attributes.AddRange(attributes);
+        //        newEvent.Type = evt.Kind.ToString();
+        //        //newEvent.Attributes.AddRange(attributes);
 
-                newEvents.Add(newEvent);
-            }
+        //        newEvents.Add(newEvent);
+        //    }
 
-            response.Events.AddRange(newEvents);
-        }
+        //    //response.Events.AddRange(newEvents);
+        //}
 
         // check if a system tx was executed, if yes, remove it
         for (var i = 0; i < _broadcastedTxs.Count; i++)
@@ -168,11 +179,13 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             }
         }
 
+        Console.WriteLine("finish deliver tx");
         return Task.FromResult(response);
     }
 
     public override Task<ResponseEndBlock> EndBlock(RequestEndBlock request, ServerCallContext context)
     {
+        Log.Information($"End block {request.Height}");
         var response = new ResponseEndBlock();
         try
         {
@@ -199,6 +212,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         var data = _nexus.RootChain.Commit();
         var response = new ResponseCommit();
         //response.Data = ByteString.CopyFrom(data); // this would change the app hash, we don't want that
+        Log.Information($"Commit done");
         return Task.FromResult(response);
     }
 

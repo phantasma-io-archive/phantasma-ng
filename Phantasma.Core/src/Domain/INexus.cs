@@ -14,6 +14,8 @@ public interface INexus
     StorageContext RootStorage { get; init;  }
     bool HasGenesis { get; set; }
     BigInteger MaxGas { get; set; }
+    Transaction TestTx(PhantasmaKeys owner);
+    Transaction TestTx2(PhantasmaKeys owner);
 
     string NexusProtocolVersionTag { get;  }
     string FuelPerContractDeployTag { get;  }

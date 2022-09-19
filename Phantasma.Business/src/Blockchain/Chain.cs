@@ -127,6 +127,7 @@ namespace Phantasma.Business.Blockchain
                 , validatorAddress
                 , new byte[0]);
 
+            // create new storage context
             this.CurrentChangeSet = new StorageChangeSetContext(this.Storage);
             List<Transaction> systemTransactions = new ();
 
@@ -136,12 +137,21 @@ namespace Phantasma.Business.Blockchain
                 if (inflationReady)
                 {
                     var script = new ScriptBuilder()
-                        .AllowGas(this.CurrentBlock.Validator, Address.Null, 100000, 999999) // TODO hardcoded gas limit
+                        .AllowGas(this.CurrentBlock.Validator, Address.Null) // TODO hardcoded gas limit
                         .CallContract(NativeContractKind.Gas, nameof(GasContract.ApplyInflation), this.CurrentBlock.Validator)
                         .SpendGas(this.CurrentBlock.Validator)
                         .EndScript();
 
-                    var transaction = new Transaction(this.Nexus.Name, this.Name, script, validatorAddress, this.CurrentBlock.Timestamp.Value + 1, "SYSTEM");
+                    var transaction = new Transaction(
+                            this.Nexus.Name,
+                            this.Name,
+                            script,
+                            validatorAddress,
+                            validatorAddress,
+                            1,
+                            1,
+                            this.CurrentBlock.Timestamp.Value + 1,
+                            "SYSTEM");
 
                     transaction.Sign(this.ValidatorKeys);
                     systemTransactions.Add(transaction);
@@ -184,13 +194,23 @@ namespace Phantasma.Business.Blockchain
                 return (CodeType.NotSignedBySender, "Transaction is not signed by sender");
             }
 
+            if (Nexus.HasGenesis)
+            {
+                var maxGas = tx.GasPrice * tx.GasLimit;
+                var balance = GetTokenBalance(this.Storage, DomainSettings.FuelTokenSymbol, tx.GasPayer);
+                if (balance < maxGas)
+                {
+                    Log.Information("check tx 5 " + tx.Hash);
+                    return (CodeType.MissingFuel, "Missing fuel");
+                }
+            }
             // TODO make sure we do not overflow
             //if (!VerifyBlockBeforeAdd(block))
             //{
             //    throw new BlockGenerationException($"block verification failed, would have overflown, hash:{block.Hash}");
             //}
 
-            Log.Information("check tx 4 " + tx.Hash);
+            Log.Information("check tx Successful " + tx.Hash);
             return (CodeType.Ok, "");
         }
         public (CodeType, string) CheckTx(ByteString serializedTx)
@@ -210,45 +230,44 @@ namespace Phantasma.Business.Blockchain
 
             Log.Information($"Deliver tx {tx}");
 
-            var (codeType, message) = CheckTx(tx);
-            if (codeType != CodeType.Ok)
-            {
-                Log.Error("Transaction {0} check error: {1}", result.Hash, message);
-                this.CurrentChangeSet.Clear();
-                result.Code = 1;
-                result.Codespace = message;
-
-                return result;
-            }
-
             try
             {
                 CurrentTransactions.Add(tx);
                 var txIndex = CurrentTransactions.Count - 1;
                 var oracle = Nexus.GetOracleReader();
+
+                // create snapshot
+                var snapshot = this.CurrentChangeSet.Clone();
+
                 using (var m = new ProfileMarker("ExecuteTransaction"))
                 {
                     result = ExecuteTransaction(txIndex, tx, tx.Script, this.CurrentBlock.Validator,
-                        this.CurrentBlock.Timestamp, this.CurrentChangeSet, this.CurrentBlock.Notify, oracle,
-                        ChainTask.Null, 100000); //TODO: hardcoded gas limit
+                        this.CurrentBlock.Timestamp, snapshot, this.CurrentBlock.Notify, oracle,
+                        ChainTask.Null, 100000);
 
-                    if (result.Code == 0)
+                    if (result.State == ExecutionState.Halt)
                     {
                         if (result.Result != null)
                         {
                             var resultBytes = Serialization.Serialize(result.Result);
                             this.CurrentBlock.SetResultForHash(tx.Hash, resultBytes);
                         }
+
+                        snapshot.Execute();
                     }
+                    else
+                    {
+                        snapshot = null;
+                    }
+
+                    this.CurrentBlock.SetStateForHash(tx.Hash, result.State);
                 }
             }
             catch (Exception e)
             {
                 Log.Error("exception " + e);
                 // log original exception, throwing it again kills the call stack!
-                Log.Error("Exception was thrown while processing {0} error: {1}", result.Hash, e.Message);
-                this.CurrentTransactions.Remove(tx);
-                this.CurrentChangeSet.Clear();
+                Log.Error($"Exception was thrown while processing {result.Hash} error: {e.Message}");
                 result.Code = 1;
                 result.Codespace = e.Message;
             }
@@ -389,220 +408,215 @@ namespace Phantasma.Business.Blockchain
                 }
         }
 
-        public StorageChangeSetContext ProcessBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee)
-        {
-            if (!block.Validator.IsUser)
-            {
-                throw new BlockGenerationException($"block validator must be user address");
-            }
+        //public StorageChangeSetContext ProcessBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee)
+        //{
+        //    if (!block.Validator.IsUser)
+        //    {
+        //        throw new BlockGenerationException($"block validator must be user address");
+        //    }
 
-            Block lastBlock;
-            using (var m = new ProfileMarker("GetLastBlock"))
-            {
-                var lastBlockHash = GetLastBlockHash();
-                lastBlock = GetBlockByHash(lastBlockHash);
-            }
+        //    Block lastBlock;
+        //    using (var m = new ProfileMarker("GetLastBlock"))
+        //    {
+        //        var lastBlockHash = GetLastBlockHash();
+        //        lastBlock = GetBlockByHash(lastBlockHash);
+        //    }
 
-            if (lastBlock != null)
-            {
-                if (lastBlock.Height != block.Height - 1)
-                {
-                    throw new BlockGenerationException($"height of block should be {lastBlock.Height + 1}");
-                }
+        //    if (lastBlock != null)
+        //    {
+        //        if (lastBlock.Height != block.Height - 1)
+        //        {
+        //            throw new BlockGenerationException($"height of block should be {lastBlock.Height + 1}");
+        //        }
 
-                if (block.PreviousHash != lastBlock.Hash)
-                {
-                    throw new BlockGenerationException($"previous hash should be {lastBlock.PreviousHash}");
-                }
+        //        if (block.PreviousHash != lastBlock.Hash)
+        //        {
+        //            throw new BlockGenerationException($"previous hash should be {lastBlock.PreviousHash}");
+        //        }
 
-                if (block.Timestamp < lastBlock.Timestamp)
-                {
-                    throw new BlockGenerationException($"timestamp of block {block.Timestamp} should be greater than {lastBlock.Timestamp}");
-                }
-            }
+        //        if (block.Timestamp < lastBlock.Timestamp)
+        //        {
+        //            throw new BlockGenerationException($"timestamp of block {block.Timestamp} should be greater than {lastBlock.Timestamp}");
+        //        }
+        //    }
 
-            var inputHashes = new HashSet<Hash>(transactions.Select(x => x.Hash).Distinct());
+        //    var inputHashes = new HashSet<Hash>(transactions.Select(x => x.Hash).Distinct());
 
-            var txBlockMap = new StorageMap(TxBlockHashMapTag, this.Storage);
+        //    var txBlockMap = new StorageMap(TxBlockHashMapTag, this.Storage);
 
-            var diff = transactions.Count() - inputHashes.Count;
-            if (diff > 0)
-            {
-                var temp = new HashSet<Hash>();
-                foreach (var tx in transactions)
-                {
-                    if (temp.Contains(tx.Hash))
-                    {
-                        throw new DuplicatedTransactionException(tx.Hash, $"transaction {tx.Hash} appears more than once in the block being minted");
-                    }
-                    else if (txBlockMap.ContainsKey<Hash>(tx.Hash))
-                    {
-                        var previousBlockHash = txBlockMap.Get<Hash, Hash>(tx.Hash);
-                        throw new DuplicatedTransactionException(tx.Hash, $"transaction {tx.Hash} already added to previous block {previousBlockHash}");
-                    }
-                    else
-                    {
+        //    var diff = transactions.Count() - inputHashes.Count;
+        //    if (diff > 0)
+        //    {
+        //        var temp = new HashSet<Hash>();
+        //        foreach (var tx in transactions)
+        //        {
+        //            if (temp.Contains(tx.Hash))
+        //            {
+        //                throw new DuplicatedTransactionException(tx.Hash, $"transaction {tx.Hash} appears more than once in the block being minted");
+        //            }
+        //            else if (txBlockMap.ContainsKey<Hash>(tx.Hash))
+        //            {
+        //                var previousBlockHash = txBlockMap.Get<Hash, Hash>(tx.Hash);
+        //                throw new DuplicatedTransactionException(tx.Hash, $"transaction {tx.Hash} already added to previous block {previousBlockHash}");
+        //            }
+        //            else
+        //            {
 
-                        temp.Add(tx.Hash);
-                    }
-                }
-            }
+        //                temp.Add(tx.Hash);
+        //            }
+        //        }
+        //    }
 
-            foreach (var hash in block.TransactionHashes)
-            {
-                if (!inputHashes.Contains(hash))
-                {
-                    throw new BlockGenerationException($"missing in inputs transaction with hash {hash}");
-                }
-            }
+        //    foreach (var hash in block.TransactionHashes)
+        //    {
+        //        if (!inputHashes.Contains(hash))
+        //        {
+        //            throw new BlockGenerationException($"missing in inputs transaction with hash {hash}");
+        //        }
+        //    }
 
-            var outputHashes = new HashSet<Hash>(block.TransactionHashes);
-            foreach (var tx in transactions)
-            {
-                if (!outputHashes.Contains(tx.Hash))
-                {
-                    throw new BlockGenerationException($"missing in outputs transaction with hash {tx.Hash}");
-                }
-            }
+        //    var outputHashes = new HashSet<Hash>(block.TransactionHashes);
+        //    foreach (var tx in transactions)
+        //    {
+        //        if (!outputHashes.Contains(tx.Hash))
+        //        {
+        //            throw new BlockGenerationException($"missing in outputs transaction with hash {tx.Hash}");
+        //        }
+        //    }
 
-            foreach (var tx in transactions)
-            {
-                if (!tx.IsValid(this))
-                {
-#if DEBUG
-                    tx.IsValid(this);
+        //    foreach (var tx in transactions)
+        //    {
+        //        if (!tx.IsValid(this))
+        //        {
+#if DEBU//G
+        //            tx.IsValid(this);
 #endif
-                    throw new InvalidTransactionException(tx.Hash, $"invalid transaction with hash {tx.Hash}");
-                }
-            }
+        //            throw new InvalidTransactionException(tx.Hash, $"invalid transaction with hash {tx.Hash}");
+        //        }
+        //    }
 
-            var oracle = Nexus.GetOracleReader();
+        //    var oracle = Nexus.GetOracleReader();
 
-            //block.CleanUp();
+        //    //block.CleanUp();
 
-            var changeSet = ProcessTransactions(block, transactions, oracle, minimumFee);
-            //TODO: remove this
-            Address expectedValidator;
-            using (var m = new ProfileMarker("GetValidator"))
-                expectedValidator = Nexus.HasGenesis ? GetValidator(Nexus.RootStorage, block.Timestamp) : Nexus.GetGenesisAddress(Nexus.RootStorage);
+        //    var changeSet = ProcessTransactions(block, transactions, oracle, minimumFee);
+        //    //TODO: remove this
+        //    Address expectedValidator;
+        //    using (var m = new ProfileMarker("GetValidator"))
+        //        expectedValidator = Nexus.HasGenesis ? GetValidator(Nexus.RootStorage, block.Timestamp) : Nexus.GetGenesisAddress(Nexus.RootStorage);
 
-            var migrationFound = false;
-            var migratedAddress = Address.Null;
-            foreach (var hash in outputHashes)
-            {
-                if (migrationFound)
-                {
-                    break;
-                }
+        //    var migrationFound = false;
+        //    var migratedAddress = Address.Null;
+        //    foreach (var hash in outputHashes)
+        //    {
+        //        if (migrationFound)
+        //        {
+        //            break;
+        //        }
 
-                var events = block.GetEventsForTransaction(hash);
-                foreach (var evt in events)
-                {
-                    if (evt.Kind == EventKind.AddressMigration && evt.Contract == "validator")
-                    {
-                        var oldAddress = evt.GetContent<Address>();
-                        if (oldAddress == expectedValidator)
-                        {
-                            migratedAddress = evt.Address;
-                            migrationFound = true;
-                            break;
-                        }
-                    }
-                }
-            }
+        //        var events = block.GetEventsForTransaction(hash);
+        //        foreach (var evt in events)
+        //        {
+        //            if (evt.Kind == EventKind.AddressMigration && evt.Contract == "validator")
+        //            {
+        //                var oldAddress = evt.GetContent<Address>();
+        //                if (oldAddress == expectedValidator)
+        //                {
+        //                    migratedAddress = evt.Address;
+        //                    migrationFound = true;
+        //                    break;
+        //                }
+        //            }
+        //        }
+        //    }
 
-            if (block.Validator != expectedValidator && !expectedValidator.IsNull)
-            {
-                if (migrationFound && migratedAddress == block.Validator)
-                {
-                    expectedValidator = migratedAddress;
-                }
-                else
-                {
-                    throw new BlockGenerationException($"unexpected validator {block.Validator}, expected {expectedValidator}");
-                }
-            }
+        //    if (block.Validator != expectedValidator && !expectedValidator.IsNull)
+        //    {
+        //        if (migrationFound && migratedAddress == block.Validator)
+        //        {
+        //            expectedValidator = migratedAddress;
+        //        }
+        //        else
+        //        {
+        //            throw new BlockGenerationException($"unexpected validator {block.Validator}, expected {expectedValidator}");
+        //        }
+        //    }
 
-            //if (oracle.Entries.Any())
-            //{
-            //    block.MergeOracle(oracle);
-            //    oracle.Clear();
-            //}
+        //    //if (oracle.Entries.Any())
+        //    //{
+        //    //    block.MergeOracle(oracle);
+        //    //    oracle.Clear();
+        //    //}
 
-            return changeSet;
-        }
+        //    return changeSet;
+        //}
 
-        public StorageChangeSetContext ProcessTransactions(Block block, IEnumerable<Transaction> transactions
-                , IOracleReader oracle, BigInteger minimumFee)
-        {
-            //block.CleanUp();
+        //public StorageChangeSetContext ProcessTransactions(Block block, IEnumerable<Transaction> transactions
+        //        , IOracleReader oracle, BigInteger minimumFee)
+        //{
+        //    //block.CleanUp();
 
 
-            var changeSet = new StorageChangeSetContext(this.Storage);
+        //    var changeSet = new StorageChangeSetContext(this.Storage);
 
-            int txIndex = 0;
-            foreach (var tx in transactions)
-            {
-                try
-                {
-                    using (var m = new ProfileMarker("ExecuteTransaction"))
-                    {
-                        var result = ExecuteTransaction(txIndex, tx, tx.Script, block.Validator, block.Timestamp, changeSet,
-                                block.Notify, oracle, ChainTask.Null, minimumFee);
+        //    int txIndex = 0;
+        //    foreach (var tx in transactions)
+        //    {
+        //        try
+        //        {
+        //            using (var m = new ProfileMarker("ExecuteTransaction"))
+        //            {
+        //                var result = ExecuteTransaction(txIndex, tx, tx.Script, block.Validator, block.Timestamp, changeSet,
+        //                        block.Notify, oracle, ChainTask.Null, minimumFee);
 
-                        if (result.Code == 0)
-                        {
-                            if (result.Result != null)
-                            {
-                                var resultBytes = Serialization.Serialize(result.Result);
-                                //(this.CurrentBlock == null ? block : this.CurrentBlock).SetResultForHash(tx.Hash, resultBytes);
-                            }
-                        }
-                        else
-                        {
-                            throw new InvalidTransactionException(tx.Hash, "script execution failed");
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    e = e.ExpandInnerExceptions();
+        //                if (result.Code == 0)
+        //                {
+        //                    if (result.Result != null)
+        //                    {
+        //                        var resultBytes = Serialization.Serialize(result.Result);
+        //                        //(this.CurrentBlock == null ? block : this.CurrentBlock).SetResultForHash(tx.Hash, resultBytes);
+        //                    }
+        //                }
+        //                else
+        //                {
+        //                    throw new InvalidTransactionException(tx.Hash, "script execution failed");
+        //                }
+        //            }
+        //        }
+        //        catch (Exception e)
+        //        {
+        //            e = e.ExpandInnerExceptions();
 
-                    // log original exception, throwing it again kills the call stack!
-                    Log.Error($"Exception while transactions of block {block.Height}: " + e);
+        //            // log original exception, throwing it again kills the call stack!
+        //            Log.Error($"Exception while transactions of block {block.Height}: " + e);
 
-                    if (tx == null)
-                    {
-                        throw new BlockGenerationException(e.Message);
-                    }
+        //            if (tx == null)
+        //            {
+        //                throw new BlockGenerationException(e.Message);
+        //            }
 
-                    throw new InvalidTransactionException(tx.Hash, e.Message);
-                }
+        //            throw new InvalidTransactionException(tx.Hash, e.Message);
+        //        }
 
-                txIndex++;
-            }
+        //        txIndex++;
+        //    }
 
-            if (block.Protocol > DomainSettings.LatestKnownProtocol)
-            {
-                throw new BlockGenerationException($"unexpected protocol number {block.Protocol}, maybe software update required?");
-            }
+        //    if (block.Protocol > DomainSettings.LatestKnownProtocol)
+        //    {
+        //        throw new BlockGenerationException($"unexpected protocol number {block.Protocol}, maybe software update required?");
+        //    }
 
-            using (var m = new ProfileMarker("CloseBlock"))
-            {
-                CloseBlock(block, changeSet);
-            }
+        //    using (var m = new ProfileMarker("CloseBlock"))
+        //    {
+        //        CloseBlock(block, changeSet);
+        //    }
 
-            return changeSet;
-        }
+        //    return changeSet;
+        //}
 
         private TransactionResult ExecuteTransaction(int index, Transaction transaction, byte[] script, Address validator, Timestamp time, StorageChangeSetContext changeSet
                 , Action<Hash, Event> onNotify, IOracleReader oracle, IChainTask task, BigInteger minimumFee, bool allowModify = true)
         {
-            //if (!transaction.HasSignatures)
-            //{
-            //    throw new ChainException("Cannot execute unsigned transaction");
-            //}
-
             var result = new TransactionResult();
 
             result.Hash = transaction.Hash;
@@ -615,16 +629,8 @@ namespace Phantasma.Business.Blockchain
                 runtime = new RuntimeVM(index, script, offset, this, validator, time, transaction, changeSet, oracle, task);
             }
 
-            ExecutionState state;
             using (var m = new ProfileMarker("runtime.Execute"))
-                state = runtime.Execute();
-
-            if (state != ExecutionState.Halt)
-            {
-                result.Code = 1;
-                result.Codespace = "Execution Failed";
-                return result;
-            }
+                result.State = runtime.Execute();
 
             result.Events = runtime.Events.ToArray();
             result.GasUsed = (long)runtime.UsedGas;
@@ -636,6 +642,13 @@ namespace Phantasma.Business.Blockchain
                     using (var m2 = new ProfileMarker(evt.ToString()))
                         onNotify(transaction.Hash, evt);
                 }
+            }
+
+            if (result.State != ExecutionState.Halt)
+            {
+                result.Code = 1;
+                result.Codespace = runtime.ExceptionMessage ?? "Execution Unsuccessful";
+                return result;
             }
 
             if (runtime.Stack.Count > 0)
@@ -1401,12 +1414,12 @@ namespace Phantasma.Business.Blockchain
             using (var m = new ProfileMarker("ExecuteTask"))
             {
                 var taskScript = new ScriptBuilder()
-                    .AllowGas(task.Owner, Address.Null, minimumFee, task.GasLimit)
+                    .AllowGas(task.Owner, Address.Null)
                     .CallContract(task.ContextName, task.Method)
                     .SpendGas(task.Owner)
                     .EndScript();
 
-                transaction = new Transaction(this.Nexus.Name, this.Name, taskScript, task.Owner, block.Timestamp.Value + 1, "TASK");
+                transaction = new Transaction(this.Nexus.Name, this.Name, taskScript, task.Owner, task.Owner, minimumFee, task.GasLimit, block.Timestamp.Value + 1, "TASK");
 
                 var txResult = ExecuteTransaction(-1, transaction, transaction.Script, block.Validator, block.Timestamp, changeSet,
                             block.Notify, oracle, task, minimumFee);
@@ -1414,6 +1427,8 @@ namespace Phantasma.Business.Blockchain
                 {
                     var resultBytes = Serialization.Serialize(txResult.Result);
                     block.SetResultForHash(transaction.Hash, resultBytes);
+
+                    block.SetStateForHash(transaction.Hash, txResult.State);
 
                     // update last_run value in storage
                     if (currentRun > 0)
@@ -1425,7 +1440,7 @@ namespace Phantasma.Business.Blockchain
                     return shouldStop ? TaskResult.Halted : TaskResult.Running;
                 }
 
-                transaction = null;
+                block.SetStateForHash(transaction.Hash, txResult.State);
                 return TaskResult.Crashed;
             }
         }

@@ -278,6 +278,7 @@ public static class NexusAPI
             script = tx.Script.Encode(),
             payload = tx.Payload.Encode(),
             fee = chain != null ? chain.GetTransactionFee(tx.Hash).ToString() : "0",
+            state = block != null ? block.GetStateForTransaction(tx.Hash).ToString() : ExecutionState.Break.ToString(),
             sender = tx.Sender.Text,
             expiration = tx.Expiration.Value,
             signatures = tx.Signatures.Select(x => new SignatureResult() { Kind = x.Kind.ToString(), Data = Base16.Encode(x.ToByteArray()) }).ToArray(),
