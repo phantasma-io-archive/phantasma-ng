@@ -416,15 +416,15 @@ namespace Phantasma.Business.VM
                 ex = ex.ExpandInnerExceptions();
 
                 Trace.WriteLine(ex.ToString());
-                SetState(ExecutionState.Fault);
 
                 if (ex is not VMException)
                 {
                     ex = new VMException(frame.VM, ex.Message);
                 }
+                SetState(ExecutionState.Fault);
 
                 // ReSharper disable once PossibleIntendedRethrow
-                throw ex; 
+                //throw ex; 
             }
         }
         

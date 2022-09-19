@@ -13,6 +13,7 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("GetAccount")]
         public AccountResult GetAccount([APIParameter("Address of account", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string account)
         {
+            Console.WriteLine("get account: " + account);
             if (!Address.IsValidAddress(account))
             {
                 throw new APIException("invalid address");
@@ -22,12 +23,14 @@ namespace Phantasma.Infrastructure.API.Controllers
 
             AccountResult result;
 
+            Console.WriteLine("2 get account: " + account);
             try
             {
                 result = NexusAPI.FillAccount(address);
             }
             catch (Exception e)
             {
+                Console.WriteLine(e);
                 throw new APIException(e.Message);
             }
 

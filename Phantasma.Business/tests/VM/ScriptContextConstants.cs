@@ -15,13 +15,13 @@ internal class ScriptContextConstants
     public static Address DefaultToAddress = Address.FromText("P2KA2x8P5sLfj75pAzQeSYA3QrFE2MzyV1WaHgVEcaEXGn6");
 
     public static byte[] TransferNftScript =>
-        ScriptUtils.BeginScript().AllowGas(DefaultFromAddress, Address.Null, 100000, 6000).TransferNFT("GHOST",
+        ScriptUtils.BeginScript().AllowGas(DefaultFromAddress, Address.Null).TransferNFT("GHOST",
                 DefaultFromAddress, DefaultToAddress,
                 BigInteger.Parse("80807712912753409015029052615541912663228133032695758696669246580757047529373"))
             .SpendGas(DefaultFromAddress).EndScript();
 
     public static byte[] CustomContractScript =>
-        ScriptUtils.BeginScript().AllowGas(DefaultFromAddress, DefaultToAddress, 100000, 6000).CallContract("TEST",
+        ScriptUtils.BeginScript().AllowGas(DefaultFromAddress, DefaultToAddress).CallContract("TEST",
             "mintToken", new List<object>
             {
                 1,
@@ -52,7 +52,7 @@ internal class ScriptContextConstants
             }.ToArray()).SpendGas(DefaultFromAddress).EndScript();
 
     public static byte[] MigrateContractScript =>
-        ScriptUtils.BeginScript().AllowGas(DefaultFromAddress, Address.Null, 100000, 6000)
+        ScriptUtils.BeginScript().AllowGas(DefaultFromAddress, Address.Null)
             .CallContract("validator", "Migrate", DefaultFromAddress, DefaultToAddress).SpendGas(DefaultFromAddress)
             .EndScript();
 
@@ -63,7 +63,7 @@ internal class ScriptContextConstants
             .CallContract("swap", "SwapFee", DefaultFromAddress, "TEST",
                 UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
             .TransferBalance("TEST", DefaultFromAddress, DefaultToAddress)
-            .AllowGas(DefaultFromAddress, Address.Null, 100000, 500).SpendGas(DefaultFromAddress).EndScript();
+            .AllowGas(DefaultFromAddress, Address.Null).SpendGas(DefaultFromAddress).EndScript();
 
     public static byte[] AliasScript =>
         AssemblerUtils.BuildScript(new List<string>

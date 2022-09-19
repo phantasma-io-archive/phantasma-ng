@@ -12,6 +12,7 @@ using Phantasma.Core.Domain;
 using Phantasma.Shared.Types;
 using Shouldly;
 using Xunit;
+using ExecutionContext = Phantasma.Core.Domain.ExecutionContext;
 
 namespace Phantasma.Business.Tests.VM;
 

@@ -235,6 +235,9 @@ namespace Phantasma.Infrastructure.API
         [APIDescription("Fee of the transaction, in KCAL, fixed point")]
         public string fee { get; set; }
 
+        [APIDescription("Executin state of the transaction")]
+        public string state { get; set; }
+
         [APIDescription("List of signatures that signed the transaction")]
         public SignatureResult[] signatures { get; set; }
 
