@@ -93,11 +93,9 @@ namespace Phantasma.Business.Blockchain.Tokens
 
             var balance = Get(storage, address);
 
-            var diff = balance - amount;
-            if (diff < 0)
+            if (amount > balance)
             {
-                throw new BalanceException(_token, address, -diff);
-                //return false;
+                return false;
             }
 
             balance -= amount;

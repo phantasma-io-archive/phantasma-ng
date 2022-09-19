@@ -5,6 +5,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Shouldly;
 using Xunit;
+using ExecutionContext = Phantasma.Core.Domain.ExecutionContext;
 
 namespace Phantasma.Core.Tests.Domain;
 

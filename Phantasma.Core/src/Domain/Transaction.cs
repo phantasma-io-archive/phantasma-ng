@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Utils;
 using Phantasma.Shared;
@@ -19,6 +20,11 @@ namespace Phantasma.Core.Domain
         public string ChainName { get; private set; }
         
         public Address Sender { get; private set; }
+
+        public Address GasPayer { get; private set; }
+        public Address GasTarget { get; private set; }
+        public BigInteger GasPrice { get; private set; }
+        public BigInteger GasLimit { get; private set; }
 
         public Timestamp Expiration { get; private set; }
 
@@ -51,6 +57,10 @@ namespace Phantasma.Core.Domain
             writer.WriteVarString(this.ChainName);
             writer.WriteByteArray(this.Script);
             writer.WriteAddress(this.Sender);
+            writer.WriteAddress(this.GasPayer);
+            writer.WriteAddress(this.GasTarget);
+            writer.WriteBigInteger(this.GasPrice);
+            writer.WriteBigInteger(this.GasLimit);
             writer.Write(this.Expiration.Value);
             writer.WriteByteArray(this.Payload);
 
@@ -75,12 +85,41 @@ namespace Phantasma.Core.Domain
 
         }
 
-        public Transaction(string nexusName, string chainName, byte[] script, Address sender, Timestamp expiration, string payload) : this(nexusName, chainName, script, sender, expiration, Encoding.UTF8.GetBytes(payload))
+        public Transaction(
+                string nexusName,
+                string chainName,
+                byte[] script,
+                Address sender,
+                Address gasPayer,
+                BigInteger gasPrice,
+                BigInteger gasLimit,
+                Timestamp expiration,
+                string payload)
+            : this(nexusName,
+                    chainName,
+                    script,
+                    sender,
+                    sender,
+                    Address.Null,
+                    gasPrice,
+                    gasLimit,
+                    expiration,
+                    Encoding.UTF8.GetBytes(payload))
         {
         }
 
         // transactions are always created unsigned, call Sign() to generate signatures
-        public Transaction(string nexusName, string chainName, byte[] script, Address sender, Timestamp expiration, byte[] payload = null)
+        public Transaction(
+                string nexusName,
+                string chainName,
+                byte[] script,
+                Address sender,
+                Address gasPayer,
+                Address gasTarget,
+                BigInteger gasPrice,
+                BigInteger gasLimit,
+                Timestamp expiration,
+                byte[] payload = null)
         {
             Throw.IfNull(script, nameof(script));
 
@@ -88,6 +127,10 @@ namespace Phantasma.Core.Domain
             this.ChainName = chainName;
             this.Script = script;
             this.Sender = sender;
+            this.GasPayer = gasPayer;
+            this.GasTarget = gasTarget;
+            this.GasPrice = gasPrice;
+            this.GasLimit = gasLimit;
             this.Expiration = expiration;
             this.Payload = payload != null ? payload :new byte[0];
 
@@ -173,6 +216,10 @@ namespace Phantasma.Core.Domain
             this.ChainName = reader.ReadVarString();
             this.Script = reader.ReadByteArray();
             this.Sender = reader.ReadAddress();
+            this.GasPayer = reader.ReadAddress();
+            this.GasTarget = reader.ReadAddress();
+            this.GasPrice = reader.ReadBigInteger();
+            this.GasLimit = reader.ReadBigInteger();
             this.Expiration = reader.ReadUInt32();
             this.Payload = reader.ReadByteArray();
 

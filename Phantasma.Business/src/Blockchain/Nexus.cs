@@ -1325,18 +1325,11 @@ public class Nexus : INexus
             sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), validator, new BigInteger(index), ValidatorType.Primary);
             index++;
         }
-
-       //sb.CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address,
-       //        DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals))
-       //    .CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address,
-       //        DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100, DomainSettings.FuelTokenDecimals));
-       //    //CallContract(NativeContractKind.Swap, nameof(SwapContract.MigrateToV3), owner.Address, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100, DomainSettings.FuelTokenDecimals));
-
         sb.Emit(Opcode.RET);
 
         var script = sb.EndScript();
 
-        var tx = new Transaction(this.Name, DomainSettings.RootChainName, script, owner.Address, Timestamp.Now + TimeSpan.FromDays(300));
+        var tx = new Transaction(this.Name, DomainSettings.RootChainName, script, owner.Address, owner.Address, Address.Null, 1, 9999, Timestamp.Now + TimeSpan.FromDays(300));
         tx.Mine(ProofOfWork.Minimal);
         tx.Sign(owner);
 
@@ -1358,7 +1351,7 @@ public class Nexus : INexus
         var script = //SpendGas(owner.Address).
             sb.EndScript();
 
-        var tx = new Transaction(Name, DomainSettings.RootChainName, script, owner.Address, Timestamp.Now + TimeSpan.FromDays(300));
+        var tx = new Transaction(Name, DomainSettings.RootChainName, script, owner.Address, owner.Address, Address.Null, 1, 9999, Timestamp.Now + TimeSpan.FromDays(300));
         tx.Mine((int)ProofOfWork.Moderate);
         tx.Sign(owner);
         return tx;
@@ -1584,7 +1577,6 @@ public class Nexus : INexus
         //block.AddAllTransactionHashes(transactions.Select(tx => tx.Hash));
 
 	    //Transaction inflationTx = null;
-	    //Console.WriteLine("tx cnt: " + transactions.Count);
         //var changeSet = rootChain.ProcessBlock(block, transactions, 1, out inflationTx, owner);
 	    //if (inflationTx != null)
  	    //{
