@@ -11,36 +11,26 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v2
-      with:
-        dotnet-version: 6.0.x
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get install libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev libzstd-dev librocksdb-dev
-        dotnet restore
-
-    - name: Build
-      run: dotnet build --configuration Release --no-restore
-
     - name: Copy Files via scp
       uses: appleboy/scp-action@master              
       with:
         host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
         port: ${{ secrets.PORT }}
+        username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSHKEY }}
         passphrase: ${{ secrets.PASSPHRASE }}
         source: "./"
-        target: ${{ secrets.COPY_TO }}
+        target: ${{ secrets.FOLDER }}
 
-    - name: Move files to correct place
+    - name: Building Docker in the server
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
         port: ${{ secrets.PORT }}
+        username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSHKEY }}
         passphrase: ${{ secrets.PASSPHRASE }}
-        script: cd ${{ secrets.COPY_TO }};sudo chown u+x ./testnet_startup.sh;sudo ./testnet_startup.sh
+        script: |
+          cd ${{ secrets.FOLDER }}
+          echo ${{ secrets.PASS }} | sudo -S chmod u+x ./testnet_startup.sh;
+          echo ${{ secrets.PASS }} | sudo -S ./testnet_startup.sh;
