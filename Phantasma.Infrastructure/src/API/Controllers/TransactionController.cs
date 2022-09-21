@@ -313,7 +313,6 @@ namespace Phantasma.Infrastructure.API.Controllers
                 throw new APIException("Transaction not found");
             }
 
-            Console.WriteLine("fill tx now");
             return NexusAPI.FillTransaction(tx);
         }
     }

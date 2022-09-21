@@ -69,7 +69,8 @@ namespace Phantasma.Core.Domain
         Crowdsale = 58,
         OrderBid = 59,
         ContractKill = 60,
-        Custom = 64
+        Error = 64,
+        Custom = 65,
     }
 
     public struct OrganizationEventData

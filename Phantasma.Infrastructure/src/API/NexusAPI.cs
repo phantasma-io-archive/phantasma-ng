@@ -280,6 +280,10 @@ public static class NexusAPI
             fee = chain != null ? chain.GetTransactionFee(tx.Hash).ToString() : "0",
             state = block != null ? block.GetStateForTransaction(tx.Hash).ToString() : ExecutionState.Break.ToString(),
             sender = tx.Sender.Text,
+            gasPayer = tx.GasPayer.Text,
+            gasTarget = tx.GasTarget.Text,
+            gasPrice = tx.GasPrice.ToString(),
+            gasLimit = tx.GasLimit.ToString(),
             expiration = tx.Expiration.Value,
             signatures = tx.Signatures.Select(x => new SignatureResult() { Kind = x.Kind.ToString(), Data = Base16.Encode(x.ToByteArray()) }).ToArray(),
         };
