@@ -1329,31 +1329,10 @@ public class Nexus : INexus
 
         var script = sb.EndScript();
 
-        var tx = new Transaction(this.Name, DomainSettings.RootChainName, script, owner.Address, owner.Address, Address.Null, 1, 9999, Timestamp.Now + TimeSpan.FromDays(300));
+        var tx = new Transaction(this.Name, DomainSettings.RootChainName, 0L, script, owner.Address, owner.Address, Address.Null, 1, 9999, Timestamp.Now + TimeSpan.FromDays(300));
         tx.Mine(ProofOfWork.Minimal);
         tx.Sign(owner);
 
-        return tx;
-    }
-
-    private Transaction ChainCreateTx(PhantasmaKeys owner, string name, params string[] contracts)
-    {
-        var sb = ScriptUtils.
-            BeginScript().
-            //AllowGas(owner.Address, Address.Null, 1, 9999).
-            CallInterop("Nexus.CreateChain", owner.Address, name, RootChain.Name);
-
-        foreach (var contractName in contracts)
-        {
-            sb.CallInterop("Runtime.DeployContract", owner.Address, contractName);
-        }
-
-        var script = //SpendGas(owner.Address).
-            sb.EndScript();
-
-        var tx = new Transaction(Name, DomainSettings.RootChainName, script, owner.Address, owner.Address, Address.Null, 1, 9999, Timestamp.Now + TimeSpan.FromDays(300));
-        tx.Mine((int)ProofOfWork.Moderate);
-        tx.Sign(owner);
         return tx;
     }
 

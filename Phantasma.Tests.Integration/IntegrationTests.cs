@@ -28,7 +28,7 @@ public class IntegrationTests
             .AllowGas(owner.Address, Address.Null)
             .TransferTokens("SOUL", owner.Address, user.Address, BigInteger.Parse("20000000000000000"));
         var script = sb.EndScript();
-        var tx = new Transaction("", DomainSettings.RootChainName, script, owner.Address, owner.Address, Address.Null, 100000, 9999, Timestamp.Now + TimeSpan.FromDays(300));
+        var tx = new Transaction("", DomainSettings.RootChainName, 0L, script, owner.Address, owner.Address, Address.Null, 100000, 9999, Timestamp.Now + TimeSpan.FromDays(300));
         tx.Mine(ProofOfWork.Minimal);
         tx.Sign(owner);
 
@@ -66,7 +66,7 @@ public class IntegrationTests
             .CallInterop("Runtime.MintTokens", "S3dP2jjf1jUG9nethZBWbnu9a6dFqB7KveTWU7znis6jpDy", owner.Address, "SOUL", 1000000)
             .SpendGas(owner.Address);
         var script = sb.EndScript();
-        var tx = new Transaction("", DomainSettings.RootChainName, script, owner.Address, owner.Address, Address.Null, 100000, 9999, Timestamp.Now + TimeSpan.FromDays(300));
+        var tx = new Transaction("", DomainSettings.RootChainName, 0L, script, owner.Address, owner.Address, Address.Null, 100000, 9999, Timestamp.Now + TimeSpan.FromDays(300));
         tx.Mine(ProofOfWork.Minimal);
         tx.Sign(owner);
 
