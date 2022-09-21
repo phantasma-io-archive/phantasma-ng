@@ -194,13 +194,19 @@ namespace Phantasma.Business.Blockchain
                 return (CodeType.NotSignedBySender, "Transaction is not signed by sender");
             }
 
+            if (tx.Version != 0L)
+            {
+                Log.Information("check tx 5 " + tx.Hash);
+                return (CodeType.NotSignedBySender, "Transaction version is not supported");
+            }
+
             if (Nexus.HasGenesis)
             {
                 var maxGas = tx.GasPrice * tx.GasLimit;
                 var balance = GetTokenBalance(this.Storage, DomainSettings.FuelTokenSymbol, tx.GasPayer);
                 if (balance < maxGas)
                 {
-                    Log.Information("check tx 5 " + tx.Hash);
+                    Log.Information("check tx 6 " + tx.Hash);
                     return (CodeType.MissingFuel, "Missing fuel");
                 }
             }
