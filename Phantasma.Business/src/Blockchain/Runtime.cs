@@ -425,26 +425,6 @@ namespace Phantasma.Business.Blockchain
                 {
                     return true;
                 }
-
-                if (info.Owner == GenesisAddress)
-                {
-                    if (address.IsSystem)
-                    {
-                        var contract = Chain.GetContractByAddress(this.Storage, address);
-                        var nativeContract = contract as NativeContract;
-                        if (nativeContract != null)
-                        {
-                            switch (nativeContract.Kind)
-                            {
-                                case NativeContractKind.Stake:
-                                    return true;
-
-                                default:
-                                    return false;
-                            }
-                        }
-                    }
-                }
             }
 
             return false;
