@@ -244,6 +244,18 @@ namespace Phantasma.Infrastructure.API
         [APIDescription("Sender of the transaction")]
         public string sender { get; set; }
 
+        [APIDescription("Address to pay gas from")]
+        public string gasPayer { get; set; }
+
+        [APIDescription("Address used as gas target, if any")]
+        public string gasTarget { get; set; }
+
+        [APIDescription("The txs gas price")]
+        public string gasPrice { get; set; }
+
+        [APIDescription("The txs gas limit")]
+        public string gasLimit { get; set; }
+
         [APIDescription("Expiration time of the transaction")]
         public uint expiration { get; set; }
     }

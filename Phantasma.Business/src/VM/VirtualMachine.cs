@@ -81,8 +81,7 @@ namespace Phantasma.Business.VM
 
         public virtual ExecutionState Execute()
         {
-            var state = SwitchContext(entryContext, 0);
-            return state;
+            return SwitchContext(entryContext, 0);
         }
 
         #region FRAMES

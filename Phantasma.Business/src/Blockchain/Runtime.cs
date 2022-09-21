@@ -95,7 +95,17 @@ namespace Phantasma.Business.Blockchain
 
             this.ProtocolVersion = Nexus.GetProtocolVersion(this.RootStorage);
             this.MinimumFee = GetGovernanceValue(GovernanceContract.GasMinimumFeeTag);
-            this.MaxGas = 9999999; //Nexus.MaxGas;
+
+
+            if (this.Transaction is not null)
+            {
+                var txMaxGas = Transaction.GasPrice * Transaction.GasLimit;
+                this.MaxGas = BigInteger.Min(txMaxGas, Nexus.MaxGas);
+            }
+            else
+            {
+                this.MaxGas = Nexus.MaxGas;
+            }
 
             ExtCalls.RegisterWithRuntime(this);
         }
@@ -157,15 +167,13 @@ namespace Phantasma.Business.Blockchain
 
         public override ExecutionState Execute()
         {
-            ExecutionState result;
+            ExecutionState result = ExecutionState.Fault;
             try
             {
                 result = base.Execute();
             }
             catch (Exception ex)
             {
-                // make sure the transaction pays gas
-                result = ExecutionState.Fault;
                 this.ExceptionMessage = ex.Message;
 
                 Logger.Error($"Transaction {Transaction?.Hash} failed with {ex.Message}, gas used: {UsedGas}");
@@ -173,6 +181,8 @@ namespace Phantasma.Business.Blockchain
                 // set the current context to entry context
                 this.CurrentContext = FindContext(VirtualMachine.EntryContextName);
                 this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), this.Transaction.GasPayer);
+
+                this.Notify(EventKind.Error, Transaction.Sender, this.ExceptionMessage);
             }
 
             if (this.IsReadOnlyMode())
@@ -396,11 +406,6 @@ namespace Phantasma.Business.Blockchain
         {
             ExpectAddressSize(address, nameof(address));
             ExpectNameLength(symbol, nameof(symbol));
-
-            //if (ProtocolVersion < 3 && address == GenesisAddress)
-            //{
-            //    return true;
-            //}
 
             if (TokenExists(symbol))
             {
