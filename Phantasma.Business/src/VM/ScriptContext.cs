@@ -440,7 +440,7 @@ namespace Phantasma.Business.VM
 
                 SetState(ExecutionState.Fault);
 
-                throw;
+                throw ex;
             }
         }
 
