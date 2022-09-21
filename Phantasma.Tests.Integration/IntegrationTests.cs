@@ -18,7 +18,7 @@ public class IntegrationTests
     private PhantasmaRpcService phantasmaService = new PhantasmaRpcService(new RPCClient(new Uri("http://localhost:5101/rpc"), httpClientHandler: new HttpClientHandler { }));
 
     [TestMethod]
-    public void failed_tx_test()
+    public void A_failed_tx_test()
     {
         var owner = PhantasmaKeys.FromWIF("KxMn2TgXukYaNXx7tEdjh7qB2YaMgeuKy47j4rvKigHhBuZWeP3r");
         var user = PhantasmaKeys.Generate();
@@ -27,6 +27,44 @@ public class IntegrationTests
         var sb = ScriptUtils.BeginScript()
             .AllowGas(owner.Address, Address.Null)
             .TransferTokens("SOUL", owner.Address, user.Address, BigInteger.Parse("20000000000000000"));
+        var script = sb.EndScript();
+        var tx = new Transaction("", DomainSettings.RootChainName, script, owner.Address, owner.Address, Address.Null, 100000, 9999, Timestamp.Now + TimeSpan.FromDays(300));
+        tx.Mine(ProofOfWork.Minimal);
+        tx.Sign(owner);
+
+        var txString = Base16.Encode(tx.ToByteArray(true));
+        var txHash = phantasmaService.SendRawTx.SendRequestAsync(txString, "1").GetAwaiter().GetResult();
+
+        Thread.Sleep(2000);
+        var txResult = phantasmaService.GetTxByHash.SendRequestAsync(txHash, "1").GetAwaiter().GetResult();
+        txResult.State.ShouldBe("Fault");
+
+        var balance = GetBalance(user.Address.ToString(), "SOUL");
+        // empty address no balance yet
+        balance.Valid.ShouldBeFalse();
+
+        var ownerBalanceAfter = GetBalance(owner.Address.ToString(), "SOUL");
+
+        var evt = GetEvents(EventKind.Error, txResult);
+        var evtContent = evt.Event.GetContent<string>();
+        evtContent.ShouldBe("SOUL balance subtract failed from " + owner.Address.ToString() + " @ TransferTokens");
+
+        ownerBalanceBefore.Valid.ShouldBe(true);
+        ownerBalanceAfter.Valid.ShouldBe(true);
+        ownerBalanceAfter.Amount.ShouldBe(ownerBalanceBefore.Amount);
+    }
+
+    [TestMethod]
+    public void B_mint_test()
+    {
+        var owner = PhantasmaKeys.FromWIF("KxMn2TgXukYaNXx7tEdjh7qB2YaMgeuKy47j4rvKigHhBuZWeP3r");
+        var user = PhantasmaKeys.Generate();
+        var ownerBalanceBefore = GetBalance(owner.Address.ToString(), "SOUL");
+
+        var sb = ScriptUtils.BeginScript()
+            .AllowGas(owner.Address, Address.Null)
+            .CallInterop("Runtime.MintTokens", "S3dP2jjf1jUG9nethZBWbnu9a6dFqB7KveTWU7znis6jpDy", owner.Address, "SOUL", 1000000)
+            .SpendGas(owner.Address);
         var script = sb.EndScript();
         var tx = new Transaction("", DomainSettings.RootChainName, script, owner.Address, owner.Address, Address.Null, 100000, 9999, Timestamp.Now + TimeSpan.FromDays(300));
         tx.Mine(ProofOfWork.Minimal);
