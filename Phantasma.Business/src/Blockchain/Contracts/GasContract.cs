@@ -59,13 +59,13 @@ namespace Phantasma.Business.Blockchain.Contracts
         /// <exception cref="BalanceException"></exception>
         public void AllowGas(Address from, Address target)
         {
-            var price = Runtime.Transaction.GasPrice;
-            var limit = Runtime.Transaction.GasLimit;
-
             if (Runtime.IsReadOnlyMode())
             {
                 return;
             }
+
+            var price = Runtime.Transaction.GasPrice;
+            var limit = Runtime.Transaction.GasLimit;
 
             if (_lastInflationDate == 0)
             {
