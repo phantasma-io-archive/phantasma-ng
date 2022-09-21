@@ -180,6 +180,13 @@ namespace Phantasma.Business.Blockchain
 
                 // set the current context to entry context
                 this.CurrentContext = FindContext(VirtualMachine.EntryContextName);
+
+                var allowance = this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowedGas), this.Transaction.GasPayer).AsNumber();
+                if (allowance < UsedGas)
+                {
+                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas), this.Transaction.GasPayer, Address.Null);
+                }
+
                 this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), this.Transaction.GasPayer);
 
                 this.Notify(EventKind.Error, Transaction.Sender, this.ExceptionMessage);
