@@ -1,6 +1,7 @@
 {
   "ApplicationConfiguration": {
     "Node": {
+      "max.gas": 10000,
       "web.logs": false,
       "tendermint.rpc.port": "26057",
       "tendermint.rpc.host": "http://127.0.0.1",
