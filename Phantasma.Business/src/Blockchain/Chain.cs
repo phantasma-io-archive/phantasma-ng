@@ -267,9 +267,10 @@ namespace Phantasma.Business.Blockchain
             {
                 Log.Error("exception " + e);
                 // log original exception, throwing it again kills the call stack!
-                Log.Error($"Exception was thrown while processing {result.Hash} error: {e.Message}");
+                Log.Error($"Exception was thrown while processing {tx.Hash} error: {e.Message}");
                 result.Code = 1;
                 result.Codespace = e.Message;
+                this.CurrentBlock.SetStateForHash(tx.Hash, ExecutionState.Fault);
             }
 
             return result;
