@@ -178,18 +178,21 @@ namespace Phantasma.Business.Blockchain
 
                 Logger.Error($"Transaction {Transaction?.Hash} failed with {ex.Message}, gas used: {UsedGas}");
 
-                // set the current context to entry context
-                this.CurrentContext = FindContext(VirtualMachine.EntryContextName);
-
-                var allowance = this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowedGas), this.Transaction.GasPayer).AsNumber();
-                if (allowance < UsedGas)
+                if (!this.IsReadOnlyMode())
                 {
-                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas), this.Transaction.GasPayer, Address.Null);
+                    // set the current context to entry context
+                    this.CurrentContext = FindContext(VirtualMachine.EntryContextName);
+                    var allowance = this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowedGas), this.Transaction.GasPayer).AsNumber();
+                    if (allowance <= 0)
+                    {
+                        // if no allowance is given, create one
+                        this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas), this.Transaction.GasPayer, Address.Null);
+                    }
+
+                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), this.Transaction.GasPayer);
+
+                    this.Notify(EventKind.Error, Transaction.Sender, this.ExceptionMessage);
                 }
-
-                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), this.Transaction.GasPayer);
-
-                this.Notify(EventKind.Error, Transaction.Sender, this.ExceptionMessage);
             }
 
             if (this.IsReadOnlyMode())
