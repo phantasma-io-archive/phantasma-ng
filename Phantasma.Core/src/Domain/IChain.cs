@@ -31,7 +31,7 @@ public interface IChain
     IEnumerable<TValidatorUpdate> EndBlock();
 
     string ToString();
-    void AddBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee, StorageChangeSetContext changeSet);
+    void AddBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet);
 
     BigInteger GetTokenBalance(StorageContext storage, IToken token, Address address);
     BigInteger GetTokenBalance(StorageContext storage, string symbol, Address address);

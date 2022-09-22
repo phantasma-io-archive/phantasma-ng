@@ -8,6 +8,7 @@
         InvalidChain = 3,
         UnsignedTx = 4,
         NotSignedBySender = 5,
-        MissingFuel = 6
+        MissingFuel = 6,
+        UnsupportedVersion = 7
     }
 }
