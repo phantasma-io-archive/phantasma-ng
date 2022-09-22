@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
+using System.Linq;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
@@ -361,15 +362,27 @@ namespace Phantasma.Business.Blockchain
             _events.Add(evt);
         }
 
+        public bool IsSystemToken(string symbol)
+        {
+            var info = GetToken(symbol);
+            return IsSystemToken(info);
+        }
+
+        public bool IsSystemToken(IToken token)
+        {
+            if (DomainSettings.SystemTokens.Contains(token.Symbol, StringComparer.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+
         public bool IsMintingAddress(Address address, string symbol)
         {
             ExpectAddressSize(address, nameof(address));
             ExpectNameLength(symbol, nameof(symbol));
-
-            //if (ProtocolVersion < 3 && address == GenesisAddress)
-            //{
-            //    return true;
-            //}
 
             if (TokenExists(symbol))
             {
@@ -378,26 +391,6 @@ namespace Phantasma.Business.Blockchain
                 if (address == info.Owner)
                 {
                     return true;
-                }
-
-                if (info.Owner == GenesisAddress)
-                {
-                    if (address.IsSystem)
-                    {
-                        var contract = Chain.GetContractByAddress(this.Storage, address);
-                        var nativeContract = contract as NativeContract;
-                        if (nativeContract != null)
-                        {
-                            switch (nativeContract.Kind)
-                            {
-                                case NativeContractKind.Stake:
-                                    return true;
-
-                                default:
-                                    return false;
-                            }
-                        }
-                    }
                 }
             }
 
@@ -1420,6 +1413,12 @@ namespace Phantasma.Business.Blockchain
             ExpectAddressSize(from, nameof(from));
             ExpectAddressSize(target, nameof(target));
 
+            if (IsSystemToken(symbol))
+            {
+                var ctxName = CurrentContext.Name;
+                Expect(ctxName == "gas" || ctxName == "stake" || ctxName == "exchange", "Minting system tokens only allowed in a specific context");
+            }
+
             Expect(IsWitness(from), "must be from a valid witness");
 
             Expect(amount > 0, "amount must be positive and greater than zero");
@@ -1440,6 +1439,12 @@ namespace Phantasma.Business.Blockchain
             ExpectNameLength(symbol, nameof(symbol));
             ExpectAddressSize(from, nameof(from));
             ExpectAddressSize(target, nameof(target));
+
+            if (IsSystemToken(symbol))
+            {
+                var ctxName = CurrentContext.Name;
+                Expect(ctxName == "gas" || ctxName == "stake" || ctxName == "exchange", "Minting system tokens only allowed in a specific context");
+            }
 
             Expect(TokenExists(symbol), "invalid token");
             IToken token;

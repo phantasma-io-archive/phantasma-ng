@@ -75,6 +75,13 @@ namespace Phantasma.Core.Domain
             return _methods.ContainsKey(name);
         }
 
+        public bool HasTokenTrigger(TokenTrigger trigger)
+        {
+            var strName = trigger.ToString();
+            var name = Char.ToLower(strName[0]) + strName.Substring(1);
+            return _methods.ContainsKey(name);
+        }
+
         public ContractMethod FindMethod(string name)
         {
             if (_methods.ContainsKey(name))

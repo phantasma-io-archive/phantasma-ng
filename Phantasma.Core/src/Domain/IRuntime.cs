@@ -146,6 +146,7 @@ namespace Phantasma.Core.Domain
         public void BurnTokens(string symbol, Address target, BigInteger amount);
         public void TransferTokens(string symbol, Address source, Address destination, BigInteger amount);
         public void SwapTokens(string sourceChain, Address from, string targetChain, Address to, string symbol, BigInteger value);
+        public bool IsSystemToken(IToken token);
 
         public BigInteger MintToken(string symbol, Address from, Address target, byte[] rom, byte[] ram, BigInteger seriesID);
         public void BurnToken(string symbol, Address target, BigInteger tokenID);

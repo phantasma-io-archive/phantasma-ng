@@ -955,6 +955,12 @@ namespace Phantasma.Business.Blockchain
             var destination = vm.PopAddress();
 
             var symbol = vm.PopString("symbol");
+
+            if (vm.IsSystemToken(symbol))
+            {
+                throw new VMException(vm, $"Minting system token {symbol} not allowed");
+            }
+
             var amount = vm.PopNumber("amount");
 
             if (vm.Nexus.HasGenesis)
@@ -1010,6 +1016,11 @@ namespace Phantasma.Business.Blockchain
             var destination = vm.PopAddress();
 
             var symbol = vm.PopString("symbol");
+
+            if (vm.IsSystemToken(symbol))
+            {
+                throw new VMException(vm, $"Minting system token {symbol} not allowed");
+            }
 
             var rom = vm.PopBytes("rom");
             var ram = vm.PopBytes("ram");
@@ -1565,6 +1576,8 @@ namespace Phantasma.Business.Blockchain
 
             var abiBytes = vm.PopBytes("abi bytes");
             abi = ContractInterface.FromBytes(abiBytes);
+
+            vm.Expect(abi.HasTokenTrigger(TokenTrigger.OnMint), $"Token contract needs to implement {TokenTrigger.OnMint}");
 
             var rootChain = (Chain)vm.GetRootChain(); // this cast is not the best, but works for now...
             var storage = vm.RootStorage;
