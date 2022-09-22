@@ -67,6 +67,7 @@ namespace Phantasma.Core.Domain
         public bool AddMember(string organization, Address admin, Address target);
         public bool RemoveMember(string organization, Address admin, Address target);
         public void MigrateMember(string organization, Address admin, Address source, Address destination);
+        public void MigrateToken(Address from, Address to);
 
         public bool ContractExists(string name);
         public bool ContractDeployed(string name);

@@ -1892,6 +1892,15 @@ namespace Phantasma.Business.Blockchain
             return org.RemoveMember(this, admin, target);
         }
 
+        public void MigrateToken(Address from, Address to)
+        {
+            ExpectAddressSize(from, nameof(from));
+            ExpectAddressSize(to, nameof(to));
+
+            this.Nexus.MigrateTokenOwner(this.RootStorage, from, to);
+        }
+
+
         public void MigrateMember(string organization, Address admin, Address source, Address destination)
         {
             ExpectNameLength(organization, nameof(organization));

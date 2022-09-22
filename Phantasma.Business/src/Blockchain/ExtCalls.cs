@@ -60,7 +60,6 @@ namespace Phantasma.Business.Blockchain
             vm.RegisterMethod("Nexus.GetGovernanceValue", Nexus_GetGovernanceValue);
             vm.RegisterMethod("Nexus.BeginInit", Nexus_BeginInit);
             vm.RegisterMethod("Nexus.EndInit", Nexus_EndInit);
-            vm.RegisterMethod("Nexus.MigrateToken", Nexus_MigrateToken);
 
             vm.RegisterMethod("Nexus.CreateToken", Nexus_CreateToken);
             vm.RegisterMethod("Nexus.CreateTokenSeries", Nexus_CreateTokenSeries);
@@ -516,6 +515,9 @@ namespace Phantasma.Business.Blockchain
         #region DATA
         private static ExecutionState Data_Get(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(3);
 
             var contractName = vm.PopString("contract");
@@ -543,10 +545,13 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Data_Set(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(2);
 
             // for security reasons we don't accept the caller to specify a contract name
-            var contractName = vm.CurrentContext.Name;
+            var contractName = contextName;
 
             var field = vm.PopString("field");
             var key = SmartContract.GetKeyForField(contractName, field, false);
@@ -568,6 +573,7 @@ namespace Phantasma.Business.Blockchain
 
             // for security reasons we don't accept the caller to specify a contract name
             var contractName = vm.CurrentContext.Name;
+            vm.Expect(contractName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
             vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
 
             var field = vm.PopString("field");
@@ -583,6 +589,9 @@ namespace Phantasma.Business.Blockchain
         #region MAP
         private static ExecutionState Map_Has(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(3);
 
             var contractName = vm.PopString("contract");
@@ -609,6 +618,9 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Map_Get(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(4);
 
             var contractName = vm.PopString("contract");
@@ -642,10 +654,13 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Map_Set(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(3);
 
             // for security reasons we don't accept the caller to specify a contract name
-            var contractName = vm.CurrentContext.Name;
+            var contractName = contextName;
             vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
 
             var field = vm.PopString("field");
@@ -668,10 +683,13 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Map_Remove(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(2);
 
             // for security reasons we don't accept the caller to specify a contract name
-            var contractName = vm.CurrentContext.Name;
+            var contractName = contextName;
 
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -689,10 +707,13 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Map_Clear(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(1);
 
             // for security reasons we don't accept the caller to specify a contract name
-            var contractName = vm.CurrentContext.Name;
+            var contractName = contextName;
 
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -705,6 +726,9 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Map_Keys(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(2);
 
             var contractName = vm.PopString("contract");
@@ -722,6 +746,9 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Map_Count(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(2);
 
             var contractName = vm.PopString("contract");
@@ -741,6 +768,9 @@ namespace Phantasma.Business.Blockchain
         #region LIST
         private static ExecutionState List_Get(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(4);
 
             var contractName = vm.PopString("contract");
@@ -774,10 +804,13 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState List_Add(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(2);
 
             // for security reasons we don't accept the caller to specify a contract name
-            var contractName = vm.CurrentContext.Name;
+            var contractName = contextName;
             vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
 
             var field = vm.PopString("field");
@@ -796,10 +829,13 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState List_Replace(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(3);
 
             // for security reasons we don't accept the caller to specify a contract name
-            var contractName = vm.CurrentContext.Name;
+            var contractName = contextName;
             vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
 
             var field = vm.PopString("field");
@@ -821,10 +857,13 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState List_RemoveAt(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(2);
 
             // for security reasons we don't accept the caller to specify a contract name
-            var contractName = vm.CurrentContext.Name;
+            var contractName = contextName;
 
             var field = vm.PopString("field");
             var listKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -841,10 +880,13 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState List_Clear(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(1);
 
             // for security reasons we don't accept the caller to specify a contract name
-            var contractName = vm.CurrentContext.Name;
+            var contractName = contextName;
 
             var field = vm.PopString("field");
             var listKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -857,6 +899,9 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState List_Count(RuntimeVM vm)
         {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
             vm.ExpectStackSize(2);
 
             var contractName = vm.PopString("contract");
@@ -961,6 +1006,14 @@ namespace Phantasma.Business.Blockchain
                 throw new VMException(vm, $"Minting system token {symbol} not allowed");
             }
 
+            var tokenContextName = symbol.ToLower();
+            var tokenContext = vm.FindContext(tokenContextName);
+
+            if (tokenContext.Name != vm.CurrentContext.Name)
+            {
+                throw new VMException(vm, $"Minting token {symbol} not allowed from this context");
+            }
+
             var amount = vm.PopNumber("amount");
 
             if (vm.Nexus.HasGenesis)
@@ -981,6 +1034,15 @@ namespace Phantasma.Business.Blockchain
 
             var target = vm.PopAddress();
             var symbol = vm.PopString("symbol");
+
+            var tokenContextName = symbol.ToLower();
+            var tokenContext = vm.FindContext(tokenContextName);
+
+            if (tokenContext.Name != vm.CurrentContext.Name)
+            {
+                throw new VMException(vm, $"Burning token {symbol} not allowed from this context");
+            }
+
             var amount = vm.PopNumber("amount");
 
             vm.BurnTokens(symbol, target, amount);
@@ -1022,6 +1084,14 @@ namespace Phantasma.Business.Blockchain
                 throw new VMException(vm, $"Minting system token {symbol} not allowed");
             }
 
+            var tokenContextName = symbol.ToLower();
+            var tokenContext = vm.FindContext(tokenContextName);
+
+            if (tokenContext.Name != vm.CurrentContext.Name)
+            {
+                throw new VMException(vm, $"Minting token {symbol} not allowed from this context");
+            }
+
             var rom = vm.PopBytes("rom");
             var ram = vm.PopBytes("ram");
 
@@ -1047,6 +1117,14 @@ namespace Phantasma.Business.Blockchain
             var source = vm.PopAddress();
             var symbol = vm.PopString("symbol");
             var tokenID = vm.PopNumber("token ID");
+
+            var tokenContextName = symbol.ToLower();
+            var tokenContext = vm.FindContext(tokenContextName);
+
+            if (tokenContext.Name != vm.CurrentContext.Name)
+            {
+                throw new VMException(vm, $"Burning token {symbol} not allowed from this context");
+            }
 
             vm.BurnToken(symbol, source, tokenID);
 
@@ -1519,7 +1597,7 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Nexus_BeginInit(RuntimeVM vm)
         {
-            //vm.Expect(vm.Chain == null, "nexus already initialized");
+            vm.Expect(vm.Chain == null, "nexus already initialized");
 
             vm.ExpectStackSize(1);
 
@@ -1532,27 +1610,13 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Nexus_EndInit(RuntimeVM vm)
         {
-            //vm.Expect(vm.Chain == null, "nexus already initialized");
+            vm.Expect(vm.Chain == null, "nexus already initialized");
 
             vm.ExpectStackSize(1);
 
             var owner = vm.PopAddress();
 
             vm.Nexus.FinishInitialize(vm, owner);
-
-            return ExecutionState.Running;
-        }
-
-        private static ExecutionState Nexus_MigrateToken(RuntimeVM vm)
-        {
-            vm.Expect(vm.CurrentContext.Name == "account", "Can only be called from account context");
-
-            vm.ExpectStackSize(2);
-
-            var from = vm.PopAddress();
-            var to = vm.PopAddress();
-
-            vm.Nexus.MigrateTokenOwner(vm.RootStorage, from, to);
 
             return ExecutionState.Running;
         }
@@ -1616,6 +1680,26 @@ namespace Phantasma.Business.Blockchain
                         }
                     });
                 }
+            }
+
+            if (flags.HasFlag(TokenFlags.Burnable))
+            {
+                vm.Expect(abi.HasMethod(TokenUtils.BurnMethodName), "Token contract has to implement a burn method");
+            }
+
+            if (flags.HasFlag(TokenFlags.Mintable))
+            {
+                vm.Expect(abi.HasMethod(TokenUtils.MintMethodName), "Token contract has to implement a mint method");
+            }
+
+            if (!flags.HasFlag(TokenFlags.Burnable) && abi.HasMethod(TokenUtils.BurnMethodName))
+            {
+                flags |= TokenFlags.Burnable;
+            }
+
+            if (!flags.HasFlag(TokenFlags.Mintable) && abi.HasMethod(TokenUtils.MintMethodName))
+            {
+                flags |= TokenFlags.Mintable;
             }
 
             if (flags.HasFlag(TokenFlags.Finite))
