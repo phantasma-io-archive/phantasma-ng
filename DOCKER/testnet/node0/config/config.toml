@@ -74,11 +74,13 @@ abci = "grpc"
 # so the app can decide if we should keep the connection or not
 filter_peers = false
 
+priv_validator_key_file = "config/priv_validator_key.json"
+priv_validator_state_file = "data/priv_validator_state.json"
 
 #######################################################
 ###       Priv Validator Configuration              ###
 #######################################################
-[priv-validator]
+[priv_validator]
 
 # Path to the JSON file containing the private key to use as a validator in the consensus protocol
 key_file = "config/priv_validator_key.json"

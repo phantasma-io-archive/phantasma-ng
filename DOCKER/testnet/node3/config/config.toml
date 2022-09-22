@@ -12,7 +12,7 @@
 
 # TCP or UNIX socket address of the ABCI application,
 # or the name of an ABCI application compiled in with the Tendermint binary
-proxy-app = "tcp://127.0.0.1:26358"
+proxy_app = "tcp://127.0.0.1:26358"
 
 # A custom human readable name for this node
 moniker = "C16301B0878BB596"
@@ -74,6 +74,8 @@ abci = "grpc"
 # so the app can decide if we should keep the connection or not
 filter_peers = false
 
+priv_validator_key_file = "config/priv_validator_key.json"
+priv_validator_state_file = "data/priv_validator_state.json"
 
 #######################################################
 ###       Priv Validator Configuration              ###
