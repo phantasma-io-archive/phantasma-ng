@@ -57,7 +57,7 @@ namespace Phantasma.Business.Blockchain
         public bool IsRoot => this.Name == DomainSettings.RootChainName;
         #endregion
 
-        public Chain(Nexus nexus, string name)
+        public Chain(INexus nexus, string name)
         {
             Throw.IfNull(nexus, "nexus required");
 
@@ -70,7 +70,7 @@ namespace Phantasma.Business.Blockchain
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
         }
 
-        public Chain(Nexus nexus, string name, PhantasmaKeys keys)
+        public Chain(INexus nexus, string name, PhantasmaKeys keys)
         {
             Throw.IfNull(nexus, "nexus required");
 
