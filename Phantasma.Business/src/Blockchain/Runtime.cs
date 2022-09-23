@@ -68,7 +68,6 @@ namespace Phantasma.Business.Blockchain
             this.GasPrice = 0;
             this.PaidGas = 0;
             this.GasTarget = Address.Null;
-            this.MaxGas = Nexus.MaxGas;
             this.CurrentTask = currentTask;
             this.DelayPayment = delayPayment;
             this.Validator = validator;
@@ -94,6 +93,7 @@ namespace Phantasma.Business.Blockchain
 
             this.ProtocolVersion = Nexus.GetProtocolVersion(this.RootStorage);
             this.MinimumFee = GetGovernanceValue(GovernanceContract.GasMinimumFeeTag);
+            this.MaxGas = Nexus.MaxGas;
 
 
             ExtCalls.RegisterWithRuntime(this);
@@ -1416,7 +1416,11 @@ namespace Phantasma.Business.Blockchain
             if (IsSystemToken(symbol))
             {
                 var ctxName = CurrentContext.Name;
-                Expect(ctxName == "gas" || ctxName == "stake" || ctxName == "exchange", "Minting system tokens only allowed in a specific context");
+                Expect(
+                        ctxName == VirtualMachine.StakeContextName ||
+                        ctxName == VirtualMachine.GasContextName ||
+                        ctxName == VirtualMachine.ExchangeContextName,
+                        "Minting system tokens only allowed in a specific context");
             }
 
             Expect(IsWitness(from), "must be from a valid witness");
@@ -1558,7 +1562,6 @@ namespace Phantasma.Business.Blockchain
             ExpectAddressSize(source, nameof(source));
             ExpectAddressSize(destination, nameof(destination));
 
-
             Expect(!source.IsNull, "invalid source");
 
             if (source == destination || amount == 0)
@@ -1569,7 +1572,7 @@ namespace Phantasma.Business.Blockchain
             Expect(TokenExists(symbol), "invalid token");
             var token = GetToken(symbol);
 
-            Expect(amount > 0, "amount must be positive and greater than zero");
+            Expect(amount > 0, "amount must be greater than zero");
 
             if (destination.IsInterop)
             {

@@ -19,6 +19,12 @@ namespace Phantasma.Business.VM
 
         public readonly static string EntryContextName = "entry";
 
+        public readonly static string StakeContextName = "Stake";
+
+        public readonly static string GasContextName = "gas";
+
+        public readonly static string ExchangeContextName = "exchange";
+
         private readonly ExecutionContext entryContext;
 
 
