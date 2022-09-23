@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.IO;
+using System.Numerics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Phantasma.Business.Blockchain;

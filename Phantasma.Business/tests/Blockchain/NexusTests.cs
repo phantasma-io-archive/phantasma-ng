@@ -1,9 +1,11 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Numerics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Tokens;
-using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
