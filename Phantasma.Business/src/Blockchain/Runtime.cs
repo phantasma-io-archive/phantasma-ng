@@ -12,6 +12,8 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Shared.Performance;
 using Phantasma.Shared.Types;
+using Serilog;
+using Logger = Serilog.Log;
 
 namespace Phantasma.Business.Blockchain
 {
@@ -35,12 +37,13 @@ namespace Phantasma.Business.Blockchain
         public Address GasTarget { get; private set; }
         public bool DelayPayment { get; private set; }
 
+        public string ExceptionMessage { get; private set; }
+
         public BigInteger MinimumFee;
 
         public Address Validator { get; private set; }
 
         public IChainTask CurrentTask { get; private set; }
-
 
         private readonly StorageChangeSetContext changeSet;
         private int _baseChangeSetCount;
@@ -67,7 +70,6 @@ namespace Phantasma.Business.Blockchain
             this.GasPrice = 0;
             this.PaidGas = 0;
             this.GasTarget = Address.Null;
-            this.MaxGas = Nexus.MaxGas;
             this.CurrentTask = currentTask;
             this.DelayPayment = delayPayment;
             this.Validator = validator;
@@ -94,6 +96,16 @@ namespace Phantasma.Business.Blockchain
             this.ProtocolVersion = Nexus.GetProtocolVersion(this.RootStorage);
             this.MinimumFee = GetGovernanceValue(GovernanceContract.GasMinimumFeeTag);
 
+
+            if (this.Transaction is not null)
+            {
+                var txMaxGas = Transaction.GasPrice * Transaction.GasLimit;
+                this.MaxGas = BigInteger.Min(txMaxGas, Nexus.MaxGas);
+            }
+            else
+            {
+                this.MaxGas = Nexus.MaxGas;
+            }
 
             ExtCalls.RegisterWithRuntime(this);
         }
@@ -155,20 +167,59 @@ namespace Phantasma.Business.Blockchain
 
         public override ExecutionState Execute()
         {
-            var result = base.Execute();
-
-            if (result == ExecutionState.Halt)
+            ExecutionState result = ExecutionState.Fault;
+            try
             {
-                if (this.IsReadOnlyMode())
+                result = base.Execute();
+            }
+            catch (Exception ex)
+            {
+                this.ExceptionMessage = ex.Message;
+
+                Logger.Error($"Transaction {Transaction?.Hash} failed with {ex.Message}, gas used: {UsedGas}");
+
+                if (!this.IsReadOnlyMode())
                 {
-                    if (changeSet.Count() != _baseChangeSetCount)
+                    // set the current context to entry context
+                    this.CurrentContext = FindContext(VirtualMachine.EntryContextName);
+                    var allowance = this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowedGas), this.Transaction.GasPayer).AsNumber();
+                    if (allowance <= 0)
                     {
-                        throw new VMException(this, "VM changeset modified in read-only mode");
+                        // if no allowance is given, create one
+                        this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas), this.Transaction.GasPayer, Address.Null);
                     }
+
+                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), this.Transaction.GasPayer);
+
+                    this.Notify(EventKind.Error, Transaction.Sender, this.ExceptionMessage);
                 }
-                else if (PaidGas < UsedGas && Nexus.HasGenesis && !DelayPayment)
+            }
+
+            if (this.IsReadOnlyMode())
+            {
+                if (changeSet.Count() != _baseChangeSetCount)
                 {
-                    throw new VMException(this, $"VM unpaid gas {PaidGas}/{UsedGas}");
+                    throw new VMException(this, "VM changeset modified in read-only mode");
+                }
+            }
+            else if (PaidGas < UsedGas && Nexus.HasGenesis && !DelayPayment)
+            {
+                this.CurrentContext = FindContext(VirtualMachine.EntryContextName);
+                // we cannot throw here, would allow pushing failing txs without paying gas 
+                var allowance = this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowedGas), this.Transaction.GasPayer).AsNumber();
+
+                if (allowance >= UsedGas)
+                {
+                    // if we have an allowance but no spend gas call was part of the script, call spend gas anyway
+                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), this.Transaction.GasPayer);
+                }
+                else
+                {
+                    // if we don't have an allowance, allow gas
+                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas), this.Transaction.GasPayer, Address.Null);
+
+                    // and call spend gas
+                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), this.Transaction.GasPayer);
                 }
             }
 
@@ -366,11 +417,6 @@ namespace Phantasma.Business.Blockchain
             ExpectAddressSize(address, nameof(address));
             ExpectNameLength(symbol, nameof(symbol));
 
-            //if (ProtocolVersion < 3 && address == GenesisAddress)
-            //{
-            //    return true;
-            //}
-
             if (TokenExists(symbol))
             {
                 var info = GetToken(symbol);
@@ -378,26 +424,6 @@ namespace Phantasma.Business.Blockchain
                 if (address == info.Owner)
                 {
                     return true;
-                }
-
-                if (info.Owner == GenesisAddress)
-                {
-                    if (address.IsSystem)
-                    {
-                        var contract = Chain.GetContractByAddress(this.Storage, address);
-                        var nativeContract = contract as NativeContract;
-                        if (nativeContract != null)
-                        {
-                            switch (nativeContract.Kind)
-                            {
-                                case NativeContractKind.Stake:
-                                    return true;
-
-                                default:
-                                    return false;
-                            }
-                        }
-                    }
                 }
             }
 

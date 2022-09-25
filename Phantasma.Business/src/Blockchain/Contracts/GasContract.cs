@@ -41,19 +41,31 @@ namespace Phantasma.Business.Blockchain.Contracts
         internal bool _inflationReady;
 
         /// <summary>
+        /// Method to check if an address has allowed gas
+        /// </summary>
+        /// <param name="from">Address of the user</param>
+        public BigInteger AllowedGas(Address from)
+        {
+            var allowance = _allowanceMap.ContainsKey(from) ? _allowanceMap.Get<Address, BigInteger>(from) : 0;
+            return allowance;
+        }
+
+
+        /// <summary>
         /// Method used the usage of Gas to do the transaction.
         /// </summary>
         /// <param name="from">Address of the user</param>
         /// <param name="target">Address of the target</param>
-        /// <param name="price">Gas Price of the transaction</param>
-        /// <param name="limit">Gas Limit of the transaction</param>
         /// <exception cref="BalanceException"></exception>
-        public void AllowGas(Address from, Address target, BigInteger price, BigInteger limit)
+        public void AllowGas(Address from, Address target)
         {
             if (Runtime.IsReadOnlyMode())
             {
                 return;
             }
+
+            var price = Runtime.Transaction.GasPrice;
+            var limit = Runtime.Transaction.GasLimit;
 
             if (_lastInflationDate == 0)
             {

@@ -14,6 +14,7 @@ using Phantasma.Core.Storage.Context;
 using Phantasma.Infrastructure.Pay;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Node.Chains.Neo2;
+using Phantasma.Node.Utils;
 using Serilog;
 using NeoBlock = Neo.Network.P2P.Payloads.Block;
 using NeoTx = Neo.Network.P2P.Payloads.Transaction;
@@ -28,6 +29,7 @@ namespace Phantasma.Node.Interop
         private bool quickSync = false;
 
         private List<BigInteger> _resyncBlockIds = new List<BigInteger>();
+        private StringLocker _locker;
 
         public static Dictionary<string, CryptoCurrencyInfo> NeoTokenInfo = new Dictionary<string, CryptoCurrencyInfo>()
         {
@@ -50,6 +52,7 @@ namespace Phantasma.Node.Interop
             this.neoAPI = neoAPI;
 
             this.lastScan = DateTime.UtcNow.AddYears(-1);;
+            this._locker = new StringLocker();
         }
 
         protected override string GetAvailableAddress(string wif)
@@ -68,7 +71,7 @@ namespace Phantasma.Node.Interop
 
         public override IEnumerable<PendingSwap> Update()
         {
-            lock (String.Intern("PendingSetCurrentHeight_" + "neo"))
+            lock (this._locker.GetLockObject("PendingSetCurrentHeight_" + "neo"))
             {
                 var result = new List<PendingSwap>();
 

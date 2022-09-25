@@ -28,6 +28,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             }
             catch (Exception e)
             {
+                Console.WriteLine(e);
                 throw new APIException(e.Message);
             }
 
