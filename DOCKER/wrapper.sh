@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 # reset all nodes 
 TMHOME=/app/testnet/node0 testnet/tendermint unsafe-reset-all
 TMHOME=/app/testnet/node1 testnet/tendermint unsafe-reset-all
