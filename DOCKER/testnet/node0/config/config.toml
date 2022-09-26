@@ -77,8 +77,6 @@ abci = "grpc"
 # so the app can decide if we should keep the connection or not
 filter_peers = false
 
-priv_validator_key_file = "config/priv_validator_key.json"
-priv_validator_state_file = "data/priv_validator_state.json"
 
 #######################################################################
 ###                 Advanced Configuration Options                  ###

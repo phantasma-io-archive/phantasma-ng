@@ -1,7 +1,8 @@
 ﻿using System;
 using System.IO;
-using Phantasma.Core;
-using Phantasma.Infrastructure.Chains;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Shared.Utils;
 
 namespace Phantasma.Infrastructure.Pay
