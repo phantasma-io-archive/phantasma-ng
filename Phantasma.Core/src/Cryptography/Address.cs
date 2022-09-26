@@ -19,7 +19,7 @@ namespace Phantasma.Core.Cryptography
         Interop = 3,
     }
 
-    public struct Address: ISerializable
+    public struct Address: ISerializable, IComparable<Address>
     {
         public static readonly Address Null = new Address(NullPublicKey);
 
@@ -377,6 +377,20 @@ namespace Phantasma.Core.Cryptography
             }
 
             return bytes;
+        }
+
+        public int CompareTo(Address other)
+        {
+            byte[] x = ToByteArray();
+            byte[] y = other.ToByteArray();
+            for (int i = x.Length - 1; i >= 0; i--)
+            {
+                if (x[i] > y[i])
+                    return 1;
+                if (x[i] < y[i])
+                    return -1;
+            }
+            return 0;
         }
     }
 }

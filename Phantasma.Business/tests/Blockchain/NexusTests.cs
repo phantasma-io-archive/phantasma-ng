@@ -4,6 +4,7 @@ using System.IO;
 using System.Numerics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using Phantasma.Blockchain.Tests;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Core.Cryptography;
@@ -133,23 +134,3 @@ public class NexusTests
     }
 }
 
-public static class MockExtension
-{
-    public static Mock<IRuntime> SetupInvokeTriggerMoq(this Mock<IRuntime> mock, TriggerResult resultToken, TriggerResult resultAccount)
-    {
-        mock.Setup(r => r.InvokeTriggerOnToken(
-                    It.IsAny<bool>(),
-                    It.IsAny<IToken>(),
-                    It.IsAny<TokenTrigger>(),
-                    It.IsAny<object[]>())).Returns(resultToken);
-
-        mock.Setup(r => r.InvokeTriggerOnAccount(
-                    It.IsAny<bool>(),
-                    It.IsAny<Address>(),
-                    It.IsAny<AccountTrigger>(),
-                    It.IsAny<object[]>())).Returns(resultAccount);
-
-        return mock;
-    }
-
-}

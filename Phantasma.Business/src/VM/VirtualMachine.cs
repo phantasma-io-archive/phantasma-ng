@@ -27,6 +27,8 @@ namespace Phantasma.Business.VM
 
         private readonly ExecutionContext entryContext;
 
+        public ExecutionContext EntryContext => entryContext;
+
 
         public Stack<VMObject> Stack { get; } = new Stack<VMObject>();
 
@@ -225,12 +227,13 @@ namespace Phantasma.Business.VM
         public VMException(IVirtualMachine vm, string msg) : base(msg)
         {
             this.vm = vm;
-
+#if DEBUG
             var fileName = vm.GetDumpFileName();
             if (fileName != null)
             {
                 DumpToFile(fileName);
             }
+#endif
         }
 
         private void DumpToFile(string fileName)

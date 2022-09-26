@@ -73,10 +73,8 @@ namespace Phantasma.Business.Blockchain
             this.Validator = validator;
             this._parentMachine = parentMachine;
 
-            this._randomSeed = 0;
-
             this.Time = time;
-            this.Chain = (Chain)chain;
+            this.Chain = chain;
             this.Transaction = transaction;
             this.Oracle = oracle;
             this.changeSet = changeSet;
@@ -94,7 +92,6 @@ namespace Phantasma.Business.Blockchain
             this.ProtocolVersion = Nexus.GetProtocolVersion(this.RootStorage);
             this.MinimumFee = GetGovernanceValue(GovernanceContract.GasMinimumFeeTag);
             this.MaxGas = Nexus.MaxGas;
-
 
             ExtCalls.RegisterWithRuntime(this);
         }
@@ -441,9 +438,9 @@ namespace Phantasma.Business.Blockchain
 
             var result = base.ConsumeGas(gasCost);
 
-            if (UsedGas > MaxGas && !DelayPayment)
+            if (UsedGas > this.MaxGas && !DelayPayment)
             {
-                throw new VMException(this, $"VM gas limit exceeded ({MaxGas})/({UsedGas})");
+                throw new VMException(this, $"VM gas limit exceeded ({this.MaxGas})/({UsedGas})");
             }
 
             return result;
@@ -479,25 +476,23 @@ namespace Phantasma.Business.Blockchain
         public static readonly uint RND_A = 16807;
         public static readonly uint RND_M = 2147483647;
 
-        private BigInteger _randomSeed;
+        private int minSeedLength = 32;
 
-        // returns a next random number
-        public BigInteger GenerateRandomNumber()
+        // returns a random number based on the given seed
+        public BigInteger GenerateRandomNumber(BigInteger seed)
         {
-            if (_randomSeed == 0 && Transaction != null)
+            var bytes = seed.ToSignedByteArray();
+            if (bytes.Length < minSeedLength)
             {
-                SetRandomSeed(Transaction.Hash);
+                throw new VMException(this, $"Seed to weak, need at least {minSeedLength} bytes");
             }
 
-            _randomSeed = ((RND_A * _randomSeed) % RND_M);
-            return _randomSeed;
+            seed = CreateRandomSeed(bytes);
+            return ((RND_A * seed) % RND_M);
         }
 
-        public void SetRandomSeed(BigInteger seed)
+        private BigInteger CreateRandomSeed(byte[] bytes)
         {
-            // calculates first initial pseudo random number seed
-            byte[] bytes = seed.ToSignedByteArray();
-
             for (int i = 0; i < EntryScript.Length; i++)
             {
                 var index = i % bytes.Length;
@@ -511,7 +506,7 @@ namespace Phantasma.Business.Blockchain
                 bytes[i] ^= time[i % time.Length];
             }
 
-            _randomSeed = new BigInteger(bytes, true);
+            return new BigInteger(bytes, true);
         }
         #endregion
 
@@ -2239,6 +2234,25 @@ namespace Phantasma.Business.Blockchain
         }
         #endregion
 
+        public bool IsEntryContext(ExecutionContext context)
+        {
+            Shared.Throw.IfNull(context, nameof(context));
+
+            return EntryContext.Address == context.Address;
+        }
+
+        public bool IsCurrentContext(string contextName)
+        {
+            var context = FindContext(contextName);
+            return IsCurrentContext(context);
+        }
+
+        public bool IsCurrentContext(ExecutionContext context)
+        {
+            Shared.Throw.IfNull(context, nameof(context));
+
+            return CurrentContext.Address == context.Address;
+        }
 
         public bool HasGenesis => Nexus.HasGenesis;
         public string NexusName => Nexus.Name;

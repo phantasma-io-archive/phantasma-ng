@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage.Context;
@@ -7,6 +8,7 @@ namespace Phantasma.Core.Domain
 {
     public interface IRuntime
     {
+        public Stack<VMObject> Stack { get; }
         IChain Chain { get; }
         Transaction Transaction { get; }
         public Timestamp Time { get; }
@@ -14,14 +16,19 @@ namespace Phantasma.Core.Domain
         public StorageContext RootStorage { get; }
         public bool IsTrigger { get; }
         public int TransactionIndex { get; }
+        public IEnumerable<Event> Events { get; }
+        public ExecutionContext EntryContext { get; }
 
         public IChainTask CurrentTask { get; }
+        public void RegisterContext(string contextName, ExecutionContext context);
+        public void SetCurrentContext(ExecutionContext context);
 
         ExecutionContext CurrentContext { get; }
         ExecutionContext PreviousContext { get; }
 
         public Address GasTarget { get; }
-        BigInteger UsedGas { get; }
+        public BigInteger UsedGas { get; }
+        public BigInteger MaxGas { get; }
         public BigInteger GasPrice { get; }
 
         public Block GetBlockByHash(Hash hash);
@@ -93,6 +100,7 @@ namespace Phantasma.Core.Domain
         public void Throw(string description);
         void Expect(bool condition, string description);
         public void Notify(EventKind kind, Address address, byte[] data);
+        public void Notify(EventKind kind, Address address, byte[] bytes, string contract);
         public VMObject CallContext(string contextName, uint jumpOffset, string methodName, params object[] args);
         public VMObject CallInterop(string methodName, params object[] args);
 
@@ -119,7 +127,7 @@ namespace Phantasma.Core.Domain
         public BigInteger GetGovernanceValue(string name);
 
         public BigInteger GenerateUID();
-        public BigInteger GenerateRandomNumber();
+        public BigInteger GenerateRandomNumber(BigInteger seed);
 
         public TriggerResult InvokeTrigger(bool allowThrow, byte[] script, string contextName, ContractInterface abi, string triggerName, params object[] args);
 
