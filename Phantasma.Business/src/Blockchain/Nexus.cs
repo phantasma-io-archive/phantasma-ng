@@ -652,12 +652,12 @@ public class Nexus : INexus
         var balances = new BalanceSheet(token);
         Runtime.Expect(balances.Add(Runtime.Storage, destination, amount), "balance add failed");
 
-        if (Runtime.IsSystemToken(token))
+        if (!Runtime.IsSystemToken(token))
         {
             // for non system tokens, the onMint trigger is mandatory
             var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
             var tokenTriggerResult = Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, amount);
-            Runtime.Expect(tokenTriggerResult == TriggerResult.Success, $"token {tokenTrigger} trigger failed or missing");
+            Runtime.Expect(tokenTriggerResult == TriggerResult.Success, $"token trigger {tokenTrigger} failed or missing");
         }
 
         var accountTrigger = isSettlement ? AccountTrigger.OnReceive : AccountTrigger.OnMint;
@@ -687,7 +687,7 @@ public class Nexus : INexus
         var ownerships = new OwnershipSheet(token.Symbol);
         Runtime.Expect(ownerships.Add(Runtime.Storage, destination, tokenID), "ownership add failed");
 
-        if (Runtime.IsSystemToken(token))
+        if (!Runtime.IsSystemToken(token))
         {
             // for non system tokens, the onMint trigger is mandatory
             var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;

@@ -1459,14 +1459,17 @@ namespace Phantasma.Business.Blockchain
             ExpectAddressSize(from, nameof(from));
             ExpectAddressSize(target, nameof(target));
 
-            if (IsSystemToken(symbol))
+            if (Nexus.HasGenesis)
             {
-                var ctxName = CurrentContext.Name;
-                Expect(
-                        ctxName == VirtualMachine.StakeContextName ||
-                        ctxName == VirtualMachine.GasContextName ||
-                        ctxName == VirtualMachine.ExchangeContextName,
-                        "Minting system tokens only allowed in a specific context");
+                if (IsSystemToken(symbol))
+                {
+                    var ctxName = CurrentContext.Name;
+                    Expect(
+                            ctxName == VirtualMachine.StakeContextName ||
+                            ctxName == VirtualMachine.GasContextName ||
+                            ctxName == VirtualMachine.ExchangeContextName,
+                            $"Minting system tokens only allowed in a specific context, current {ctxName}");
+                }
             }
 
             Expect(IsWitness(from), "must be from a valid witness");

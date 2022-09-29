@@ -988,6 +988,7 @@ namespace Phantasma.Business.Blockchain
         private static ExecutionState Runtime_MintTokens(RuntimeVM vm)
         {
             vm.ExpectStackSize(4);
+            var hasGenesis = vm.Nexus.HasGenesis;
 
             var source = vm.PopAddress();
             var destination = vm.PopAddress();
@@ -996,15 +997,21 @@ namespace Phantasma.Business.Blockchain
 
             if (vm.IsSystemToken(symbol))
             {
-                throw new VMException(vm, $"Minting system token {symbol} not allowed");
+                if (hasGenesis)
+                {
+                    throw new VMException(vm, $"Minting system token {symbol} not allowed");
+                }
             }
 
             var tokenContextName = symbol.ToLower();
             var tokenContext = vm.FindContext(tokenContextName);
 
-            if (tokenContext.Name != vm.CurrentContext.Name)
+            if (hasGenesis)
             {
-                throw new VMException(vm, $"Minting token {symbol} not allowed from this context");
+                if (tokenContext.Name != vm.CurrentContext.Name)
+                {
+                    throw new VMException(vm, $"Minting token {symbol} not allowed from this context");
+                }
             }
 
             var amount = vm.PopNumber("amount");
@@ -1558,7 +1565,7 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Nexus_BeginInit(RuntimeVM vm)
         {
-            vm.Expect(vm.Chain == null, "nexus already initialized");
+            vm.Expect(!vm.Nexus.HasGenesis, "nexus already initialized");
 
             vm.ExpectStackSize(1);
 
@@ -1571,7 +1578,7 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Nexus_EndInit(RuntimeVM vm)
         {
-            vm.Expect(vm.Chain == null, "nexus already initialized");
+            vm.Expect(!vm.Nexus.HasGenesis, "nexus already initialized");
 
             vm.ExpectStackSize(1);
 
