@@ -108,7 +108,7 @@ namespace Phantasma.Core.Domain
                     0L,
                     script,
                     sender,
-                    sender,
+                    gasPayer,
                     Address.Null,
                     gasPrice,
                     gasLimit,

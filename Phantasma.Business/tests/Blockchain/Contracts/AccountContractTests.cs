@@ -116,7 +116,11 @@ public class AccountContractTests
                 DomainSettings.RootChainName,
                 new byte[1] { 0 },
                 User1.Address,
-                Timestamp.Now + TimeSpan.FromDays(300));
+                User1.Address,
+                1,
+                1,
+                Timestamp.Now + TimeSpan.FromDays(300),
+                "UnitTest");
 
         tx.Sign(User1);
         tx.Sign(User2);
@@ -134,7 +138,11 @@ public class AccountContractTests
                 DomainSettings.RootChainName,
                 new byte[1] { 0 },
                 User1.Address,
-                Timestamp.Now + TimeSpan.FromDays(300));
+                User1.Address,
+                1,
+                1,
+                Timestamp.Now + TimeSpan.FromDays(300),
+                "UnitTest");
 
             tx.Sign(User1);
             tx.Sign(User2);

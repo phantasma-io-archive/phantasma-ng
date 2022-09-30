@@ -281,11 +281,15 @@ public class VMInteropTests
         var contract = new CustomContract(NonFungibleToken.Symbol, NonFungibleToken.Script, NonFungibleToken.ABI);
         var context = new ChainExecutionContext(contract);
         var tx = new Transaction(
-                "mainnet",
-                DomainSettings.RootChainName,
-                new byte[1] { 0 },
-                User1.Address,
-                Timestamp.Now + TimeSpan.FromDays(300));
+            "mainnet",
+            DomainSettings.RootChainName,
+            new byte[1] { 0 },
+            User1.Address,
+            User1.Address,
+            1,
+            1,
+            Timestamp.Now + TimeSpan.FromDays(300),
+            "UnitTest");
 
         tx.Sign(Validator);
 
@@ -320,11 +324,15 @@ public class VMInteropTests
         var contract = new CustomContract(NonFungibleToken.Symbol, NonFungibleToken.Script, NonFungibleToken.ABI);
         var context = new ChainExecutionContext(contract);
         var tx = new Transaction(
-                "mainnet",
-                DomainSettings.RootChainName,
-                new byte[1] { 0 },
-                User1.Address,
-                Timestamp.Now + TimeSpan.FromDays(300));
+            "mainnet",
+            DomainSettings.RootChainName,
+            new byte[1] { 0 },
+            User1.Address,
+            User1.Address,
+            1,
+            1,
+            Timestamp.Now + TimeSpan.FromDays(300),
+            "UnitTest");
 
         tx.Sign(User1);
 
@@ -590,7 +598,11 @@ public class VMInteropTests
             DomainSettings.RootChainName,
             new byte[1] { 0 },
             User1.Address,
-            Timestamp.Now + TimeSpan.FromDays(300));
+            User1.Address,
+            1,
+            1,
+            Timestamp.Now + TimeSpan.FromDays(300),
+            "UnitTest");
 
         tx.Sign(User1);
 
@@ -607,7 +619,11 @@ public class VMInteropTests
             DomainSettings.RootChainName,
             new byte[1] { 0 },
             User1.Address,
-            Timestamp.Now + TimeSpan.FromDays(300));
+            User1.Address,
+            1,
+            1,
+            Timestamp.Now + TimeSpan.FromDays(300),
+            "UnitTest");
 
         tx.Sign(User1);
 
@@ -629,7 +645,11 @@ public class VMInteropTests
             DomainSettings.RootChainName,
             new byte[1] { 0 },
             User1.Address,
-            Timestamp.Now + TimeSpan.FromDays(300));
+            User1.Address,
+            1,
+            1,
+            Timestamp.Now + TimeSpan.FromDays(300),
+            "UnitTest");
 
         tx.Sign(User1);
 
@@ -791,11 +811,15 @@ public class VMInteropTests
     private IRuntime CreateRuntime_MockedChain()
     {
         var tx = new Transaction(
-                "mainnet",
-                DomainSettings.RootChainName,
-                new byte[1] { 0 },
-                User1.Address,
-                Timestamp.Now + TimeSpan.FromDays(300));
+            "mainnet",
+            DomainSettings.RootChainName,
+            new byte[1] { 0 },
+            User1.Address,
+            User1.Address,
+            1,
+            1,
+            Timestamp.Now + TimeSpan.FromDays(300),
+            "UnitTest");
 
         tx.Sign(User1);
         tx.Sign(User2);
@@ -815,7 +839,11 @@ public class VMInteropTests
                 DomainSettings.RootChainName,
                 new byte[1] { 0 },
                 User1.Address,
-                Timestamp.Now + TimeSpan.FromDays(300));
+                User1.Address,
+                1,
+                1,
+                Timestamp.Now + TimeSpan.FromDays(300),
+                "UnitTest");
 
             tx.Sign(User1);
             tx.Sign(User2);
