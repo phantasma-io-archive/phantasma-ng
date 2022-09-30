@@ -29,6 +29,7 @@ namespace Phantasma.Business.Blockchain
             vm.RegisterMethod("Runtime.PreviousContext", Runtime_PreviousContext);
             vm.RegisterMethod("Runtime.GenerateUID", Runtime_GenerateUID);
             vm.RegisterMethod("Runtime.Random", Runtime_Random);            
+            vm.RegisterMethod("Runtime.SetSeed", Runtime_SetSeed);
             vm.RegisterMethod("Runtime.IsWitness", Runtime_IsWitness);
             vm.RegisterMethod("Runtime.IsTrigger", Runtime_IsTrigger);
             vm.RegisterMethod("Runtime.IsMinter", Runtime_IsMinter);
@@ -439,11 +440,7 @@ namespace Phantasma.Business.Blockchain
         {
             try
             {
-                vm.ExpectStackSize(1);
-
-                var seed = vm.PopNumber("seed");
-
-                var number = vm.GenerateRandomNumber(seed);
+                var number = vm.GenerateRandomNumber();
 
                 var result = new VMObject();
                 result.SetValue(number);
@@ -456,6 +453,17 @@ namespace Phantasma.Business.Blockchain
 
             return ExecutionState.Running;
         }
+
+        private static ExecutionState Runtime_SetSeed(RuntimeVM vm)
+        {
+            vm.ExpectStackSize(1);
+        
+            var seed = vm.PopNumber("seed");
+        
+            vm.SetRandomSeed(seed);
+            return ExecutionState.Running;
+        }
+
 
         private static ExecutionState Runtime_IsWitness(RuntimeVM vm)
         {

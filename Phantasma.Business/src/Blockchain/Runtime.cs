@@ -47,7 +47,9 @@ namespace Phantasma.Business.Blockchain
         public IChainTask CurrentTask { get; private set; }
 
         private readonly StorageChangeSetContext changeSet;
+
         private int _baseChangeSetCount;
+        private BigInteger _randomSeed;
 
         public StorageContext RootStorage => this.IsRootChain() ? this.Storage : Nexus.RootStorage;
 
@@ -184,10 +186,10 @@ namespace Phantasma.Business.Blockchain
                     if (allowance <= 0)
                     {
                         // if no allowance is given, create one
-                        this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas), this.Transaction.GasPayer, Address.Null);
+                        this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas));
                     }
 
-                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), this.Transaction.GasPayer);
+                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
 
                     this.Notify(EventKind.Error, Transaction.Sender, this.ExceptionMessage);
                 }
@@ -209,15 +211,15 @@ namespace Phantasma.Business.Blockchain
                 if (allowance >= UsedGas)
                 {
                     // if we have an allowance but no spend gas call was part of the script, call spend gas anyway
-                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), this.Transaction.GasPayer);
+                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
                 }
                 else
                 {
                     // if we don't have an allowance, allow gas
-                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas), this.Transaction.GasPayer, Address.Null);
+                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas));
 
                     // and call spend gas
-                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), this.Transaction.GasPayer);
+                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
                 }
             }
 
@@ -527,23 +529,25 @@ namespace Phantasma.Business.Blockchain
         public static readonly uint RND_A = 16807;
         public static readonly uint RND_M = 2147483647;
 
-        private int minSeedLength = 32;
 
-        // returns a random number based on the given seed
-        public BigInteger GenerateRandomNumber(BigInteger seed)
+        public BigInteger GenerateRandomNumber()
         {
-            var bytes = seed.ToSignedByteArray();
-            if (bytes.Length < minSeedLength)
+            if (_randomSeed == 0 && Transaction != null)
             {
-                throw new VMException(this, $"Seed to weak, need at least {minSeedLength} bytes");
+                SetRandomSeed(Transaction.Hash);
             }
 
-            seed = CreateRandomSeed(bytes);
-            return ((RND_A * seed) % RND_M);
+            _randomSeed = ((RND_A * _randomSeed) % RND_M);
+            return _randomSeed;
         }
 
-        private BigInteger CreateRandomSeed(byte[] bytes)
+
+        public void SetRandomSeed(BigInteger seed)
         {
+            // calculates first initial pseudo random number seed
+            byte[] bytes = seed.ToSignedByteArray();
+
+
             for (int i = 0; i < EntryScript.Length; i++)
             {
                 var index = i % bytes.Length;
@@ -557,7 +561,7 @@ namespace Phantasma.Business.Blockchain
                 bytes[i] ^= time[i % time.Length];
             }
 
-            return new BigInteger(bytes, true);
+            _randomSeed = new BigInteger(bytes, true);
         }
         #endregion
 

@@ -40,7 +40,7 @@ namespace Phantasma.Core.Domain
 
         public Hash Hash { get; private set; }
 
-        public static Transaction Unserialize(byte[] bytes)
+        public static Transaction? Unserialize(byte[] bytes)
         {
             using (var stream = new MemoryStream(bytes))
             {
@@ -51,11 +51,18 @@ namespace Phantasma.Core.Domain
             }
         }
 
-        public static Transaction Unserialize(BinaryReader reader)
+        public static Transaction? Unserialize(BinaryReader reader)
         {
             var tx = new Transaction();
-            tx.UnserializeData(reader);
-            return tx;
+            try
+            {
+                tx.UnserializeData(reader);
+                return tx;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         public void Serialize(BinaryWriter writer, bool withSignature)

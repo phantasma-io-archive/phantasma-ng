@@ -9,6 +9,8 @@
         UnsignedTx = 4,
         NotSignedBySender = 5,
         MissingFuel = 6,
-        UnsupportedVersion = 7
+        UnsupportedVersion = 7,
+        NoUserAddress = 8,
+        NoSystemAddress = 9
     }
 }

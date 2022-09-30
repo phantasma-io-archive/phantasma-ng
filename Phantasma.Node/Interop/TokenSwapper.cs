@@ -528,9 +528,9 @@ namespace Phantasma.Node.Interop
         private Hash SettleTransaction(string sourcePlatform, string chain, Hash txHash)
         {
             var script = new ScriptBuilder().
-                AllowGas(SwapKeys.Address, Address.Null).
+                AllowGas().
                 CallContract("interop", nameof(InteropContract.SettleTransaction), SwapKeys.Address, sourcePlatform, chain, txHash).
-                SpendGas(SwapKeys.Address).
+                SpendGas().
                 EndScript();
 
             var nexus = NexusAPI.GetNexus();
