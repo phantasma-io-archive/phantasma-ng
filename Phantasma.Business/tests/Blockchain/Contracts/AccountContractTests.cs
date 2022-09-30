@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
@@ -322,7 +322,15 @@ public class AccountContractTests : IDisposable
 
     public void Dispose()
     {
-        Directory.Delete(this.PartitionPath, true);
+        try
+        {
+            Directory.Delete(this.PartitionPath, true);
+        }
+        catch (IOException)
+        {
+            Console.WriteLine("Unable to clean test directory");
+        }
+
         this.Mints.Clear();
     }
 }
