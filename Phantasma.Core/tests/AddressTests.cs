@@ -1,13 +1,12 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Core.Cryptography;
 using Shouldly;
+using Xunit;
 
 namespace Phantasma.Core.Tests;
 
-[TestClass]
 public class AddressTests
 {
-    [TestMethod]
+    [Fact]
     public void null_address_test()
     {
         var address = Address.Null;

@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using Phantasma.Blockchain.Tests;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Core.Cryptography;
@@ -12,11 +10,11 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Infrastructure.RocksDB;
 using Shouldly;
+using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
-[TestClass]
-public class NexusTests
+public class NexusTests : IDisposable
 {
     private string PartitionPath { get; set; }
     private IToken FungibleToken { get; set; }
@@ -30,7 +28,7 @@ public class NexusTests
     private Chain Chain { get; set; }
     private List<Event> Events { get; set; } = new ();
 
-    [TestMethod]
+    [Fact]
     public void simple_transfer_test_success()
     {
         var moq = CreateRuntimeMock_TransferTokens();
@@ -93,8 +91,7 @@ public class NexusTests
         return runtimeMoq;
     }
 
-    [TestInitialize]
-    public void Setup()
+    public NexusTests()
     {
 
         this.TokenOwner = PhantasmaKeys.Generate();
@@ -126,8 +123,7 @@ public class NexusTests
         balances.Add(this.Context, User1.Address, maxSupply);
     }
 
-    [TestCleanup]
-    public void TearDown()
+    public void Dispose()
     {
         this.Events.Clear();
         this.Context.Clear();

@@ -1,6 +1,5 @@
 ﻿using System.IO;
 using System.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Tokens;
@@ -10,10 +9,11 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Infrastructure.RocksDB;
 using Phantasma.Shared.Types;
+using Shouldly;
+using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
-[TestClass]
 public class RuntimeTests
 {
     private string PartitionPath { get; set; }
@@ -27,91 +27,91 @@ public class RuntimeTests
     private PhantasmaKeys User2 { get; set; }
     private Chain Chain { get; set; }
 
-    [TestMethod]
+    [Fact]
     public void simple_transfer_test_runtime()
     {
         var runtime = CreateRuntime(FungibleToken);
         runtime.TransferTokens(FungibleToken.Symbol, User1.Address, User2.Address, 10);
     }
 
-    [TestMethod]
+    [Fact]
     public void simple_transfer_test_runtime_fail_symbol()
     {
         var runtime = CreateRuntime_TransferTokens();
-        Assert.ThrowsException<VMException>(() => runtime.TransferTokens(
+        Should.Throw<VMException>(() => runtime.TransferTokens(
                     new string('A', 500),
                     User1.Address,
                     User2.Address,
                     10), "symbol exceeds max length @ ExpectNameLength");
     }
 
-    [TestMethod]
+    [Fact]
     public void simple_transfer_test_runtime_fail_source_null()
     {
         var runtime = CreateRuntime_TransferTokens();
-        Assert.ThrowsException<VMException>(() => runtime.TransferTokens(
+        Should.Throw<VMException>(() => runtime.TransferTokens(
                     FungibleToken.Symbol,
                     Address.Null,
                     User2.Address,
                     10), "invalid source");
     }
 
-    [TestMethod]
+    [Fact]
     public void simple_transfer_test_runtime_fail_token_exists()
     {
         var runtime = CreateRuntime_TransferTokens(false);
-        Assert.ThrowsException<VMException>(() => runtime.TransferTokens(
+        Should.Throw<VMException>(() => runtime.TransferTokens(
                     FungibleToken.Symbol,
                     User1.Address,
                     User2.Address,
                     10), "invalid token");
     }
 
-    [TestMethod]
+    [Fact]
     public void simple_transfer_test_runtime_fail_amount()
     {
         var runtime = CreateRuntime_TransferTokens();
-        Assert.ThrowsException<VMException>(() => runtime.TransferTokens(
+        Should.Throw<VMException>(() => runtime.TransferTokens(
                     FungibleToken.Symbol,
                     User1.Address,
                     User2.Address,
                     -10), "amount must be greater than zero");
     }
 
-    [TestMethod]
+    [Fact]
     public void simple_transfer_test_runtime_fail_non_fungible()
     {
         var runtime = CreateRuntime(this.NonFungibleToken);
-        Assert.ThrowsException<VMException>(() => runtime.TransferTokens(
+        Should.Throw<VMException>(() => runtime.TransferTokens(
                     FungibleToken.Symbol,
                     User1.Address,
                     User2.Address,
                     10), "token must be fungible");
     }
 
-    [TestMethod]
+    [Fact]
     public void simple_transfer_test_runtime_fail_non_transferable()
     {
         var runtime = CreateRuntime(this.NonTransferableToken);
-        Assert.ThrowsException<VMException>(() => runtime.TransferTokens(
+        Should.Throw<VMException>(() => runtime.TransferTokens(
                     FungibleToken.Symbol,
                     User1.Address,
                     User2.Address,
                     10), "token must be transferable");
     }
 
-    [TestMethod]
+    [Fact]
     public void expect_success()
     {
         var runtime = CreateRuntime_TransferTokens();
         runtime.Expect(true, "This is never shown");
     }
 
-    [TestMethod]
+    [Fact]
     public void expect_fail()
     {
         var runtime = CreateRuntime_TransferTokens();
-        Assert.ThrowsException<VMException>(() => runtime.Expect(false, "Expect failed"), "Expect failed");
+        Should.Throw<VMException>(() => runtime.Expect(false, "Expect failed"), "Expect failed");
     }
 
     private IRuntime CreateRuntime_TransferTokens(bool tokenExists = true)
@@ -163,8 +163,7 @@ public class RuntimeTests
                 );
     }
 
-    [TestInitialize]
-    public void Setup()
+    public RuntimeTests()
     {
         this.TokenOwner = PhantasmaKeys.Generate();
         this.User1 = PhantasmaKeys.Generate();
