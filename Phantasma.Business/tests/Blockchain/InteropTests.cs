@@ -18,7 +18,7 @@ using Shouldly;
 namespace Phantasma.Business.Tests.Blockchain;
 
 [TestClass]
-public class VMInteropTests
+public class InteropTests
 {
     private PhantasmaKeys Validator { get; set; }
     private PhantasmaKeys TokenOwner { get; set; }
@@ -286,8 +286,8 @@ public class VMInteropTests
             new byte[1] { 0 },
             User1.Address,
             User1.Address,
-            1,
-            1,
+            10000,
+            999,
             Timestamp.Now + TimeSpan.FromDays(300),
             "UnitTest");
 
@@ -329,8 +329,8 @@ public class VMInteropTests
             new byte[1] { 0 },
             User1.Address,
             User1.Address,
-            1,
-            1,
+            10000,
+            999,
             Timestamp.Now + TimeSpan.FromDays(300),
             "UnitTest");
 
@@ -646,8 +646,8 @@ public class VMInteropTests
             new byte[1] { 0 },
             User1.Address,
             User1.Address,
-            1,
-            1,
+            10000,
+            999,
             Timestamp.Now + TimeSpan.FromDays(300),
             "UnitTest");
 
@@ -680,17 +680,17 @@ public class VMInteropTests
     {
         var runtime = CreateRuntime_Default();
         var seed = BigInteger.Parse("18458728232664014981834504770148603574620012689608654470072532441766883911609642");
-        var result = runtime.CallInterop("Runtime.Random", seed);
+        var result = runtime.CallInterop("Runtime.Random");
 
         result.AsNumber().ShouldBeGreaterThan(BigInteger.Zero);
 
         var seed2 = BigInteger.Parse("18458728232664014981834504770148603574620012689608654470072532441766883911609642");
-        var result2 = runtime.CallInterop("Runtime.Random", seed2);
+        var result2 = runtime.CallInterop("Runtime.Random");
 
-        result.AsNumber().ShouldBe(result2.AsNumber());
+        result.AsNumber().ShouldNotBe(result2.AsNumber());
 
         var seed3 = BigInteger.Parse("32948902349023489290348901238490123904890213748712389478912738947891234789213789");
-        var result3 = runtime.CallInterop("Runtime.Random", seed3);
+        var result3 = runtime.CallInterop("Runtime.Random");
 
         result.AsNumber().ShouldNotBe(result3.AsNumber());
         result2.AsNumber().ShouldNotBe(result3.AsNumber());
@@ -816,8 +816,8 @@ public class VMInteropTests
             new byte[1] { 0 },
             User1.Address,
             User1.Address,
-            1,
-            1,
+            10000,
+            999,
             Timestamp.Now + TimeSpan.FromDays(300),
             "UnitTest");
 
@@ -840,8 +840,8 @@ public class VMInteropTests
                 new byte[1] { 0 },
                 User1.Address,
                 User1.Address,
-                1,
-                1,
+                10000,
+                999,
                 Timestamp.Now + TimeSpan.FromDays(300),
                 "UnitTest");
 
