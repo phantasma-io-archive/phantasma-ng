@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
@@ -304,8 +304,8 @@ public class AccountContractTests : IDisposable
         this.User1 = PhantasmaKeys.Generate();
         this.User2 = PhantasmaKeys.Generate();
         this.Validator = PhantasmaKeys.Generate();
-
-        this.PartitionPath = Path.GetTempPath() + "/PhantasmaUnitTest/";
+        
+        this.PartitionPath = Path.Combine(Path.GetTempPath(), "PhantasmaUnitTest", $"{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
         Directory.CreateDirectory(this.PartitionPath);
 
         var maxSupply = 10000000;

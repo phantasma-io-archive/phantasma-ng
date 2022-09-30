@@ -97,8 +97,8 @@ public class NexusTests : IDisposable
         this.TokenOwner = PhantasmaKeys.Generate();
         this.User1 = PhantasmaKeys.Generate();
         this.User2 = PhantasmaKeys.Generate();
-
-        this.PartitionPath = Path.GetTempPath() + "/PhantasmaUnitTest/";
+        
+        this.PartitionPath = Path.Combine(Path.GetTempPath(), "PhantasmaUnitTest", $"{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
         Directory.CreateDirectory(this.PartitionPath);
 
         this.Nexus = new Nexus("unittest", 10000, (name) => new DBPartition(PartitionPath + name));
