@@ -18,6 +18,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get install libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev libzstd-dev librocksdb-dev
+        dotnet tool install --global dotnet-reportgenerator-globaltool
         dotnet restore
 
     - name: Build
@@ -26,10 +27,13 @@ jobs:
     - name: Test
       run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
 
+    - name: Combine coverage output 
+      run: dotnet reportgenerator "-reports:coverage/**/coverage.cobertura.xml" -targetdir:coverage/coverage.cobertura.combined.xml" -reporttypes:Cobertura
+
     - name: Code Coverage Summary Report
       uses: irongut/CodeCoverageSummary@v1.3.0
       with:
-        filename: coverage/**/coverage.cobertura.xml
+        filename: coverage/coverage.cobertura.combined.xml
         badge: true
         fail_below_min: false
         format: markdown
