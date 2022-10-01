@@ -349,7 +349,7 @@ namespace Phantasma.Business.Blockchain
                 var tx = vm.Transaction;
                 Throw.IfNull(tx, nameof(tx));
 
-                vm.ExpectStackSize(1);
+                vm.ExpectStackSize(2);
 
                 var address = vm.PopAddress();
                 var symbol = vm.PopString("symbol");
@@ -590,7 +590,7 @@ namespace Phantasma.Business.Blockchain
         {
             vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
 
-            vm.ExpectStackSize(3);
+            vm.ExpectStackSize(4);
 
             var contractName = vm.PopString("contract");
             vm.Expect(vm.IsCurrentContext(contractName), $"Not allowed from this context");
@@ -1080,7 +1080,7 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Runtime_MintToken(RuntimeVM vm)
         {
-            vm.ExpectStackSize(4);
+            vm.ExpectStackSize(6);
 
             var source = vm.PopAddress();
             var destination = vm.PopAddress();
@@ -1260,7 +1260,7 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Nexus_CreateTokenSeries(RuntimeVM vm)
         {
-            vm.ExpectStackSize(5);
+            vm.ExpectStackSize(7);
 
             var from = vm.PopAddress();
             var symbol = vm.PopString("symbol");
@@ -1342,7 +1342,7 @@ namespace Phantasma.Business.Blockchain
             var pow = tx.Hash.GetDifficulty();
             vm.Expect(pow >= (int)ProofOfWork.Minimal, "expected proof of work");
 
-            vm.ExpectStackSize(1);
+            vm.ExpectStackSize(2);
 
             var from = vm.PopAddress();
             vm.Expect(from.IsUser, "address must be user");
@@ -1765,7 +1765,7 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Nexus_CreateOrganization(RuntimeVM vm)
         {
-            vm.ExpectStackSize(3);
+            vm.ExpectStackSize(4);
 
             var source = vm.PopAddress();
             var ID = vm.PopString("id");
@@ -1851,7 +1851,7 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Task_Start(RuntimeVM vm)
         {
-            vm.ExpectStackSize(1);
+            vm.ExpectStackSize(7);
 
             var contractName = vm.PopString("contract");
             var methodBytes = vm.PopBytes("method bytes");
