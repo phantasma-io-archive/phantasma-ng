@@ -1,15 +1,14 @@
 using System.IO;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using Phantasma.Core.Domain;
 using Shouldly;
+using Xunit;
 
 namespace Phantasma.Core.Tests;
 
-[TestClass]
 public class SerializationTests
 {
-    [TestMethod]
+    [Fact]
     public void serialize_test()
     {
         var serial = Substitute.For<ISerializable>();
@@ -24,7 +23,7 @@ public class SerializationTests
         bArray.ShouldBe(new byte[] {42});
     }
 
-    [TestMethod]
+    [Fact]
     public void unserialize_test()
     {
         var serial = Substitute.For<ISerializable>();

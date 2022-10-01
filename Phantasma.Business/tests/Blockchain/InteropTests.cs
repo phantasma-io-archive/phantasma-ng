@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using Phantasma.Blockchain.Tests;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM;
@@ -14,11 +12,11 @@ using Phantasma.Core.Storage.Context;
 using Phantasma.Infrastructure.RocksDB;
 using Phantasma.Shared.Types;
 using Shouldly;
+using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
-[TestClass]
-public class InteropTests
+public class InteropTests : IDisposable
 {
     private PhantasmaKeys Validator { get; set; }
     private PhantasmaKeys TokenOwner { get; set; }
@@ -56,7 +54,7 @@ public class InteropTests
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    [TestMethod]
+    [Fact]
     public void invoke_Account_Transactions_success_non_empty()
     {
         var runtime = CreateRuntime_MockedChain();
@@ -72,7 +70,7 @@ public class InteropTests
         }
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Account_Activity_success()
     {
         var runtime = CreateRuntime_MockedChain();
@@ -81,7 +79,7 @@ public class InteropTests
         result.AsTimestamp().ShouldBe(new Timestamp(1601092859));
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Account_Name_success()
     {
         var runtime = CreateRuntime_MockedChain();
@@ -258,7 +256,7 @@ public class InteropTests
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    [TestMethod]
+    [Fact]
     public void invoke_Organization_AddMember_success()
     {
         var runtime = CreateRuntime_Default();
@@ -275,7 +273,7 @@ public class InteropTests
         }
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Nexus_CreateOrganization_success()
     {
         var contract = new CustomContract(NonFungibleToken.Symbol, NonFungibleToken.Script, NonFungibleToken.ABI);
@@ -318,7 +316,7 @@ public class InteropTests
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    [TestMethod]
+    [Fact]
     public void invoke_Nexus_CreateTokenSeries_success()
     {
         var contract = new CustomContract(NonFungibleToken.Symbol, NonFungibleToken.Script, NonFungibleToken.ABI);
@@ -532,7 +530,7 @@ public class InteropTests
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_Notify_success()
     {
         var runtime = CreateRuntime_Default();
@@ -549,7 +547,7 @@ public class InteropTests
         count.ShouldBe(1);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_Log_success()
     {
         var runtime = CreateRuntime_Default();
@@ -563,7 +561,7 @@ public class InteropTests
         count.ShouldBe(1);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_IsMinter_success()
     {
         var runtime = CreateRuntime_Default();
@@ -571,7 +569,7 @@ public class InteropTests
         result.AsBool().ShouldBe(true);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_IsMinter_fail()
     {
         var runtime = CreateRuntime_Default();
@@ -590,7 +588,7 @@ public class InteropTests
         result.AsBool().ShouldBe(false);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_IsTrigger_success_yes()
     {
         var tx = new Transaction(
@@ -611,7 +609,7 @@ public class InteropTests
         result.AsBool().ShouldBe(true);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_IsTrigger_success_no()
     {
         var tx = new Transaction(
@@ -637,7 +635,7 @@ public class InteropTests
         throw new NotImplementedException("dummy test, need test IsWitness more");
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_IsWitness_success()
     {
         var tx = new Transaction(
@@ -675,7 +673,7 @@ public class InteropTests
         result.AsBool().ShouldBe(false);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_Random_success_tx_hash()
     {
         var runtime = CreateRuntime_Default();
@@ -696,7 +694,7 @@ public class InteropTests
         result2.AsNumber().ShouldNotBe(result3.AsNumber());
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_GenerateUID_success()
     {
         var runtime = CreateRuntime_MockedChain();
@@ -704,7 +702,7 @@ public class InteropTests
         result.AsNumber().ShouldBe(1200);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_PreviousContext_success()
     {
         var runtime = CreateRuntime_Default();
@@ -712,7 +710,7 @@ public class InteropTests
         result.AsString().ShouldBe(VirtualMachine.EntryContextName);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_Context_success()
     {
         var runtime = CreateRuntime_Default();
@@ -720,7 +718,7 @@ public class InteropTests
         result.AsString().ShouldBe(FungibleToken.Symbol);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_Validator_success()
     {
         var runtime = CreateRuntime_Default();
@@ -728,17 +726,14 @@ public class InteropTests
         result.AsAddress().ShouldBe(this.Validator.Address);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_GasTarget_fail_is_null()
     {
         var runtime = CreateRuntime_Default();
-        AssertExtension.ExpectException<VMException>(
-                () =>
-                    runtime.CallInterop("Runtime.GasTarget"),
-                    "Gas target is not available yet");
+        Should.Throw<VMException>(() => runtime.CallInterop("Runtime.GasTarget"), "Gas target is not available yet");
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_GasTarget_success()
     {
         var runtime = CreateRuntime_Default();
@@ -750,7 +745,7 @@ public class InteropTests
     }
 
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_Version_success()
     {
         var runtime = CreateRuntime_Default();
@@ -758,7 +753,7 @@ public class InteropTests
         result.AsNumber().ShouldBe(new BigInteger(0));
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_Time_success()
     {
         var runtime = CreateRuntime_Default();
@@ -768,7 +763,7 @@ public class InteropTests
         result.Type.ShouldBe(VMType.Timestamp);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_TransactionHash_success()
     {
         var runtime = CreateRuntime_Default();
@@ -777,14 +772,14 @@ public class InteropTests
         result.Type.ShouldBe(VMType.Object);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_TransactionHash_fail()
     {
         var runtime = CreateRuntime(false, FungibleToken);
-        Assert.ThrowsException<VMException>(() => runtime.CallInterop("Runtime.TransactionHash"), "Value cannot be null. (Parameter 'tx')");
+        Should.Throw<VMException>(() => runtime.CallInterop("Runtime.TransactionHash"), "Value cannot be null. (Parameter 'tx')");
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_MintTokens_success()
     {
         var toMint = new BigInteger(999);
@@ -797,15 +792,14 @@ public class InteropTests
         amount.ShouldBe(toMint);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_Runtime_MintTokens_failed_not_allowed()
     {
         var toMint = new BigInteger(999);
         var runtime = CreateRuntime_Default();
-        AssertExtension.ExpectException<VMException>(
-                () =>
-                runtime.CallInterop("Runtime.MintTokens", User1.Address, User1.Address, FungibleToken.Symbol, toMint),
-                $"{User1.Address} is not a valid minting address for {FungibleToken.Symbol} @ Runtime_MintTokens");
+        Should.Throw<VMException>(
+            () => runtime.CallInterop("Runtime.MintTokens", User1.Address, User1.Address, FungibleToken.Symbol, toMint),
+            $"{User1.Address} is not a valid minting address for {FungibleToken.Symbol} @ Runtime_MintTokens");
     }
 
     private IRuntime CreateRuntime_MockedChain()
@@ -1018,16 +1012,15 @@ public class InteropTests
         return runtime;
     }
 
-    [TestInitialize]
-    public void Setup()
+    public InteropTests()
     {
         this.Mints = new ();
         this.TokenOwner = PhantasmaKeys.Generate();
         this.User1 = PhantasmaKeys.Generate();
         this.User2 = PhantasmaKeys.Generate();
         this.Validator = PhantasmaKeys.Generate();
-
-        this.PartitionPath = Path.GetTempPath() + "/PhantasmaUnitTest/";
+        
+        this.PartitionPath = Path.Combine(Path.GetTempPath(), "PhantasmaUnitTest", $"{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
         Directory.CreateDirectory(this.PartitionPath);
 
         var maxSupply = 10000000;
@@ -1042,10 +1035,17 @@ public class InteropTests
         this.NonTransferableToken = new TokenInfo("EXNT", "Example Token non transferable", TokenOwner.Address, 0, 8, ntFlags, new byte[1] { 0 }, new ContractInterface());
     }
 
-    [TestCleanup]
-    public void TearDown()
+    public void Dispose()
     {
-        Directory.Delete(this.PartitionPath, true);
+        try
+        {
+            Directory.Delete(this.PartitionPath, true);
+        }
+        catch (IOException)
+        {
+            Console.WriteLine("Unable to clean test directory");
+        }
+
         this.Mints.Clear();
     }
 }

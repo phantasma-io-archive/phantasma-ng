@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
@@ -13,11 +12,11 @@ using Phantasma.Core.Storage.Context;
 using Phantasma.Infrastructure.RocksDB;
 using Phantasma.Shared.Types;
 using Shouldly;
+using Xunit;
 
-namespace Phantasma.Business.Tests.Blockchain;
+namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
-[TestClass]
-public class AccountContractTests
+public class AccountContractTests : IDisposable
 {
     private PhantasmaKeys Validator { get; set; }
     private PhantasmaKeys TokenOwner { get; set; }
@@ -32,7 +31,7 @@ public class AccountContractTests
     private Dictionary<string, BigInteger> Mints { get; set; }
 
 
-    [TestMethod]
+    [Fact]
     public void invoke_RegisterName_success()
     {
         var runtime = CreateRuntime_MockedChain();
@@ -51,7 +50,7 @@ public class AccountContractTests
         count.ShouldBe(1);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_LookupAddress_success()
     {
         var runtime = CreateRuntime_MockedChain();
@@ -62,7 +61,7 @@ public class AccountContractTests
         result.AsString().ShouldBe("somename1");
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_LookupName_success()
     {
         var runtime = CreateRuntime_MockedChain();
@@ -73,7 +72,7 @@ public class AccountContractTests
         result.AsAddress().ShouldBe(User1.Address);
     }
 
-    [TestMethod]
+    [Fact]
     public void invoke_UnregisterName_success()
     {
         var runtime = CreateRuntime_MockedChain();
@@ -298,16 +297,15 @@ public class AccountContractTests
         return runtime;
     }
 
-    [TestInitialize]
-    public void Setup()
+    public AccountContractTests()
     {
         this.Mints = new ();
         this.TokenOwner = PhantasmaKeys.Generate();
         this.User1 = PhantasmaKeys.Generate();
         this.User2 = PhantasmaKeys.Generate();
         this.Validator = PhantasmaKeys.Generate();
-
-        this.PartitionPath = Path.GetTempPath() + "/PhantasmaUnitTest/";
+        
+        this.PartitionPath = Path.Combine(Path.GetTempPath(), "PhantasmaUnitTest", $"{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
         Directory.CreateDirectory(this.PartitionPath);
 
         var maxSupply = 10000000;
@@ -322,10 +320,17 @@ public class AccountContractTests
         this.NonTransferableToken = new TokenInfo("EXNT", "Example Token non transferable", TokenOwner.Address, 0, 8, ntFlags, new byte[1] { 0 }, new ContractInterface());
     }
 
-    [TestCleanup]
-    public void TearDown()
+    public void Dispose()
     {
-        Directory.Delete(this.PartitionPath, true);
+        try
+        {
+            Directory.Delete(this.PartitionPath, true);
+        }
+        catch (IOException)
+        {
+            Console.WriteLine("Unable to clean test directory");
+        }
+
         this.Mints.Clear();
     }
 }
