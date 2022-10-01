@@ -106,7 +106,6 @@ namespace Phantasma.Business.Blockchain
             {
                 this.MaxGas = Nexus.MaxGas;
             }
-            Console.WriteLine("max gas: " + this.MaxGas);
 
             ExtCalls.RegisterWithRuntime(this);
         }
