@@ -1,6 +1,6 @@
 ﻿namespace Phantasma.Business.Tests.Blockchain;
 
-public class SwapsTest
+public class GasMachineTests
 {
     
 }

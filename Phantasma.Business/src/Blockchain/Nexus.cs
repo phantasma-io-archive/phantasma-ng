@@ -652,11 +652,16 @@ public class Nexus : INexus
         var balances = new BalanceSheet(token);
         Runtime.Expect(balances.Add(Runtime.Storage, destination, amount), "balance add failed");
 
-        var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        if (!Runtime.IsSystemToken(token))
+        {
+            // for non system tokens, the onMint trigger is mandatory
+            var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
+            var tokenTriggerResult = Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, amount);
+            Runtime.Expect(tokenTriggerResult == TriggerResult.Success, $"token trigger {tokenTrigger} failed or missing");
+        }
 
         var accountTrigger = isSettlement ? AccountTrigger.OnReceive : AccountTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"account trigger {accountTrigger} failed");
 
         if (isSettlement)
         {
@@ -682,11 +687,16 @@ public class Nexus : INexus
         var ownerships = new OwnershipSheet(token.Symbol);
         Runtime.Expect(ownerships.Add(Runtime.Storage, destination, tokenID), "ownership add failed");
 
-        var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        if (!Runtime.IsSystemToken(token))
+        {
+            // for non system tokens, the onMint trigger is mandatory
+            var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
+            var tokenTriggerResult = Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, tokenID); 
+            Runtime.Expect(tokenTriggerResult == TriggerResult.Success, $"token {tokenTrigger} trigger failed or missing");
+        }
 
         var accountTrigger = isSettlement ? AccountTrigger.OnReceive : AccountTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"account trigger {accountTrigger} failed");
 
         var nft = ReadNFT(Runtime, token.Symbol, tokenID);
         using (var m = new ProfileMarker("Nexus.WriteNFT"))

@@ -1,14 +1,13 @@
 using System.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Core.Numerics;
 using Shouldly;
+using Xunit;
 
 namespace Phantasma.Core.Tests;
 
-[TestClass]
 public class BigIntegerTests
 {
-    [TestMethod]
+    [Fact]
     public void byte_array_to_big_integer()
     {
         var byteArray = new byte[] {42};
@@ -16,7 +15,7 @@ public class BigIntegerTests
         bigInteger.ShouldBe(42);
     }
 
-    [TestMethod]
+    [Fact]
     public void big_integer_to_byte_array()
     {
         BigInteger bigInteger = 42;

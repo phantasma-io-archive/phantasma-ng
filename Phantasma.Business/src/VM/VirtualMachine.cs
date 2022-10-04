@@ -19,7 +19,15 @@ namespace Phantasma.Business.VM
 
         public readonly static string EntryContextName = "entry";
 
+        public readonly static string StakeContextName = "stake";
+
+        public readonly static string GasContextName = "gas";
+
+        public readonly static string ExchangeContextName = "exchange";
+
         private readonly ExecutionContext entryContext;
+
+        public ExecutionContext EntryContext => entryContext;
 
 
         public Stack<VMObject> Stack { get; } = new Stack<VMObject>();
@@ -219,12 +227,13 @@ namespace Phantasma.Business.VM
         public VMException(IVirtualMachine vm, string msg) : base(msg)
         {
             this.vm = vm;
-
+#if DEBUG
             var fileName = vm.GetDumpFileName();
             if (fileName != null)
             {
                 DumpToFile(fileName);
             }
+#endif
         }
 
         private void DumpToFile(string fileName)

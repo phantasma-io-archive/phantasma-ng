@@ -116,13 +116,16 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                 {
                     return Task.FromResult(ResponseHelper.Check.Ok());
                 }
+
+                return Task.FromResult(ResponseHelper.Check.Create(code, message));
             }
         }
         catch (Exception e)
         {
             Log.Information("CheckTx failed: {Exception}", e);
         }
-        return Task.FromResult(ResponseHelper.Check.Ok());
+
+        return Task.FromResult(ResponseHelper.Check.Create(CodeType.Error, "Generic Error"));
     }
     
     public override Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
