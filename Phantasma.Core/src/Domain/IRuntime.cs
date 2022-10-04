@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Core.Domain
 {

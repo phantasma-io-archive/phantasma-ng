@@ -1,9 +1,9 @@
 ﻿using System;
-using Phantasma.Shared.Utils;
+using Phantasma.Core.Utils;
 using Shouldly;
 using Xunit;
 
-namespace Phantasma.Shared.Tests;
+namespace Phantasma.Core.Tests;
 
 public class ArgumentsTests
 {

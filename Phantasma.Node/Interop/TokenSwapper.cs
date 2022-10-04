@@ -10,13 +10,13 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.API;
 using Phantasma.Infrastructure.API.Controllers;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Node.Chains.Neo2;
-using Phantasma.Shared.Types;
 using Serilog;
 using TransactionResult = Phantasma.Infrastructure.API.TransactionResult;
 

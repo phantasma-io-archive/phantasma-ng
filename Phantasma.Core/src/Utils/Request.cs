@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Phantasma.Shared.Utils
+namespace Phantasma.Core.Utils
 {
     public enum RequestType
     {

@@ -9,7 +9,7 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Business.VM;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Domain;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 using Shouldly;
 using Xunit;
 using ExecutionContext = Phantasma.Core.Domain.ExecutionContext;

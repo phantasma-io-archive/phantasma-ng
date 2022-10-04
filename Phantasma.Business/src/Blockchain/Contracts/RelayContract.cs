@@ -8,8 +8,8 @@ using Phantasma.Core.Cryptography.EdDSA;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
-using Phantasma.Shared.Types;
 
 namespace Phantasma.Business.Blockchain.Contracts
 {

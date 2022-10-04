@@ -7,11 +7,11 @@ using System.Text;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM;
+using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Business.Blockchain
 {

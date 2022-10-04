@@ -1,6 +1,6 @@
 ﻿using System;
 using Phantasma.Business.CodeGen.Languages;
-using Phantasma.Shared;
+using Phantasma.Core;
 
 namespace Phantasma.Business.CodeGen.Core
 {

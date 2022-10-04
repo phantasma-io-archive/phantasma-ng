@@ -21,6 +21,5 @@
   <ItemGroup>
     <ProjectReference Include="../../Phantasma.Business/src/Phantasma.Business.csproj" />
     <ProjectReference Include="../../Phantasma.Core/src/Phantasma.Core.csproj" />
-    <ProjectReference Include="../../Phantasma.Shared/src/Phantasma.Shared.csproj" />
   </ItemGroup>
 </Project>

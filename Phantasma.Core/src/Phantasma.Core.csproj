@@ -15,7 +15,6 @@
     <PackageReference Include="Serilog" Version="2.11.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../Phantasma.Shared/src/Phantasma.Shared.csproj" />
     <ProjectReference Include="../../Tendermint/Tendermint.csproj" />
   </ItemGroup>
 </Project>

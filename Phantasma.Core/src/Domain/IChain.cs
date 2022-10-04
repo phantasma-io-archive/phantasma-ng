@@ -3,7 +3,7 @@ using System.Numerics;
 using Google.Protobuf;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 using Tendermint;
 using Tendermint.Types;
 using TValidatorUpdate = Tendermint.Abci.ValidatorUpdate;

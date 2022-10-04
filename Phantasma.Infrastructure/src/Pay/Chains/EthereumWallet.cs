@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.ECDsa;
 using Phantasma.Core.Cryptography.Hashing;
 using Phantasma.Core.Numerics;
-using Phantasma.Shared;
-using Phantasma.Shared.Utils;
+using Phantasma.Core.Utils;
 
 namespace Phantasma.Infrastructure.Pay.Chains
 {

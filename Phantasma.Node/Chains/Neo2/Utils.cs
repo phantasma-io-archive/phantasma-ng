@@ -9,6 +9,7 @@ using Neo.Wallets;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
 using Transaction = Neo.Network.P2P.Payloads.Transaction;
 
 namespace Phantasma.Node.Chains.Neo2
@@ -317,7 +318,7 @@ namespace Phantasma.Node.Chains.Neo2
             }
             var bytes = new byte[34];
             bytes[0] = (byte)AddressKind.User;
-            Phantasma.Shared.Utils.ByteArrayUtils.CopyBytes(witness.VerificationScript, 1, bytes, 1, 33);
+            ByteArrayUtils.CopyBytes(witness.VerificationScript, 1, bytes, 1, 33);
             return Address.FromBytes(bytes);
         }
 
