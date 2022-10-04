@@ -2,8 +2,8 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using Phantasma.Core;
 using Phantasma.Core.Storage;
-using Phantasma.Shared;
 using RocksDbSharp;
 using Serilog;
 

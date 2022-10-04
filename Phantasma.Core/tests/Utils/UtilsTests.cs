@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Text.Json;
-using Phantasma.Shared.Utils;
+using Phantasma.Core.Utils;
 using Shouldly;
 using Xunit;
 
-namespace Phantasma.Shared.Tests.Utils;
+namespace Phantasma.Core.Tests.Utils;
 
 public class UtilsTests
 {

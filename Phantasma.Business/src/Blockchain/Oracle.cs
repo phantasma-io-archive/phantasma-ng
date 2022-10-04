@@ -3,11 +3,11 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
-using Phantasma.Shared;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Business.Blockchain
 {

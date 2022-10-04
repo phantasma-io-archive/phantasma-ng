@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Phantasma.Shared.Types
+namespace Phantasma.Core.Types
 {
     public interface IMap<Key, Value>
     {

@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using Phantasma.Business.Blockchain;
+using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Infrastructure.Pay.Chains;
-using Phantasma.Shared;
 
 namespace Phantasma.Node.Oracles
 {

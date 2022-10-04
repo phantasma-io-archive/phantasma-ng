@@ -8,8 +8,8 @@ using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 using Phantasma.Infrastructure.RocksDB;
-using Phantasma.Shared.Types;
 using Shouldly;
 using Xunit;
 

@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
-using Phantasma.Shared;
-using Phantasma.Shared.Performance;
+using Phantasma.Core.Performance;
 
 namespace Phantasma.Business.VM
 {

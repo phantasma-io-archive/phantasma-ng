@@ -3,7 +3,7 @@ using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 using static Phantasma.Business.Blockchain.Contracts.ExchangeOrderSide;
 using static Phantasma.Business.Blockchain.Contracts.ExchangeOrderType;
 

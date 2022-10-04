@@ -1,4 +1,4 @@
-﻿namespace Phantasma.Shared.Utils
+﻿namespace Phantasma.Core.Utils
 {
     public static class PackingUtils
     {

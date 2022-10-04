@@ -9,7 +9,7 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 using Serilog;
 using Tendermint;
 using Tendermint.Abci;

@@ -6,7 +6,7 @@ using System.Numerics;
 using Neo;
 using Neo.Network.P2P.Payloads;
 using Neo.Wallets;
-using Phantasma.Shared.Utils;
+using Phantasma.Core.Utils;
 
 //using Phantasma.Neo.Core;
 //using Phantasma.Neo.Utils;
