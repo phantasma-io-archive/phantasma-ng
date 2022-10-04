@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
+using System.Linq;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
@@ -46,7 +47,9 @@ namespace Phantasma.Business.Blockchain
         public IChainTask CurrentTask { get; private set; }
 
         private readonly StorageChangeSetContext changeSet;
+
         private int _baseChangeSetCount;
+        private BigInteger _randomSeed;
 
         public StorageContext RootStorage => this.IsRootChain() ? this.Storage : Nexus.RootStorage;
 
@@ -75,10 +78,8 @@ namespace Phantasma.Business.Blockchain
             this.Validator = validator;
             this._parentMachine = parentMachine;
 
-            this._randomSeed = 0;
-
             this.Time = time;
-            this.Chain = (Chain)chain;
+            this.Chain = chain;
             this.Transaction = transaction;
             this.Oracle = oracle;
             this.changeSet = changeSet;
@@ -95,7 +96,6 @@ namespace Phantasma.Business.Blockchain
 
             this.ProtocolVersion = Nexus.GetProtocolVersion(this.RootStorage);
             this.MinimumFee = GetGovernanceValue(GovernanceContract.GasMinimumFeeTag);
-
 
             if (this.Transaction is not null)
             {
@@ -186,10 +186,10 @@ namespace Phantasma.Business.Blockchain
                     if (allowance <= 0)
                     {
                         // if no allowance is given, create one
-                        this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas), this.Transaction.GasPayer, Address.Null);
+                        this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas));
                     }
 
-                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), this.Transaction.GasPayer);
+                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
 
                     this.Notify(EventKind.Error, Transaction.Sender, this.ExceptionMessage);
                 }
@@ -211,15 +211,15 @@ namespace Phantasma.Business.Blockchain
                 if (allowance >= UsedGas)
                 {
                     // if we have an allowance but no spend gas call was part of the script, call spend gas anyway
-                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), this.Transaction.GasPayer);
+                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
                 }
                 else
                 {
                     // if we don't have an allowance, allow gas
-                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas), this.Transaction.GasPayer, Address.Null);
+                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas));
 
                     // and call spend gas
-                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), this.Transaction.GasPayer);
+                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
                 }
             }
 
@@ -412,6 +412,23 @@ namespace Phantasma.Business.Blockchain
             _events.Add(evt);
         }
 
+        public bool IsSystemToken(string symbol)
+        {
+            var info = GetToken(symbol);
+            return IsSystemToken(info);
+        }
+
+        public bool IsSystemToken(IToken token)
+        {
+            if (DomainSettings.SystemTokens.Contains(token.Symbol, StringComparer.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+
         public bool IsMintingAddress(Address address, string symbol)
         {
             ExpectAddressSize(address, nameof(address));
@@ -474,9 +491,9 @@ namespace Phantasma.Business.Blockchain
 
             var result = base.ConsumeGas(gasCost);
 
-            if (UsedGas > MaxGas && !DelayPayment)
+            if (UsedGas > this.MaxGas && !DelayPayment)
             {
-                throw new VMException(this, $"VM gas limit exceeded ({MaxGas})/({UsedGas})");
+                throw new VMException(this, $"VM gas limit exceeded ({this.MaxGas})/({UsedGas})");
             }
 
             return result;
@@ -512,9 +529,7 @@ namespace Phantasma.Business.Blockchain
         public static readonly uint RND_A = 16807;
         public static readonly uint RND_M = 2147483647;
 
-        private BigInteger _randomSeed;
 
-        // returns a next random number
         public BigInteger GenerateRandomNumber()
         {
             if (_randomSeed == 0 && Transaction != null)
@@ -526,10 +541,12 @@ namespace Phantasma.Business.Blockchain
             return _randomSeed;
         }
 
+
         public void SetRandomSeed(BigInteger seed)
         {
             // calculates first initial pseudo random number seed
             byte[] bytes = seed.ToSignedByteArray();
+
 
             for (int i = 0; i < EntryScript.Length; i++)
             {
@@ -1446,6 +1463,19 @@ namespace Phantasma.Business.Blockchain
             ExpectAddressSize(from, nameof(from));
             ExpectAddressSize(target, nameof(target));
 
+            if (Nexus.HasGenesis)
+            {
+                if (IsSystemToken(symbol))
+                {
+                    var ctxName = CurrentContext.Name;
+                    Expect(
+                            ctxName == VirtualMachine.StakeContextName ||
+                            ctxName == VirtualMachine.GasContextName ||
+                            ctxName == VirtualMachine.ExchangeContextName,
+                            $"Minting system tokens only allowed in a specific context, current {ctxName}");
+                }
+            }
+
             Expect(IsWitness(from), "must be from a valid witness");
 
             Expect(amount > 0, "amount must be positive and greater than zero");
@@ -1466,6 +1496,12 @@ namespace Phantasma.Business.Blockchain
             ExpectNameLength(symbol, nameof(symbol));
             ExpectAddressSize(from, nameof(from));
             ExpectAddressSize(target, nameof(target));
+
+            if (IsSystemToken(symbol))
+            {
+                var ctxName = CurrentContext.Name;
+                Expect(ctxName == "gas" || ctxName == "stake" || ctxName == "exchange", "Minting system tokens only allowed in a specific context");
+            }
 
             Expect(TokenExists(symbol), "invalid token");
             IToken token;
@@ -1579,7 +1615,6 @@ namespace Phantasma.Business.Blockchain
             ExpectAddressSize(source, nameof(source));
             ExpectAddressSize(destination, nameof(destination));
 
-
             Expect(!source.IsNull, "invalid source");
 
             if (source == destination || amount == 0)
@@ -1590,7 +1625,7 @@ namespace Phantasma.Business.Blockchain
             Expect(TokenExists(symbol), "invalid token");
             var token = GetToken(symbol);
 
-            Expect(amount > 0, "amount must be positive and greater than zero");
+            Expect(amount > 0, "amount must be greater than zero");
 
             if (destination.IsInterop)
             {
@@ -1912,6 +1947,15 @@ namespace Phantasma.Business.Blockchain
             var org = Nexus.GetOrganizationByName(RootStorage, organization);
             return org.RemoveMember(this, admin, target);
         }
+
+        public void MigrateToken(Address from, Address to)
+        {
+            ExpectAddressSize(from, nameof(from));
+            ExpectAddressSize(to, nameof(to));
+
+            this.Nexus.MigrateTokenOwner(this.RootStorage, from, to);
+        }
+
 
         public void MigrateMember(string organization, Address admin, Address source, Address destination)
         {
@@ -2248,6 +2292,25 @@ namespace Phantasma.Business.Blockchain
         }
         #endregion
 
+        public bool IsEntryContext(ExecutionContext context)
+        {
+            Shared.Throw.IfNull(context, nameof(context));
+
+            return EntryContext.Address == context.Address;
+        }
+
+        public bool IsCurrentContext(string contextName)
+        {
+            var context = FindContext(contextName);
+            return IsCurrentContext(context);
+        }
+
+        public bool IsCurrentContext(ExecutionContext context)
+        {
+            Shared.Throw.IfNull(context, nameof(context));
+
+            return CurrentContext.Address == context.Address;
+        }
 
         public bool HasGenesis => Nexus.HasGenesis;
         public string NexusName => Nexus.Name;

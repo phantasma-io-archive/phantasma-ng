@@ -420,7 +420,6 @@ namespace Phantasma.Business.VM
             }
             catch (Exception ex)
             {
-
                 if (ex is NullReferenceException)
                 {
                     Log.Error("Critical exception: " + ex);

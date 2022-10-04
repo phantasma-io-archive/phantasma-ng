@@ -1,14 +1,13 @@
 using System.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Core.Numerics;
 using Shouldly;
+using Xunit;
 
 namespace Phantasma.Core.Tests;
 
-[TestClass]
 public class BigIntegerExtensionTests
 {
-    [TestMethod]
+    [Fact]
     public void test_mod()
     {
         BigInteger value = 11;
@@ -17,7 +16,7 @@ public class BigIntegerExtensionTests
         modResult.ShouldBe(2);
     }
 
-    [TestMethod]
+    [Fact]
     public void test_bit_true()
     {
         BigInteger value = 11;
@@ -25,7 +24,7 @@ public class BigIntegerExtensionTests
         bitResult.ShouldBeTrue();
     }
 
-    [TestMethod]
+    [Fact]
     public void test_bit_false()
     {
         BigInteger value = 11;
@@ -33,7 +32,7 @@ public class BigIntegerExtensionTests
         bitResult.ShouldBeFalse();
     }
 
-    [TestMethod]
+    [Fact]
     public void get_lowest_set_bit()
     {
         BigInteger value = 32;
@@ -41,7 +40,7 @@ public class BigIntegerExtensionTests
         result.ShouldBe(5);
     }
 
-    [TestMethod]
+    [Fact]
     public void get_bit_length()
     {
         BigInteger value = 31;
@@ -49,7 +48,7 @@ public class BigIntegerExtensionTests
         result.ShouldBe(5);
     }
 
-    [TestMethod]
+    [Fact]
     public void hex_to_big_integer()
     {
         const string value = "2a";
@@ -57,7 +56,7 @@ public class BigIntegerExtensionTests
         result.ShouldBe(42);
     }
 
-    [TestMethod]
+    [Fact]
     public void mod_inverse()
     {
         BigInteger value = 3;
@@ -66,7 +65,7 @@ public class BigIntegerExtensionTests
         modResult.ShouldBe(4);
     }
 
-    [TestMethod]
+    [Fact]
     public void is_parsable_true()
     {
         const string value = "1234";
@@ -74,7 +73,7 @@ public class BigIntegerExtensionTests
         result.ShouldBeTrue();
     }
 
-    [TestMethod]
+    [Fact]
     public void is_parsable_false()
     {
         const string value = "2g";

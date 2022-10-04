@@ -296,7 +296,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 }
             }
 
-            Runtime.CallInterop("Nexus.MigrateToken", from, target);
+            Runtime.MigrateToken(from, target);
         }
 
 

@@ -57,7 +57,7 @@ namespace Phantasma.Business.Blockchain
         public bool IsRoot => this.Name == DomainSettings.RootChainName;
         #endregion
 
-        public Chain(Nexus nexus, string name)
+        public Chain(INexus nexus, string name)
         {
             Throw.IfNull(nexus, "nexus required");
 
@@ -70,7 +70,7 @@ namespace Phantasma.Business.Blockchain
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
         }
 
-        public Chain(Nexus nexus, string name, PhantasmaKeys keys)
+        public Chain(INexus nexus, string name, PhantasmaKeys keys)
         {
             Throw.IfNull(nexus, "nexus required");
 
@@ -137,17 +137,17 @@ namespace Phantasma.Business.Blockchain
                 if (inflationReady)
                 {
                     var script = new ScriptBuilder()
-                        .AllowGas(this.CurrentBlock.Validator, Address.Null) // TODO hardcoded gas limit
+                        .AllowGas()
                         .CallContract(NativeContractKind.Gas, nameof(GasContract.ApplyInflation), this.CurrentBlock.Validator)
-                        .SpendGas(this.CurrentBlock.Validator)
+                        .SpendGas()
                         .EndScript();
 
                     var transaction = new Transaction(
                             this.Nexus.Name,
                             this.Name,
                             script,
-                            validatorAddress,
-                            validatorAddress,
+                            this.CurrentBlock.Validator,
+                            this.CurrentBlock.Validator,
                             1,
                             1,
                             this.CurrentBlock.Timestamp.Value + 1,
@@ -206,6 +206,20 @@ namespace Phantasma.Business.Blockchain
 
             if (Nexus.HasGenesis)
             {
+                if (!tx.GasPayer.IsUser)
+                {
+                    var type = CodeType.NoUserAddress;
+                    Log.Information("check tx error {type} {Hash}", type, tx.Hash);
+                    return (type, "Address has to be a user address");
+                }
+
+                if (!tx.GasTarget.IsSystem)
+                {
+                    var type = CodeType.NoSystemAddress;
+                    Log.Information("check tx error {type} {Hash}", type, tx.Hash);
+                    return (type, "Address has to be a system address");
+                }
+
                 var maxGas = tx.GasPrice * tx.GasLimit;
                 var balance = GetTokenBalance(this.Storage, DomainSettings.FuelTokenSymbol, tx.GasPayer);
                 if (balance < maxGas)
@@ -1223,9 +1237,9 @@ namespace Phantasma.Business.Blockchain
             using (var m = new ProfileMarker("ExecuteTask"))
             {
                 var taskScript = new ScriptBuilder()
-                    .AllowGas(task.Owner, Address.Null)
+                    .AllowGas()
                     .CallContract(task.ContextName, task.Method)
-                    .SpendGas(task.Owner)
+                    .SpendGas()
                     .EndScript();
 
                 transaction = new Transaction(this.Nexus.Name, this.Name, taskScript, task.Owner, task.Owner, minimumFee, task.GasLimit, block.Timestamp.Value + 1, "TASK");
