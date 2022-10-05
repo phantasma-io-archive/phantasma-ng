@@ -24,6 +24,20 @@ public class DebugInfoTest
         debugRangeList.Add(debugRange);
         filename = "testFile.txt";
     }
+
+    [Fact]
+    public void to_string_test()
+    {
+        // Arrange
+        var debugRange = new DebugRange();
+        
+        // Act
+        var dbgStr = debugRange.ToString();
+
+        // Assert
+        dbgStr.ShouldBe("Line 0 => 0 : 0");
+    }
+
     
     [Fact]
     public void null_debugRange_test()

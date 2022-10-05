@@ -79,7 +79,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 _lastInflationDate = Runtime.Time;
             }
 
-            Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName, "must be entry context");
+            Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName, $"must be entry context {Runtime.PreviousContext.Name}");
             Runtime.Expect(Runtime.IsWitness(from), $"invalid witness -> {from}");
 
             if (target.IsNull)
@@ -258,16 +258,29 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var spentGas = Runtime.UsedGas;
             var requiredAmount = spentGas * Runtime.GasPrice;
-            Runtime.Expect(requiredAmount > 0, $"{Runtime.GasPrice} {spentGas} gas fee must exist");
 
-            Runtime.Expect(availableAmount >= requiredAmount, "gas allowance is not enough");
+            GasEventData ged = new GasEventData(Address.Null, 0, 0);
+            var targetAddress = _allowanceTargets.Get<Address, Address>(from);
+            if (availableAmount < requiredAmount && Runtime.IsError)
+            {
+                requiredAmount = availableAmount;
+                ged = new GasEventData(targetAddress, Runtime.Transaction.GasPrice, Runtime.Transaction.GasLimit);
+            }
+
+            Runtime.Expect(requiredAmount > 0, $"{Runtime.GasPrice} {Runtime.UsedGas} gas fee must exist");
+
+            Runtime.Expect(availableAmount >= requiredAmount, $"gas allowance is not enough {availableAmount}/{requiredAmount}");
 
             var leftoverAmount = availableAmount - requiredAmount;
 
-            var targetAddress = _allowanceTargets.Get<Address, Address>(from);
             BigInteger targetGas;
 
-            Runtime.Notify(EventKind.GasPayment, from, new GasEventData(targetAddress,  Runtime.GasPrice, spentGas));
+            if (ged.address == Address.Null)
+            {
+                ged = new GasEventData(targetAddress,  Runtime.GasPrice, Runtime.UsedGas);
+            }
+
+            Runtime.Notify(EventKind.GasPayment, from, ged);
 
             // return leftover escrowed gas to transaction creator
             if (leftoverAmount > 0)
