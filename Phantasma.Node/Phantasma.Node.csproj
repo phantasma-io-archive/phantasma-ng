@@ -66,7 +66,6 @@
     <ProjectReference Include="..\Phantasma.Infrastructure\src\Phantasma.Infrastructure.csproj" />
     <ProjectReference Include="..\Phantasma.Business\src\Phantasma.Business.csproj" />
     <ProjectReference Include="..\Phantasma.Core\src\Phantasma.Core.csproj" />
-    <ProjectReference Include="..\Phantasma.Shared\src\Phantasma.Shared.csproj" />
     <ProjectReference Include="..\Tendermint\Tendermint.csproj" />
     <ProjectReference Include="..\Tendermint.RPC\Tendermint.RPC.csproj" />
   </ItemGroup>

@@ -5,7 +5,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared.Utils;
+using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.Blockchain.Tokens
 {

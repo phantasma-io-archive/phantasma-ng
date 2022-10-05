@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Text.Json;
-using Phantasma.Shared.Utils;
+using Phantasma.Core.Utils;
 using Serilog;
 
 namespace Phantasma.Node.Oracles

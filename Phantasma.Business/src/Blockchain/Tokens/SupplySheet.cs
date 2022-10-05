@@ -1,9 +1,9 @@
 using System.Numerics;
 using System.Text;
+using Phantasma.Core;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared;
-using Phantasma.Shared.Utils;
+using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.Blockchain.Tokens
 {

@@ -5,7 +5,7 @@ using System.Linq;
 using Shouldly;
 using Xunit;
 
-namespace Phantasma.Shared.Tests;
+namespace Phantasma.Core.Tests;
 
 public class ExtensionMethodsTests
 {

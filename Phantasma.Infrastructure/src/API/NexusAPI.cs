@@ -9,11 +9,11 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
-using Phantasma.Shared;
-using Phantasma.Shared.Utils;
+using Phantasma.Core.Utils;
 using Tendermint.RPC;
 
 namespace Phantasma.Infrastructure.API;

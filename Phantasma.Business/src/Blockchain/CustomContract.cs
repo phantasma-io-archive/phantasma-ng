@@ -1,5 +1,5 @@
-﻿using Phantasma.Core.Domain;
-using Phantasma.Shared;
+﻿using Phantasma.Core;
+using Phantasma.Core.Domain;
 
 namespace Phantasma.Business.Blockchain
 {

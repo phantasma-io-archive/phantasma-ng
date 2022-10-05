@@ -10,9 +10,9 @@ using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Performance;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared.Performance;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 using Serilog;
 using Logger = Serilog.Log;
 
@@ -62,8 +62,8 @@ namespace Phantasma.Business.Blockchain
                 bool delayPayment = false, string contextName = null, RuntimeVM parentMachine = null)
             : base(script, offset, contextName)
         {
-            Shared.Throw.IfNull(chain, nameof(chain));
-            Shared.Throw.IfNull(changeSet, nameof(changeSet));
+            Core.Throw.IfNull(chain, nameof(chain));
+            Core.Throw.IfNull(changeSet, nameof(changeSet));
 
             _baseChangeSetCount = changeSet.Count();
 
@@ -493,7 +493,7 @@ namespace Phantasma.Business.Blockchain
 
             if (gasCost < 0)
             {
-                Shared.Throw.If(gasCost < 0, "invalid gas amount");
+                Core.Throw.If(gasCost < 0, "invalid gas amount");
             }
 
             // required for allowing transactions to occur pre-minting of native token
@@ -524,10 +524,10 @@ namespace Phantasma.Business.Blockchain
                 return UnitConversion.GetUnitValue(DomainSettings.FiatTokenDecimals);
             }
 
-            Shared.Throw.If(!Nexus.TokenExists(RootStorage, symbol), "cannot read price for invalid token");
+            Core.Throw.If(!Nexus.TokenExists(RootStorage, symbol), "cannot read price for invalid token");
             var token = GetToken(symbol);
 
-            Shared.Throw.If(Oracle == null, "cannot read price from null oracle");
+            Core.Throw.If(Oracle == null, "cannot read price from null oracle");
             var bytes = Oracle.Read<byte[]>(this.Time, "price://" + symbol);
             Expect(bytes != null && bytes.Length > 0, $"Could not read price of {symbol} from oracle");
             var value = new BigInteger(bytes, true);
@@ -2307,7 +2307,7 @@ namespace Phantasma.Business.Blockchain
 
         public bool IsEntryContext(ExecutionContext context)
         {
-            Shared.Throw.IfNull(context, nameof(context));
+            Core.Throw.IfNull(context, nameof(context));
 
             return EntryContext.Address == context.Address;
         }
@@ -2320,7 +2320,7 @@ namespace Phantasma.Business.Blockchain
 
         public bool IsCurrentContext(ExecutionContext context)
         {
-            Shared.Throw.IfNull(context, nameof(context));
+            Core.Throw.IfNull(context, nameof(context));
 
             return CurrentContext.Address == context.Address;
         }

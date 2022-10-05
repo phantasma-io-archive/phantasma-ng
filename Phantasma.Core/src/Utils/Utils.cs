@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 
-namespace Phantasma.Shared.Utils;
+namespace Phantasma.Core.Utils;
 
 public static class Utils
 {

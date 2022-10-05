@@ -2,10 +2,10 @@
 using System.Diagnostics;
 using System.Numerics;
 using Phantasma.Business.VM;
+using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
-using Phantasma.Shared;
 
 namespace Phantasma.Business.Blockchain
 {

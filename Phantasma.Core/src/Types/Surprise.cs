@@ -1,4 +1,4 @@
-﻿namespace Phantasma.Shared.Types
+﻿namespace Phantasma.Core.Types
 {
     public interface IPromise<T>
     {

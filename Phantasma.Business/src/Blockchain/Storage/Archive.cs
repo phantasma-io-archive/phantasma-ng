@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
+using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
-using Phantasma.Shared;
-using Phantasma.Shared.Types;
 
 namespace Phantasma.Business.Blockchain.Storage
 {
