@@ -22,6 +22,9 @@ namespace Phantasma.Core.Domain
         public IChainTask CurrentTask { get; }
         public void RegisterContext(string contextName, ExecutionContext context);
         public void SetCurrentContext(ExecutionContext context);
+        public ExecutionState Execute();
+        public string ExceptionMessage { get; }
+        public bool IsError { get; }
 
         ExecutionContext CurrentContext { get; }
         ExecutionContext PreviousContext { get; }

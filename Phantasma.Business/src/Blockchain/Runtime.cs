@@ -40,6 +40,8 @@ namespace Phantasma.Business.Blockchain
 
         public string ExceptionMessage { get; private set; }
 
+        public bool IsError { get; private set; }
+
         public BigInteger MinimumFee;
 
         public Address Validator { get; private set; }
@@ -83,6 +85,8 @@ namespace Phantasma.Business.Blockchain
             this.Transaction = transaction;
             this.Oracle = oracle;
             this.changeSet = changeSet;
+            this.ExceptionMessage = null;
+            this.IsError = false;
 
             if (this.Chain != null && !Chain.IsRoot)
             {
@@ -174,7 +178,9 @@ namespace Phantasma.Business.Blockchain
             }
             catch (Exception ex)
             {
+                var usedGasUntilError = this.UsedGas;
                 this.ExceptionMessage = ex.Message;
+                this.IsError = true;
 
                 Logger.Error($"Transaction {Transaction?.Hash} failed with {ex.Message}, gas used: {UsedGas}");
 
@@ -182,6 +188,11 @@ namespace Phantasma.Business.Blockchain
                 {
                     // set the current context to entry context
                     this.CurrentContext = FindContext(VirtualMachine.EntryContextName);
+                    var temp = DelayPayment;
+                    if (!DelayPayment)
+                    {
+                        DelayPayment = true;
+                    }
                     var allowance = this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowedGas), this.Transaction.GasPayer).AsNumber();
                     if (allowance <= 0)
                     {
@@ -192,6 +203,8 @@ namespace Phantasma.Business.Blockchain
                     this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
 
                     this.Notify(EventKind.Error, Transaction.Sender, this.ExceptionMessage);
+                    DelayPayment = temp;
+                    this.UsedGas = usedGasUntilError;
                 }
             }
 
@@ -202,7 +215,7 @@ namespace Phantasma.Business.Blockchain
                     throw new VMException(this, "VM changeset modified in read-only mode");
                 }
             }
-            else if (PaidGas < UsedGas && Nexus.HasGenesis && !DelayPayment)
+            else if (!IsError && PaidGas < UsedGas && Nexus.HasGenesis && !DelayPayment)
             {
                 this.CurrentContext = FindContext(VirtualMachine.EntryContextName);
                 // we cannot throw here, would allow pushing failing txs without paying gas 
