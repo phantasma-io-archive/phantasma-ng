@@ -7,7 +7,6 @@ using System.Reflection;
 using System.Text;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared;
 
 namespace Phantasma.Core.Domain
 {

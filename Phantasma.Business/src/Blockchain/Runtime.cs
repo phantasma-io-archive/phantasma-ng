@@ -10,9 +10,9 @@ using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Performance;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared.Performance;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 using Serilog;
 using Logger = Serilog.Log;
 
@@ -40,6 +40,8 @@ namespace Phantasma.Business.Blockchain
 
         public string ExceptionMessage { get; private set; }
 
+        public bool IsError { get; private set; }
+
         public BigInteger MinimumFee;
 
         public Address Validator { get; private set; }
@@ -60,8 +62,8 @@ namespace Phantasma.Business.Blockchain
                 bool delayPayment = false, string contextName = null, RuntimeVM parentMachine = null)
             : base(script, offset, contextName)
         {
-            Shared.Throw.IfNull(chain, nameof(chain));
-            Shared.Throw.IfNull(changeSet, nameof(changeSet));
+            Core.Throw.IfNull(chain, nameof(chain));
+            Core.Throw.IfNull(changeSet, nameof(changeSet));
 
             _baseChangeSetCount = changeSet.Count();
 
@@ -83,6 +85,8 @@ namespace Phantasma.Business.Blockchain
             this.Transaction = transaction;
             this.Oracle = oracle;
             this.changeSet = changeSet;
+            this.ExceptionMessage = null;
+            this.IsError = false;
 
             if (this.Chain != null && !Chain.IsRoot)
             {
@@ -174,7 +178,9 @@ namespace Phantasma.Business.Blockchain
             }
             catch (Exception ex)
             {
+                var usedGasUntilError = this.UsedGas;
                 this.ExceptionMessage = ex.Message;
+                this.IsError = true;
 
                 Logger.Error($"Transaction {Transaction?.Hash} failed with {ex.Message}, gas used: {UsedGas}");
 
@@ -182,6 +188,11 @@ namespace Phantasma.Business.Blockchain
                 {
                     // set the current context to entry context
                     this.CurrentContext = FindContext(VirtualMachine.EntryContextName);
+                    var temp = DelayPayment;
+                    if (!DelayPayment)
+                    {
+                        DelayPayment = true;
+                    }
                     var allowance = this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowedGas), this.Transaction.GasPayer).AsNumber();
                     if (allowance <= 0)
                     {
@@ -192,6 +203,8 @@ namespace Phantasma.Business.Blockchain
                     this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
 
                     this.Notify(EventKind.Error, Transaction.Sender, this.ExceptionMessage);
+                    DelayPayment = temp;
+                    this.UsedGas = usedGasUntilError;
                 }
             }
 
@@ -202,7 +215,7 @@ namespace Phantasma.Business.Blockchain
                     throw new VMException(this, "VM changeset modified in read-only mode");
                 }
             }
-            else if (PaidGas < UsedGas && Nexus.HasGenesis && !DelayPayment)
+            else if (!IsError && PaidGas < UsedGas && Nexus.HasGenesis && !DelayPayment)
             {
                 this.CurrentContext = FindContext(VirtualMachine.EntryContextName);
                 // we cannot throw here, would allow pushing failing txs without paying gas 
@@ -480,7 +493,7 @@ namespace Phantasma.Business.Blockchain
 
             if (gasCost < 0)
             {
-                Shared.Throw.If(gasCost < 0, "invalid gas amount");
+                Core.Throw.If(gasCost < 0, "invalid gas amount");
             }
 
             // required for allowing transactions to occur pre-minting of native token
@@ -511,10 +524,10 @@ namespace Phantasma.Business.Blockchain
                 return UnitConversion.GetUnitValue(DomainSettings.FiatTokenDecimals);
             }
 
-            Shared.Throw.If(!Nexus.TokenExists(RootStorage, symbol), "cannot read price for invalid token");
+            Core.Throw.If(!Nexus.TokenExists(RootStorage, symbol), "cannot read price for invalid token");
             var token = GetToken(symbol);
 
-            Shared.Throw.If(Oracle == null, "cannot read price from null oracle");
+            Core.Throw.If(Oracle == null, "cannot read price from null oracle");
             var bytes = Oracle.Read<byte[]>(this.Time, "price://" + symbol);
             Expect(bytes != null && bytes.Length > 0, $"Could not read price of {symbol} from oracle");
             var value = new BigInteger(bytes, true);
@@ -2294,7 +2307,7 @@ namespace Phantasma.Business.Blockchain
 
         public bool IsEntryContext(ExecutionContext context)
         {
-            Shared.Throw.IfNull(context, nameof(context));
+            Core.Throw.IfNull(context, nameof(context));
 
             return EntryContext.Address == context.Address;
         }
@@ -2307,7 +2320,7 @@ namespace Phantasma.Business.Blockchain
 
         public bool IsCurrentContext(ExecutionContext context)
         {
-            Shared.Throw.IfNull(context, nameof(context));
+            Core.Throw.IfNull(context, nameof(context));
 
             return CurrentContext.Address == context.Address;
         }

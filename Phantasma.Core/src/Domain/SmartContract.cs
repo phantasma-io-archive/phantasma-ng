@@ -2,8 +2,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
 using Phantasma.Core.Cryptography;
-using Phantasma.Shared;
-using Phantasma.Shared.Utils;
+using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Domain
 {

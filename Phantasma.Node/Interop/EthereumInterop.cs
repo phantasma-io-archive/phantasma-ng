@@ -15,10 +15,10 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Node.Utils;
-using Phantasma.Shared.Utils;
 using Serilog;
 using EthereumKey = Phantasma.Node.Chains.Ethereum.EthereumKey;
 

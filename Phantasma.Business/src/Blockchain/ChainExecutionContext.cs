@@ -4,7 +4,7 @@ using System.Numerics;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM;
 using Phantasma.Core.Domain;
-using Phantasma.Shared.Performance;
+using Phantasma.Core.Performance;
 
 namespace Phantasma.Business.Blockchain
 {

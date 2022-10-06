@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Core.Domain
 {
@@ -22,6 +22,9 @@ namespace Phantasma.Core.Domain
         public IChainTask CurrentTask { get; }
         public void RegisterContext(string contextName, ExecutionContext context);
         public void SetCurrentContext(ExecutionContext context);
+        public ExecutionState Execute();
+        public string ExceptionMessage { get; }
+        public bool IsError { get; }
 
         ExecutionContext CurrentContext { get; }
         ExecutionContext PreviousContext { get; }

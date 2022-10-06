@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using Phantasma.Core;
 using Phantasma.Core.Storage;
-using Phantasma.Shared;
 using RocksDbSharp;
 using Serilog;
 
@@ -162,8 +163,8 @@ namespace Phantasma.Infrastructure.RocksDB
 
     public class RocksDbStore
     {
-	    private static Dictionary<string, RocksDb> _db = new Dictionary<string, RocksDb>();
-	    private static Dictionary<string, RocksDbStore> _rdb = new Dictionary<string, RocksDbStore>();
+	    private static ConcurrentDictionary<string, RocksDb> _db = new ConcurrentDictionary<string, RocksDb>();
+	    private static ConcurrentDictionary<string, RocksDbStore> _rdb = new ConcurrentDictionary<string, RocksDbStore>();
 
         private string fileName;
 
@@ -203,7 +204,7 @@ namespace Phantasma.Infrastructure.RocksDB
             }
 
             Log.Information("Opening database at: " + path);
-	        _db.Add(fileName, RocksDb.Open(options, path, columnFamilies));
+	        _db.TryAdd(fileName, RocksDb.Open(options, path, columnFamilies));
         }
 
         public static RocksDb Instance(string name)
@@ -213,7 +214,7 @@ namespace Phantasma.Infrastructure.RocksDB
             {
                 if (string.IsNullOrEmpty(name)) throw new System.ArgumentException("Parameter cannot be null", "name");
 
-                _rdb.Add(name, new RocksDbStore(name));
+                _rdb.TryAdd(name, new RocksDbStore(name));
             }
 
             return _db[name];
@@ -233,7 +234,7 @@ namespace Phantasma.Infrastructure.RocksDB
 
                 foreach (var key in toRemove)
                 {
-                    _db.Remove(key);
+                    _db.Remove(key, out RocksDb _);
                 }
                 Log.Information("Databases shut down!");
             }

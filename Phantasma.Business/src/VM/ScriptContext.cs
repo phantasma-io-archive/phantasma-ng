@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
+using Phantasma.Core;
 using Phantasma.Core.Domain;
-using Phantasma.Shared;
-using Phantasma.Shared.Performance;
+using Phantasma.Core.Performance;
 using Serilog;
 
 namespace Phantasma.Business.VM

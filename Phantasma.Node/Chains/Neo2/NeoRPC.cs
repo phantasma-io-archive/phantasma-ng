@@ -10,7 +10,7 @@ using Neo;
 using Neo.Wallets;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
-using Phantasma.Shared.Utils;
+using Phantasma.Core.Utils;
 using Block = Neo.Network.P2P.Payloads.Block;
 using Transaction = Neo.Network.P2P.Payloads.Transaction;
 
