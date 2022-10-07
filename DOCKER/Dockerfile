@@ -3,7 +3,7 @@ FROM debian:stable-slim
 WORKDIR /app
 
 # Copy everything
-COPY DOCKER/wrapper.sh ./
+COPY DOCKER/wrapper_test.sh ./
 COPY DOCKER/testnet ./testnet
 COPY DOCKER/bin ./testnet
 
@@ -11,4 +11,4 @@ RUN apt-get update; apt-get install -y libc6-dev libsnappy-dev libicu-dev screen
 
 EXPOSE 5101 5102 5103 5104
 
-ENTRYPOINT ["/app/wrapper.sh"]
+ENTRYPOINT ["/app/wrapper_test.sh"]

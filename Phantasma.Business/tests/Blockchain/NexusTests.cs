@@ -66,6 +66,20 @@ public class NexusTests : IDisposable
         // setup Expect
         runtimeMoq.Setup( r => r.Expect(It.IsAny<bool>(), It.IsAny<string>()));
 
+
+        // setup GetTokenQute
+        runtimeMoq.Setup( r => r.GetTokenQuote(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BigInteger>()))
+            .Returns(
+                    (string from, string to, BigInteger amount) =>
+                    {
+                        if (from == "something" && to == "somethingElse")
+                        {
+                            return 1000;
+                        }
+
+                        return 0;
+                    });
+
         // setup Storage
         runtimeMoq.Setup( r => r.Storage).Returns(this.Context);
 
