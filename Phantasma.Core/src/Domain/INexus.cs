@@ -61,6 +61,7 @@ public interface INexus
     void TransferToken(IRuntime Runtime, IToken token, Address source, Address destination, BigInteger tokenID, bool isInfusion = false);
     byte[] GetKeyForNFT(string symbol, BigInteger tokenID);
     byte[] GetKeyForNFT(string symbol, string key);
+    byte[] GetTokenSeriesKey(string symbol, BigInteger seriesID);
     BigInteger[] GetAllSeriesForToken(StorageContext storage, string symbol);
     TokenSeries CreateSeries(StorageContext storage, IToken token, BigInteger seriesID, BigInteger maxSupply, TokenSeriesMode mode, byte[] script, ContractInterface abi);
     TokenSeries GetTokenSeries(StorageContext storage, string symbol, BigInteger seriesID);

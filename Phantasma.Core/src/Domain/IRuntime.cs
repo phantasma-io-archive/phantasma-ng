@@ -36,6 +36,7 @@ namespace Phantasma.Core.Domain
 
         public Block GetBlockByHash(Hash hash);
         public Block GetBlockByHeight(BigInteger height);
+        public bool IsRootChain();
 
         public Address GetValidator(Timestamp time);
 

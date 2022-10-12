@@ -14,6 +14,7 @@ using Phantasma.Core.Storage.Context;
 using Phantasma.Infrastructure.RocksDB;
 using Shouldly;
 using Xunit;
+using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
@@ -112,11 +113,27 @@ public class NexusTests : IDisposable
         kcalExists.ShouldBeTrue();
     }
 
-    //[Fact]
-    //public void BurnToken_test_success()
-    //{
-    //    this.Nexus.BurnToken();
-    //}
+
+    [Fact]
+    public void BurnToken_test_success()
+    {
+        var moq = CreateRuntimeMock();
+        var sheet = new SupplySheet(NonFungibleToken.Symbol, Nexus.RootChain, this.Nexus);
+        sheet.Mint(Context, 1, 10);
+
+        var content = new TokenContent(1, 1, "main", User1.Address, User2.Address, new byte[] {0}, new byte[] { 0 }, 1, null, TokenSeriesMode.Unique);
+        var compressed = CompressionUtils.Compress(content.Serialize());
+
+        Context.Put(Nexus.GetKeyForNFT(NonFungibleToken.Symbol, 1), compressed);
+
+        var series = new TokenSeries(0, 100, TokenSeriesMode.Unique, new byte[0], new ContractInterface(), null);
+        Context.Put(Nexus.GetTokenSeriesKey(NonFungibleToken.Symbol, content.SeriesID), series.Serialize());
+
+        this.Nexus.BurnToken(moq.Object, NonFungibleToken, User1.Address, User2.Address, "main", 1);
+
+        var sheetAfterBurn = new SupplySheet(NonFungibleToken.Symbol, Nexus.RootChain, this.Nexus);
+        sheet.GetTotal(this.Context).ShouldBe(0);
+    }
 
     //[Fact]
     //public void BurnTokens_test_success()
@@ -124,23 +141,48 @@ public class NexusTests : IDisposable
     //    this.Nexus.BurnTokens();
     //}
 
-    //[Fact]
-    //public void ChainExists_test_success()
-    //{
-    //    this.Nexus.ChainExists();
-    //}
+    [Fact]
+    public void ChainExists_test_success()
+    {
+        Context.Put(".chain.name.main", this.Chain.Address.ToByteArray());
+        var exists = this.Nexus.ChainExists(Context, "main");
+        exists.ShouldBe(true);
+    }
 
-    //[Fact]
-    //public void ContractExists_test_success()
-    //{
-    //    this.Nexus.ContractExists();
-    //}
+    [Fact]
+    public void ChainExists_test_fail()
+    {
+        var exists = this.Nexus.ChainExists(Context, "");
+        exists.ShouldBe(false);
+    }
 
-    //[Fact]
-    //public void CreateArchive_test_success()
-    //{
-    //    this.Nexus.CreateArchive();
-    //}
+    [Fact]
+    public void ContractExists_test_native_success()
+    {
+        var exists = this.Nexus.ContractExists(Context, "gas");
+        exists.ShouldBe(true);
+    }
+
+    [Fact]
+    public void ContractExists_test_success()
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes($".nexus.contract.other");
+        Context.Put(bytes, new byte[0]);
+        var exists = this.Nexus.ContractExists(Context, "other");
+        exists.ShouldBe(true);
+    }
+
+    [Fact]
+    public void CreateArchive_test_success()
+    {
+        var merkleTree = new MerkleTree(new byte[] { 0, 0});
+
+        var archive = this.Nexus.CreateArchive(Context, merkleTree, User1.Address, "name", 100, Timestamp.Now, new SharedArchiveEncryption());
+
+        archive.IsOwner(User1.Address).ShouldBe(true);
+        archive.Size.ShouldBe(100);
+        archive.Name.ShouldBe("name");
+    }
 
     //[Fact]
     //public void CreateChain_test_success()
@@ -160,23 +202,23 @@ public class NexusTests : IDisposable
     //    this.Nexus.CreateFeed();
     //}
 
-    //[Fact]
-    //public void CreateGenesisBlock_test_success()
-    //{
-    //    this.Nexus.CreateGenesisBlock();
-    //}
+    [Fact]
+    public void CreateGenesisBlock_test_success()
+    {
+        var txDict = this.Nexus.CreateGenesisBlock(Timestamp.Now, 0, User1, new List<Address> { User1.Address, User2.Address });
+        txDict.Count.ShouldBe(1);
+        txDict.First().Value.Script.Length.ShouldBeGreaterThan(0);
+        txDict.First().Value.NexusName.ShouldBe("unittest");
+        txDict.First().Value.ChainName.ShouldBe("main");
+    }
 
-    //[Fact]
-    //public void CreateKeyStoreAdapter_test_success()
-    //{
-    //    this.Nexus.CreateKeyStoreAdapter();
-    //}
-
-    //[Fact]
-    //public void CreateOrganization_test_success()
-    //{
-    //    this.Nexus.CreateOrganization();
-    //}
+    [Fact]
+    public void CreateOrganization_test_success()
+    {
+        this.Nexus.CreateOrganization(Context, "someid", "somename", new byte[1] { 0 });
+        var exists = this.Nexus.OrganizationExists(Context, "someid");
+        exists.ShouldBe(true);
+    }
 
     //[Fact]
     //public void CreatePlatform_test_success()
@@ -184,35 +226,61 @@ public class NexusTests : IDisposable
     //    this.Nexus.CreatePlatform();
     //}
 
-    //[Fact]
-    //public void CreateSeries_test_success()
-    //{
-    //    this.Nexus.CreateSeries();
-    //}
+    [Fact]
+    public void CreateSeries_test_success()
+    {
+        var series = this.Nexus.CreateSeries(
+                Context,
+                NonFungibleToken,
+                1,
+                100,
+                TokenSeriesMode.Unique,
+                new byte[2] {0, 1},
+                TokenUtils.GetNFTStandard()
+                );
+        series.Mode.ShouldBe(TokenSeriesMode.Unique);
+        series.Script[0].ShouldBe((byte)0);
+        series.Script[1].ShouldBe((byte)1);
+        series.MaxSupply.ShouldBe(100);
+    }
 
-    //[Fact]
-    //public void CreateToken_test_success()
-    //{
-    //    this.Nexus.CreateToken();
-    //}
+    [Fact]
+    public void CreateToken_test_success()
+    {
+        var token = this.Nexus.CreateToken(
+                Context,
+                FungibleToken.Symbol,
+                FungibleToken.Name,
+                User1.Address,
+                0,
+                10,
+                TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Stakable,
+                new byte[2] { 0, 1 },
+                new ContractInterface()
+                );
+        token.Name.ShouldBe(FungibleToken.Name);
+        token.Decimals.ShouldBe(10);
+        token.Symbol.ShouldBe(FungibleToken.Symbol);
+    }
 
-    //[Fact]
-    //public void DeleteArchive_test_success()
-    //{
-    //    this.Nexus.DeleteArchive();
-    //}
+    [Fact]
+    public void DeleteArchive_test_success()
+    {
+        var merkleTree = new MerkleTree(new byte[] { 0, 0});
+        var archive = this.Nexus.CreateArchive(Context, merkleTree, User1.Address, "name", 100, Timestamp.Now, new SharedArchiveEncryption());
 
-    //[Fact]
-    //public void DestroyNFT_test_success()
-    //{
-    //    this.Nexus.DestroyNFT();
-    //}
+        // archive exists now
+        var archiveNew = this.Nexus.GetArchive(Context, archive.Hash);
+        archiveNew.Hash.ShouldBe(archive.Hash);
 
-    //[Fact]
-    //public void Detach_test_success()
-    //{
-    //    this.Nexus.Detach();
-    //}
+        this.Nexus.RemoveOwnerFromArchive(Context, archive, User1.Address);
+
+        this.Nexus.DeleteArchive(Context, archive);
+
+        // archive does not exist anymore
+        var archiveNew2 = this.Nexus.GetArchive(Context, archive.Hash);
+        archiveNew2.ShouldBeNull();
+    }
 
     //[Fact]
     //public void FeedExists_test_success()
@@ -238,29 +306,78 @@ public class NexusTests : IDisposable
     //    this.Nexus.FindTransactionByHash();
     //}
 
-    //[Fact]
-    //public void FinishInitialize_test_success()
-    //{
-    //    this.Nexus.FinishInitialize();
-    //}
+    [Fact]
+    public void FinishInitialize_test_success()
+    {
+        var runtimeMoq = CreateRuntimeMock();
+        this.Nexus.FinishInitialize(runtimeMoq.Object, User1.Address);
+    }
 
-    //[Fact]
-    //public void GenerateNFT_test_success()
-    //{
-    //    this.Nexus.GenerateNFT();
-    //}
+    [Fact]
+    public void GenerateNFT_test_success()
+    {
+        var series = this.Nexus.CreateSeries(
+                Context,
+                NonFungibleToken,
+                1,
+                100,
+                TokenSeriesMode.Unique,
+                new byte[2] {0, 1},
+                TokenUtils.GetNFTStandard()
+                );
 
-    //[Fact]
-    //public void GetAllSeriesForToken_test_success()
-    //{
-    //    this.Nexus.GetAllSeriesForToken();
-    //}
+        var runtimeMoq = CreateRuntimeMock();
+        var genID = this.Nexus.GenerateNFT(
+                runtimeMoq.Object,
+                NonFungibleToken.Symbol,
+                "main",
+                User1.Address,
+                new byte[0],
+                new byte[0],
+                1);
 
-    //[Fact]
-    //public void GetArchive_test_success()
-    //{
-    //    this.Nexus.GetArchive();
-    //}
+        genID.ShouldBe(BigInteger.Parse("38772261170797515502142737251560910253885555854579348417967781179871348437219"));
+    }
+
+    [Fact]
+    public void GetAllSeriesForToken_test_success()
+    {
+        var series = this.Nexus.CreateSeries(
+                Context,
+                NonFungibleToken,
+                1,
+                100,
+                TokenSeriesMode.Unique,
+                new byte[2] {0, 1},
+                TokenUtils.GetNFTStandard()
+                );
+
+        var series2 = this.Nexus.CreateSeries(
+                Context,
+                NonFungibleToken,
+                300,
+                100,
+                TokenSeriesMode.Unique,
+                new byte[2] {0, 1},
+                TokenUtils.GetNFTStandard()
+                );
+
+        var serieses = this.Nexus.GetAllSeriesForToken(Context, NonFungibleToken.Symbol);
+        serieses.Length.ShouldBe(2);
+        serieses.ShouldContain(300);
+        serieses.ShouldContain(1);
+    }
+
+    [Fact]
+    public void GetArchive_test_success()
+    {
+        var merkleTree = new MerkleTree(new byte[] { 0, 0});
+        var archive = this.Nexus.CreateArchive(Context, merkleTree, User1.Address, "name", 100, Timestamp.Now, new SharedArchiveEncryption());
+
+        // archive exists now
+        var archiveNew = this.Nexus.GetArchive(Context, archive.Hash);
+        archiveNew.Hash.ShouldBe(archive.Hash);
+    }
 
     //[Fact]
     //public void GetBurnedTokenSupply_test_success()
@@ -274,17 +391,20 @@ public class NexusTests : IDisposable
     //    this.Nexus.GetBurnedTokenSupplyForSeries();
     //}
 
-    //[Fact]
-    //public void GetChainByAddress_test_success()
-    //{
-    //    this.Nexus.GetChainByAddress();
-    //}
+    [Fact]
+    public void GetChainByAddress_test_success()
+    {
+        var chain = this.Nexus.GetChainByAddress(this.Chain.Address);
+        chain.Address.ShouldBe(this.Chain.Address);
+    }
 
-    //[Fact]
-    //public void GetChainByName_test_success()
-    //{
-    //    this.Nexus.GetChainByName();
-    //}
+    [Fact]
+    public void GetChainByName_test_success()
+    {
+        var chain = this.Nexus.GetChainByName("main");
+        chain.Name.ShouldBe("main");
+        chain.Address.ShouldBe(this.Chain.Address);
+    }
 
     //[Fact]
     //public void GetChainOrganization_test_success()
@@ -816,8 +936,17 @@ public class NexusTests : IDisposable
         // setup Storage
         runtimeMoq.Setup(r => r.Storage).Returns(Context);
 
+        // setup RootStorage
+        runtimeMoq.Setup(r => r.RootStorage).Returns(Context);
+
+        // setup IsRootChain
+        runtimeMoq.Setup(r => r.IsRootChain()).Returns(true);
+
         // setup Chain
         runtimeMoq.Setup(r => r.Chain).Returns(Chain);
+
+        // setup GetToken
+        runtimeMoq.Setup(r => r.GetToken(It.IsAny<string>())).Returns(NonFungibleToken);
 
         // setup allowance
         runtimeMoq.Setup(r => r.SubtractAllowance(It.IsAny<Address>(), It.IsAny<string>(), It.IsAny<BigInteger>()))

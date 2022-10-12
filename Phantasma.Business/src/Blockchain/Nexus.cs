@@ -573,6 +573,7 @@ public class Nexus : INexus
         var tokenInfo = new TokenInfo(symbol, name, owner, maxSupply, decimals, flags, script, abi);
         EditToken(storage, symbol, tokenInfo);
 
+        // TODO_Migration, migrete TTRS with standard conform script!
         if (symbol == "TTRS")  // support for 22series tokens with a dummy script that conforms to the standard
         {
             byte[] nftScript;
@@ -1062,7 +1063,7 @@ public class Nexus : INexus
         return series;
     }
 
-    private byte[] GetTokenSeriesKey(string symbol, BigInteger seriesID)
+    public byte[] GetTokenSeriesKey(string symbol, BigInteger seriesID)
     {
         return GetKeyForNFT(symbol, $"serie{seriesID}");
     }
@@ -2012,13 +2013,13 @@ public class Nexus : INexus
         organizationMap.Set<Address, string>(organization.Address, ID);
     }
 
-    public bool OrganizationExists(StorageContext storage, string name)
+    public bool OrganizationExists(StorageContext storage, string name) // name in this case is actually the id....
     {
         var orgs = GetOrganizations(storage);
         return orgs.Contains(name);
     }
 
-    public IOrganization GetOrganizationByName(StorageContext storage, string name)
+    public IOrganization GetOrganizationByName(StorageContext storage, string name) // name in this case is actually the id....
     {
         if (OrganizationExists(storage, name))
         {
