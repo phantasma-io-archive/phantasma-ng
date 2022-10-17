@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Numerics;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
@@ -110,8 +111,12 @@ namespace Phantasma.Infrastructure.API.Controllers
             {
                 throw new APIException("chain not found");
             }
-
-            var blockHash = chain.GetBlockHashAtHeight(System.Numerics.BigInteger.Parse(height));
+            
+            if (!BigInteger.TryParse(height, out var parsedHeight))
+            {
+                throw new APIException("invalid number");
+            }
+            var blockHash = chain.GetBlockHashAtHeight(parsedHeight);
             var block = chain.GetBlockByHash(blockHash);
 
             if (block != null)
@@ -146,7 +151,11 @@ namespace Phantasma.Infrastructure.API.Controllers
                 throw new APIException("chain not found");
             }
 
-            var blockHash = chain.GetBlockHashAtHeight(System.Numerics.BigInteger.Parse(height));
+            if (!BigInteger.TryParse(height, out var parsedHeight))
+            {
+                throw new APIException("invalid number");
+            }
+            var blockHash = chain.GetBlockHashAtHeight(parsedHeight);
             var block = chain.GetBlockByHash(blockHash);
 
             if (block != null)
