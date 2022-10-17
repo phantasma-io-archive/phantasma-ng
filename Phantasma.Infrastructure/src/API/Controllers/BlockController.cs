@@ -102,7 +102,7 @@ namespace Phantasma.Infrastructure.API.Controllers
         [APIFailCase("block hash is invalid", "asdfsa")]
         [APIFailCase("chain is invalid", "453dsa")]
         [HttpGet("GetBlockByHeight")]
-        public BlockResult GetBlockByHeight([APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string chainInput, [APIParameter("Height of block", "1")] uint height)
+        public BlockResult GetBlockByHeight([APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string chainInput, [APIParameter("Height of block", "1")] string height)
         {
             var chain = NexusAPI.FindChainByInput(chainInput);
 
@@ -111,7 +111,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                 throw new APIException("chain not found");
             }
 
-            var blockHash = chain.GetBlockHashAtHeight(height);
+            var blockHash = chain.GetBlockHashAtHeight(System.Numerics.BigInteger.Parse(height));
             var block = chain.GetBlockByHash(blockHash);
 
             if (block != null)
@@ -126,7 +126,7 @@ namespace Phantasma.Infrastructure.API.Controllers
         [APIFailCase("block hash is invalid", "asdfsa")]
         [APIFailCase("chain is invalid", "453dsa")]
         [HttpGet("GetRawBlockByHeight")]
-        public string GetRawBlockByHeight([APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string chainInput, [APIParameter("Height of block", "1")] uint height)
+        public string GetRawBlockByHeight([APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string chainInput, [APIParameter("Height of block", "1")] string height)
         {
             var nexus = NexusAPI.GetNexus();
 
@@ -146,7 +146,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                 throw new APIException("chain not found");
             }
 
-            var blockHash = chain.GetBlockHashAtHeight(height);
+            var blockHash = chain.GetBlockHashAtHeight(System.Numerics.BigInteger.Parse(height));
             var block = chain.GetBlockByHash(blockHash);
 
             if (block != null)
