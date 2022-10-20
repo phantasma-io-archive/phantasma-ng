@@ -5,6 +5,9 @@ TMHOME=/app/testnet/node1 testnet/tendermint unsafe-reset-all
 TMHOME=/app/testnet/node2 testnet/tendermint unsafe-reset-all
 TMHOME=/app/testnet/node3 testnet/tendermint unsafe-reset-all
 
+#remove screen
+screen -wipe
+
 # start all tendermint sessions
 screen -S node0 -dm bash -c 'TMHOME=/app/testnet/node0 /app/testnet/tendermint node; exec sh'
 screen -S node1 -dm bash -c 'TMHOME=/app/testnet/node1 /app/testnet/tendermint node; exec sh'
