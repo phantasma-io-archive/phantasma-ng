@@ -119,7 +119,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             }
             catch (Exception e)
             {
-                throw new APIException($"RPC call exception for {req}", e);
+                throw new APIException($"RPC call exception for {req}: {e.Message}");
             }
 
             return rpcResponse;
