@@ -7,16 +7,15 @@ using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM.Utils;
+using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Performance;
 using Phantasma.Core.Storage;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
-using Phantasma.Shared;
-using Phantasma.Shared.Performance;
-using Phantasma.Shared.Types;
-using Phantasma.Shared.Utils;
 using Serilog;
 
 namespace Phantasma.Business.Blockchain;
@@ -58,6 +57,8 @@ public class Nexus : INexus
 
     public bool HasGenesis { get; set; }
 
+    public BigInteger MaxGas { get; set; }
+
     private Func<string, IKeyValueStoreAdapter> _adapterFactory = null;
     private IOracleReader _oracleReader = null;
     private List<IOracleObserver> _observers = new List<IOracleObserver>();
@@ -65,7 +66,7 @@ public class Nexus : INexus
     /// <summary>
     /// The constructor bootstraps the main chain and all core side chains.
     /// </summary>
-    public Nexus(string name, Func<string, IKeyValueStoreAdapter> adapterFactory = null, PhantasmaKeys owner = null)
+    public Nexus(string name, BigInteger maxGas, Func<string, IKeyValueStoreAdapter> adapterFactory = null, PhantasmaKeys owner = null)
     {
         this._adapterFactory = adapterFactory;
 
@@ -80,6 +81,8 @@ public class Nexus : INexus
         }
 
         this.Name = name;
+
+        this.MaxGas = maxGas;
 
         if (HasGenesis)
         {
@@ -648,11 +651,16 @@ public class Nexus : INexus
         var balances = new BalanceSheet(token);
         Runtime.Expect(balances.Add(Runtime.Storage, destination, amount), "balance add failed");
 
-        var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        if (!Runtime.IsSystemToken(token))
+        {
+            // for non system tokens, the onMint trigger is mandatory
+            var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
+            var tokenTriggerResult = Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, amount);
+            Runtime.Expect(tokenTriggerResult == TriggerResult.Success, $"token trigger {tokenTrigger} failed or missing");
+        }
 
         var accountTrigger = isSettlement ? AccountTrigger.OnReceive : AccountTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"account trigger {accountTrigger} failed");
 
         if (isSettlement)
         {
@@ -678,11 +686,16 @@ public class Nexus : INexus
         var ownerships = new OwnershipSheet(token.Symbol);
         Runtime.Expect(ownerships.Add(Runtime.Storage, destination, tokenID), "ownership add failed");
 
-        var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        if (!Runtime.IsSystemToken(token))
+        {
+            // for non system tokens, the onMint trigger is mandatory
+            var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
+            var tokenTriggerResult = Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, tokenID); 
+            Runtime.Expect(tokenTriggerResult == TriggerResult.Success, $"token {tokenTrigger} trigger failed or missing");
+        }
 
         var accountTrigger = isSettlement ? AccountTrigger.OnReceive : AccountTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"account trigger {accountTrigger} failed");
 
         var nft = ReadNFT(Runtime, token.Symbol, tokenID);
         using (var m = new ProfileMarker("Nexus.WriteNFT"))
@@ -1281,7 +1294,7 @@ public class Nexus : INexus
         sb.CallInterop(deployInterop, owner.Address, ContractNames.StakeContractName);
         sb.CallInterop(deployInterop, owner.Address, ContractNames.StorageContractName);
         sb.CallInterop(deployInterop, owner.Address, ContractNames.ConsensusContractName);
-        sb.CallInterop(deployInterop, owner.Address, "market");
+        sb.CallInterop(deployInterop, owner.Address, ContractNames.MarketContractName);
 
         var orgInterop = "Nexus.CreateOrganization";
         var orgScript = new byte[0];
@@ -1321,39 +1334,14 @@ public class Nexus : INexus
             sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), validator, new BigInteger(index), ValidatorType.Primary);
             index++;
         }
-
-        sb.CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals)).
-        CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100, DomainSettings.FuelTokenDecimals));
-
         sb.Emit(Opcode.RET);
 
         var script = sb.EndScript();
 
-        var tx = new Transaction(this.Name, DomainSettings.RootChainName, script, owner.Address, Timestamp.Now + TimeSpan.FromDays(300));
+        var tx = new Transaction(this.Name, DomainSettings.RootChainName, 0L, script, owner.Address, owner.Address, Address.Null, 1, 9999, Timestamp.Now + TimeSpan.FromDays(300));
         tx.Mine(ProofOfWork.Minimal);
         tx.Sign(owner);
 
-        return tx;
-    }
-
-    private Transaction ChainCreateTx(PhantasmaKeys owner, string name, params string[] contracts)
-    {
-        var sb = ScriptUtils.
-            BeginScript().
-            //AllowGas(owner.Address, Address.Null, 1, 9999).
-            CallInterop("Nexus.CreateChain", owner.Address, name, RootChain.Name);
-
-        foreach (var contractName in contracts)
-        {
-            sb.CallInterop("Runtime.DeployContract", owner.Address, contractName);
-        }
-
-        var script = //SpendGas(owner.Address).
-            sb.EndScript();
-
-        var tx = new Transaction(Name, DomainSettings.RootChainName, script, owner.Address, Timestamp.Now + TimeSpan.FromDays(300));
-        tx.Mine((int)ProofOfWork.Moderate);
-        tx.Sign(owner);
         return tx;
     }
 
@@ -1577,7 +1565,6 @@ public class Nexus : INexus
         //block.AddAllTransactionHashes(transactions.Select(tx => tx.Hash));
 
 	    //Transaction inflationTx = null;
-	    //Console.WriteLine("tx cnt: " + transactions.Count);
         //var changeSet = rootChain.ProcessBlock(block, transactions, 1, out inflationTx, owner);
 	    //if (inflationTx != null)
  	    //{

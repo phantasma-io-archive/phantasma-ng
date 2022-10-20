@@ -7,9 +7,9 @@ using Microsoft.Extensions.Configuration;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Types;
+using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.API;
-using Phantasma.Shared.Types;
-using Phantasma.Shared.Utils;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -267,7 +267,6 @@ namespace Phantasma.Node
         public Timestamp GenesisTimestamp { get; }
         public bool ApiCache { get; }
         public bool ApiLog { get; }
-        public bool Readonly { get; }
 
         public string SenderHost { get; } = "localhost";
         public uint SenderThreads { get; } = 8;
@@ -276,6 +275,7 @@ namespace Phantasma.Node
         public int BlockTime { get; } = 0;
         public int MinimumFee { get; } = 100000;
         public int MinimumPow { get; } = 0;
+        public int MaxGas { get; } = 10000;
 
         public bool WebLogs { get; }
 
@@ -302,6 +302,7 @@ namespace Phantasma.Node
             this.BlockTime = section.GetValueEx<Int32>("block.time");
             this.MinimumFee = section.GetValueEx<Int32>("minimum.fee");
             this.MinimumPow = section.GetValueEx<Int32>("minimum.pow");
+            this.MaxGas = section.GetValueEx<Int32>("max.gas");
 
             int maxPow = 5; // should be a constant like MinimumBlockTime
             if (this.MinimumPow < 0 || this.MinimumPow > maxPow)
@@ -354,7 +355,6 @@ namespace Phantasma.Node
             this.GenesisTimestampUint = section.GetValueEx<UInt32>("genesis.timestamp");
             this.GenesisTimestamp = new Timestamp((this.GenesisTimestampUint == 0) ? Timestamp.Now.Value : this.GenesisTimestampUint);
             this.ApiCache = section.GetValueEx<bool>("api.cache");
-            this.Readonly = section.GetValueEx<bool>("readonly");
 
             this.SenderHost = section.GetString("sender.host");
             this.SenderThreads = section.GetValueEx<UInt32>("sender.threads");

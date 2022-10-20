@@ -5,8 +5,8 @@ using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
-using Phantasma.Shared.Types;
 
 namespace Phantasma.Core.Domain
 {
@@ -23,6 +23,7 @@ namespace Phantasma.Core.Domain
         Fiat = 1 << 6,
         Swappable = 1 << 7,
         Burnable = 1 << 8,
+        Mintable = 1 << 9,
     }
 
     public struct TokenInfusion
@@ -100,9 +101,6 @@ namespace Phantasma.Core.Domain
         // TODO find optimal values for this
         public static readonly int MaxROMSize = 1024;
         public static readonly int MaxRAMSize = 1024;
-
-
-
 
         public TokenContent(BigInteger seriesID, BigInteger mintID, string currentChain, Address creator, Address currentOwner,
                 byte[] ROM, byte[] RAM, Timestamp timestamp, IEnumerable<TokenInfusion> infusion, TokenSeriesMode mode) : this()

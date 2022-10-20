@@ -5,7 +5,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared.Utils;
+using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.Blockchain.Tokens
 {
@@ -93,11 +93,9 @@ namespace Phantasma.Business.Blockchain.Tokens
 
             var balance = Get(storage, address);
 
-            var diff = balance - amount;
-            if (diff < 0)
+            if (amount > balance)
             {
-                throw new BalanceException(_token, address, -diff);
-                //return false;
+                return false;
             }
 
             balance -= amount;

@@ -8,12 +8,15 @@ using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Business.Blockchain.Tokens
 {
     public static class TokenUtils
     {
+        public const string BurnMethodName = "burn";
+        public const string MintMethodName = "mint";
+
         public static Address GetContractAddress(this IToken token)
         {
             return GetContractAddress(token.Symbol);
@@ -200,7 +203,7 @@ namespace Phantasma.Business.Blockchain.Tokens
             }
 
             var oracle = chain.Nexus.GetOracleReader();
-            var vm = new RuntimeVM(-1, script, (uint)method.offset, chain, Address.Null, Timestamp.Now, null, changeSet, oracle, ChainTask.Null, true);
+            var vm = new RuntimeVM(-1, script, (uint)method.offset, chain, Address.Null, Timestamp.Now, Transaction.Null, changeSet, oracle, ChainTask.Null);
 
             //var vm = new GasMachine(script, (uint)method.offset);
 

@@ -5,9 +5,9 @@ using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Performance;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared.Performance;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Business.Blockchain.Contracts
 {
@@ -40,25 +40,47 @@ namespace Phantasma.Business.Blockchain.Contracts
         internal Timestamp _lastInflationDate;
         internal bool _inflationReady;
 
-        public void AllowGas(Address from, Address target, BigInteger price, BigInteger limit)
+        /// <summary>
+        /// Method to check if an address has allowed gas
+        /// </summary>
+        /// <param name="from">Address of the user</param>
+        public BigInteger AllowedGas(Address from)
+        {
+            var allowance = _allowanceMap.ContainsKey(from) ? _allowanceMap.Get<Address, BigInteger>(from) : 0;
+            return allowance;
+        }
+
+
+        /// <summary>
+        /// Method used the usage of Gas to do the transaction.
+        /// </summary>
+        /// <exception cref="BalanceException"></exception>
+        public void AllowGas()
         {
             if (Runtime.IsReadOnlyMode())
             {
                 return;
             }
 
+            var from = Runtime.Transaction.GasPayer;
+            Runtime.Expect(from.IsUser, "must be a user address");
+
+            var target = Runtime.Transaction.GasTarget;
+            Runtime.Expect(target.IsSystem, "destination must be system address");
+
+            var price = Runtime.Transaction.GasPrice;
+            Runtime.Expect(price > 0, "price must be positive amount");
+
+            var limit = Runtime.Transaction.GasLimit;
+            Runtime.Expect(limit > 0, "limit must be positive amount");
+
             if (_lastInflationDate == 0)
             {
                 _lastInflationDate = Runtime.Time;
             }
 
-            Runtime.Expect(from.IsUser, "must be a user address");
-            Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName, "must be entry context");
+            Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName, $"must be entry context {Runtime.PreviousContext.Name}");
             Runtime.Expect(Runtime.IsWitness(from), $"invalid witness -> {from}");
-            Runtime.Expect(target.IsSystem, "destination must be system address");
-
-            Runtime.Expect(price > 0, "price must be positive amount");
-            Runtime.Expect(limit > 0, "limit must be positive amount");
 
             if (target.IsNull)
             {
@@ -98,6 +120,10 @@ namespace Phantasma.Business.Blockchain.Contracts
                 Runtime.Notify(EventKind.GasEscrow, from, new GasEventData(target, price, limit));
         }
         
+        /// <summary>
+        /// Method used to Apply Inflation and Mint Crowns and distribute them.
+        /// </summary>
+        /// <param name="from">Address of the user</param>
         public void ApplyInflation(Address from)
         {
             Runtime.Expect(_inflationReady, "inflation not ready");
@@ -210,14 +236,21 @@ namespace Phantasma.Business.Blockchain.Contracts
             _inflationReady = false;
         }
 
-        public void SpendGas(Address from)
+        /// <summary>
+        /// 
+        /// </summary>
+        public void SpendGas()
         {
             if (Runtime.IsReadOnlyMode())
             {
                 return;
             }
 
-            Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName, "must be entry context");
+            Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName || Runtime.PreviousContext.Address.IsSystem,
+                    $"must be entry context, prev: {Runtime.PreviousContext.Name}, curr: {Runtime.CurrentContext.Name}");
+
+            var from = Runtime.Transaction.GasPayer;
+
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(_allowanceMap.ContainsKey(from), "no gas allowance found");
 
@@ -225,16 +258,29 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var spentGas = Runtime.UsedGas;
             var requiredAmount = spentGas * Runtime.GasPrice;
-            Runtime.Expect(requiredAmount > 0, $"{Runtime.GasPrice} {spentGas} gas fee must exist");
 
-            Runtime.Expect(availableAmount >= requiredAmount, "gas allowance is not enough");
+            GasEventData ged = new GasEventData(Address.Null, 0, 0);
+            var targetAddress = _allowanceTargets.Get<Address, Address>(from);
+            if (availableAmount < requiredAmount && Runtime.IsError)
+            {
+                requiredAmount = availableAmount;
+                ged = new GasEventData(targetAddress, Runtime.Transaction.GasPrice, Runtime.Transaction.GasLimit);
+            }
+
+            Runtime.Expect(requiredAmount > 0, $"{Runtime.GasPrice} {Runtime.UsedGas} gas fee must exist");
+
+            Runtime.Expect(availableAmount >= requiredAmount, $"gas allowance is not enough {availableAmount}/{requiredAmount}");
 
             var leftoverAmount = availableAmount - requiredAmount;
 
-            var targetAddress = _allowanceTargets.Get<Address, Address>(from);
             BigInteger targetGas;
 
-            Runtime.Notify(EventKind.GasPayment, from, new GasEventData(targetAddress,  Runtime.GasPrice, spentGas));
+            if (ged.address == Address.Null)
+            {
+                ged = new GasEventData(targetAddress,  Runtime.GasPrice, Runtime.UsedGas);
+            }
+
+            Runtime.Notify(EventKind.GasPayment, from, ged);
 
             // return leftover escrowed gas to transaction creator
             if (leftoverAmount > 0)
@@ -287,6 +333,9 @@ namespace Phantasma.Business.Blockchain.Contracts
             CheckInflation();
         }
 
+        /// <summary>
+        /// Method used to check if the inflation is ready
+        /// </summary>
         private void CheckInflation()
         {
             if (!Runtime.HasGenesis)
@@ -308,6 +357,24 @@ namespace Phantasma.Business.Blockchain.Contracts
                     _inflationReady = true;
                 }
             }
+        }
+
+        /// <summary>
+        /// Method used to return the last inflation date.
+        /// </summary>
+        /// <returns></returns>
+        public Timestamp GetLastInflationDate()
+        {
+            return _lastInflationDate;
+        }
+
+        /// <summary>
+        /// Method use to return how many days are left until the next distribution.
+        /// </summary>
+        /// <returns></returns>
+        public uint GetDaysUntillDistribution()
+        {
+            return Runtime.Time - _lastInflationDate;
         }
     }
 }

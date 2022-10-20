@@ -1,14 +1,13 @@
 using System.IO;
 using System.Text;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
+using Xunit;
 
 namespace Phantasma.Core.Tests;
 
-[TestClass]
 public class Base58
 {
-    [TestMethod]
+    [Fact]
     public void encode_decode_test_numbers()
     {
         const string testString = "0815";
@@ -19,7 +18,7 @@ public class Base58
         GetStringFromByteArray(decodedBytes).ShouldBe(testString);
     }
 
-    [TestMethod]
+    [Fact]
     public void encode_decode_test_string()
     {
         const string testString = "Sepp";
@@ -30,7 +29,7 @@ public class Base58
         GetStringFromByteArray(decodedBytes).ShouldBe(testString);
     }
 
-    /*[TestMethod]
+    /*[Fact]
     public void wrong_input_test()
     {
     }*/

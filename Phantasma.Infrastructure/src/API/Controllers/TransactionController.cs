@@ -7,7 +7,8 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
+using Serilog;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -168,6 +169,7 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("SendRawTransaction")]
         public string SendRawTransaction([APIParameter("Serialized transaction bytes, in hexadecimal format", "0000000000")] string txData)
         {
+            // TODO return error or tx result not just a string
             byte[] bytes;
             try
             {
@@ -187,10 +189,17 @@ namespace Phantasma.Infrastructure.API.Controllers
             var tx = Transaction.Unserialize(bytes);
             if (tx == null)
             {
+                Log.Error("Unserializing tx failed");
                 return Hash.Null.ToString();
             }
 
             var res = NexusAPI.TRPC.BroadcastTxSync(txData);
+            if (res.Code != 0)
+            {
+                Log.Error("CheckTx returned code {code} {log}", res.Code, res.Log);
+                return Hash.Null.ToString();
+            }
+
             return tx.Hash.ToString();
         }
 
@@ -228,7 +237,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             var changeSet = new StorageChangeSetContext(chain.Storage);
             var oracle = nexus.GetOracleReader();
             uint offset = 0;
-            var vm = new RuntimeVM(-1, script, offset, chain, Address.Null, Timestamp.Now, null, changeSet, oracle, ChainTask.Null, true);
+            var vm = new RuntimeVM(-1, script, offset, chain, Address.Null, Timestamp.Now, Transaction.Null, changeSet, oracle, ChainTask.Null);
 
             string error = null;
             ExecutionState state = ExecutionState.Fault;

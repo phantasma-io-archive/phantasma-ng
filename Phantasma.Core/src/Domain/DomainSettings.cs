@@ -1,7 +1,8 @@
+using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Core.Domain
 {
@@ -92,6 +93,16 @@ namespace Phantasma.Core.Domain
         
         public const string LiquidityTokenSymbol = "LP";
         public const string LiquidityTokenName = "Phantasma Liquidity";
+        public const int LiquidityTokenDecimals = 8;
+
+        public static readonly IEnumerable<string> SystemTokens = new List<string>
+        {
+                DomainSettings.FuelTokenSymbol,
+                DomainSettings.StakingTokenSymbol,
+                DomainSettings.FiatTokenSymbol,
+                DomainSettings.RewardTokenSymbol,
+                DomainSettings.LiquidityTokenSymbol
+        };
 
         public const string RootChainName = "main";
 

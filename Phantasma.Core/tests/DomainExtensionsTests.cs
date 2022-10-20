@@ -1,15 +1,13 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using Phantasma.Core.Domain;
 using Shouldly;
+using Xunit;
 
 namespace Phantasma.Core.Tests;
 
-//TODO
-[TestClass]
 public class DomainExtensionsTests
 {
-    [TestMethod]
+    [Fact]
     public void is_fungible()
     {
         var token = Substitute.For<IToken>();
@@ -17,7 +15,7 @@ public class DomainExtensionsTests
         fungible.ShouldBeFalse();
     }
 
-    [TestMethod]
+    [Fact]
     public void is_burnable()
     {
         var token = Substitute.For<IToken>();
@@ -25,7 +23,7 @@ public class DomainExtensionsTests
         burnable.ShouldBeFalse();
     }
 
-    [TestMethod]
+    [Fact]
     public void is_transferable()
     {
         var token = Substitute.For<IToken>();
@@ -33,7 +31,7 @@ public class DomainExtensionsTests
         transferable.ShouldBeFalse();
     }
 
-    [TestMethod]
+    [Fact]
     public void is_capped()
     {
         var token = Substitute.For<IToken>();
@@ -41,7 +39,7 @@ public class DomainExtensionsTests
         capped.ShouldBeFalse();
     }
 
-    [TestMethod]
+    [Fact]
     public void get_last_block()
     {
         var runtime = Substitute.For<IRuntime>();
@@ -49,7 +47,7 @@ public class DomainExtensionsTests
         block.ShouldBeNull();
     }
 
-    [TestMethod]
+    [Fact]
     public void get_chain_address()
     {
         //TODO
@@ -58,7 +56,7 @@ public class DomainExtensionsTests
         //address.ShouldBe();
     }
 
-    [TestMethod]
+    [Fact]
     public void get_root_chain()
     {
         var runtime = Substitute.For<IRuntime>();
@@ -66,7 +64,7 @@ public class DomainExtensionsTests
         chain.ShouldNotBeNull();
     }
 
-    [TestMethod]
+    [Fact]
     public void is_readonly_mode()
     {
         var runtime = Substitute.For<IRuntime>();
@@ -74,7 +72,7 @@ public class DomainExtensionsTests
         isReadonly.ShouldBeTrue();
     }
 
-    [TestMethod]
+    [Fact]
     public void is_root_chain()
     {
         var runtime = Substitute.For<IRuntime>();

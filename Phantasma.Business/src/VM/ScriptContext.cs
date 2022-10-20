@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
+using Phantasma.Core;
 using Phantasma.Core.Domain;
-using Phantasma.Shared;
-using Phantasma.Shared.Performance;
+using Phantasma.Core.Performance;
+using Serilog;
 
 namespace Phantasma.Business.VM
 {
@@ -20,6 +21,7 @@ namespace Phantasma.Business.VM
         private string _name;
 
         private ExecutionState _state;
+        public string Error { get; private set; }
 
         private Opcode opcode;
 
@@ -42,7 +44,7 @@ namespace Phantasma.Business.VM
             return _state;
         }
 
-        #region IO 
+#region IO
         private byte Read8()
         {
             Throw.If(InstructionPointer >= this.Script.Length, $"Outside of script range => {InstructionPointer} / {this.Script.Length}");
@@ -113,19 +115,25 @@ namespace Phantasma.Business.VM
 
             return result;
         }
-        #endregion
+#endregion
 
         private void Expect(bool condition, string error)
         {
             if (!condition)
             {
                 throw new Exception($"Script execution failed: {error} @ {opcode} : {InstructionPointer}");
-            }            
+            }
         }
 
-        private void SetState(ExecutionState state)
+        private void SetState(ExecutionState state, string error = null)
         {
+            if (state == ExecutionState.Fault && string.IsNullOrEmpty(error))
+            {
+                error = "Generic Error";
+            }
+
             this._state = state;
+            this.Error = error;
         }
 
         public void Step(ref ExecutionFrame frame, Stack<VMObject> stack)
@@ -139,208 +147,208 @@ namespace Phantasma.Business.VM
                 switch (opcode)
                 {
                     case Opcode.NOP:
-                    {
-                        break;
-                    }
+                        {
+                            break;
+                        }
 
-                    // args: byte src_reg, byte dest_reg
+                        // args: byte src_reg, byte dest_reg
                     case Opcode.MOVE:
-                    {
-                        Move(ref frame);
-                        break;
-                    }
+                        {
+                            Move(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg, byte dest_reg
+                        // args: byte src_reg, byte dest_reg
                     case Opcode.COPY:
-                    {
-                        Copy(ref frame);
-                        break;
-                    }
+                        {
+                            Copy(ref frame);
+                            break;
+                        }
 
-                    // args: byte dst_reg, byte type, var length, var data_bytes
+                        // args: byte dst_reg, byte type, var length, var data_bytes
                     case Opcode.LOAD:
-                    {
-                        Load(ref frame);
-                        break;
-                    }
+                        {
+                            Load(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg, dst_reg, byte type
+                        // args: byte src_reg, dst_reg, byte type
                     case Opcode.CAST:
-                    {
-                        Cast(ref frame);
-                        break;
-                    }
+                        {
+                            Cast(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg
+                        // args: byte src_reg
                     case Opcode.PUSH:
-                    {
-                        Push(ref frame, stack);
-                        break;
-                    }
+                        {
+                            Push(ref frame, stack);
+                            break;
+                        }
 
-                    // args: byte dest_reg
+                        // args: byte dest_reg
                     case Opcode.POP:
-                    {
-                        Pop(ref frame, stack);
-                        break;
-                    }
+                        {
+                            Pop(ref frame, stack);
+                            break;
+                        }
 
-                    // args: byte src_reg, byte dest_reg
+                        // args: byte src_reg, byte dest_reg
                     case Opcode.SWAP:
-                    {
-                        Swap(ref frame);
-                        break;
-                    }
+                        {
+                            Swap(ref frame);
+                            break;
+                        }
 
-                    // args: ushort offset, byte regCount
+                        // args: ushort offset, byte regCount
                     case Opcode.CALL:
-                    {
-                        Call(ref frame);
-                        break;
-                    }
+                        {
+                            Call(ref frame);
+                            break;
+                        }
 
-                    // args: byte srcReg
+                        // args: byte srcReg
                     case Opcode.EXTCALL:
-                    {
-                        Extcall(ref frame);
-                        break;
-                    }
-                    
-                    // args: ushort offset, byte src_reg
-                    // NOTE: JMP only has offset arg, not the rest
+                        {
+                            Extcall(ref frame);
+                            break;
+                        }
+
+                        // args: ushort offset, byte src_reg
+                        // NOTE: JMP only has offset arg, not the rest
                     case Opcode.JMP:
                     case Opcode.JMPIF:
                     case Opcode.JMPNOT:
-                    {
-                        Jump(ref frame);
-                        break;
-                    }
+                        {
+                            Jump(ref frame);
+                            break;
+                        }
 
-                    // args: var length, var bytes
+                        // args: var length, var bytes
                     case Opcode.THROW:
-                    {
-                        OPThrow(ref frame);
-                        break;
-                    }
+                        {
+                            OPThrow(ref frame);
+                            break;
+                        }
 
-                    // args: none
+                        // args: none
                     case Opcode.RET:
-                    {
-                        Ret(ref frame);
-                        return;
-                    }
+                        {
+                            Ret(ref frame);
+                            return;
+                        }
 
-                    // args: byte src_a_reg, byte src_b_reg, byte dest_reg
+                        // args: byte src_a_reg, byte src_b_reg, byte dest_reg
                     case Opcode.CAT:
-                    {
-                        Cat(ref frame);
-                        break;
-                    }
+                        {
+                            Cat(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg, byte dest_reg, var index, var length
+                        // args: byte src_reg, byte dest_reg, var index, var length
                     case Opcode.RANGE:
-                    {
-                        Range(ref frame);
-                        break;
-                    }
+                        {
+                            Range(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg, byte dest_reg, var length
+                        // args: byte src_reg, byte dest_reg, var length
                     case Opcode.LEFT:
-                    {
-                        Left(ref frame);
-                        break;
-                    }
+                        {
+                            Left(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg, byte dest_reg, byte length
+                        // args: byte src_reg, byte dest_reg, byte length
                     case Opcode.RIGHT:
-                    {
-                        Right(ref frame);
-                        break;
-                    }
+                        {
+                            Right(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg, byte dest_reg
+                        // args: byte src_reg, byte dest_reg
                     case Opcode.SIZE:
-                    {
-                        Size(ref frame);
-                        break;
-                    }
+                        {
+                            Size(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg, byte dest_reg
+                        // args: byte src_reg, byte dest_reg
                     case Opcode.COUNT:
-                    {
-                        Count(ref frame);
-                        break;
-                    }
+                        {
+                            Count(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg, byte dest_reg
+                        // args: byte src_reg, byte dest_reg
                     case Opcode.NOT:
-                    {
-                        Not(ref frame);
-                        break;
-                    }
+                        {
+                            Not(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_a_reg, byte src_b_reg, byte dest_reg
+                        // args: byte src_a_reg, byte src_b_reg, byte dest_reg
                     case Opcode.AND:
                     case Opcode.OR:
                     case Opcode.XOR:
-                    {
-                        Logic(ref frame);
-                        break;
-                    }
+                        {
+                            Logic(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_a_reg, byte src_b_reg, byte dest_reg
+                        // args: byte src_a_reg, byte src_b_reg, byte dest_reg
                     case Opcode.EQUAL:
-                    {
-                        Equal(ref frame);
-                        break;
-                    }
+                        {
+                            Equal(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_a_reg, byte src_b_reg, byte dest_reg
+                        // args: byte src_a_reg, byte src_b_reg, byte dest_reg
                     case Opcode.LT:
                     case Opcode.GT:
                     case Opcode.LTE:
                     case Opcode.GTE:
-                    {
-                        Comparison(ref frame);
-                        break;
-                    }
+                        {
+                            Comparison(ref frame);
+                            break;
+                        }
 
-                    // args: byte reg
+                        // args: byte reg
                     case Opcode.INC:
-                    {
-                        Increment(ref frame);
-                        break;
-                    }
+                        {
+                            Increment(ref frame);
+                            break;
+                        }
 
-                    // args: byte reg
+                        // args: byte reg
                     case Opcode.DEC:
-                    {
-                        Decrement(ref frame);
-                        break;
-                    }
+                        {
+                            Decrement(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg, byte dest_reg
+                        // args: byte src_reg, byte dest_reg
                     case Opcode.SIGN:
-                    {
-                        Sign(ref frame);
-                        break;
-                    }
+                        {
+                            Sign(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg, byte dest_reg
+                        // args: byte src_reg, byte dest_reg
                     case Opcode.NEGATE:
-                    {
-                        Negate(ref frame);
-                        break;
-                    }
+                        {
+                            Negate(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg, byte dest_reg
+                        // args: byte src_reg, byte dest_reg
                     case Opcode.ABS:
-                    {
-                        ABS(ref frame);
-                        break;
-                    }
+                        {
+                            ABS(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_a_reg, byte src_b_reg, byte dest_reg
+                        // args: byte src_a_reg, byte src_b_reg, byte dest_reg
                     case Opcode.ADD:
                     case Opcode.SUB:
                     case Opcode.MUL:
@@ -351,84 +359,91 @@ namespace Phantasma.Business.VM
                     case Opcode.MIN:
                     case Opcode.MAX:
                     case Opcode.POW:
-                    {
-                        Operations(ref frame);
-                        break;
-                    }
+                        {
+                            Operations(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg, byte dest_reg, byte key
+                        // args: byte src_reg, byte dest_reg, byte key
                     case Opcode.PUT:
-                    {
-                        Put(ref frame);
-                        break;
-                    }
+                        {
+                            Put(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg, byte dest_reg, byte key
+                        // args: byte src_reg, byte dest_reg, byte key
                     case Opcode.GET:
-                    {
-                        Get(ref frame);
-                        break;
-                    }
+                        {
+                            Get(ref frame);
+                            break;
+                        }
 
-                    // args: byte dest_reg
+                        // args: byte dest_reg
                     case Opcode.CLEAR:
-                    {
-                        Clear(ref frame);
-                        break;
-                    }
+                        {
+                            Clear(ref frame);
+                            break;
+                        }
 
-                    // args: byte dest_reg, var key
+                        // args: byte dest_reg, var key
                     case Opcode.CTX:
-                    {
-                        Context(ref frame);
-                        break;
-                    }
-                        
+                        {
+                            Context(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg
+
+                        // args: byte src_reg
                     case Opcode.SWITCH:
-                    {
-                        OPSwitch(ref frame);
-                        break;
-                    }
+                        {
+                            OPSwitch(ref frame);
+                            break;
+                        }
 
-                    // args: byte src_reg dst_reg
+                        // args: byte src_reg dst_reg
                     case Opcode.UNPACK:
-                    {
-                        Unpack(ref frame);
-                        break;
-                    }
+                        {
+                            Unpack(ref frame);
+                            break;
+                        }
 
                     case Opcode.DEBUG:
-                    {
-                        break; // put here a breakpoint for debugging
-                    }
+                        {
+                            break; // put here a breakpoint for debugging
+                        }
 
                     default:
-                    {
-                        throw new VMException(frame.VM, $"Unknown VM opcode: {(int)opcode}");
-                    }
+                        {
+                            throw new VMException(frame.VM, $"Unknown VM opcode: {(int)opcode}");
+                        }
                 }
             }
             catch (Exception ex)
             {
-                //Console.WriteLine("Exception during execution in vm: " + ex);
+                if (ex is NullReferenceException)
+                {
+                    Log.Error("Critical exception: " + ex);
+                    Environment.Exit(-1);
+                }
+
                 ex = ex.ExpandInnerExceptions();
 
                 Trace.WriteLine(ex.ToString());
-                SetState(ExecutionState.Fault);
 
                 if (ex is not VMException)
                 {
                     ex = new VMException(frame.VM, ex.Message);
                 }
 
-                // ReSharper disable once PossibleIntendedRethrow
-                throw ex; 
+                Log.Debug("Exception during execution in vm: " + ex);
+
+                SetState(ExecutionState.Fault);
+
+                throw ex;
             }
         }
-        
-        #region Handle States
+
+#region Handle States
 
         /// <summary>
         /// Opcode - MOVE -> Operation Move
@@ -560,7 +575,7 @@ namespace Phantasma.Business.VM
         {
             var count = Read8();
             var ofs = Read16();
-            
+
             Expect(ofs < this.Script.Length, "invalid jump offset");
             Expect(count >= 1, "at least 1 register required");
             Expect(count <= VirtualMachine.MaxRegisterCount, "invalid register allocs");
@@ -582,9 +597,9 @@ namespace Phantasma.Business.VM
             {
                 var src = Read8();
                 Expect(src < frame.Registers.Length, "invalid src register");
-                
+
                 var method = frame.Registers[src].AsString();
-                            
+
                 var state = frame.VM.ExecuteInterop(method);
                 if (state != ExecutionState.Running)
                 {
@@ -668,7 +683,7 @@ namespace Phantasma.Business.VM
                     frame = frame.VM.CurrentFrame;
                 }
                 else
-                { 
+                {
                     SetState(ExecutionState.Halt);
                 }
             }
@@ -715,7 +730,7 @@ namespace Phantasma.Business.VM
                     var result = new byte[bytesA.Length + bytesB.Length];
                     Array.Copy(bytesA, result, bytesA.Length);
                     Array.Copy(bytesB, 0, result, bytesA.Length, bytesB.Length);
-                    
+
                     VMType type = A.Type;
                     frame.Registers[dst].SetValue(result, type);
                 }
@@ -753,7 +768,7 @@ namespace Phantasma.Business.VM
             Expect(len <= src_array.Length, "invalid length");
 
             Expect(index >= 0, "invalid negative index");
-                        
+
             var end = index + len;
             if (end > src_array.Length)
             {
@@ -834,7 +849,7 @@ namespace Phantasma.Business.VM
             int size;
 
             var src_val = frame.Registers[src];
-                            
+
             switch (src_val.Type)
             {
                 case VMType.String:
@@ -857,7 +872,7 @@ namespace Phantasma.Business.VM
                     size = src_array.Length;
                     break;
             }
-                            
+
             frame.Registers[dst].SetValue(size);
         }
 
@@ -880,11 +895,11 @@ namespace Phantasma.Business.VM
             switch (val.Type)
             {
                 case VMType.Struct:
-                {
-                    var children = val.GetChildren();
-                    count = children.Count;
-                    break;
-                }
+                    {
+                        var children = val.GetChildren();
+                        count = children.Count;
+                        break;
+                    }
 
                 case VMType.None:
                     count = 0;
@@ -908,7 +923,7 @@ namespace Phantasma.Business.VM
 
             Expect(src < frame.Registers.Length, "invalid src register");
             Expect(dst < frame.Registers.Length, "invalid dst register");
-            
+
             var val = frame.Registers[src].AsBool();
 
             frame.Registers[dst].SetValue(!val);
@@ -939,8 +954,8 @@ namespace Phantasma.Business.VM
                 case VMType.Bool:
                     {
                         Expect(valB.Type == VMType.Bool, $"expected {valA.Type} for logical op");
-                        
-                        
+
+
                         var a = valA.AsBool();
                         var b = valB.AsBool();
 
@@ -951,10 +966,10 @@ namespace Phantasma.Business.VM
                             case Opcode.OR: result = (a || b); break;
                             case Opcode.XOR: result = (a ^ b); break;
                             default:
-                                {
-                                    SetState(ExecutionState.Fault);
-                                    return;
-                                }
+                                             {
+                                                 SetState(ExecutionState.Fault);
+                                                 return;
+                                             }
                         }
 
                         frame.Registers[dst].SetValue(result);
@@ -988,7 +1003,7 @@ namespace Phantasma.Business.VM
                 case VMType.Number:
                     {
                         Expect(valB.Type == VMType.Number, $"expected {valA.Type} for logical op");
-                        
+
                         var numA = valA.AsNumber();
                         var numB = valB.AsNumber();
 
@@ -1005,10 +1020,10 @@ namespace Phantasma.Business.VM
                             case Opcode.OR: result = (a | b); break;
                             case Opcode.XOR: result = (a ^ b); break;
                             default:
-                                {
-                                    SetState(ExecutionState.Fault);
-                                    return;
-                                }
+                                             {
+                                                 SetState(ExecutionState.Fault);
+                                                 return;
+                                             }
                         }
 
                         frame.Registers[dst].SetValue(result);
@@ -1073,10 +1088,10 @@ namespace Phantasma.Business.VM
                 case Opcode.LTE: result = (a <= b); break;
                 case Opcode.GTE: result = (a >= b); break;
                 default:
-                {
-                    SetState(ExecutionState.Fault);
-                    return;
-                }
+                                 {
+                                     SetState(ExecutionState.Fault);
+                                     return;
+                                 }
             }
 
             frame.Registers[dst].SetValue(result);
@@ -1149,7 +1164,7 @@ namespace Phantasma.Business.VM
             Expect(dst < frame.Registers.Length, "invalid dst register");
 
             Expect(frame.Registers[src].Type is VMType.Number or VMType.String or VMType.Timestamp or VMType.Bytes, $"Invalid VM Register type: {frame.Registers[src].Type}");
-            
+
             var val = frame.Registers[src].AsNumber();
             frame.Registers[dst].SetValue(-val);
         }
@@ -1165,7 +1180,7 @@ namespace Phantasma.Business.VM
             var dst = Read8();
             Expect(src < frame.Registers.Length, "invalid src register");
             Expect(dst < frame.Registers.Length, "invalid dst register");
-            
+
             var val = frame.Registers[src].AsNumber();
             frame.Registers[dst].SetValue(val < 0 ? -val : val);
         }
@@ -1194,12 +1209,12 @@ namespace Phantasma.Business.VM
             Expect(srcA < frame.Registers.Length, "invalid srcA register");
             Expect(srcB < frame.Registers.Length, "invalid srcB register");
             Expect(dst < frame.Registers.Length, "invalid dst register");
-            
+
 
             if (opcode == Opcode.ADD && frame.Registers[srcA].Type == VMType.String)
             {
                 Expect(frame.Registers[srcB].Type == VMType.String, "invalid string as right operand");
-                
+
                 var a = frame.Registers[srcA].AsString();
                 var b = frame.Registers[srcB].AsString();
 
@@ -1226,10 +1241,10 @@ namespace Phantasma.Business.VM
                     case Opcode.MAX: result = a > b ? a : b; break;
                     case Opcode.POW: result = BigInteger.Pow(a, (int)b); break;
                     default:
-                        {
-                            SetState(ExecutionState.Fault);
-                            return;
-                        }
+                                     {
+                                         SetState(ExecutionState.Fault);
+                                         return;
+                                     }
                 }
 
                 frame.Registers[dst].SetValue(result);
@@ -1374,7 +1389,7 @@ namespace Phantasma.Business.VM
             }
         }
 
-        #endregion
+#endregion
 
     }
 }

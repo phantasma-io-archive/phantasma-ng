@@ -13,6 +13,7 @@ using Nethereum.Hex.HexConvertors.Extensions;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage;
+using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.API;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Infrastructure.RocksDB;
@@ -23,7 +24,6 @@ using Phantasma.Node.Interop;
 using Phantasma.Node.Oracles;
 using Phantasma.Node.Shell;
 using Phantasma.Node.Utils;
-using Phantasma.Shared.Utils;
 using Serilog;
 using Tendermint.Abci;
 using Tendermint.RPC;
@@ -215,10 +215,10 @@ namespace Phantasma.Node
                 nodeKeys = new PhantasmaKeys(Convert.FromBase64String(Settings.Default.Node.TendermintKey));
             }
 
-            if (nodeKeys is null)
-            {
-                nodeKeys = PhantasmaKeys.FromWIF(Settings.Default.Node.NodeWif);;
-            }
+            //if (nodeKeys is null)
+            //{
+            //    nodeKeys = PhantasmaKeys.FromWIF(Settings.Default.Node.NodeWif);
+            //}
 
             //TODO wallet module?
 
@@ -264,18 +264,19 @@ namespace Phantasma.Node
             var oraclePath = Settings.Default.Node.OraclePath;
             var nexusName = Settings.Default.Node.NexusName;
             var rpcUrl = Settings.Default.Node.TendermintRPCHost+ ":" + Settings.Default.Node.TendermintRPCPort;
+            var maxGas = Settings.Default.Node.MaxGas;
 
             switch (Settings.Default.Node.StorageBackend)
             {
                 case StorageBackendType.CSV:
                     Log.Information("Setting CSV nexus...");
-                    NexusAPI.Nexus = new Nexus(nexusName, (name) => new BasicDiskStore(storagePath + name + ".csv"));
+                    NexusAPI.Nexus = new Nexus(nexusName, maxGas, (name) => new BasicDiskStore(storagePath + name + ".csv"));
                     NexusAPI.TRPC = new NodeRpcClient(rpcUrl);
                     break;
 
                 case StorageBackendType.RocksDB:
                     Log.Information("Setting RocksDB nexus...");
-                    NexusAPI.Nexus = new Nexus(nexusName, (name) => new DBPartition(storagePath + name));
+                    NexusAPI.Nexus = new Nexus(nexusName, maxGas, (name) => new DBPartition(storagePath + name));
                     NexusAPI.TRPC = new NodeRpcClient(rpcUrl);
                     break;
                 default:
@@ -293,14 +294,7 @@ namespace Phantasma.Node
         {
             Log.Information($"Initializing nexus API...");
 
-            var readOnlyMode = Settings.Default.Node.Readonly;
-
             NexusAPI.ApiLog = Settings.Default.Node.ApiLog;
-
-            if (readOnlyMode)
-            {
-                Log.Warning($"Node will be running in read-only mode.");
-            }
         }
 
         private static JsonSerializerOptions GetDefaultSerializerOptions()

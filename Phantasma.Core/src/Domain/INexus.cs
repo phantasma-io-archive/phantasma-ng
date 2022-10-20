@@ -3,7 +3,7 @@ using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Core.Domain;
 
@@ -13,6 +13,7 @@ public interface INexus
     IChain RootChain { get; }
     StorageContext RootStorage { get; init;  }
     bool HasGenesis { get; set; }
+    BigInteger MaxGas { get; set; }
 
     string NexusProtocolVersionTag { get;  }
     string FuelPerContractDeployTag { get;  }

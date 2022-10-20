@@ -1,12 +1,14 @@
+using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Core.Domain
 {
     public interface IRuntime
     {
+        public Stack<VMObject> Stack { get; }
         IChain Chain { get; }
         Transaction Transaction { get; }
         public Timestamp Time { get; }
@@ -14,14 +16,22 @@ namespace Phantasma.Core.Domain
         public StorageContext RootStorage { get; }
         public bool IsTrigger { get; }
         public int TransactionIndex { get; }
+        public IEnumerable<Event> Events { get; }
+        public ExecutionContext EntryContext { get; }
 
         public IChainTask CurrentTask { get; }
+        public void RegisterContext(string contextName, ExecutionContext context);
+        public void SetCurrentContext(ExecutionContext context);
+        public ExecutionState Execute();
+        public string ExceptionMessage { get; }
+        public bool IsError { get; }
 
         ExecutionContext CurrentContext { get; }
         ExecutionContext PreviousContext { get; }
 
         public Address GasTarget { get; }
-        BigInteger UsedGas { get; }
+        public BigInteger UsedGas { get; }
+        public BigInteger MaxGas { get; }
         public BigInteger GasPrice { get; }
 
         public Block GetBlockByHash(Hash hash);
@@ -67,6 +77,7 @@ namespace Phantasma.Core.Domain
         public bool AddMember(string organization, Address admin, Address target);
         public bool RemoveMember(string organization, Address admin, Address target);
         public void MigrateMember(string organization, Address admin, Address source, Address destination);
+        public void MigrateToken(Address from, Address to);
 
         public bool ContractExists(string name);
         public bool ContractDeployed(string name);
@@ -92,6 +103,7 @@ namespace Phantasma.Core.Domain
         public void Throw(string description);
         void Expect(bool condition, string description);
         public void Notify(EventKind kind, Address address, byte[] data);
+        public void Notify(EventKind kind, Address address, byte[] bytes, string contract);
         public VMObject CallContext(string contextName, uint jumpOffset, string methodName, params object[] args);
         public VMObject CallInterop(string methodName, params object[] args);
 
@@ -119,6 +131,7 @@ namespace Phantasma.Core.Domain
 
         public BigInteger GenerateUID();
         public BigInteger GenerateRandomNumber();
+        public void SetRandomSeed(BigInteger seed);
 
         public TriggerResult InvokeTrigger(bool allowThrow, byte[] script, string contextName, ContractInterface abi, string triggerName, params object[] args);
 
@@ -146,6 +159,7 @@ namespace Phantasma.Core.Domain
         public void BurnTokens(string symbol, Address target, BigInteger amount);
         public void TransferTokens(string symbol, Address source, Address destination, BigInteger amount);
         public void SwapTokens(string sourceChain, Address from, string targetChain, Address to, string symbol, BigInteger value);
+        public bool IsSystemToken(IToken token);
 
         public BigInteger MintToken(string symbol, Address from, Address target, byte[] rom, byte[] ram, BigInteger seriesID);
         public void BurnToken(string symbol, Address target, BigInteger tokenID);

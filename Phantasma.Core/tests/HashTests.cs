@@ -1,13 +1,12 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Core.Cryptography;
 using Shouldly;
+using Xunit;
 
 namespace Phantasma.Core.Tests;
 
-[TestClass]
 public class HashTests
 {
-    [TestMethod]
+    [Fact]
     public void null_hash_test()
     {
         var hash = Hash.Null;

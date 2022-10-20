@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Phantasma.Shared;
 
 namespace Phantasma.Core.Storage.Context
 {
@@ -21,6 +20,11 @@ namespace Phantasma.Core.Storage.Context
         {
             Throw.IfNull(baseContext, "base context");
             this.baseContext = baseContext;
+        }
+
+        public StorageChangeSetContext Clone()
+        {
+            return new StorageChangeSetContext(this);
         }
 
         public override void Clear()

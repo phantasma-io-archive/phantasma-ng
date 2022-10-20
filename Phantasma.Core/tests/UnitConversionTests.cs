@@ -1,13 +1,12 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Core.Numerics;
 using Shouldly;
+using Xunit;
 
 namespace Phantasma.Core.Tests;
 
-[TestClass]
 public class UnitConversionTests
 {
-    [TestMethod]
+    [Fact]
     public void to_big_integer()
     {
         const int units = 10;
@@ -16,7 +15,7 @@ public class UnitConversionTests
         multiplier.ShouldBe(1000000000000000000);
     }
 
-    [TestMethod]
+    [Fact]
     public void to_decimal()
     {
         const long bigInteger = 1000000000000000000;
@@ -25,7 +24,7 @@ public class UnitConversionTests
         dec.ShouldBe(100000000);
     }
 
-    [TestMethod]
+    [Fact]
     public void string_to_decimal()
     {
         const string bigIntegerString = "1000000000000000000";
@@ -34,7 +33,7 @@ public class UnitConversionTests
         dec.ShouldBe(100000000);
     }
 
-    [TestMethod]
+    [Fact]
     public void convert_decimals()
     {
         const int value = 100000000;
@@ -44,7 +43,7 @@ public class UnitConversionTests
         bigInteger.ShouldBe(10000000000);
     }
 
-    [TestMethod]
+    [Fact]
     public void get_unit_value()
     {
         const int dec = 10;

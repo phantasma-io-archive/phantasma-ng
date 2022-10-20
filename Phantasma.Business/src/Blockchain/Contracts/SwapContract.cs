@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using Google.Protobuf.WellKnownTypes;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
@@ -341,6 +342,8 @@ namespace Phantasma.Business.Blockchain.Contracts
             if (pool.Symbol0 == fromSymbol)
             {
                 tokenAmount = pool.Amount1 * (1 - feeAmount / 100) * amount / (pool.Amount0 + (1 - feeAmount / 100) * amount);
+                if (toInfo.Decimals == 0)
+                    tokenAmount = (int) tokenAmount;
                 canBeTraded = ValidateTrade(amount, tokenAmount, pool, true);
                 //power = (BigInteger)Math.Pow((long)(pool.Amount0 - amount), 2);
                 //rateForSwap = pool.Amount0 * pool.Amount1 * 10000000000 / power;
@@ -349,10 +352,15 @@ namespace Phantasma.Business.Blockchain.Contracts
             {
 
                 tokenAmount = pool.Amount0 * (1-feeAmount / 100) * amount / (pool.Amount1 + (1 - feeAmount / 100) * amount);
+                Console.WriteLine($"Test-> {tokenAmount}");
+                if (toInfo.Decimals == 0)
+                    tokenAmount = (int) tokenAmount;
                 canBeTraded = ValidateTrade(tokenAmount, amount, pool, false);
                 //power = (BigInteger)Math.Pow((long)(pool.Amount1 + amount), 2);
                 //rateForSwap =  pool.Amount0 * pool.Amount1 * 10000000000 / power;
             }
+
+            Console.WriteLine($"Test-> {tokenAmount}");
 
             rate = tokenAmount;
             Runtime.Expect(canBeTraded, "Can't be traded, the trade is not valid.");
@@ -361,6 +369,12 @@ namespace Phantasma.Business.Blockchain.Contracts
             return rate;
         }
         
+        /// <summary>
+        /// To deposit tokens on the contract
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="symbol"></param>
+        /// <param name="amount"></param>
         public void DepositTokens(Address from, string symbol, BigInteger amount)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -375,6 +389,11 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.TransferTokens(symbol, from, this.Address, amount);
         }
 
+        /// <summary>
+        /// Get available 
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <returns></returns>
         private BigInteger GetAvailableForSymbol(string symbol)
         {
             var balance = Runtime.GetBalance(symbol, this.Address);
@@ -444,7 +463,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         /// <param name="from"></param>
         /// <param name="fromSymbol"></param>
         /// <param name="feeAmount"></param>
-        private void SwapFee(Address from, string fromSymbol, BigInteger feeAmount)
+        public void SwapFee(Address from, string fromSymbol, BigInteger feeAmount)
         {
             Runtime.Expect(_DEXversion >= 1, "call migrateV3 first");
             var feeSymbol = DomainSettings.FuelTokenSymbol;
@@ -507,6 +526,13 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(finalFeeBalance >= feeBalance, $"something went wrong in swapfee finalFeeBalance: {finalFeeBalance} feeBalance: {feeBalance}");
         }
 
+        /// <summary>
+        /// To swap tokens in reverse
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="fromSymbol"></param>
+        /// <param name="toSymbol"></param>
+        /// <param name="total"></param>
         public void SwapReverse(Address from, string fromSymbol, string toSymbol, BigInteger total)
         {
             var amount = GetRate(toSymbol, fromSymbol, total);
@@ -514,6 +540,13 @@ namespace Phantasma.Business.Blockchain.Contracts
             SwapTokens(from, fromSymbol, toSymbol, amount);
         }
 
+        /// <summary>
+        /// Swap Fiat
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="fromSymbol"></param>
+        /// <param name="toSymbol"></param>
+        /// <param name="worth"></param>
         public void SwapFiat(Address from, string fromSymbol, string toSymbol, BigInteger worth)
         {
             var amount = GetRate(DomainSettings.FiatTokenSymbol, fromSymbol, worth);
@@ -531,6 +564,13 @@ namespace Phantasma.Business.Blockchain.Contracts
             SwapTokens(from, fromSymbol, toSymbol, amount);
         }
 
+        /// <summary>
+        /// To swap tokens
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="fromSymbol"></param>
+        /// <param name="toSymbol"></param>
+        /// <param name="amount"></param>
         public void SwapTokens(Address from, string fromSymbol, string toSymbol, BigInteger amount)
         {
             var swapVersion = GetSwapVersion();
@@ -611,7 +651,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var total = GetRate(fromSymbol, toSymbol, amount);
             Runtime.Expect(total > 0, "amount to swap needs to be larger than zero");
-
+            
 
             if (!PoolIsReal(fromSymbol, toSymbol)){
                 var rate = GetRate(fromSymbol, "SOUL", amount);
@@ -662,20 +702,45 @@ namespace Phantasma.Business.Blockchain.Contracts
             // Trading volume
             if (fromSymbol == DomainSettings.StakingTokenSymbol)
                 UpdateTradingVolume(pool, amount);
-            else
+            else if ( toSymbol ==  DomainSettings.StakingTokenSymbol)
                 UpdateTradingVolume(pool, total);
             
             // Handle Fees
-            BigInteger totalFees = total*3/100;
-            BigInteger feeForUsers = totalFees * 100 / UserPercent;
-            BigInteger feeForOwner = totalFees * 100 / GovernancePercent;
+            // Fees are always based on SOUL traded.
+            BigInteger totalFees = 0;
+            BigInteger feeForUsers = 0;
+            BigInteger feeForOwner = 0;
+            if (fromSymbol == DomainSettings.StakingTokenSymbol)
+            {
+                totalFees = amount*3/100;
+                feeForUsers = totalFees * 100 / UserPercent;
+                feeForOwner = totalFees * 100 / GovernancePercent;
+            }
+            else if (toSymbol == DomainSettings.StakingTokenSymbol)
+            {
+                totalFees = total*3/100;
+                feeForUsers = totalFees * 100 / UserPercent;
+                feeForOwner = totalFees * 100 / GovernancePercent;
+            }
+            
+            pool.Amount0 += amount;
+            pool.Amount1 -= total;
             pool.FeesForUsers += feeForUsers;
             pool.FeesForOwner += feeForOwner;
-
             DistributeFee(feeForUsers, pool.Symbol0, pool.Symbol1);
 
             // Save Pool
             _pools.Set<string, Pool>($"{pool.Symbol0}_{pool.Symbol1}", pool);
+        }
+
+        public string TestCallLPContract()
+        {
+            var existsLP = Runtime.TokenExists(DomainSettings.LiquidityTokenSymbol);
+            Runtime.Expect(existsLP, "LP token already exists!");
+            var lpContract = Runtime.GetContract("LP");
+            string context = Runtime.CallContext("LP", lpContract.ABI.FindMethod("testContext")).AsString();
+            Console.WriteLine("Contenxt: " + context);
+            return context;
         }
 
 
@@ -690,22 +755,11 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(_DEXversion == 0, "Migration failed, wrong version");
 
             var existsLP = Runtime.TokenExists(DomainSettings.LiquidityTokenSymbol);
-            Runtime.Expect(!existsLP, "LP token already exists!");
-
-            var tokenScript = new byte[] { (byte)Opcode.RET }; // TODO maybe fetch a pre-compiled Tomb script here, like for Crown?
-            var abi = ContractInterface.Empty;
-            Runtime.CreateToken(caller, DomainSettings.LiquidityTokenSymbol, DomainSettings.LiquidityTokenSymbol, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
-
-            byte[] nftScript;
-            ContractInterface nftABI;
-
-            var url = "https://www.22series.com/part_info?id=*";
-            Tokens.TokenUtils.GenerateNFTDummyScript(DomainSettings.LiquidityTokenSymbol, $"{DomainSettings.LiquidityTokenSymbol} #*", $"{DomainSettings.LiquidityTokenSymbol} #*", url, url, out nftScript, out nftABI);
-            Runtime.CreateTokenSeries(DomainSettings.LiquidityTokenSymbol, this.Address, 1, 0, TokenSeriesMode.Unique, nftScript, nftABI);
+            Runtime.Expect(existsLP, "LP token already exists!");
 
             // check how much SOUL we have here
             var soulTotal = Runtime.GetBalance(DomainSettings.StakingTokenSymbol, this.Address);
-
+            
             // creates a new pool for SOUL and every asset that has a balance in v2
             var symbols = Runtime.GetTokens();
 
@@ -835,80 +889,71 @@ namespace Phantasma.Business.Blockchain.Contracts
         internal StorageMap _pools;
         internal StorageMap _lp_tokens;
         internal StorageMap _lp_holders; // <string, storage_list<Address>> |-> string : $"symbol0_symbol1" |-> Address[] : key to the list 
-        internal StorageMap _trading_volume; // <string, storage_list<TradingVolume>> |-> string : $"symbol0_symbol1" |-> TradingVolume[] : key to the list 
+        internal StorageMap _trading_volume; // <string, stoage_map<uint,TradingVolume>> |-> string : $"symbol0_symbol1" |-> TradingVolume[] : key to the list 
 
-        
-        private StorageList GetTradingVolume(string symbol0, string symbol1)
+        /// <summary>
+        /// Get the storga map of the tradingvolume
+        /// </summary>
+        /// <param name="symbol0"></param>
+        /// <param name="symbol1"></param>
+        /// <returns></returns>
+        private StorageMap GetTradingVolume(string symbol0, string symbol1)
         {
             string key = $"{symbol0}_{symbol1}";
             if (!_trading_volume.ContainsKey<string>(key))
             {
-                StorageList newStorage = new StorageList();
-                _trading_volume.Set<string, StorageList>(key, newStorage);
+                StorageMap newStorage = new StorageMap();
+                _trading_volume.Set<string, StorageMap>(key, newStorage);
             }
 
-            var _tradingList = _trading_volume.Get<string, StorageList>(key);
+            var _tradingList = _trading_volume.Get<string, StorageMap>(key);
             return _tradingList;
         }
+        
         // Year -> Math.floor(((time % 31556926) % 2629743) / 86400)
         // Month -> Math.floor(((time % 31556926) % 2629743) / 86400)
         // Day -> Math.floor(((time % 31556926) % 2629743) / 86400)
-        private TradingVolume GetTradingVolumeToday(string symbol0, string symbol1)
+        public TradingVolume GetTradingVolumeToday(string symbol0, string symbol1)
         {
-            var tradingList = GetTradingVolume(symbol0, symbol1);
-            var index = 0;
-            var count = tradingList.Count();
-            var today = DateTime.Today.Date; 
+            var tradingMap = GetTradingVolume(symbol0, symbol1);
+            var today = DateTime.Today.Date;
+            var todayTimestamp = today.ToTimestamp();
             TradingVolume tempTrading = new TradingVolume(symbol0, symbol0, today.ToShortDateString(), 0);
-            while (index < count)
-            {
-                tempTrading = tradingList.Get<TradingVolume>(index);
-                if (tempTrading.Day == today.ToShortDateString())
-                    return tempTrading;
-
-                index++;
-            }
             
+            if ( tradingMap.ContainsKey(todayTimestamp))
+                return tradingMap.Get<Timestamp, TradingVolume>(todayTimestamp);
             return tempTrading;
         }
 
         /// <summary>
-        /// 
+        /// Get all the trading volumes for that Pool
+        /// </summary>
+        /// <param name="symbol0"></param>
+        /// <param name="symbol1"></param>
+        /// <returns></returns>
+        public TradingVolume[] GetTradingVolumes(string symbol0, string symbol1)
+        {
+            var tradingMap = GetTradingVolume(symbol0, symbol1);
+            return tradingMap.AllValues<TradingVolume>();
+        }
+
+        /// <summary>
+        /// Update the trading volume
         /// </summary>
         /// <param name="pool"></param>
         /// <param name="Amount">Always in SOUL AMOUNT!</param>
         private void UpdateTradingVolume(Pool pool, BigInteger Amount)
         {
             var today = DateTime.Today.Date; 
-            StorageList tradingList = GetTradingVolume(pool.Symbol0, pool.Symbol1);
+            var todayTimestamp = today.ToTimestamp();
+            StorageMap tradingMap = GetTradingVolume(pool.Symbol0, pool.Symbol1);
             var tradingToday = GetTradingVolumeToday(pool.Symbol0, pool.Symbol1);
             string key = $"{pool.Symbol0}_{pool.Symbol1}";
             tradingToday.Volume += Amount;
-            
-            var index = 0;
-            var count = tradingList.Count();
-            bool changed = false;
-            TradingVolume tempTrading;
-            while (index < count)
-            {
-                tempTrading = tradingList.Get<TradingVolume>(index);
-                if (tempTrading.Day == today.ToShortDateString())
-                {
-                    tradingList.Replace(index, tradingToday);
-                    changed = true;
-                    break;
-                }
 
-                index++;
-            }
-
-            if (!changed)
-            {
-                tradingList.Add(tradingToday);
-            }
+            tradingMap.Set(todayTimestamp, tradingToday);
             
-            
-            _trading_volume.Set<string, StorageList>(key, tradingList);
+            _trading_volume.Set<string, StorageMap>(key, tradingMap);
         }
         /// <summary>
         /// This method is used to generate the key related to the USER NFT ID, to make it easier to fetch.
@@ -1119,7 +1164,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
 
         /// <summary>
-        /// Remove From LP TOkens
+        /// This method is used to Remove user From LP Tokens
         /// </summary>
         /// <param name="from"></param>
         /// <param name="NFTID"></param>
@@ -1128,7 +1173,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         private void RemoveFromLPTokens(Address from, BigInteger NFTID, string symbol0, string symbol1)
         {
             var lptokenKey = GetLPTokensKey(from, symbol0, symbol1);
-            Runtime.Expect(!_lp_tokens.ContainsKey<string>(lptokenKey), "The user is not on the list.");
+            Runtime.Expect(_lp_tokens.ContainsKey<string>(lptokenKey), "The user is not on the list.");
             _lp_tokens.Remove<string>(lptokenKey);
             RemoveFromLPHolders(from, symbol0, symbol1);
         }
@@ -1545,16 +1590,12 @@ namespace Phantasma.Business.Blockchain.Contracts
             BigInteger poolRatio = 0; 
             BigInteger tradeRatioAmount = 0;
 
-            Console.WriteLine($"Division: {UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals)}");
-
             
             if (UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals) > 0)
                 poolRatio = UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals);
             else
                 poolRatio = UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals);
 
-            Console.WriteLine($"Is Pool Ratio 0? : {poolRatio}");
-            
             // Calculate Amounts if they are 0
             if (amount0 == 0)
             {
@@ -1567,8 +1608,6 @@ namespace Phantasma.Business.Blockchain.Contracts
                     amount1 = UnitConversion.ConvertDecimals((amount0 / 100 / poolRatio), DomainSettings.FiatTokenDecimals, token1Info.Decimals);
                 }
             }
-
-            Console.WriteLine($"tradeRatio Division? : {UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals)}");
 
             if (amount1 * 100 / UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals) > 0)
                 tradeRatioAmount = amount0 * 100 / UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals);
@@ -1602,41 +1641,64 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(ValidateRatio(tempAm1, tempAm0*100, poolRatio), $"ratio is not true. {poolRatio}, new {tempAm0} {tempAm1} {tempAm0 / tempAm1} {amount0 / UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals)}");
 
             // Update the user NFT
-            Console.WriteLine("Before Updateding the NFT");
             var lpKey = GetLPTokensKey(from, pool.Symbol0, pool.Symbol1);
             var nftID = _lp_tokens.Get<string, BigInteger>(lpKey);
             var nft = Runtime.ReadToken(DomainSettings.LiquidityTokenSymbol, nftID);
             LPTokenContentRAM nftRAM = VMObject.FromBytes(nft.RAM).AsStruct<LPTokenContentRAM>();
-            BigInteger newAmount0 = nftRAM.Amount0 - amount0;
-            BigInteger newAmount1 = nftRAM.Amount1 - amount1;
-            BigInteger oldAmount0 = nftRAM.Amount0;
-            BigInteger oldAmount1 = nftRAM.Amount1;
+            BigInteger oldAmount0 = nftRAM.Liquidity * pool.Amount0 / pool.TotalLiquidity;
+            BigInteger oldAmount1 = nftRAM.Liquidity * pool.Amount1 / pool.TotalLiquidity;
+            BigInteger newAmount0 = oldAmount0 - amount0;
+            BigInteger newAmount1 = oldAmount1 - amount1;
             BigInteger oldLP = nftRAM.Liquidity;
             Console.WriteLine($"new LP Division? : {(pool.Amount0-nftRAM.Amount0)}");
-            BigInteger newLiquidity = newAmount0 * (pool.TotalLiquidity - nftRAM.Liquidity) / (pool.Amount0-nftRAM.Amount0);
+            Console.WriteLine($"Pool Amount : {(pool.Amount0)} | NFT -> {nftRAM.Amount0}");
+            BigInteger division = pool.Amount0 - nftRAM.Amount0;
+            BigInteger lp = pool.TotalLiquidity - nftRAM.Liquidity;
+            
+            if (pool.Amount0 - nftRAM.Amount0 <= 0)
+            {
+                division = 1;
+            }
+
+            if (lp == 0)
+            {
+                lp = 1;
+            }
+            BigInteger newLiquidity = 0;
+            if (pool.Amount0 == oldAmount0)
+            {
+                newLiquidity = (BigInteger) Sqrt(newAmount0 * newAmount1);
+            }
+            else
+            {
+                newLiquidity = newAmount0 * (lp) / division;
+            }
+            
 
             Console.WriteLine($"LP Division? : {(pool.Amount0)}");
 
-            liquidity = (amount0 * (pool.TotalLiquidity)) / (pool.Amount0);
+            liquidity = (amount0 * pool.TotalLiquidity) / (pool.Amount0);
             
             Runtime.Expect(nftRAM.Liquidity - liquidity >= 0, "Trying to remove more than you have...");
 
-            //Console.WriteLine($"BeforeLP:{nftRAM.Liquidity} - LiquidityToRemove:{liquidity} | FinalLP:{newLiquidity}");
+            Console.WriteLine($"BeforeLP:{nftRAM.Liquidity} - LiquidityToRemove:{liquidity} | FinalLP:{newLiquidity}");
 
 
             // If the new amount will be = 0 then burn the NFT
-            if (nftRAM.Liquidity - liquidity == 0)
+            if (newAmount0 == 0)
             {
                 // Burn NFT
                 Runtime.BurnToken(DomainSettings.LiquidityTokenSymbol, from, nftID);
                 RemoveFromLPTokens(from, nftID, pool.Symbol0, pool.Symbol1);
+                Runtime.TransferTokens(pool.Symbol0, this.Address, from, oldAmount0);
+                Runtime.TransferTokens(pool.Symbol1, this.Address, from, oldAmount1);
             }
             else
             {
-                Runtime.Expect(nftRAM.Amount0 - amount0 > 0, $"Lower Amount for symbol {symbol0}. | You have {nftRAM.Amount0} {symbol0}, trying to remove {amount0} {symbol0}");
+                Runtime.Expect(oldAmount0 - amount0 > 0, $"Lower Amount for symbol {symbol0}. | You have {oldAmount0} {symbol0}, trying to remove {amount0} {symbol0}");
                 nftRAM.Amount0 = newAmount0;
 
-                Runtime.Expect(nftRAM.Amount1 - amount1 > 0, $"Lower Amount for symbol {symbol1}. | You have {nftRAM.Amount1} {symbol1}, trying to remove {amount1} {symbol1}");
+                Runtime.Expect(oldAmount1 - amount1 > 0, $"Lower Amount for symbol {symbol1}. | You have {oldAmount1} {symbol1}, trying to remove {amount1} {symbol1}");
                 nftRAM.Amount1 = newAmount1;
 
                 Runtime.TransferTokens(symbol0, this.Address, from, amount0);
@@ -1648,12 +1710,29 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
 
             // Update the pool values
-            pool.Amount0 = (pool.Amount0 - oldAmount0) + amount0;
-            pool.Amount1 = (pool.Amount1 - oldAmount1) + amount1;
+            if (pool.Amount0 == oldAmount0)
+            {
+                pool.Amount0 = newAmount0;
+                pool.Amount1 = newAmount1;
+                
+                pool.TotalLiquidity = newLiquidity;
+            }
+            else
+            {
+                pool.Amount0 = (pool.Amount0 - oldAmount0) + newAmount0;
+                pool.Amount1 = (pool.Amount1 - oldAmount1) + newAmount1;
 
-            pool.TotalLiquidity = pool.TotalLiquidity - oldLP + newLiquidity;
+                pool.TotalLiquidity = pool.TotalLiquidity - oldLP + newLiquidity;
+            }
 
-            _pools.Set<string, Pool>($"{pool.Symbol0}_{pool.Symbol1}", pool);
+            if (pool.Amount0 == 0)
+            {
+                _pools.Remove($"{pool.Symbol0}_{pool.Symbol1}");
+            }
+            else
+            {
+                _pools.Set<string, Pool>($"{pool.Symbol0}_{pool.Symbol1}", pool);
+            }
         }
 
         private bool ValidateTrade(BigInteger amount0, BigInteger amount1, Pool pool, bool isBuying = false)

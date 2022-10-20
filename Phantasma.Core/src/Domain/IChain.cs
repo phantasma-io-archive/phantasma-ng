@@ -3,7 +3,7 @@ using System.Numerics;
 using Google.Protobuf;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 using Tendermint;
 using Tendermint.Types;
 using TValidatorUpdate = Tendermint.Abci.ValidatorUpdate;
@@ -30,13 +30,8 @@ public interface IChain
     byte[] Commit();
     IEnumerable<TValidatorUpdate> EndBlock();
 
-
     string ToString();
-    void AddBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee, StorageChangeSetContext changeSet);
-    StorageChangeSetContext ProcessBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee);
-
-    StorageChangeSetContext ProcessTransactions(Block block, IEnumerable<Transaction> transactions
-        , IOracleReader oracle, BigInteger minimumFee);
+    void AddBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet);
 
     BigInteger GetTokenBalance(StorageContext storage, IToken token, Address address);
     BigInteger GetTokenBalance(StorageContext storage, string symbol, Address address);

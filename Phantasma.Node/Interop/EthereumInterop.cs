@@ -15,9 +15,10 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Node.Chains.Ethereum;
-using Phantasma.Shared.Utils;
+using Phantasma.Node.Utils;
 using Serilog;
 using EthereumKey = Phantasma.Node.Chains.Ethereum.EthereumKey;
 
@@ -30,6 +31,7 @@ namespace Phantasma.Node.Interop
         private uint confirmations;
         private List<BigInteger> _resyncBlockIds = new List<BigInteger>();
         private static bool initialStart = true;
+        private StringLocker _locker;
 
         public EthereumInterop(TokenSwapper swapper, EthAPI ethAPI, BigInteger interopBlockHeight, string[] contracts, uint confirmations)
                 : base(swapper, EthereumWallet.EthereumPlatform)
@@ -47,6 +49,7 @@ namespace Phantasma.Node.Interop
 
             this.confirmations = confirmations;
             this.ethAPI = ethAPI;
+            this._locker = new StringLocker();
         }
 
         protected override string GetAvailableAddress(string wif)
@@ -61,7 +64,7 @@ namespace Phantasma.Node.Interop
             //Task.Delay(10000).Wait();
             try
             {
-                lock (String.Intern("PendingSetCurrentHeight_" + EthereumWallet.EthereumPlatform))
+                lock (this._locker.GetLockObject("PendingSetCurrentHeight_" + EthereumWallet.EthereumPlatform))
                 {
                     var result = new List<PendingSwap>();
 

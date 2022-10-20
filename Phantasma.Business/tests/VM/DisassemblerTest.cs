@@ -22,7 +22,7 @@ public class DisassemblerTest
         // Assert
         result.ShouldNotBeNull();
         result.ShouldNotBeEmpty();
-        result.Length.ShouldBe(76);
+        result.Length.ShouldBe(66);
         result.First().Opcode.ShouldBe(Opcode.LOAD);
         result.Last().Opcode.ShouldBe(Opcode.RET);
     }
@@ -39,7 +39,7 @@ public class DisassemblerTest
         // Assert
         result.ShouldNotBeNull();
         result.ShouldNotBeEmpty();
-        result.Length.ShouldBe(31);
+        result.Length.ShouldBe(21);
         result.First().Opcode.ShouldBe(Opcode.LOAD);
         result.Last().Opcode.ShouldBe(Opcode.RET);
     }
