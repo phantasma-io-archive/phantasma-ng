@@ -22,15 +22,15 @@ mkdir "$TESTNET_ROOT"/node1/publish/
 mkdir "$TESTNET_ROOT"/node2/publish/
 mkdir "$TESTNET_ROOT"/node3/publish/
 
-cp -r "$PUBLISH_ROOT" "$TESTNET_ROOT"/node0/
-cp -r "$PUBLISH_ROOT" "$TESTNET_ROOT"/node1/
-cp -r "$PUBLISH_ROOT" "$TESTNET_ROOT"/node2/
-cp -r "$PUBLISH_ROOT" "$TESTNET_ROOT"/node3/
+cp -r "$PUBLISH_ROOT" "$TESTNET_ROOT"/node0/publish
+cp -r "$PUBLISH_ROOT" "$TESTNET_ROOT"/node1/publish
+cp -r "$PUBLISH_ROOT" "$TESTNET_ROOT"/node2/publish
+cp -r "$PUBLISH_ROOT" "$TESTNET_ROOT"/node3/publish
 
-cp -r "$TESTNET_ROOT"/node0/config_node0.json "$TESTNET_ROOT"/node0/publish/config.json
-cp -r "$TESTNET_ROOT"/node1/config_node1.json "$TESTNET_ROOT"/node1/publish/config.json
-cp -r "$TESTNET_ROOT"/node2/config_node2.json "$TESTNET_ROOT"/node2/publish/config.json
-cp -r "$TESTNET_ROOT"/node3/config_node3.json "$TESTNET_ROOT"/node3/publish/config.json
+cp -r "$TESTNET_ROOT"/node0/config_testnet_node0.json "$TESTNET_ROOT"/node0/publish/config.json
+cp -r "$TESTNET_ROOT"/node1/config_testnet_node1.json "$TESTNET_ROOT"/node1/publish/config.json
+cp -r "$TESTNET_ROOT"/node2/config_testnet_node2.json "$TESTNET_ROOT"/node2/publish/config.json
+cp -r "$TESTNET_ROOT"/node3/config_testnet_node3.json "$TESTNET_ROOT"/node3/publish/config.json
 
 docker build --platform=linux/x86_64 -t phantasma-devnet -f DOCKER/DockerfileTestnet .
 
