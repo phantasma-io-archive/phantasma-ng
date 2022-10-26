@@ -167,6 +167,9 @@ namespace Phantasma.Business.Blockchain.Contracts
 
                 var rewardFuel = _rewardAccum / rewardList.Count;
 
+                _rewardAccum -= rewardList.Count * rewardFuel;
+                Runtime.Expect(_rewardAccum >= 0, "invalid reward leftover");
+                
                 BigInteger stakeAmount;
 
                 stakeAmount = UnitConversion.ToBigInteger(2, DomainSettings.StakingTokenDecimals);
@@ -193,9 +196,6 @@ namespace Phantasma.Business.Blockchain.Contracts
                     Runtime.InfuseToken(DomainSettings.RewardTokenSymbol, this.Address, tokenID, DomainSettings.StakingTokenSymbol, rewardStake);
                     Runtime.TransferToken(DomainSettings.RewardTokenSymbol, this.Address, addr, tokenID);
                 }
-
-                _rewardAccum -= rewardList.Count * rewardFuel;
-                Runtime.Expect(_rewardAccum >= 0, "invalid reward leftover");
 
                 inflationAmount -= rewardAmount;
                 inflationAmount -= stakeAmount;
