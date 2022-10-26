@@ -51,7 +51,7 @@ namespace Phantasma.Core.Storage.Context
             }
             else
             {
-                right = ByteArrayUtils.ConcatBytes(element_begin_prefix, index.ToByteArray());
+                right = ByteArrayUtils.ConcatBytes(element_begin_prefix, index.ToSignedByteArray());
             }
 
             right = ByteArrayUtils.ConcatBytes(right, element_end_prefix);
