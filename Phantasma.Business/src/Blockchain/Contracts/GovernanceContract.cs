@@ -34,9 +34,9 @@ namespace Phantasma.Business.Blockchain.Contracts
         
 
 #pragma warning disable 0649
-        internal StorageMap _valueMap;
-        internal StorageMap _constraintMap;
-        internal StorageList _nameList;
+        private StorageMap _valueMap;
+        private StorageMap _constraintMap;
+        private StorageList _nameList;
 #pragma warning restore 0649
 
         public const string GasMinimumFeeTag = "governance.gas.minimumfee";
