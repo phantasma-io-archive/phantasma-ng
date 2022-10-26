@@ -9,8 +9,8 @@ sudo docker container rm phantasma-devnet
 echo y | docker image prune -a
 
 # Run the build script
-chmod u+x ./build-docker-testnet.sh
-./build-docker-testnet.sh
+chmod u+x ./build-docker-testnet-arm64.sh
+./build-docker-testnet-arm64.sh
 
 # Run the testnet
 sudo docker run --name phantasma-devnet -v $(pwd)/DOCKER/testnet:/app/testnet -tid -p 5102:5102 -p 5101:5101 -p 26057:26057 phantasma-devnet
