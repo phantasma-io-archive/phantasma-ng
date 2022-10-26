@@ -227,6 +227,21 @@ namespace Phantasma.Business.Blockchain
                     Log.Information("check tx error {MissingFuel} {Hash}", type, tx.Hash);
                     return (type, "Missing fuel");
                 }
+
+                var minFee = Nexus.GetGovernanceValue(Nexus.RootStorage, GovernanceContract.GasMinimumFeeTag);
+                if (tx.GasPrice < minFee)
+                {
+                    var type = CodeType.GasFeeTooLow;
+                    Log.Information("check tx error {type} {Hash}", type, tx.Hash);
+                    return (type, "Gas fee too low");
+                }
+            }
+
+            if (tx.Script.Length == 0)
+            {
+                var type = CodeType.InvalidScript;
+                Log.Information("check tx error {type} {Hash}", type, tx.Hash);
+                return (type, "Script attached to tx is invalid");
             }
 
             //if (!VerifyBlockBeforeAdd(this.CurrentBlock))
