@@ -2312,11 +2312,12 @@ namespace Phantasma.Business.Blockchain
             return EntryContext.Address == context.Address;
         }
 
-        public bool IsCurrentContext(string contextName)
+        // This method is broken, causes infinite recursion
+        /*public bool IsCurrentContext(string contextName)
         {
             var context = FindContext(contextName);
             return IsCurrentContext(context);
-        }
+        }*/
 
         public bool IsCurrentContext(ExecutionContext context)
         {

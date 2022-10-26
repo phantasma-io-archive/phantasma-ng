@@ -37,6 +37,7 @@ public class Nexus : INexus
     public static readonly BigInteger FuelPerContractDeployDefault = UnitConversion.ToBigInteger(10, DomainSettings.FiatTokenDecimals);
     public static readonly BigInteger FuelPerTokenDeployDefault = UnitConversion.ToBigInteger(100, DomainSettings.FiatTokenDecimals);
 
+    private bool _migratingNexus;
 
     public string Name { get; init; }
 
@@ -86,6 +87,8 @@ public class Nexus : INexus
 
         if (HasGenesis)
         {
+            _migratingNexus = false;
+
             var res = LoadNexus(storage);
             if (!res)
             {
@@ -94,6 +97,14 @@ public class Nexus : INexus
         }
         else
         {
+            var tokens = GetTokens(storage);
+            _migratingNexus = tokens.Any(x => x.Equals(DomainSettings.StakingTokenSymbol));
+
+            if (_migratingNexus)
+            {
+                Log.Information("Detected old nexus data, migration will be executed.");
+            }
+
             if (!ChainExists(storage, DomainSettings.RootChainName))
             {
                 if (!CreateChain(storage, DomainSettings.ValidatorsOrganizationName, DomainSettings.RootChainName, null))
@@ -1282,48 +1293,52 @@ public class Nexus : INexus
     private Transaction NexusCreateTx(PhantasmaKeys owner, Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>> values, IEnumerable<Address> initialValidators)
     {
         var sb = ScriptUtils.BeginScript();
-        sb.CallInterop("Nexus.BeginInit", owner.Address);
 
-        var deployInterop = "Runtime.DeployContract";
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.ValidatorContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.GovernanceContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.AccountContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.ExchangeContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.SwapContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.InteropContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.StakeContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.StorageContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.ConsensusContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.MarketContractName);
-
-        var orgInterop = "Nexus.CreateOrganization";
-        var orgScript = new byte[0];
-        sb.CallInterop(orgInterop, owner.Address, DomainSettings.ValidatorsOrganizationName, "Block Producers", orgScript);
-        sb.CallInterop(orgInterop, owner.Address, DomainSettings.MastersOrganizationName, "Soul Masters", orgScript);
-        sb.CallInterop(orgInterop, owner.Address, DomainSettings.StakersOrganizationName, "Soul Stakers", orgScript);
-
-        // initial SOUL distribution to validators
-        foreach (var validator in initialValidators)
+        if (!_migratingNexus)
         {
-            sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(60000, DomainSettings.StakingTokenDecimals));
-            sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals));
-        }
-        //sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(2863626, DomainSettings.StakingTokenDecimals));
-        //sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(1000000, DomainSettings.FuelTokenDecimals));
+            sb.CallInterop("Nexus.BeginInit", owner.Address);
 
-        // requires staking token to be created previously
-        sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), owner.Address, StakeContract.DefaultMasterThreshold);
-        sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), owner.Address, owner.Address);
+            var deployInterop = "Runtime.DeployContract";
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.ValidatorContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.GovernanceContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.AccountContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.ExchangeContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.SwapContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.InteropContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.StakeContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.StorageContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.ConsensusContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.MarketContractName);
 
-        sb.CallInterop("Nexus.EndInit", owner.Address);
+            var orgInterop = "Nexus.CreateOrganization";
+            var orgScript = new byte[0];
+            sb.CallInterop(orgInterop, owner.Address, DomainSettings.ValidatorsOrganizationName, "Block Producers", orgScript);
+            sb.CallInterop(orgInterop, owner.Address, DomainSettings.MastersOrganizationName, "Soul Masters", orgScript);
+            sb.CallInterop(orgInterop, owner.Address, DomainSettings.StakersOrganizationName, "Soul Stakers", orgScript);
 
-        foreach (var entry in values)
-        {
-            var name = entry.Key;
-            var initial = entry.Value.Key;
-            var constraints = entry.Value.Value;
-            var bytes = Serialization.Serialize(constraints);
-            sb.CallContract(NativeContractKind.Governance, nameof(GovernanceContract.CreateValue), name, initial, bytes);
+            // initial SOUL distribution to validators
+            foreach (var validator in initialValidators)
+            {
+                sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(60000, DomainSettings.StakingTokenDecimals));
+                sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals));
+            }
+            //sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(2863626, DomainSettings.StakingTokenDecimals));
+            //sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(1000000, DomainSettings.FuelTokenDecimals));
+
+            // requires staking token to be created previously
+            sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), owner.Address, StakeContract.DefaultMasterThreshold);
+            sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), owner.Address, owner.Address);
+
+            sb.CallInterop("Nexus.EndInit", owner.Address);
+
+            foreach (var entry in values)
+            {
+                var name = entry.Key;
+                var initial = entry.Value.Key;
+                var constraints = entry.Value.Value;
+                var bytes = Serialization.Serialize(constraints);
+                sb.CallContract(NativeContractKind.Governance, nameof(GovernanceContract.CreateValue), name, initial, bytes);
+            }
         }
 
         sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), owner.Address, new BigInteger(0), ValidatorType.Primary);
@@ -1354,23 +1369,26 @@ public class Nexus : INexus
         var tokenScript = new byte[] { (byte)Opcode.RET };
         var abi = ContractInterface.Empty;
 
-        //UnitConversion.ToBigInteger(91136374, DomainSettings.StakingTokenDecimals)
-        CreateToken(storage, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenName, owner, 0, DomainSettings.StakingTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Stakable, tokenScript, abi);
-        CreateToken(storage, DomainSettings.FuelTokenSymbol, DomainSettings.FuelTokenName, owner, 0, DomainSettings.FuelTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Burnable | TokenFlags.Fuel, tokenScript, abi);
+        if (!_migratingNexus)
+        {
+            CreateToken(storage, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenName, owner, 0, DomainSettings.StakingTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Stakable, tokenScript, abi);
+            CreateToken(storage, DomainSettings.FuelTokenSymbol, DomainSettings.FuelTokenName, owner, 0, DomainSettings.FuelTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Burnable | TokenFlags.Fuel, tokenScript, abi);
+            CreateToken(storage, DomainSettings.RewardTokenSymbol, DomainSettings.RewardTokenName, owner, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
+
+            CreateToken(storage, "NEO", "NEO", owner, UnitConversion.ToBigInteger(100000000, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite, tokenScript, abi);
+            CreateToken(storage, "GAS", "GAS", owner, UnitConversion.ToBigInteger(100000000, 8), 8, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Finite, tokenScript, abi);
+            CreateToken(storage, "ETH", "Ethereum", owner, UnitConversion.ToBigInteger(0, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible, tokenScript, abi);
+            //CreateToken(storage, "DAI", "Dai Stablecoin", owner, UnitConversion.ToBigInteger(0, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Foreign, tokenScript, abi);
+            //GenerateToken(_owner, "EOS", "EOS", "EOS", UnitConversion.ToBigInteger(1006245120, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite | TokenFlags.Divisible | TokenFlags.External, tokenScript, abi);
+
+            SetPlatformTokenHash(DomainSettings.StakingTokenSymbol, "neo", Hash.FromUnpaddedHex("ed07cffad18f1308db51920d99a2af60ac66a7b3"), storage);
+            SetPlatformTokenHash("NEO", "neo", Hash.FromUnpaddedHex("c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b"), storage);
+            SetPlatformTokenHash("GAS", "neo", Hash.FromUnpaddedHex("602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7"), storage);
+            SetPlatformTokenHash("ETH", "ethereum", Hash.FromString("ETH"), storage);
+            //SetPlatformTokenHash("DAI", "ethereum", Hash.FromUnpaddedHex("6b175474e89094c44da98b954eedeac495271d0f"), storage);
+        }
+
         CreateToken(storage, DomainSettings.FiatTokenSymbol, DomainSettings.FiatTokenName, owner, 0, DomainSettings.FiatTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Fiat, tokenScript, abi);
-        CreateToken(storage, DomainSettings.RewardTokenSymbol, DomainSettings.RewardTokenName, owner, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
-
-        CreateToken(storage, "NEO", "NEO", owner, UnitConversion.ToBigInteger(100000000, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite, tokenScript, abi);
-        CreateToken(storage, "GAS", "GAS", owner, UnitConversion.ToBigInteger(100000000, 8), 8, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Finite, tokenScript, abi);
-        CreateToken(storage, "ETH", "Ethereum", owner, UnitConversion.ToBigInteger(0, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible, tokenScript, abi);
-        //CreateToken(storage, "DAI", "Dai Stablecoin", owner, UnitConversion.ToBigInteger(0, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Foreign, tokenScript, abi);
-        //GenerateToken(_owner, "EOS", "EOS", "EOS", UnitConversion.ToBigInteger(1006245120, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite | TokenFlags.Divisible | TokenFlags.External, tokenScript, abi);
-
-        SetPlatformTokenHash(DomainSettings.StakingTokenSymbol, "neo", Hash.FromUnpaddedHex("ed07cffad18f1308db51920d99a2af60ac66a7b3"), storage);
-        SetPlatformTokenHash("NEO", "neo", Hash.FromUnpaddedHex("c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b"), storage);
-        SetPlatformTokenHash("GAS", "neo", Hash.FromUnpaddedHex("602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7"), storage);
-        SetPlatformTokenHash("ETH", "ethereum", Hash.FromString("ETH"), storage);
-        //SetPlatformTokenHash("DAI", "ethereum", Hash.FromUnpaddedHex("6b175474e89094c44da98b954eedeac495271d0f"), storage);
     }
 
     public void FinishInitialize(IRuntime vm, Address owner)
@@ -1391,18 +1409,9 @@ public class Nexus : INexus
         }
     }
 
-    public Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, int version, PhantasmaKeys owner, IEnumerable<Address> initialValidators)
+    private Transaction GenerateGenesisTx(PhantasmaKeys owner, int version, IEnumerable<Address> initialValidators)
     {
-        if (this.HasGenesis)
-        {
-            return new Dictionary<int, Transaction>();
-        }
-
-        // create genesis transactions
-        var transactions = new Dictionary<int, Transaction>
-        {
-
-            {1, NexusCreateTx(owner,
+        return NexusCreateTx(owner,
              new Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>>() {
                  {
                      NexusProtocolVersionTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
@@ -1553,9 +1562,25 @@ public class Nexus : INexus
                    {
                        new ChainConstraint {Kind = ConstraintKind.MinValue, Value = GovernanceContract.GasMinimumFeeDefault},
                        new ChainConstraint {Kind = ConstraintKind.MustIncrease}
-                   })  
+                   })
                  },
-             }, initialValidators)},
+             }, initialValidators);
+        }
+
+    public Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, int version, PhantasmaKeys owner, IEnumerable<Address> initialValidators)
+    {
+        if (this.HasGenesis)
+        {
+            return new Dictionary<int, Transaction>();
+        }
+
+        var genesisTx = GenerateGenesisTx(owner, version, initialValidators);
+
+        // create genesis transactions
+        var transactions = new Dictionary<int, Transaction>
+        {
+
+            {1, genesisTx},
         };
 
         //var rootChain = GetChainByName(DomainSettings.RootChainName);
