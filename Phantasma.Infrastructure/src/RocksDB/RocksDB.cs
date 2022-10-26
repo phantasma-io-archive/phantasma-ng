@@ -209,7 +209,7 @@ namespace Phantasma.Infrastructure.RocksDB
 
         public static RocksDb Instance(string name)
         {
-            Log.Information("sdkflklsdfdklsafjkl");
+            //Log.Information("sdkflklsdfdklsafjkl");
             if (!_db.ContainsKey(name))
             {
                 if (string.IsNullOrEmpty(name)) throw new System.ArgumentException("Parameter cannot be null", "name");
