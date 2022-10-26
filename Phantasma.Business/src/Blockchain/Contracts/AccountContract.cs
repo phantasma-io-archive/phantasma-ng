@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
@@ -94,7 +95,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             var abi = ContractInterface.FromBytes(abiBytes);
             Runtime.Expect(abi.MethodCount > 0, "unexpected empty contract abi");
 
-            var witnessTriggerName = AccountTrigger.OnWitness.ToString();
+            var witnessTriggerName = nameof(AccountTrigger.OnWitness);
             if (abi.HasMethod(witnessTriggerName))
             {
                 var witnessCheck = Runtime.InvokeTrigger(false, script, NativeContractKind.Account, abi, witnessTriggerName, Address.Null) != TriggerResult.Failure;
@@ -149,7 +150,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 return _scriptMap.Get<Address, byte[]>(target);
             }
 
-            return new byte[0];
+            return System.Array.Empty<byte>();
         }
 
         public byte[] LookUpABI(Address target)

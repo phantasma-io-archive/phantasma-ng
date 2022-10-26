@@ -121,6 +121,8 @@ namespace Phantasma.Business.Blockchain.Contracts
                         totalVotes += entry.votes;
                     }
 
+                    if (totalVotes == 0) return poll;
+
                     var rankings = poll.entries.OrderByDescending(x => x.votes).ToArray();
 
                     var winner = rankings[0];
@@ -151,10 +153,10 @@ namespace Phantasma.Business.Blockchain.Contracts
                             }
                         }
                         Runtime.Expect(index >= 0, "missing entry in poll rankings");
-
+                    
                         poll.entries[i].ranking = index;
                     }
-
+                    
                     BigInteger percentage = (winner.votes * 100) / totalVotes;
 
                     if (poll.mode == ConsensusMode.Unanimity && percentage < 100)
@@ -190,11 +192,11 @@ namespace Phantasma.Business.Blockchain.Contracts
             // TODO support for passing structs as args
             var choices = Serialization.Unserialize<PollChoice[]>(serializedChoices);
 
-            if (subject.StartsWith(SystemPoll))
+            if (subject.ToLower().StartsWith(SystemPoll))
             {
                 Runtime.Expect(Runtime.IsPrimaryValidator(from), "must be validator");
 
-                if (subject.StartsWith(SystemPoll + "stake."))
+                if (subject.ToLower().StartsWith(SystemPoll + "stake."))
                 {
                     Runtime.Expect(organization == DomainSettings.MastersOrganizationName, "must require votes from masters");
                 }
