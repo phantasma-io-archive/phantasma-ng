@@ -17,10 +17,10 @@ rm tendermint_"$VERSION"_linux_arm64.tar.gz
 
 dotnet publish "$NODE_PROJ" --sc -r linux-arm64
 
-mkdir "$TESTNET_ROOT"/node0/publish/
-mkdir "$TESTNET_ROOT"/node1/publish/
-mkdir "$TESTNET_ROOT"/node2/publish/
-mkdir "$TESTNET_ROOT"/node3/publish/
+mkdir -p "$TESTNET_ROOT"/node0/publish/
+mkdir -p "$TESTNET_ROOT"/node1/publish/
+mkdir -p "$TESTNET_ROOT"/node2/publish/
+mkdir -p "$TESTNET_ROOT"/node3/publish/
 
 cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node0/publish
 cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node1/publish
