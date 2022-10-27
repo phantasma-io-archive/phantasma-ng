@@ -33,8 +33,4 @@
     <ProjectReference Include="../../Phantasma.Infrastructure/src/Phantasma.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="CodeGen" />
-  </ItemGroup>
-
 </Project>

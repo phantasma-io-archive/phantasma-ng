@@ -514,7 +514,8 @@ namespace Phantasma.Business.Blockchain
         #region DATA
         private static ExecutionState Data_Get(RuntimeVM vm)
         {
-            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
+            // NOTE: having this check here prevents NFT properties from working
+            //vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
 
             vm.ExpectStackSize(3);
 
@@ -523,7 +524,6 @@ namespace Phantasma.Business.Blockchain
             var field = vm.PopString("field");
             var key = SmartContract.GetKeyForField(contractName, field, false);
 
-            vm.Expect(vm.IsCurrentContext(contractName), $"Not allowed from this context");
             vm.Expect(vm.ContractDeployed(contractName), $"contract '{contractName}' is not deployed when trying to fetch field '{field}'");
 
             var type_obj = vm.Stack.Pop();
@@ -593,7 +593,6 @@ namespace Phantasma.Business.Blockchain
             vm.ExpectStackSize(4);
 
             var contractName = vm.PopString("contract");
-            vm.Expect(vm.IsCurrentContext(contractName), $"Not allowed from this context");
 
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -623,7 +622,6 @@ namespace Phantasma.Business.Blockchain
             vm.ExpectStackSize(4);
 
             var contractName = vm.PopString("contract");
-            vm.Expect(vm.IsCurrentContext(contractName), $"Not allowed from this context");
 
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -731,7 +729,6 @@ namespace Phantasma.Business.Blockchain
             vm.ExpectStackSize(2);
 
             var contractName = vm.PopString("contract");
-            vm.Expect(vm.IsCurrentContext(contractName), $"Not allowed from this context");
 
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -752,7 +749,6 @@ namespace Phantasma.Business.Blockchain
             vm.ExpectStackSize(2);
 
             var contractName = vm.PopString("contract");
-            vm.Expect(vm.IsCurrentContext(contractName), $"Not allowed from this context");
 
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -775,7 +771,6 @@ namespace Phantasma.Business.Blockchain
             vm.ExpectStackSize(4);
 
             var contractName = vm.PopString("contract");
-            vm.Expect(vm.IsCurrentContext(contractName), $"Not allowed from this context");
 
             var field = vm.PopString("field");
             var listKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -904,7 +899,6 @@ namespace Phantasma.Business.Blockchain
             vm.ExpectStackSize(2);
 
             var contractName = vm.PopString("contract");
-            vm.Expect(vm.IsCurrentContext(contractName), $"Not allowed from this context");
 
             var field = vm.PopString("field");
             var listKey = SmartContract.GetKeyForField(contractName, field, false);

@@ -3,16 +3,16 @@
     "Node": {
       "max.gas": 10000,
       "web.logs": false,
-      "tendermint.rpc.port": "26357",
+      "tendermint.rpc.port": "26057",
       "tendermint.rpc.host": "http://127.0.0.1",
       "tendermint.proxy.host": "127.0.0.1",
-      "tendermint.proxy.port": "26358",
-      "tendermint.key": "MJOu+vhS1Z3wttneYCSb64ijevipO7qI4Y2BrkVmTx7+2KuPsb6UeaJn8v3gNWhcPAGELtuo+/jOhVLtGVq7wQ==",
+      "tendermint.proxy.port": "26058",
+      "tendermint.key": "IfyqKw3PG2PA2bwDL8Z4WB6ecddnX7cMY4jb/TXEOKRcZmubWG1Ka4jf5+Gy7z5XE648Zuq5t0TXeBVuEgd7VA==",
       "block.time": 2,
       "minimum.fee": 100000,
       "minimum.pow": 0,
       "api.proxy.url": "",
-      "nexus.name": "simnet",
+      "nexus.name": "testnet",
       "node.mode": "validator",
       "node.wif": "KwUb9DN5gV4bE4W1XgRAMP2bw7GzZWdH3SAU2dvT31EjWgJtJssu",
       "api.log": false,
@@ -221,7 +221,7 @@
     },
 
     "RPC": {
-      "rpc.address": "127.0.0.1",
+      "rpc.address": "localhost",
       "rpc.port": 7654
     }
   }

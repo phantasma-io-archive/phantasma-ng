@@ -267,7 +267,15 @@ public class OrganizationTests : IDisposable
     public void Dispose()
     {
         this.Context.Clear();
-        Directory.Delete(this.PartitionPath, true);
+
+        try
+        {
+            Directory.Delete(this.PartitionPath, true);
+        }
+        catch (IOException)
+        {
+            Console.WriteLine("Unable to clean test directory");
+        }
     }
 
     public OrganizationTests()
