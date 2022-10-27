@@ -40,6 +40,11 @@ namespace Phantasma.Business.Blockchain.Contracts
         internal Timestamp _lastInflationDate;
         internal bool _inflationReady;
 
+        private readonly int InflationPerYear = 133;
+        private readonly int SMInflationPercentage = 10;
+        private readonly int PhantasmaForcePercentage = 10;
+        private readonly int TokensToCosmicSwapPercentage = 50;
+        
         /// <summary>
         /// Method to check if an address has allowed gas
         /// </summary>
@@ -139,7 +144,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
 
             // NOTE this gives an approximate inflation of 3% per year (0.75% per season)
-            var inflationAmount = currentSupply / 133;
+            var inflationAmount = currentSupply / InflationPerYear;
             BigInteger mintedAmount = 0;
 
             Runtime.Expect(inflationAmount > 0, "invalid inflation amount");
@@ -160,7 +165,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             if (rewardList.Count > 0)
             {
-                var rewardAmount = inflationAmount / 10;
+                var rewardAmount = inflationAmount / SMInflationPercentage;
 
                 var rewardStake = rewardAmount / rewardList.Count;
                 rewardAmount = rewardList.Count * rewardStake; // eliminate leftovers
@@ -183,12 +188,6 @@ namespace Phantasma.Business.Blockchain.Contracts
                 foreach (var addr in rewardList)
                 {
                     var reward = new StakeReward(addr, Runtime.Time);
-
-                    /*var temp = VMObject.FromObject(reward);
-                    temp = VMObject.CastTo(temp, VMType.Struct);
-
-                    var rom = temp.Serialize();*/
-
                     var rom = Serialization.Serialize(reward);
 
                     var tokenID = Runtime.MintToken(DomainSettings.RewardTokenSymbol, this.Address, this.Address, rom, new byte[0], 0);
@@ -201,7 +200,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 inflationAmount -= stakeAmount;
             }
 
-            var refillAmount = inflationAmount / 50;
+            var refillAmount = inflationAmount / TokensToCosmicSwapPercentage;
             var cosmicAddress = SmartContract.GetAddressForNative(NativeContractKind.Swap);
             Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, cosmicAddress, refillAmount);
             inflationAmount -= refillAmount;
@@ -209,7 +208,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             var phantomOrg = Runtime.GetOrganization(DomainSettings.PhantomForceOrganizationName);
             if (phantomOrg != null)
             {
-                var phantomFunding = inflationAmount / 3;
+                var phantomFunding = inflationAmount / PhantasmaForcePercentage;
                 Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, phantomOrg.Address, phantomFunding);
                 inflationAmount -= phantomFunding;
 
@@ -372,7 +371,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         /// Method use to return how many days are left until the next distribution.
         /// </summary>
         /// <returns></returns>
-        public uint GetDaysUntillDistribution()
+        public uint GetDaysUntilDistribution()
         {
             return Runtime.Time - _lastInflationDate;
         }
