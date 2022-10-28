@@ -41,7 +41,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public const string GasMinimumFeeTag = "governance.gas.minimumfee";
         public static readonly BigInteger GasMinimumFeeDefault = 100000;
-        public static readonly int InitialValidatorCount = 5;
+        public static readonly int InitialValidatorCount = 4;
         
         public GovernanceContract() : base()
         {
@@ -143,7 +143,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             if (name == ValidatorContract.ValidatorCountTag)
             {
-                Runtime.Expect(initial == InitialValidatorCount, "The initial number of validators must always be 5.");
+                Runtime.Expect(initial == InitialValidatorCount, $"The initial number of validators must always be {InitialValidatorCount}.");
             }
 
             _valueMap.Set<string, BigInteger>(name, initial);
