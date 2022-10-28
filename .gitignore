@@ -403,6 +403,7 @@ FodyWeavers.xsd
 .DS_Store
 
 publish/
-DOCKER/testnet/node*/data/
-DOCKER/testnet/node*/write-file-*
-DOCKER/testnet/node*/addrbook.json
+DOCKER/testnet/node*/data/*.*
+DOCKER/testnet/node*/data/*
+DOCKER/testnet/node*/config/write-file-*
+DOCKER/testnet/node*/config/addrbook.json
