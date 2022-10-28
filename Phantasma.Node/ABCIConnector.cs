@@ -73,8 +73,10 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             }
             _systemTxs.Clear();
 
+            var chain = _nexus.RootChain as Chain;
+
             IEnumerable<Transaction> systemTransactions;
-            systemTransactions = _nexus.RootChain.BeginBlock(request.Header, this._initialValidators); 
+            systemTransactions = chain.BeginBlock(request.Header, this._initialValidators); 
 
             if (proposerAddress.Equals(this._owner.Address.TendermintAddress))
             {
@@ -108,7 +110,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         {
             if (request.Type == CheckTxType.New)
             {
-                (CodeType code, string message) = _nexus.RootChain.CheckTx(request.Tx);
+                var chain = _nexus.RootChain as Chain;
+                (CodeType code, string message) = chain.CheckTx(request.Tx);
 
                 var response = new ResponseCheckTx();
                 response.Code = 0;
@@ -130,7 +133,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     
     public override Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
     {
-        var result = _nexus.RootChain.DeliverTx(request.Tx);
+        var chain = _nexus.RootChain as Chain;
+        var result = chain.DeliverTx(request.Tx);
 
         var bytes = Serialization.Serialize(result.Result);
 
@@ -184,7 +188,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         var response = new ResponseEndBlock();
         try
         {
-            var result = _nexus.RootChain.EndBlock();
+            var chain = _nexus.RootChain as Chain;
+            var result = chain.EndBlock();
 
             response.ValidatorUpdates.AddRange(result);
 
@@ -204,7 +209,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     
     public override Task<ResponseCommit> Commit(RequestCommit request, ServerCallContext context)
     {
-        var data = _nexus.RootChain.Commit();
+        var chain = _nexus.RootChain as Chain;
+        var data = chain.Commit();
         var response = new ResponseCommit();
         //response.Data = ByteString.CopyFrom(data); // this would change the app hash, we don't want that
         return Task.FromResult(response);

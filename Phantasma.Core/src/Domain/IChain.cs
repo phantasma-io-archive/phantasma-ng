@@ -1,12 +1,8 @@
 using System.Collections.Generic;
 using System.Numerics;
-using Google.Protobuf;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
-using Tendermint;
-using Tendermint.Types;
-using TValidatorUpdate = Tendermint.Abci.ValidatorUpdate;
 
 namespace Phantasma.Core.Domain;
 
@@ -23,14 +19,6 @@ public interface IChain
     StorageContext Storage { get; }
     bool IsRoot { get; }
     IContract[] GetContracts(StorageContext storage);
-
-    IEnumerable<Transaction> BeginBlock(Header header, IEnumerable<Address> initialValidators);
-    (CodeType, string) CheckTx(ByteString serializedTx);
-    TransactionResult DeliverTx(ByteString serializedTx);
-    byte[] Commit();
-    IEnumerable<TValidatorUpdate> EndBlock();
-
-    string ToString();
     void AddBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet);
 
     BigInteger GetTokenBalance(StorageContext storage, IToken token, Address address);
