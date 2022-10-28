@@ -1,4 +1,5 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -6,11 +7,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Business", "Phant
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Infrastructure", "Phantasma.Infrastructure\src\Phantasma.Infrastructure.csproj", "{5D6951A4-57E6-4E2F-9E18-24666D122084}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tendermint", "Tendermint\Tendermint.csproj", "{39B56E68-E12A-418D-B7B1-3ECC011BAD1C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Tendermint", "Tendermint\Phantasma.Tendermint.csproj", "{39B56E68-E12A-418D-B7B1-3ECC011BAD1C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Node", "Phantasma.Node\Phantasma.Node.csproj", "{D25C9B91-42E8-42AD-932D-CA3CEEB2BE93}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tendermint.RPC", "Tendermint.RPC\Tendermint.RPC.csproj", "{D4A25ABA-2945-4671-B250-D92965E5A2E8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Tendermint.RPC", "Tendermint.RPC\Phantasma.Tendermint.RPC.csproj", "{D4A25ABA-2945-4671-B250-D92965E5A2E8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Core.Tests", "Phantasma.Core\tests\Phantasma.Core.Tests.csproj", "{F4749737-2E38-47B4-A5E2-436E99DB672C}"
 EndProject
@@ -136,18 +137,6 @@ Global
 		{14165ECB-87D0-4746-A9D8-88E775FF1160}.Release|x64.Build.0 = Release|Any CPU
 		{14165ECB-87D0-4746-A9D8-88E775FF1160}.Release|x86.ActiveCfg = Release|Any CPU
 		{14165ECB-87D0-4746-A9D8-88E775FF1160}.Release|x86.Build.0 = Release|Any CPU
-		{0F672202-D535-4698-BCD7-43ACDB6FC450}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0F672202-D535-4698-BCD7-43ACDB6FC450}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0F672202-D535-4698-BCD7-43ACDB6FC450}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{0F672202-D535-4698-BCD7-43ACDB6FC450}.Debug|x64.Build.0 = Debug|Any CPU
-		{0F672202-D535-4698-BCD7-43ACDB6FC450}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{0F672202-D535-4698-BCD7-43ACDB6FC450}.Debug|x86.Build.0 = Debug|Any CPU
-		{0F672202-D535-4698-BCD7-43ACDB6FC450}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0F672202-D535-4698-BCD7-43ACDB6FC450}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0F672202-D535-4698-BCD7-43ACDB6FC450}.Release|x64.ActiveCfg = Release|Any CPU
-		{0F672202-D535-4698-BCD7-43ACDB6FC450}.Release|x64.Build.0 = Release|Any CPU
-		{0F672202-D535-4698-BCD7-43ACDB6FC450}.Release|x86.ActiveCfg = Release|Any CPU
-		{0F672202-D535-4698-BCD7-43ACDB6FC450}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
