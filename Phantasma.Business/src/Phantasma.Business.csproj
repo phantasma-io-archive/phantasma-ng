@@ -2,6 +2,13 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>Phantasma.Business</Title>
+    <Description>Business components of Phantasma Chain</Description>
+    <PackageProjectUrl>www.phantasma.io</PackageProjectUrl>
+    <PackageIcon>logo.png</PackageIcon>
+    <RepositoryUrl>github.com/phantasma-io/</RepositoryUrl>
+    <Version>1.0.2</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.15.0" />
@@ -9,10 +16,16 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../Phantasma.Core/src/Phantasma.Core.csproj" />
-    <ProjectReference Include="../../Tendermint/Tendermint.csproj" />
-    <ProjectReference Include="../../Tendermint.RPC/Tendermint.RPC.csproj" />
+    <ProjectReference Include="..\..\Tendermint\Phantasma.Tendermint.csproj" />
+    <ProjectReference Include="..\..\Tendermint.RPC\Phantasma.Tendermint.RPC.csproj" />
   </ItemGroup>
   <ItemGroup>
       <InternalsVisibleTo Include="Phantasma.Business.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\logo.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 </Project>
