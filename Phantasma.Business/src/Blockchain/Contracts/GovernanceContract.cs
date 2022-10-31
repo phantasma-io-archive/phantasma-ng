@@ -31,15 +31,17 @@ namespace Phantasma.Business.Blockchain.Contracts
     public sealed class GovernanceContract : NativeContract
     {
         public override NativeContractKind Kind => NativeContractKind.Governance;
+        
 
 #pragma warning disable 0649
-        internal StorageMap _valueMap;
-        internal StorageMap _constraintMap;
-        internal StorageList _nameList;
+        private StorageMap _valueMap;
+        private StorageMap _constraintMap;
+        private StorageList _nameList;
 #pragma warning restore 0649
 
         public const string GasMinimumFeeTag = "governance.gas.minimumfee";
         public static readonly BigInteger GasMinimumFeeDefault = 100000;
+        public static readonly int InitialValidatorCount = 4;
         
         public GovernanceContract() : base()
         {
@@ -141,7 +143,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             if (name == ValidatorContract.ValidatorCountTag)
             {
-                Runtime.Expect(initial == 5, "initial number of validators must always be one");
+                Runtime.Expect(initial == InitialValidatorCount, $"The initial number of validators must always be {InitialValidatorCount}.");
             }
 
             _valueMap.Set<string, BigInteger>(name, initial);
@@ -164,7 +166,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(HasValue(name), "invalid value name in SetValue");
 
             var pollName = ConsensusContract.SystemPoll + name;
-            var hasConsensus = Runtime.CallNativeContext(NativeContractKind.Consensus, "HasConsensus", pollName, value).AsBool();
+            var hasConsensus = Runtime.CallNativeContext(NativeContractKind.Consensus, nameof(ConsensusContract.HasConsensus), pollName, value).AsBool();
             Runtime.Expect(hasConsensus, "consensus not reached");
 
             var previous = _valueMap.Get<string, BigInteger>(name);

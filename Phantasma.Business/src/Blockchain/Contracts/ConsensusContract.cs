@@ -121,22 +121,12 @@ namespace Phantasma.Business.Blockchain.Contracts
                         totalVotes += entry.votes;
                     }
 
+                    if (totalVotes == 0) return poll;
+
                     var rankings = poll.entries.OrderByDescending(x => x.votes).ToArray();
 
                     var winner = rankings[0];
-                    int ties = 0;
-
-                    for (int i = 1; i < rankings.Length; i++)
-                    {
-                        if (rankings[i].votes == winner.votes)
-                        {
-                            ties++;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
+                    bool hasTies = rankings.Length > 1 && rankings[1].votes == winner.votes;
 
                     for (int i = 0; i < poll.entries.Length; i++)
                     {
@@ -151,10 +141,10 @@ namespace Phantasma.Business.Blockchain.Contracts
                             }
                         }
                         Runtime.Expect(index >= 0, "missing entry in poll rankings");
-
+                    
                         poll.entries[i].ranking = index;
                     }
-
+                    
                     BigInteger percentage = (winner.votes * 100) / totalVotes;
 
                     if (poll.mode == ConsensusMode.Unanimity && percentage < 100)
@@ -165,7 +155,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                     {
                         poll.state = PollState.Failure;
                     }
-                    else if (poll.mode == ConsensusMode.Popularity && ties > 0)
+                    else if (poll.mode == ConsensusMode.Popularity && hasTies)
                     {
                         poll.state = PollState.Failure;
                     }
@@ -190,11 +180,11 @@ namespace Phantasma.Business.Blockchain.Contracts
             // TODO support for passing structs as args
             var choices = Serialization.Unserialize<PollChoice[]>(serializedChoices);
 
-            if (subject.StartsWith(SystemPoll))
+            if (subject.ToLower().StartsWith(SystemPoll))
             {
                 Runtime.Expect(Runtime.IsPrimaryValidator(from), "must be validator");
 
-                if (subject.StartsWith(SystemPoll + "stake."))
+                if (subject.ToLower().StartsWith(SystemPoll + "stake."))
                 {
                     Runtime.Expect(organization == DomainSettings.MastersOrganizationName, "must require votes from masters");
                 }
