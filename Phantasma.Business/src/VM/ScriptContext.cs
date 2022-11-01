@@ -593,19 +593,17 @@ namespace Phantasma.Business.VM
         /// <param name="frame"></param>
         private void Extcall(ref ExecutionFrame frame)
         {
-            using (var m = new ProfileMarker("EXTCALL"))
+            var src = Read8();
+            Expect(src < frame.Registers.Length, "invalid src register");
+
+            var method = frame.Registers[src].AsString();
+
+            var state = frame.VM.ExecuteInterop(method);
+            if (state != ExecutionState.Running)
             {
-                var src = Read8();
-                Expect(src < frame.Registers.Length, "invalid src register");
-
-                var method = frame.Registers[src].AsString();
-
-                var state = frame.VM.ExecuteInterop(method);
-                if (state != ExecutionState.Running)
-                {
-                    throw new VMException(frame.VM, "VM extcall failed: " + method);
-                }
+                throw new VMException(frame.VM, "VM extcall failed: " + method);
             }
+            
         }
 
         /// <summary>
@@ -1320,25 +1318,22 @@ namespace Phantasma.Business.VM
         /// <param name="frame"></param>
         private void Context(ref ExecutionFrame frame)
         {
-            using (var m = new ProfileMarker("CTX"))
+            var src = Read8();
+            var dst = Read8();
+
+            Expect(src < frame.Registers.Length, "invalid src register");
+            Expect(dst < frame.Registers.Length, "invalid dst register");
+
+            var contextName = frame.Registers[src].AsString();
+
+            ExecutionContext context = frame.VM.FindContext(contextName);
+
+            if (context == null)
             {
-                var src = Read8();
-                var dst = Read8();
-
-                Expect(src < frame.Registers.Length, "invalid src register");
-                Expect(dst < frame.Registers.Length, "invalid dst register");
-
-                var contextName = frame.Registers[src].AsString();
-
-                ExecutionContext context = frame.VM.FindContext(contextName);
-
-                if (context == null)
-                {
-                    throw new VMException(frame.VM, $"VM ctx instruction failed: could not find context with name '{contextName}'");
-                }
-
-                frame.Registers[dst].SetValue(context);
+                throw new VMException(frame.VM, $"VM ctx instruction failed: could not find context with name '{contextName}'");
             }
+
+            frame.Registers[dst].SetValue(context);
         }
 
         /// <summary>
@@ -1348,25 +1343,23 @@ namespace Phantasma.Business.VM
         /// <param name="frame"></param>
         private void OPSwitch(ref ExecutionFrame frame)
         {
-            using (var m = new ProfileMarker("SWITCH"))
+            var src = Read8();
+            Expect(src < frame.Registers.Length, "invalid src register");
+
+            var context = frame.Registers[src].AsInterop<ExecutionContext>();
+
+            _state = frame.VM.SwitchContext(context, InstructionPointer);
+
+            if (_state == ExecutionState.Halt)
             {
-                var src = Read8();
-                Expect(src < frame.Registers.Length, "invalid src register");
-
-                var context = frame.Registers[src].AsInterop<ExecutionContext>();
-
-                _state = frame.VM.SwitchContext(context, InstructionPointer);
-
-                if (_state == ExecutionState.Halt)
-                {
-                    _state = ExecutionState.Running;
-                    frame.VM.PopFrame();
-                }
-                else
-                {
-                    throw new VMException(frame.VM, $"VM switch instruction failed: execution state did not halt");
-                }
+                _state = ExecutionState.Running;
+                frame.VM.PopFrame();
             }
+            else
+            {
+                throw new VMException(frame.VM, $"VM switch instruction failed: execution state did not halt");
+            }
+            
         }
 
         /// <summary>
@@ -1376,17 +1369,15 @@ namespace Phantasma.Business.VM
         /// <param name="frame"></param>
         private void Unpack(ref ExecutionFrame frame)
         {
-            using (var m = new ProfileMarker("SWITCH"))
-            {
-                var src = Read8();
-                var dst = Read8();
+            var src = Read8();
+            var dst = Read8();
 
-                Expect(src < frame.Registers.Length, "invalid src register");
-                Expect(dst < frame.Registers.Length, "invalid dst register");
+            Expect(src < frame.Registers.Length, "invalid src register");
+            Expect(dst < frame.Registers.Length, "invalid dst register");
 
-                var bytes = frame.Registers[src].AsByteArray();
-                frame.Registers[dst] = VMObject.FromBytes(bytes);
-            }
+            var bytes = frame.Registers[src].AsByteArray();
+            frame.Registers[dst] = VMObject.FromBytes(bytes);
+            
         }
 
 #endregion

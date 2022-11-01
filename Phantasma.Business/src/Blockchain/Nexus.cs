@@ -709,11 +709,9 @@ public class Nexus : INexus
         Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"account trigger {accountTrigger} failed");
 
         var nft = ReadNFT(Runtime, token.Symbol, tokenID);
-        using (var m = new ProfileMarker("Nexus.WriteNFT"))
-            WriteNFT(Runtime, token.Symbol, tokenID, Runtime.Chain.Name, source, destination, nft.ROM, nft.RAM,
+        WriteNFT(Runtime, token.Symbol, tokenID, Runtime.Chain.Name, source, destination, nft.ROM, nft.RAM,
                     nft.SeriesID, nft.Timestamp, nft.Infusion, !isSettlement);
 
-        using (var m = new ProfileMarker("Runtime.Notify"))
         if (isSettlement)
         {
             Runtime.Notify(EventKind.TokenSend, source, new TokenEventData(token.Symbol, tokenID, sourceChain));
