@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Phantasma.Infrastructure.Controllers;
+namespace Phantasma.Infrastructure.API.Controllers;
 
 [ApiController]
 [Produces("application/json")]

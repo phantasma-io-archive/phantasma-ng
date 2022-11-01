@@ -1,7 +1,7 @@
 using System.Numerics;
-using Phantasma.Core;
+using Phantasma.Core.Cryptography;
 
-namespace Phantasma.Core;
+namespace Phantasma.Core.Domain;
 
 public interface IChainTask
 {

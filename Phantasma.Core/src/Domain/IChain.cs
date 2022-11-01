@@ -1,13 +1,10 @@
 using System.Collections.Generic;
 using System.Numerics;
-using Google.Protobuf;
-using Phantasma.Core.Context;
-using Phantasma.Shared.Types;
-using Tendermint.Types;
-using TValidatorUpdate = Tendermint.Abci.ValidatorUpdate;
-using Types;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 
-namespace Phantasma.Core;
+namespace Phantasma.Core.Domain;
 
 public interface IChain
 {
@@ -22,20 +19,7 @@ public interface IChain
     StorageContext Storage { get; }
     bool IsRoot { get; }
     IContract[] GetContracts(StorageContext storage);
-
-    IEnumerable<Transaction> BeginBlock(Header header, IEnumerable<Address> initialValidators);
-    (CodeType, string) CheckTx(ByteString serializedTx);
-    TransactionResult DeliverTx(ByteString serializedTx);
-    byte[] Commit();
-    IEnumerable<TValidatorUpdate> EndBlock();
-
-
-    string ToString();
-    void AddBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee, StorageChangeSetContext changeSet);
-    StorageChangeSetContext ProcessBlock(Block block, IEnumerable<Transaction> transactions, BigInteger minimumFee);
-
-    StorageChangeSetContext ProcessTransactions(Block block, IEnumerable<Transaction> transactions
-        , IOracleReader oracle, BigInteger minimumFee);
+    void AddBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet);
 
     BigInteger GetTokenBalance(StorageContext storage, IToken token, Address address);
     BigInteger GetTokenBalance(StorageContext storage, string symbol, Address address);
@@ -58,7 +42,7 @@ public interface IChain
     SmartContract GetContractByName(StorageContext storage, string name);
     void UpgradeContract(StorageContext storage, string name, byte[] script, ContractInterface abi);
     void KillContract(StorageContext storage, string name);
-    Phantasma.Core.ExecutionContext GetContractContext(StorageContext storage, SmartContract contract);
+    ExecutionContext GetContractContext(StorageContext storage, SmartContract contract);
     Address GetContractOwner(StorageContext storage, Address contractAddress);
     Hash GetLastBlockHash();
     Hash GetBlockHashAtHeight(BigInteger height);

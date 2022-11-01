@@ -1,6 +1,7 @@
-using Phantasma.Shared.Types;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Types;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public interface ITransaction
     {
@@ -8,6 +9,8 @@ namespace Phantasma.Core
 
         string NexusName { get; }
         string ChainName { get; }
+
+        Address Sender { get; }
 
         Timestamp Expiration { get; }
 

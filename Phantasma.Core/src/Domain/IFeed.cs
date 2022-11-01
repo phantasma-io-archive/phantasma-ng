@@ -1,5 +1,7 @@
 
-namespace Phantasma.Core
+using Phantasma.Core.Cryptography;
+
+namespace Phantasma.Core.Domain
 {
     public enum FeedMode
     {

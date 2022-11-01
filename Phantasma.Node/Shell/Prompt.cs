@@ -1,6 +1,6 @@
 using System;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Serialization;
@@ -16,7 +16,11 @@ namespace Phantasma.Node.Shell
         private static XmlSerializer xmls = new XmlSerializer(typeof(List<List<char>>)); // TODO use json
         private static List<string> historyList = new List<string>(); 
         private static List<List<char>> inputHistory = new List<List<char>>();
-        public static bool running = true; 
+        public static bool Running
+        {
+            get;
+            set;
+        }
 
         private static bool InputIsOnNewLine(List<char> input, int inputPosition)
         {
@@ -74,35 +78,35 @@ namespace Phantasma.Node.Shell
 
         private static void drawTextProgressBar(int progress, int total)
         {
-         //draw empty progress bar
-         Console.CursorLeft = 0;
-         Console.Write("["); //start
-         Console.CursorLeft = 32;
-         Console.Write("]"); //end
-         Console.CursorLeft = 1;
-         float onechunk = 30.0f / total;
-        
-         //draw filled part
-         int position = 1;
-         for (int i = 0; i < onechunk * progress; i++)
-         {
-          Console.BackgroundColor = ConsoleColor.Gray;
-          Console.CursorLeft = position++;
-          Console.Write(" ");
-         }
-        
-         //draw unfilled part
-         for (int i = position; i <= 31; i++)
-         {
-          Console.BackgroundColor = ConsoleColor.Black;
-          Console.CursorLeft = position++;
-          Console.Write(" ");
-         }
-        
-         //draw totals
-         Console.CursorLeft = 35;
-         Console.BackgroundColor = ConsoleColor.Black;
-         Console.Write(progress.ToString() + " of " + total.ToString()+"    "); //blanks at the end remove any excess
+            //draw empty progress bar
+            Console.CursorLeft = 0;
+            Console.Write("["); //start
+            Console.CursorLeft = 32;
+            Console.Write("]"); //end
+            Console.CursorLeft = 1;
+            float onechunk = 30.0f / total;
+
+            //draw filled part
+            int position = 1;
+            for (int i = 0; i < onechunk * progress; i++)
+            {
+            Console.BackgroundColor = ConsoleColor.Gray;
+            Console.CursorLeft = position++;
+            Console.Write(" ");
+            }
+
+            //draw unfilled part
+            for (int i = position; i <= 31; i++)
+            {
+            Console.BackgroundColor = ConsoleColor.Black;
+            Console.CursorLeft = position++;
+            Console.Write(" ");
+            }
+
+            //draw totals
+            Console.CursorLeft = 35;
+            Console.BackgroundColor = ConsoleColor.Black;
+            Console.Write(progress.ToString() + " of " + total.ToString()+"    "); //blanks at the end remove any excess
         }
 
         private static Tuple<int,int> GetCursorRelativePosition(List<char> input, int inputPosition)
@@ -246,7 +250,7 @@ namespace Phantasma.Node.Shell
             IEnumerator<string> wordIterator = null;
             LoadHistory(history);
 
-            while (running)
+            while (Running)
             {
                 string completion = null;
                 List<char> input = new List<char>();
@@ -329,7 +333,7 @@ namespace Phantasma.Node.Shell
 
                         completion = wordIterator.Current;
                         ClearLine(input, inputPosition);
-                        foreach (var c in completion.ToCharArray())
+                        foreach (var c in completion)
                         {
                             input.Insert(inputPosition++, c);
                         }

@@ -1,11 +1,12 @@
 using System;
 using System.Numerics;
-using Phantasma.Business.Tokens;
-using Phantasma.Shared.Types;
-using Phantasma.Core;
-using Phantasma.Core.Context;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public struct MarketAuction
     {

@@ -1,15 +1,14 @@
+#--platform=linux/x86_64
 FROM debian:stable-slim
 WORKDIR /app
 
 # Copy everything
-COPY DOCKER/wrapper.sh ./
-COPY DOCKER/testnet ./testnet
-COPY DOCKER/bin ./testnet
+COPY DOCKER/wrapper.sh /app/wrapper.sh
+COPY DOCKER/testnet /app/testnet
+COPY DOCKER/bin /app/testnet
 
-RUN apt-get update; apt-get install -y libc6-dev \ 
-    libsnappy-dev libicu-dev screen bash vim net-tools ca-certificates openssl libssl-dev
+RUN apt-get update; apt-get install -y libc6-dev libsnappy-dev libicu-dev screen bash vim net-tools ca-certificates openssl libssl-dev
 
 EXPOSE 5101 5102 5103 5104
 
 ENTRYPOINT ["/app/wrapper.sh"]
-

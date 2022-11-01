@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using Phantasma.Shared.Types;
-using Phantasma.Shared.Utils;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Types;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     [Flags]
     public enum TokenFlags
@@ -21,6 +23,7 @@ namespace Phantasma.Core
         Fiat = 1 << 6,
         Swappable = 1 << 7,
         Burnable = 1 << 8,
+        Mintable = 1 << 9,
     }
 
     public struct TokenInfusion
@@ -98,9 +101,6 @@ namespace Phantasma.Core
         // TODO find optimal values for this
         public static readonly int MaxROMSize = 1024;
         public static readonly int MaxRAMSize = 1024;
-
-
-
 
         public TokenContent(BigInteger seriesID, BigInteger mintID, string currentChain, Address creator, Address currentOwner,
                 byte[] ROM, byte[] RAM, Timestamp timestamp, IEnumerable<TokenInfusion> infusion, TokenSeriesMode mode) : this()

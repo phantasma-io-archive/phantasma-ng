@@ -1,10 +1,13 @@
 ﻿using System;
-using System.Numerics;
 using System.Diagnostics;
-using Phantasma.Shared;
+using System.Numerics;
+using Phantasma.Business.VM;
 using Phantasma.Core;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
     public static class VMExtensions
     {

@@ -1,13 +1,15 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Collections.Generic;
-using System.Collections.Concurrent;
 using Phantasma.Core;
-using Phantasma.Shared;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Types;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
     public abstract class OracleReader : IOracleReader
     {
@@ -60,8 +62,7 @@ namespace Phantasma.Business
                     args = args.Skip(2).ToArray();
                     content = (T)(object)ReadNFTOracle(platformName, args);
                 }
-                else
-                if (Nexus.PlatformExists(Nexus.RootStorage, platformName))
+                else if (Nexus.PlatformExists(Nexus.RootStorage, platformName))
                 {
                     args = args.Skip(2).ToArray();
                     content = ReadChainOracle<T>(platformName, chainName, args);
@@ -87,8 +88,7 @@ namespace Phantasma.Business
                     throw new OracleException("invalid oracle platform: " + platformName);
                 }
             }
-            else
-            if (url.StartsWith(priceTag))
+            else if (url.StartsWith(priceTag))
             {
                 var baseSymbol = url.Substring(priceTag.Length);
 
@@ -134,8 +134,7 @@ namespace Phantasma.Business
 
                 content = val.ToSignedByteArray() as T;
             }
-            else
-            if (url.StartsWith(feeTag))
+            else if (url.StartsWith(feeTag))
             {
                 var platform = url.Substring(feeTag.Length);
 

@@ -1,11 +1,12 @@
 ﻿using System;
-using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Core;
+using System.Numerics;
+using Phantasma.Business.VM;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
-    internal class DummyExecutionContext : Phantasma.Core.ExecutionContext
+    internal class DummyExecutionContext : ExecutionContext
     {
         public override string Name => _name;
 
@@ -33,10 +34,10 @@ namespace Phantasma.Business
 
         public override void DumpData(List<string> lines)
         {
-            throw new NotImplementedException();
+            // only called in unit test
         }
 
-        public override Phantasma.Core.ExecutionContext LoadContext(string contextName)
+        public override ExecutionContext LoadContext(string contextName)
         {
             return new DummyExecutionContext(contextName);
         }

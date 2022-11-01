@@ -1,23 +1,23 @@
 ﻿using System;
-using System.Numerics;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Numerics;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Neo;
 using Neo.Wallets;
-using Neo.Network.P2P.Payloads;
-using Phantasma.Core;
-using Phantasma.Shared.Utils;
-using System.Text.Json;
-using System.Linq;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Utils;
 using Block = Neo.Network.P2P.Payloads.Block;
 using Transaction = Neo.Network.P2P.Payloads.Transaction;
 
 //using Phantasma.Neo.Utils;
 //using Phantasma.Storage;
 
-namespace Phantasma.Node.Chains
+namespace Phantasma.Node.Chains.Neo2
 {
     public abstract class NeoRPC : NeoAPI
     {
@@ -172,24 +172,24 @@ namespace Phantasma.Node.Chains
             return false;
         }
 
-        public override List<string> GetMempool(string node, bool _unverified)
+        public override List<string> GetMempool(string node, bool unverified)
         {
-            var response = QueryRPC("getrawmempool", new object[] { _unverified }, 1, false, node);
+            var response = QueryRPC("getrawmempool", new object[] { unverified }, 1, false, node);
             var result = new List<string>();
 
             var resultNode = response.RootElement.GetProperty("result");
 
-            if (_unverified)
+            if (unverified)
             {
                 var verified = resultNode.GetProperty("verified");
-                var unverified = resultNode.GetProperty("unverified");
+                var _unverified = resultNode.GetProperty("unverified");
 
                 foreach (var entry in verified.EnumerateArray())
                 {
                     result.Add(entry.GetString());
                 }
 
-                foreach (var entry in unverified.EnumerateArray())
+                foreach (var entry in _unverified.EnumerateArray())
                 {
                     result.Add(entry.GetString());
                 }
@@ -266,9 +266,9 @@ namespace Phantasma.Node.Chains
         }
 
         // Note: This current implementation requires NeoScan running at port 4000
-        public override Dictionary<string, List<UnspentEntry>> GetUnspent(UInt160 hash)
+        public override Dictionary<string, List<UnspentEntry>> GetUnspent(UInt160 scriptHash)
         {
-            var url = this.neoscanUrl +"/api/main_net/v1/get_balance/" + hash.ToAddress();
+            var url = this.neoscanUrl +"/api/main_net/v1/get_balance/" + scriptHash.ToAddress();
             var response = RequestUtils.Request<JsonDocument>(RequestType.GET, url, out var _);
 
             var unspents = new Dictionary<string, List<UnspentEntry>>();
@@ -389,8 +389,7 @@ namespace Phantasma.Node.Chains
                     {
                         invoke.state = VMState.FAULT;
                     }
-                    else
-                    if (temp.Contains("HALT"))
+                    else if (temp.Contains("HALT"))
                     {
                         invoke.state = VMState.HALT;
                     }

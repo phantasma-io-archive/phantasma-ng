@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public interface IContract
     {
@@ -71,6 +72,13 @@ namespace Phantasma.Core
 
         public bool HasMethod(string name)
         {
+            return _methods.ContainsKey(name);
+        }
+
+        public bool HasTokenTrigger(TokenTrigger trigger)
+        {
+            var strName = trigger.ToString();
+            var name = Char.ToLower(strName[0]) + strName.Substring(1);
             return _methods.ContainsKey(name);
         }
 

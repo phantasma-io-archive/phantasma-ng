@@ -1,8 +1,8 @@
 ﻿using System;
 using System.IO;
-using Phantasma.Core;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Business.Storage
+namespace Phantasma.Business.Blockchain.Storage
 {
     public static class ArchiveExtensions
     {

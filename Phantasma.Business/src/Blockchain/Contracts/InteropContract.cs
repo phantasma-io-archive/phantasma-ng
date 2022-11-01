@@ -1,10 +1,10 @@
-using System.Linq;
 using System.Numerics;
-using Phantasma.Core;
-using Phantasma.Core.Context;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public enum InteropTransferStatus
     {
@@ -138,8 +138,7 @@ namespace Phantasma.Business.Contracts
                     RegisterHistory(hash, withdraw.hash, DomainSettings.PlatformName, Runtime.Chain.Name, transfer.sourceAddress, hash, platform, chain, withdraw.destination, transfer.Symbol, transfer.Value);
                     swapCount++;
                 }
-                else
-                if (swapAddresses != null)
+                else if (swapAddresses != null)
                 {
                     foreach (var entry in swapAddresses)
                     {

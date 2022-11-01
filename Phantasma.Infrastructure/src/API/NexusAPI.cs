@@ -1,28 +1,30 @@
-using System.Text;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Text.Json;
-using Phantasma.Shared;
-using Phantasma.Core;
-using Phantasma.Business;
-using Phantasma.Business.Tokens;
-using Phantasma.Business.Storage;
-using Phantasma.Business.Contracts;
-using Phantasma.Shared.Utils;
-using Tendermint.RPC;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+using System.Text;
+using System.Text.Json;
 using System.Threading;
+using Phantasma.Business.Blockchain;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Core;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
+using Tendermint.RPC;
 
-namespace Phantasma.Infrastructure;
+namespace Phantasma.Infrastructure.API;
 
 public static class NexusAPI
 {
-    public static Nexus Nexus;
-    public static ITokenSwapper TokenSwapper;
-    public static NodeRpcClient TRPC;
+    public static Nexus Nexus { get; set; }
+    public static ITokenSwapper TokenSwapper { get; set; }
+    public static NodeRpcClient TRPC { get; set; }
 
-    public static bool ApiLog;
+    public static bool ApiLog { get; set; }
 
     public const int PaginationMaxResults = 99999;
 
@@ -183,19 +185,17 @@ public static class NexusAPI
                         {
                             properties.Add(new TokenPropertyResult() { Key = "ImageURL", Value = "https://phantasma.io/img/crown.png" });
                         }
-                        else
-                        if (symbol == DomainSettings.RewardTokenSymbol && method.name == "getInfoURL")
+                        else if (symbol == DomainSettings.RewardTokenSymbol && method.name == "getInfoURL")
                         {
                             properties.Add(new TokenPropertyResult() { Key = "InfoURL", Value = "https://phantasma.io/crown/" + ID });
                         }
-                        else
-                        if (symbol == DomainSettings.RewardTokenSymbol && method.name == "getName")
+                        else if (symbol == DomainSettings.RewardTokenSymbol && method.name == "getName")
                         {
                             properties.Add(new TokenPropertyResult() { Key = "Name", Value = "Crown #" + info.MintID });
                         }
                         else
                         {
-                            Business.Tokens.TokenUtils.FetchProperty(Nexus.RootStorage, chain, method.name, series, ID, (propName, propValue) =>
+                            TokenUtils.FetchProperty(Nexus.RootStorage, chain, method.name, series, ID, (propName, propValue) =>
                             {
                                 string temp;
                                 if (propValue.Type == VMType.Bytes)
@@ -278,6 +278,12 @@ public static class NexusAPI
             script = tx.Script.Encode(),
             payload = tx.Payload.Encode(),
             fee = chain != null ? chain.GetTransactionFee(tx.Hash).ToString() : "0",
+            state = block != null ? block.GetStateForTransaction(tx.Hash).ToString() : ExecutionState.Break.ToString(),
+            sender = tx.Sender.Text,
+            gasPayer = tx.GasPayer.Text,
+            gasTarget = tx.GasTarget.Text,
+            gasPrice = tx.GasPrice.ToString(),
+            gasLimit = tx.GasLimit.ToString(),
             expiration = tx.Expiration.Value,
             signatures = tx.Signatures.Select(x => new SignatureResult() { Kind = x.Kind.ToString(), Data = Base16.Encode(x.ToByteArray()) }).ToArray(),
         };

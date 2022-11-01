@@ -1,31 +1,34 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
+using Grpc.Core;
 using Nethereum.Hex.HexConvertors.Extensions;
-using Phantasma.Business;
-using Phantasma.Core;
-using Phantasma.Infrastructure;
-using Phantasma.Infrastructure.Chains;
-using Phantasma.Shared;
-using Phantasma.Node.Chains;
+using Phantasma.Business.Blockchain;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Storage;
+using Phantasma.Core.Utils;
+using Phantasma.Infrastructure.API;
+using Phantasma.Infrastructure.Pay.Chains;
+using Phantasma.Infrastructure.RocksDB;
+using Phantasma.Node.Chains.Ethereum;
+using Phantasma.Node.Chains.Neo2;
 using Phantasma.Node.Converters;
 using Phantasma.Node.Interop;
 using Phantasma.Node.Oracles;
 using Phantasma.Node.Shell;
 using Phantasma.Node.Utils;
 using Serilog;
-using System.Diagnostics;
-using System.Reflection;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using EthAccount = Nethereum.Web3.Accounts.Account;
-using NeoAPI = Phantasma.Node.Chains.NeoAPI;
-using Grpc.Core;
 using Tendermint.Abci;
 using Tendermint.RPC;
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Linq;
-using System.IO;
+using EthAccount = Nethereum.Web3.Accounts.Account;
+using NeoAPI = Phantasma.Node.Chains.Neo2.NeoAPI;
 
 namespace Phantasma.Node
 {
@@ -166,7 +169,7 @@ namespace Phantasma.Node
 
         private string PromptGenerator()
         {
-            var height = this.ExecuteAPIR("getBlockHeight", new string[] { "main" });
+            var height = NexusAPI.Nexus.RootChain.Height.ToString();
             return string.Format(prompt, height.Trim(new char[] { '"' }));
         }
 
@@ -212,10 +215,10 @@ namespace Phantasma.Node
                 nodeKeys = new PhantasmaKeys(Convert.FromBase64String(Settings.Default.Node.TendermintKey));
             }
 
-            if (nodeKeys is null)
-            {
-                nodeKeys = PhantasmaKeys.FromWIF(Settings.Default.Node.NodeWif);;
-            }
+            //if (nodeKeys is null)
+            //{
+            //    nodeKeys = PhantasmaKeys.FromWIF(Settings.Default.Node.NodeWif);
+            //}
 
             //TODO wallet module?
 
@@ -261,18 +264,19 @@ namespace Phantasma.Node
             var oraclePath = Settings.Default.Node.OraclePath;
             var nexusName = Settings.Default.Node.NexusName;
             var rpcUrl = Settings.Default.Node.TendermintRPCHost+ ":" + Settings.Default.Node.TendermintRPCPort;
+            var maxGas = Settings.Default.Node.MaxGas;
 
             switch (Settings.Default.Node.StorageBackend)
             {
                 case StorageBackendType.CSV:
                     Log.Information("Setting CSV nexus...");
-                    NexusAPI.Nexus = new Nexus(nexusName, (name) => new BasicDiskStore(storagePath + name + ".csv"));
+                    NexusAPI.Nexus = new Nexus(nexusName, maxGas, (name) => new BasicDiskStore(storagePath + name + ".csv"));
                     NexusAPI.TRPC = new NodeRpcClient(rpcUrl);
                     break;
 
                 case StorageBackendType.RocksDB:
                     Log.Information("Setting RocksDB nexus...");
-                    NexusAPI.Nexus = new Nexus(nexusName, (name) => new DBPartition(storagePath + name));
+                    NexusAPI.Nexus = new Nexus(nexusName, maxGas, (name) => new DBPartition(storagePath + name));
                     NexusAPI.TRPC = new NodeRpcClient(rpcUrl);
                     break;
                 default:
@@ -290,14 +294,7 @@ namespace Phantasma.Node
         {
             Log.Information($"Initializing nexus API...");
 
-            var readOnlyMode = Settings.Default.Node.Readonly;
-
             NexusAPI.ApiLog = Settings.Default.Node.ApiLog;
-
-            if (readOnlyMode)
-            {
-                Log.Warning($"Node will be running in read-only mode.");
-            }
         }
 
         private static JsonSerializerOptions GetDefaultSerializerOptions()
@@ -397,48 +394,22 @@ namespace Phantasma.Node
                 Log.Information("Termination already in progress...");
             }
 
-            if (Prompt.running)
+            if (Prompt.Running)
             {
-                Prompt.running = false;
+                Prompt.Running = false;
             }
 
             this.OnStop();
 
             //Thread.Sleep(3000);
-            if (Prompt.running)
+            if (Prompt.Running)
             {
-                Prompt.running = false;
+                Prompt.Running = false;
             }
 
             Log.Information("Termination complete...");
             Environment.Exit(0);
         }
-
-        public string ExecuteAPIR(string name, string[] args)
-        {
-            // TODO fix
-            /*var result = _nexusApi.Execute(name, args);
-            if (result == null)
-            {
-                return "";
-            }
-
-            return result;*/
-            return null;
-        }
-
-        public void ExecuteAPI(string name, string[] args)
-        {
-            // TODO fix
-            /*
-            var result = _nexusApi.Execute(name, args);
-            if (result == null)
-            {
-                Logger.Warning("API returned null value...");
-                return;
-            }
-
-            Logger.Information(result);*/
-        }
+        
     }
 }

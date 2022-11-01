@@ -1,13 +1,13 @@
-﻿using System.IO;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Collections.Generic;
-using Phantasma.Core;
-using Phantasma.Shared;
-using Phantasma.Shared.Types;
-using System;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Types;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public sealed class Block : ISerializable
     {
@@ -42,6 +42,8 @@ namespace Phantasma.Core
 
         // stores the results of invocations
         private Dictionary<Hash, byte[]> _resultMap = new Dictionary<Hash, byte[]>();
+
+        private Dictionary<Hash, ExecutionState> _stateMap = new Dictionary<Hash, ExecutionState>();
 
         // stores the results of oracles
         public List<OracleEntry> _oracleData = new List<OracleEntry>();
@@ -159,6 +161,17 @@ namespace Phantasma.Core
             return null;
         }
 
+        public ExecutionState GetStateForTransaction(Hash hash)
+        {
+            if (_stateMap.ContainsKey(hash))
+            {
+                return _stateMap[hash];
+            }
+
+            return ExecutionState.Fault;
+        }
+
+
         #region SERIALIZATION
 
         public byte[] ToByteArray(bool withSignatures)
@@ -209,6 +222,7 @@ namespace Phantasma.Core
                 {
                     evt.Serialize(writer);
                 }
+
                 int resultLen = _resultMap.ContainsKey(hash) ? _resultMap[hash].Length : -1;
                 writer.Write((short)resultLen);
                 if (resultLen > 0)
@@ -216,6 +230,9 @@ namespace Phantasma.Core
                     var result = _resultMap[hash];
                     writer.WriteByteArray(result);
                 }
+
+                var state = _stateMap[hash];
+                writer.WriteVarInt((long)state);
             }
 
             if (OldMode)
@@ -280,6 +297,11 @@ namespace Phantasma.Core
             _resultMap[hash] = result;
         }
 
+        public void SetStateForHash(Hash hash, ExecutionState state)
+        {
+            _stateMap[hash] = state;
+        }
+
         public void SerializeData(BinaryWriter writer)
         {
             Serialize(writer, true);
@@ -300,6 +322,7 @@ namespace Phantasma.Core
 
             _eventMap.Clear();
             _resultMap.Clear();
+            _stateMap.Clear();
             for (int j = 0; j < hashCount; j++)
             {
                 var hash = reader.ReadHash();
@@ -326,6 +349,8 @@ namespace Phantasma.Core
                         _resultMap[hash] = reader.ReadByteArray();
                     }
                 }
+
+                _stateMap[hash] = (ExecutionState)reader.ReadVarInt();
             }
 
             var oracleCount = OldMode ? reader.ReadUInt16() : (uint)reader.ReadVarInt();

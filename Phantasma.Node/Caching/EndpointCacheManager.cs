@@ -9,7 +9,7 @@ using Microsoft.Extensions.Primitives;
 
 namespace Phantasma.Node.Caching;
 
-public class EndpointCacheManager : IEndpointCacheManager
+public sealed class EndpointCacheManager : IEndpointCacheManager, IDisposable
 {
     private const string DefaultTag = "default";
     private readonly ScopedCacheClient _cache;
@@ -24,7 +24,7 @@ public class EndpointCacheManager : IEndpointCacheManager
     public Task<bool> Add(string key, string content, int duration, string tag = null)
     {
         tag = !string.IsNullOrWhiteSpace(tag) ? tag : DefaultTag;
-        var tagCache = new ScopedCacheClient(_cache, tag);
+        using var tagCache = new ScopedCacheClient(_cache, tag);
 
         return duration == 0
             ? Task.FromResult(false)
@@ -35,7 +35,7 @@ public class EndpointCacheManager : IEndpointCacheManager
         IEnumerable<KeyValuePair<string, StringValues>> queryParams, string tag = null)
     {
         tag = !string.IsNullOrWhiteSpace(tag) ? tag : DefaultTag;
-        var tagCache = new ScopedCacheClient(_cache, tag);
+        using var tagCache = new ScopedCacheClient(_cache, tag);
         var result = new EndpointCacheResult();
 
         // Sort keys for consistent cache key
@@ -92,5 +92,10 @@ public class EndpointCacheManager : IEndpointCacheManager
         _logger.LogDebug("Cache cleared; Tag: {Tag}, Affected: {Count}", tag, count);
 
         return true;
+    }
+
+    public void Dispose()
+    {
+        _cache?.Dispose();
     }
 }

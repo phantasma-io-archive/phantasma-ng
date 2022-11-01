@@ -1,8 +1,9 @@
-using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Shared.Types;
+using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Types;
 
-namespace Phantasma.Core;
+namespace Phantasma.Core.Domain;
 
 public interface IOracleReader
 {

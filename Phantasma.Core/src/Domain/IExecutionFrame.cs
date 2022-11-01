@@ -1,10 +1,4 @@
-using System;
-using System.IO;
-using System.Numerics;
-using System.Collections.Generic;
-using System.Security.Policy;
-
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public interface IExecutionFrame
     {

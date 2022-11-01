@@ -1,7 +1,8 @@
 // notes: Keep the structs here simple only using primitive C# types or arrays
-using Phantasma.Core;
 
-namespace Phantasma.Infrastructure
+using Phantasma.Core.Domain;
+
+namespace Phantasma.Infrastructure.API
 {
     public class BalanceResult
     {
@@ -234,8 +235,26 @@ namespace Phantasma.Infrastructure
         [APIDescription("Fee of the transaction, in KCAL, fixed point")]
         public string fee { get; set; }
 
+        [APIDescription("Executin state of the transaction")]
+        public string state { get; set; }
+
         [APIDescription("List of signatures that signed the transaction")]
         public SignatureResult[] signatures { get; set; }
+
+        [APIDescription("Sender of the transaction")]
+        public string sender { get; set; }
+
+        [APIDescription("Address to pay gas from")]
+        public string gasPayer { get; set; }
+
+        [APIDescription("Address used as gas target, if any")]
+        public string gasTarget { get; set; }
+
+        [APIDescription("The txs gas price")]
+        public string gasPrice { get; set; }
+
+        [APIDescription("The txs gas limit")]
+        public string gasLimit { get; set; }
 
         [APIDescription("Expiration time of the transaction")]
         public uint expiration { get; set; }

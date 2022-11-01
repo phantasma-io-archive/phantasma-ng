@@ -1,9 +1,11 @@
 using System.Numerics;
-using Phantasma.Core;
-using Phantasma.Core.Context;
-using Phantasma.Business.Storage;
+using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public sealed class StorageContract : NativeContract
     {
@@ -11,6 +13,10 @@ namespace Phantasma.Business.Contracts
 
         public const string KilobytesPerStakeTag = "storage.stake.kb";
         public const string FreeStoragePerContractTag = "storage.contract.kb";
+        
+        public static readonly  BigInteger KilobytesPerStakeDefault = 40;
+        public static readonly  BigInteger FreeStoragePerContractDefault = 1024;
+
 
         public const int DefaultForeignSpacedPercent = 20;
 

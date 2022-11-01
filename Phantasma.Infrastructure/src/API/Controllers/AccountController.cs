@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Core;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Infrastructure.Controllers
+namespace Phantasma.Infrastructure.API.Controllers
 {
     public class AccountController : BaseControllerV1
     {
@@ -27,6 +28,7 @@ namespace Phantasma.Infrastructure.Controllers
             }
             catch (Exception e)
             {
+                Console.WriteLine(e);
                 throw new APIException(e.Message);
             }
 

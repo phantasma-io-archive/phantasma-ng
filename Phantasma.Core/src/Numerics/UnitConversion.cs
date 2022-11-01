@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Numerics;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Numerics
 {
     public static class UnitConversion
     {

@@ -17,9 +17,9 @@ public class EnumerableJsonConverterFactory : JsonConverterFactory
         return realType.IsAssignableTo(typeof(IEnumerable<>));
     }
 
-    public override JsonConverter CreateConverter(Type type, JsonSerializerOptions options)
+    public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
     {
-        var valueType = type.GetGenericArguments()[0];
+        var valueType = typeToConvert.GetGenericArguments()[0];
 
         var converter = (JsonConverter)Activator.CreateInstance(
             typeof(EnumerableJsonConverter<>).MakeGenericType(valueType), BindingFlags.Instance | BindingFlags.Public,

@@ -1,13 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Diagnostics;
-using System.Collections.Generic;
 using Phantasma.Core;
-using Phantasma.Shared;
-using Phantasma.Shared.Performance;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Performance;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.VM
 {
 
     public abstract class VirtualMachine: IVirtualMachine
@@ -18,7 +19,15 @@ namespace Phantasma.Business
 
         public readonly static string EntryContextName = "entry";
 
-        private readonly Phantasma.Core.ExecutionContext entryContext;
+        public readonly static string StakeContextName = "stake";
+
+        public readonly static string GasContextName = "gas";
+
+        public readonly static string ExchangeContextName = "exchange";
+
+        private readonly ExecutionContext entryContext;
+
+        public ExecutionContext EntryContext => entryContext;
 
 
         public Stack<VMObject> Stack { get; } = new Stack<VMObject>();
@@ -38,8 +47,8 @@ namespace Phantasma.Business
             } 
         }
 
-        public Phantasma.Core.ExecutionContext CurrentContext { get; set; }
-        public Phantasma.Core.ExecutionContext PreviousContext { get; set; }
+        public ExecutionContext CurrentContext { get; set; }
+        public ExecutionContext PreviousContext { get; set; }
 
         private Stack<Address> _activeAddresses = new Stack<Address>();
         public Stack<Address> ActiveAddresses => _activeAddresses;
@@ -93,7 +102,7 @@ namespace Phantasma.Business
             this.CurrentFrame = frame;
         }
 
-        public uint PopFrame()
+        public virtual uint PopFrame()
         {
             Throw.If(frames.Count < 2, "Not enough frames available");
 
@@ -128,7 +137,7 @@ namespace Phantasma.Business
             this.CurrentContext = context;
         }
 
-        public ExecutionContext FindContext(string contextName)
+        public virtual ExecutionContext FindContext(string contextName)
         {
             if (_contextMap.ContainsKey(contextName))
             {
@@ -151,7 +160,7 @@ namespace Phantasma.Business
             return ExecutionState.Running;
         }
 
-        public ExecutionState SwitchContext(ExecutionContext context, uint instructionPointer)
+        public virtual ExecutionState SwitchContext(ExecutionContext context, uint instructionPointer)
         {
             if (context == null)
             {
@@ -218,12 +227,13 @@ namespace Phantasma.Business
         public VMException(IVirtualMachine vm, string msg) : base(msg)
         {
             this.vm = vm;
-
+#if DEBUG
             var fileName = vm.GetDumpFileName();
             if (fileName != null)
             {
                 DumpToFile(fileName);
             }
+#endif
         }
 
         private void DumpToFile(string fileName)

@@ -1,7 +1,11 @@
 ﻿using System;
-using Phantasma.Infrastructure.Chains;
+using System.IO;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
+using Phantasma.Infrastructure.Pay.Chains;
 
-namespace Phantasma.Infrastructure
+namespace Phantasma.Infrastructure.Pay
 {
     public static class WalletUtils
     {
@@ -51,6 +55,6 @@ namespace Phantasma.Infrastructure
                 case 2: return EthereumWallet.EthereumPlatform;
                 default:  throw new NotImplementedException();
             }
-        }
+        }        
     }
 }

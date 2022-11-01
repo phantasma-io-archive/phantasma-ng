@@ -1,7 +1,10 @@
 using System.IO;
 using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public enum EventKind
     {
@@ -66,7 +69,8 @@ namespace Phantasma.Core
         Crowdsale = 58,
         OrderBid = 59,
         ContractKill = 60,
-        Custom = 64
+        Error = 64,
+        Custom = 65,
     }
 
     public struct OrganizationEventData

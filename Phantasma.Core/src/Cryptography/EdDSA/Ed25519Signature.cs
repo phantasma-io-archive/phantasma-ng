@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Core.EdDSA
+namespace Phantasma.Core.Cryptography.EdDSA
 {
     public class Ed25519Signature : Signature
     {

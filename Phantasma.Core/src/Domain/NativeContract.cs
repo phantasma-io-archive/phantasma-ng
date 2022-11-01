@@ -1,14 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Numerics;
 using System.Reflection;
-using System.Collections.Generic;
-using Phantasma.Shared;
-using Phantasma.Core.Context;
+using System.Text;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public static class ContractPatch
     {

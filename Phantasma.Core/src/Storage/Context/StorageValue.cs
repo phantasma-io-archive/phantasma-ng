@@ -1,6 +1,7 @@
 ﻿using System;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Core.Context
+namespace Phantasma.Core.Storage.Context
 {
     public struct StorageValue : IStorageCollection
     {

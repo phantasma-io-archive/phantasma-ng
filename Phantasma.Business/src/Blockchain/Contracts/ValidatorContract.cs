@@ -1,17 +1,25 @@
 ﻿using System.Numerics;
-using Phantasma.Shared.Types;
-using Phantasma.Core;
-using Phantasma.Core.Context;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public sealed class ValidatorContract : NativeContract
     {
         public override NativeContractKind Kind => NativeContractKind.Validator;
 
         public const string ValidatorCountTag = "validator.count";
+        public static readonly BigInteger ValidatorCountDefault = 5;
+
+        
         public const string ValidatorRotationTimeTag = "validator.rotation.time";
+        public static readonly BigInteger ValidatorRotationTimeDefault = 120;
+
         public const string ValidatorPollTag = "elections";
+        
+
 
 #pragma warning disable 0649
         private StorageMap _validators; // <BigInteger, ValidatorInfo>
@@ -268,8 +276,7 @@ namespace Phantasma.Business.Contracts
                 var newValidators = GetValidatorCount(ValidatorType.Primary);
                 Runtime.Expect(newValidators > primaryValidators, "number of primary validators did not change");
             }
-            else
-            if (type == ValidatorType.Secondary)
+            else if (type == ValidatorType.Secondary)
             {
                 var newValidators = GetValidatorCount(ValidatorType.Secondary);
                 Runtime.Expect(newValidators > secondaryValidators, "number of secondary validators did not change");

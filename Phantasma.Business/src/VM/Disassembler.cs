@@ -1,16 +1,17 @@
-﻿using Phantasma.Shared;
-using Phantasma.Core;
+﻿using System;
 using System.Collections.Generic;
+using Phantasma.Core;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.VM
 {
     public class Disassembler
     {
         private uint _instructionPointer;
-        private byte[] _script;
+        private readonly byte[] _script;
+        private readonly List<Instruction> _instructions;
 
-        private List<Instruction> _instructions;
-        public IEnumerable<Instruction> Instructions => _instructions;
+        public IEnumerable<Instruction> Instructions => _instructions.AsReadOnly();
 
         public Disassembler(byte[] script)
         {
@@ -34,7 +35,7 @@ namespace Phantasma.Business
                 {
                     case Opcode.RET:
                         {
-                            temp.Args = new object[0];
+                            temp.Args = Array.Empty<object>();
                             result.Add(temp);
                             return result;
                         }
@@ -44,10 +45,12 @@ namespace Phantasma.Business
                     case Opcode.COPY:
                     case Opcode.SWAP:
                     case Opcode.SIZE:
+                    case Opcode.COUNT:
                     case Opcode.SIGN:
                     case Opcode.NOT:
                     case Opcode.NEGATE:
                     case Opcode.ABS:
+                    case Opcode.UNPACK:
                         {
                             var src = Read8();
                             var dst = Read8();
@@ -70,11 +73,23 @@ namespace Phantasma.Business
                             break;
                         }
 
+                    case Opcode.CAST:
+                        {
+                            var src = Read8();
+                            var dst = Read8();
+                            var type = (VMType)Read8();
+
+                            temp.Args = new object[] { src, dst, type };
+
+                            break;
+                        }
+
                     // args: byte src_reg
                     case Opcode.POP:
                     case Opcode.PUSH:
                     case Opcode.EXTCALL:
                     case Opcode.THROW:
+                    case Opcode.CLEAR:
                         {
                             var src = Read8();
                             temp.Args = new object[] { src };
@@ -110,7 +125,6 @@ namespace Phantasma.Business
                             break;
                         }
 
-
                     // args: byte src_a_reg, byte src_b_reg, byte dest_reg
                     case Opcode.AND:
                     case Opcode.OR:
@@ -136,9 +150,21 @@ namespace Phantasma.Business
                         {
                             var src = Read8();
                             var dst = Read8();
-                            var len = (int)ReadVar(0xFFFF);
+                            var len = (ushort)ReadVar(0xFFFF);
 
                             temp.Args = new object[] { src, dst, len};
+                            break;
+                        }
+
+                    // args: byte src_reg, byte dest_reg, var index, var length
+                    case Opcode.RANGE:
+                        {
+                            var src = Read8();
+                            var dst = Read8();
+                            var index = (int)ReadVar(0xFFFF);
+                            var len = (int)ReadVar(0xFFFF);
+
+                            temp.Args = new object[] { src, dst, index, len};
                             break;
                         }
 
@@ -175,7 +201,7 @@ namespace Phantasma.Business
 
                     default:
                         {
-                            temp.Args = new object[0];
+                            temp.Args = Array.Empty<object>();
                             break;
                         }
                 }
@@ -188,7 +214,7 @@ namespace Phantasma.Business
 
         public override string ToString()
         {
-            return string.Join(System.Environment.NewLine , this.Instructions);
+            return string.Join(Environment.NewLine, Instructions);
         }
 
         #region IO 
@@ -263,8 +289,5 @@ namespace Phantasma.Business
             return result;
         }
         #endregion
-
     }
-
-
 }

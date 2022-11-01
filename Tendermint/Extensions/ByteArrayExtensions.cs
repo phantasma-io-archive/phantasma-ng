@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Types.Extensions
+namespace Tendermint.Extensions
 {
     public static class ByteArrayExtensions
     {

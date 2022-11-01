@@ -1,8 +1,10 @@
 ﻿using System;
 using System.IO;
-using Phantasma.Core;
+using Phantasma.Business.VM;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Business.Assembler
+namespace Phantasma.Business.CodeGen.Assembler
 {
     internal class Instruction : Semanteme
     {
@@ -92,6 +94,10 @@ namespace Phantasma.Business.Assembler
                     case Opcode.PUT:
                     case Opcode.GET:
                         Process3Reg(sb);
+                        break;
+
+                    case Opcode.RANGE:
+                        ProcessRange(sb);
                         break;
 
                     case Opcode.LOAD:
@@ -307,8 +313,7 @@ namespace Phantasma.Business.Assembler
             {
                 regCount = VirtualMachine.DefaultRegisterCount;
             }
-            else
-            if (Arguments[1].IsNumber())
+            else if (Arguments[1].IsNumber())
             {
                 regCount = (byte)Arguments[1].AsNumber();
             }
@@ -338,8 +343,7 @@ namespace Phantasma.Business.Assembler
 
                 sb.EmitExtCall(extCall);
             }
-            else
-            if (Arguments[0].IsRegister())
+            else if (Arguments[0].IsRegister())
             {
                 var reg = Arguments[0].AsRegister();
                 sb.Emit(Opcode.EXTCALL, new byte[] { reg });
@@ -408,8 +412,7 @@ namespace Phantasma.Business.Assembler
                     src_a_reg
                 });
             }
-            else
-            if (Arguments[0].IsRegister() && Arguments[1].IsRegister() && Arguments[2].IsRegister())
+            else if (Arguments[0].IsRegister() && Arguments[1].IsRegister() && Arguments[2].IsRegister())
             {
                 var src_a_reg = Arguments[0].AsRegister();
                 var src_b_reg = Arguments[1].AsRegister();
@@ -421,6 +424,38 @@ namespace Phantasma.Business.Assembler
                     src_b_reg,
                     src_c_reg
                 });
+            }
+            else
+            {
+                throw new CompilerException(LineNumber, ERR_INVALID_ARGUMENT);
+            }
+        }
+
+        private void ProcessRange(ScriptBuilder sb)
+        {
+            if (Arguments.Length != 4)
+            {
+                throw new CompilerException(LineNumber, ERR_INCORRECT_NUMBER);
+            }
+            
+            if (Arguments[0].IsRegister() && Arguments[1].IsRegister())
+            {
+                var srcReg = Arguments[0].AsRegister();
+                var dstReg = Arguments[1].AsRegister();
+                
+                 if (Arguments[2].IsNumber() && Arguments[3].IsNumber())
+                {
+                    var index = (int)Arguments[2].AsNumber();
+                    var len = (int)Arguments[3].AsNumber();
+
+                    sb.Emit(Opcode.RANGE, new byte[] { srcReg, dstReg });
+                    sb.EmitVarBytes(index);
+                    sb.EmitVarBytes(len);
+                }
+                else
+                {
+                    throw new CompilerException(LineNumber, ERR_INVALID_ARGUMENT);
+                }
             }
             else
             {
@@ -441,30 +476,24 @@ namespace Phantasma.Business.Assembler
 
                 VMType type = VMType.None;
 
-                if (Arguments.Length == 3)
+                if (Arguments.Length == 3 && !Enum.TryParse(Arguments[2], out type))
                 {
-                    if (!Enum.TryParse(Arguments[2], out type))
-                    {
-                        throw new CompilerException(LineNumber, ERR_INVALID_ARGUMENT);
-                    }
+                    throw new CompilerException(LineNumber, ERR_INVALID_ARGUMENT);
                 }
 
                 if (Arguments[1].IsBytes())
                 {
                     sb.EmitLoad(reg, Arguments[1].AsBytes());
                 }
-                else
-                if (Arguments[1].IsBool())
+                else if (Arguments[1].IsBool())
                 {
                     sb.EmitLoad(reg, Arguments[1].AsBool());
                 }
-                else
-                if (Arguments[1].IsString())
+                else if (Arguments[1].IsString())
                 {
                     sb.EmitLoad(reg, Arguments[1].AsString());
                 }
-                else
-                if (Arguments[1].IsNumber())
+                else if (Arguments[1].IsNumber())
                 {
                     if (type == VMType.Enum)
                     {
@@ -487,8 +516,7 @@ namespace Phantasma.Business.Assembler
                             sb.Emit(Opcode.LOAD, bytes);
                         }
                     }
-                    else
-                    if (type != VMType.None)
+                    else if (type != VMType.None)
                     {
                         throw new CompilerException(LineNumber, ERR_INVALID_TYPE);
                     }
@@ -550,8 +578,7 @@ namespace Phantasma.Business.Assembler
             {
                 sb.Emit(this._opcode.Value);
             }
-            else
-            if (Arguments.Length == 1)
+            else if (Arguments.Length == 1)
             {
                 if (Arguments[0].IsRegister())
                 {

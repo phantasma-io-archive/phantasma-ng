@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
-using Phantasma.Core;
+using Phantasma.Core.Cryptography;
 
-namespace Phantasma.Core;
+namespace Phantasma.Core.Domain;
 
 public class TransactionResult
 {
@@ -11,6 +11,8 @@ public class TransactionResult
     public uint Code { get; set; }
 
     public VMObject Result { get; set; }
+
+    public ExecutionState State { get; set; }
 
     public string Log { get; set; }
 
@@ -24,13 +26,13 @@ public class TransactionResult
 
     public string Codespace { get; set; }
 
-
     public TransactionResult() {}
-    public TransactionResult(uint code, VMObject result, string log, string info, long gas, long gasUsed, IEnumerable<Event> events,
+    public TransactionResult(uint code, VMObject result, ExecutionState state, string log, string info, long gas, long gasUsed, IEnumerable<Event> events,
         string codespace)
     {
         this.Code = code;
         this.Result = result;
+        this.State = state;
         this.Log = log;
         this.Info = info;
         this.Gas = gas;

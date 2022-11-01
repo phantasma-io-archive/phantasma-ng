@@ -1,12 +1,13 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
-using Phantasma.Shared;
-using Phantasma.Shared.Utils;
+using System.Linq;
 using Phantasma.Core;
-using Phantasma.Core.ECC;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Infrastructure.Chains
+namespace Phantasma.Infrastructure.Pay.Chains
 {
     public class NeoWallet : CryptoWallet
     {
@@ -77,7 +78,7 @@ namespace Phantasma.Infrastructure.Chains
             var pubKey = new byte[33];
             ByteArrayUtils.CopyBytes(scriptHash, 0, pubKey, 0, scriptHash.Length);
 
-            return Core.Address.FromInterop(NeoID, pubKey);
+            return Core.Cryptography.Address.FromInterop(NeoID, pubKey);
         }
 
         public static Address EncodeAddress(string addressText)
@@ -156,7 +157,7 @@ namespace Phantasma.Infrastructure.Chains
             byte[] buffer;
             try
             {
-                buffer = Core.Base58.Decode(address);
+                buffer = Base58.Decode(address);
 
             }
             catch

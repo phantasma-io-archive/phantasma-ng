@@ -1,10 +1,13 @@
-﻿using System.Linq;
-using System.Numerics;
+﻿using System;
 using System.Collections.Generic;
-using Phantasma.Core;
-using Phantasma.Core.Context;
+using System.Linq;
+using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public sealed class AccountContract : NativeContract
     {
@@ -92,7 +95,7 @@ namespace Phantasma.Business.Contracts
             var abi = ContractInterface.FromBytes(abiBytes);
             Runtime.Expect(abi.MethodCount > 0, "unexpected empty contract abi");
 
-            var witnessTriggerName = AccountTrigger.OnWitness.ToString();
+            var witnessTriggerName = nameof(AccountTrigger.OnWitness);
             if (abi.HasMethod(witnessTriggerName))
             {
                 var witnessCheck = Runtime.InvokeTrigger(false, script, NativeContractKind.Account, abi, witnessTriggerName, Address.Null) != TriggerResult.Failure;
@@ -147,7 +150,7 @@ namespace Phantasma.Business.Contracts
                 return _scriptMap.Get<Address, byte[]>(target);
             }
 
-            return new byte[0];
+            return System.Array.Empty<byte>();
         }
 
         public byte[] LookUpABI(Address target)
@@ -294,7 +297,7 @@ namespace Phantasma.Business.Contracts
                 }
             }
 
-            Runtime.CallInterop("Nexus.MigrateToken", from, target);
+            Runtime.MigrateToken(from, target);
         }
 
 

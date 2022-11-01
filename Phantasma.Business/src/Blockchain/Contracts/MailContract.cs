@@ -1,8 +1,9 @@
-﻿using Phantasma.Business.Storage;
-using Phantasma.Core;
-using Phantasma.Core.Context;
+﻿using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public sealed class MailContract : NativeContract
     {

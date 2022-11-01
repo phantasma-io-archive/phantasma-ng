@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
-using Nethereum.Contracts;
 using Nethereum.ABI.FunctionEncoding.Attributes;
+using Nethereum.Contracts;
 
-namespace Phantasma.Node.Chains
+namespace Phantasma.Node.Chains.Ethereum
 {
     [Function("balanceOf", "uint256")]
     public class BalanceOfFunction : FunctionMessage

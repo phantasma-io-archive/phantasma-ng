@@ -2,16 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Text.Json;
 using System.Threading;
 using Neo;
-using Neo.VM;
-using NeoVMT = Neo.VM.Types;
-using Neo.SmartContract;
-using Neo.Wallets;
 using Neo.Network.P2P.Payloads;
-using System.Text.Json;
+using Neo.SmartContract;
+using Neo.VM;
+using Neo.Wallets;
+using NeoVMT = Neo.VM.Types;
 
-namespace Phantasma.Node.Chains
+namespace Phantasma.Node.Chains.Neo2
 {
     public class NeoBlockIterator
     {
@@ -274,12 +274,8 @@ namespace Phantasma.Node.Chains
 
             if (stackArray.Count() > 0)
             {
-                foreach (var child in stackArray)
-                {
-                    var item = ParseStackItems(child);
-                    return item;
-                    //items.Add(item);
-                }
+                var item = ParseStackItems(stackArray.Current);
+                return item;
             }
 
             return null;
@@ -352,8 +348,7 @@ namespace Phantasma.Node.Chains
 
                 sb.EmitPush(arr);
             }
-            else
-            if (item is IEnumerable<object>)
+            else if (item is IEnumerable<object>)
             {
                 var arr = ((IEnumerable<object>)item).ToArray();
 
@@ -365,44 +360,36 @@ namespace Phantasma.Node.Chains
                 sb.EmitPush(arr.Length);
                 sb.Emit(OpCode.PACK);
             }
-            else
-            if (item == null)
+            else if (item == null)
             {
                 sb.EmitPush("");
             }
-            else
-            if (item is string)
+            else if (item is string)
             {
                 sb.EmitPush((string)item);
             }
-            else
-            if (item is bool)
+            else if (item is bool)
             {
                 sb.EmitPush((bool)item);
             }
-            else
-            if (item is BigInteger)
+            else if (item is BigInteger)
             {
                 sb.EmitPush((BigInteger)item);
             }
-            else
-            if (item is UInt160)
+            else if (item is UInt160)
             {
                 sb.EmitPush(((UInt160)item).ToArray());
             }
-            else
-            if (item is UInt256)
+            else if (item is UInt256)
             {
                 sb.EmitPush(((UInt256)item).ToArray());
             }
-            else
-            if (item is int || item is sbyte || item is short)
+            else if (item is int || item is sbyte || item is short)
             {
                 var n = (int)item;
                 sb.EmitPush((BigInteger)n);
             }
-            else
-            if (item is uint || item is byte || item is ushort)
+            else if (item is uint || item is byte || item is ushort)
             {
                 var n = (uint)item;
                 sb.EmitPush((BigInteger)n);
@@ -992,13 +979,13 @@ namespace Phantasma.Node.Chains
             return result;
         }
 
-        public abstract bool HasPlugin(string hash);
+        public abstract bool HasPlugin(string pluginName);
 
         public abstract bool CheckMempool(string node, string txHash);
 
         public abstract List<string>GetMempool(string node, bool unverified);
 
-        public abstract string GetNep5Transfers(UInt160 hash, DateTime timestamp);
+        public abstract string GetNep5Transfers(UInt160 scriptHash, DateTime timestamp);
 
         public string GetNep5Transfers(NeoKeys key, DateTime timestamp)
         {
@@ -1011,7 +998,7 @@ namespace Phantasma.Node.Chains
             return GetNep5Transfers(hash, timestamp);
         }
 
-        public abstract string GetUnspents(UInt160 hash);
+        public abstract string GetUnspents(UInt160 scriptHash);
 
         public string GetUnspents(NeoKeys key)
         {
@@ -1024,7 +1011,7 @@ namespace Phantasma.Node.Chains
             return GetUnspents(hash);
         }
 
-        public abstract Dictionary<string, decimal> GetAssetBalancesOf(UInt160 hash);
+        public abstract Dictionary<string, decimal> GetAssetBalancesOf(UInt160 scriptHash);
 
         public Dictionary<string, decimal> GetAssetBalancesOf(NeoKeys key)
         {
@@ -1070,7 +1057,7 @@ namespace Phantasma.Node.Chains
 
         public abstract List<UnspentEntry> GetClaimable(UInt160 hash, out decimal amount);
 
-        public abstract Dictionary<string, List<UnspentEntry>> GetUnspent(UInt160 scripthash);
+        public abstract Dictionary<string, List<UnspentEntry>> GetUnspent(UInt160 scriptHash);
 
         public Dictionary<string, List<UnspentEntry>> GetUnspent(string address)
         {

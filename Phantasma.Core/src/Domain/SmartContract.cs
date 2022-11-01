@@ -1,10 +1,10 @@
-using System.Text;
-using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Shared.Utils;
-using Phantasma.Shared;
+using System.Numerics;
+using System.Text;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public abstract class SmartContract : IContract
     {

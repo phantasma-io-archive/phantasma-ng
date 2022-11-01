@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public struct ErrorResult
     {

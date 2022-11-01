@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Linq;
 using System.Numerics;
-using Phantasma.Shared.Types;
-using Phantasma.Core;
-using Phantasma.Core.Context;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     [Flags]
     public enum SaleFlags
@@ -295,8 +297,7 @@ namespace Phantasma.Business.Contracts
             {
                 Runtime.Notify(EventKind.Crowdsale, from, new SaleEventData() { kind = SaleEventKind.HardCap, saleHash = saleHash });
             }
-            else
-            if (previousSupply < sale.GlobalSoftCap && nextSupply >= sale.GlobalSoftCap)
+            else if (previousSupply < sale.GlobalSoftCap && nextSupply >= sale.GlobalSoftCap)
             {
                 Runtime.Notify(EventKind.Crowdsale, from, new SaleEventData() { kind = SaleEventKind.SoftCap, saleHash = saleHash });
             }

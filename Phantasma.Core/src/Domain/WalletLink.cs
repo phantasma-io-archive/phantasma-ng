@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
-using Phantasma.Shared;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public enum WalletStatus
     {

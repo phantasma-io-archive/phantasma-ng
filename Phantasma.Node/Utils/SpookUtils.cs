@@ -1,10 +1,9 @@
 using System;
-using System.Runtime.InteropServices;
 using System.Linq;
 using System.Reflection;
-
-using Newtonsoft.Json.Linq;
+using System.Runtime.InteropServices;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Phantasma.Node.Utils
 {

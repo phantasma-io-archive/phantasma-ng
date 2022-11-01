@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Phantasma.Infrastructure.Controllers
+namespace Phantasma.Infrastructure.API.Controllers
 {
     public class RpcController : BaseRpcControllerV1
     {
@@ -119,7 +119,7 @@ namespace Phantasma.Infrastructure.Controllers
             }
             catch (Exception e)
             {
-                throw new APIException($"RPC call exception for {req}", e);
+                throw new APIException($"RPC call exception for {req}: {e.Message}");
             }
 
             return rpcResponse;

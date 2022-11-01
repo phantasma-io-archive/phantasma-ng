@@ -2,16 +2,17 @@ using System;
 using System.IO;
 using System.Numerics;
 using System.Text;
-using Phantasma.Shared;
-using Phantasma.Shared.Utils;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Cryptography
 {
     public struct Hash : ISerializable, IComparable<Hash>, IEquatable<Hash>
     {
         public const int Length = 32;
 
-        public static readonly Hash Null = Hash.FromBytes(new byte[Length]);
+        public static readonly Hash Null = FromBytes(new byte[Length]);
 
         private byte[] _data;
     

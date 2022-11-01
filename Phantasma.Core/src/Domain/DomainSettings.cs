@@ -1,7 +1,10 @@
+using System.Collections.Generic;
 using System.Numerics;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Types;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public enum TriggerResult
     {
@@ -90,6 +93,16 @@ namespace Phantasma.Core
         
         public const string LiquidityTokenSymbol = "LP";
         public const string LiquidityTokenName = "Phantasma Liquidity";
+        public const int LiquidityTokenDecimals = 8;
+
+        public static readonly IEnumerable<string> SystemTokens = new List<string>
+        {
+                DomainSettings.FuelTokenSymbol,
+                DomainSettings.StakingTokenSymbol,
+                DomainSettings.FiatTokenSymbol,
+                DomainSettings.RewardTokenSymbol,
+                DomainSettings.LiquidityTokenSymbol
+        };
 
         public const string RootChainName = "main";
 
@@ -108,5 +121,11 @@ namespace Phantasma.Core
 
         public static readonly string InfusionName = "infusion";
         public static readonly Address InfusionAddress = SmartContract.GetAddressForName(InfusionName);
+
+        public const int NameMaxLength = 255;
+        public const int UrlMaxLength = 2048;
+        public const int ArgsMax = 64;
+        public const int AddressMaxSize = 34;
+        public const int ScriptMaxSize = short.MaxValue;
     }
 }

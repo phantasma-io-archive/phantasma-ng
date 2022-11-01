@@ -1,10 +1,11 @@
 ﻿using System.Linq;
 using System.Numerics;
-using Phantasma.Shared.Types;
-using Phantasma.Core;
-using Phantasma.Core.Context;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public enum ConsensusMode
     {
@@ -74,6 +75,9 @@ namespace Phantasma.Business.Contracts
         public const string MaximumPollLengthTag = "poll.max.length";
         public const string MaxEntriesPerPollTag = "poll.max.entries";
         public const string PollVoteLimitTag = "poll.vote.limit";
+        public static readonly BigInteger PollVoteLimitDefault = 50000;
+        public static readonly BigInteger MaxEntriesPerPollDefault = 10;
+        public static readonly BigInteger MaximumPollLengthDefault = MinimumPollLength * 90;
 
         public const string SystemPoll = "system.";
 
@@ -102,14 +106,12 @@ namespace Phantasma.Business.Contracts
                 {
                     poll.state = PollState.Inactive;
                 }
-                else
-                if (Runtime.Time >= poll.startTime && Runtime.Time<poll.endTime && poll.state == PollState.Inactive)
+                else if (Runtime.Time >= poll.startTime && Runtime.Time<poll.endTime && poll.state == PollState.Inactive)
                 {
                     poll.state = PollState.Active;
                     _pollList.Add<string>(subject);
                 }
-                else
-                if ((Runtime.Time >= poll.endTime || poll.totalVotes >= MaxVotesPerPoll) && poll.state == PollState.Active)
+                else if ((Runtime.Time >= poll.endTime || poll.totalVotes >= MaxVotesPerPoll) && poll.state == PollState.Active)
                 {
                     // its time to count votes...
                     BigInteger totalVotes = 0;
@@ -119,22 +121,12 @@ namespace Phantasma.Business.Contracts
                         totalVotes += entry.votes;
                     }
 
+                    if (totalVotes == 0) return poll;
+
                     var rankings = poll.entries.OrderByDescending(x => x.votes).ToArray();
 
                     var winner = rankings[0];
-                    int ties = 0;
-
-                    for (int i = 1; i < rankings.Length; i++)
-                    {
-                        if (rankings[i].votes == winner.votes)
-                        {
-                            ties++;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
+                    bool hasTies = rankings.Length > 1 && rankings[1].votes == winner.votes;
 
                     for (int i = 0; i < poll.entries.Length; i++)
                     {
@@ -149,23 +141,21 @@ namespace Phantasma.Business.Contracts
                             }
                         }
                         Runtime.Expect(index >= 0, "missing entry in poll rankings");
-
+                    
                         poll.entries[i].ranking = index;
                     }
-
+                    
                     BigInteger percentage = (winner.votes * 100) / totalVotes;
 
                     if (poll.mode == ConsensusMode.Unanimity && percentage < 100)
                     {
                         poll.state = PollState.Failure;
                     }
-                    else
-                    if (poll.mode == ConsensusMode.Majority && percentage < 51)
+                    else if (poll.mode == ConsensusMode.Majority && percentage < 51)
                     {
                         poll.state = PollState.Failure;
                     }
-                    else
-                    if (poll.mode == ConsensusMode.Popularity && ties > 0)
+                    else if (poll.mode == ConsensusMode.Popularity && hasTies)
                     {
                         poll.state = PollState.Failure;
                     }
@@ -190,11 +180,11 @@ namespace Phantasma.Business.Contracts
             // TODO support for passing structs as args
             var choices = Serialization.Unserialize<PollChoice[]>(serializedChoices);
 
-            if (subject.StartsWith(SystemPoll))
+            if (subject.ToLower().StartsWith(SystemPoll))
             {
                 Runtime.Expect(Runtime.IsPrimaryValidator(from), "must be validator");
 
-                if (subject.StartsWith(SystemPoll + "stake."))
+                if (subject.ToLower().StartsWith(SystemPoll + "stake."))
                 {
                     Runtime.Expect(organization == DomainSettings.MastersOrganizationName, "must require votes from masters");
                 }

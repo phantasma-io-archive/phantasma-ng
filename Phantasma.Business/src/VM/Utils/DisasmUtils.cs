@@ -1,9 +1,9 @@
-﻿using Phantasma.Core;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.VM.Utils
 {
     public struct DisasmMethodCall
     {

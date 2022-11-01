@@ -4,8 +4,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Phantasma.Core;
-using Phantasma.Infrastructure;
+using Phantasma.Core.Domain;
+using Phantasma.Infrastructure.API;
 
 namespace Phantasma.Node.Middleware;
 

@@ -1,7 +1,7 @@
-﻿using Neo.IO;
-using System.IO;
+﻿using System.IO;
+using Neo.IO;
 
-namespace Phantasma.Node.Chains
+namespace Phantasma.Node.Chains.Neo2
 {
     public enum ContractProperties : byte
     {

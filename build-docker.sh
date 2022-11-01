@@ -1,6 +1,7 @@
 #!/bin/bash
 
-VERSION=0.35.6
+#VERSION=0.35.6
+VERSION=0.34.21
 TESTNET_ROOT='./DOCKER/testnet'
 PUBLISH_ROOT='./Phantasma.Node/bin/Debug/net6.0/linux-x64/publish/'
 NODE_PROJ='Phantasma.Node/Phantasma.Node.csproj'
@@ -16,17 +17,22 @@ rm tendermint_"$VERSION"_linux_amd64.tar.gz
 
 dotnet publish "$NODE_PROJ" --sc -r linux-x64
 
-cp -r "$PUBLISH_ROOT" "$TESTNET_ROOT"/node0/
-cp -r "$PUBLISH_ROOT" "$TESTNET_ROOT"/node1/
-cp -r "$PUBLISH_ROOT" "$TESTNET_ROOT"/node2/
-cp -r "$PUBLISH_ROOT" "$TESTNET_ROOT"/node3/
+mkdir -p "$TESTNET_ROOT"/node0/publish/
+mkdir -p "$TESTNET_ROOT"/node1/publish/
+mkdir -p "$TESTNET_ROOT"/node2/publish/
+mkdir -p "$TESTNET_ROOT"/node3/publish/
 
-cp -r "$TESTNET_ROOT"/node0/config_node0.json "$TESTNET_ROOT"/node0/publish/config.json
-cp -r "$TESTNET_ROOT"/node1/config_node1.json "$TESTNET_ROOT"/node1/publish/config.json
-cp -r "$TESTNET_ROOT"/node2/config_node2.json "$TESTNET_ROOT"/node2/publish/config.json
-cp -r "$TESTNET_ROOT"/node3/config_node3.json "$TESTNET_ROOT"/node3/publish/config.json
+cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node0/publish
+cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node1/publish
+cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node2/publish
+cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node3/publish
 
-docker build -t phantasma-devnet -f DOCKER/Dockerfile .
+cp -R "$TESTNET_ROOT"/node0/config_node0.json "$TESTNET_ROOT"/node0/publish/config.json
+cp -R "$TESTNET_ROOT"/node1/config_node1.json "$TESTNET_ROOT"/node1/publish/config.json
+cp -R "$TESTNET_ROOT"/node2/config_node2.json "$TESTNET_ROOT"/node2/publish/config.json
+cp -R "$TESTNET_ROOT"/node3/config_node3.json "$TESTNET_ROOT"/node3/publish/config.json
+
+docker build --platform=linux/x86_64 -t phantasma-devnet -f DOCKER/Dockerfile .
 
 rm -rf "$TESTNET_ROOT"/node0/publish
 rm -rf "$TESTNET_ROOT"/node1/publish

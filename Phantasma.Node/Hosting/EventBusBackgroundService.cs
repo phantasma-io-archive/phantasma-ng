@@ -1,8 +1,8 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using Foundatio.Extensions.Hosting.Startup;
-using Phantasma.Node.Events;
 using Microsoft.Extensions.Hosting;
+using Phantasma.Node.Events;
 
 namespace Phantasma.Node.Hosting;
 

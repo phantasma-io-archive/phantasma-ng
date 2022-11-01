@@ -1,8 +1,7 @@
-﻿using Phantasma.Shared;
-using Org.BouncyCastle.Crypto.Parameters;
+﻿using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
 
-namespace Phantasma.Core.EdDSA
+namespace Phantasma.Core.Cryptography.EdDSA
 {
     public static class Ed25519
     {
@@ -41,9 +40,9 @@ namespace Phantasma.Core.EdDSA
             return signer.GenerateSignature();
         }
 
-        public static byte[] PublicKeyFromSeed(byte[] privateKeySeed)
+        public static byte[] PublicKeyFromSeed(byte[] privateKey)
         {
-            var privateKeyParameters = new Ed25519PrivateKeyParameters(privateKeySeed, 0);
+            var privateKeyParameters = new Ed25519PrivateKeyParameters(privateKey, 0);
             Ed25519PublicKeyParameters publicKeyParameters = privateKeyParameters.GeneratePublicKey();
             
             return publicKeyParameters.GetEncoded();

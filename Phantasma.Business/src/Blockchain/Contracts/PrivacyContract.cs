@@ -1,7 +1,7 @@
-﻿using Phantasma.Core;
-using Phantasma.Core.Context;
+﻿using Phantasma.Core.Domain;
+using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     internal struct PrivacyQueue
     {

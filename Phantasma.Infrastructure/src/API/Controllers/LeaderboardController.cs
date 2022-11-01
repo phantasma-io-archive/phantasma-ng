@@ -1,10 +1,10 @@
 using System;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Business.Contracts;
-using Phantasma.Core;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Infrastructure.Controllers
+namespace Phantasma.Infrastructure.API.Controllers
 {
     public class LeaderboardController : BaseControllerV1
     {

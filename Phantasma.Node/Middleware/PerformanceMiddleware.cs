@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Threading.Tasks;
-using Phantasma.Node.Metrics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Phantasma.Node.Metrics;
 
 namespace Phantasma.Node.Middleware;
 

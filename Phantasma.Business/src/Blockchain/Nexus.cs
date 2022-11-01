@@ -1,23 +1,24 @@
 using System;
-using System.Linq;
-using System.Text;
-using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Business;
-using Phantasma.Shared;
-using Phantasma.Shared.Types;
-using Phantasma.Shared.Performance;
-using Phantasma.Shared.Utils;
+using System.Linq;
+using System.Numerics;
+using System.Text;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.VM.Utils;
 using Phantasma.Core;
-using Phantasma.Core.Context;
-using Phantasma.Business.Storage;
-using Phantasma.Business.Tokens;
-using Phantasma.Business.Contracts;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Performance;
+using Phantasma.Core.Storage;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
+using Phantasma.Core.Utils;
 using Serilog;
-using Tendermint.Abci;
-using Types;
 
-namespace Phantasma.Business;
+namespace Phantasma.Business.Blockchain;
 
 public class Nexus : INexus
 {
@@ -32,6 +33,11 @@ public class Nexus : INexus
     public string NexusProtocolVersionTag => "nexus.protocol.version";
     public string FuelPerContractDeployTag => "nexus.contract.cost";
     public string FuelPerTokenDeployTag => "nexus.token.cost";
+    
+    public static readonly BigInteger FuelPerContractDeployDefault = UnitConversion.ToBigInteger(10, DomainSettings.FiatTokenDecimals);
+    public static readonly BigInteger FuelPerTokenDeployDefault = UnitConversion.ToBigInteger(100, DomainSettings.FiatTokenDecimals);
+
+    private bool _migratingNexus;
 
     public string Name { get; init; }
 
@@ -52,6 +58,8 @@ public class Nexus : INexus
 
     public bool HasGenesis { get; set; }
 
+    public BigInteger MaxGas { get; set; }
+
     private Func<string, IKeyValueStoreAdapter> _adapterFactory = null;
     private IOracleReader _oracleReader = null;
     private List<IOracleObserver> _observers = new List<IOracleObserver>();
@@ -59,7 +67,7 @@ public class Nexus : INexus
     /// <summary>
     /// The constructor bootstraps the main chain and all core side chains.
     /// </summary>
-    public Nexus(string name, Func<string, IKeyValueStoreAdapter> adapterFactory = null, PhantasmaKeys owner = null)
+    public Nexus(string name, BigInteger maxGas, Func<string, IKeyValueStoreAdapter> adapterFactory = null, PhantasmaKeys owner = null)
     {
         this._adapterFactory = adapterFactory;
 
@@ -75,12 +83,28 @@ public class Nexus : INexus
 
         this.Name = name;
 
+        this.MaxGas = maxGas;
+
         if (HasGenesis)
         {
-            LoadNexus(storage);
+            _migratingNexus = false;
+
+            var res = LoadNexus(storage);
+            if (!res)
+            {
+                throw new ChainException("failed load nexus for chain");
+            }
         }
         else
         {
+            var tokens = GetTokens(storage);
+            _migratingNexus = tokens.Any(x => x.Equals(DomainSettings.StakingTokenSymbol));
+
+            if (_migratingNexus)
+            {
+                Log.Information("Detected old nexus data, migration will be executed.");
+            }
+
             if (!ChainExists(storage, DomainSettings.RootChainName))
             {
                 if (!CreateChain(storage, DomainSettings.ValidatorsOrganizationName, DomainSettings.RootChainName, null))
@@ -118,13 +142,18 @@ public class Nexus : INexus
         }
     }
 
-    public void LoadNexus(StorageContext storage)
+    public bool LoadNexus(StorageContext storage)
     {
         var chainList = this.GetChains(storage);
         foreach (var chainName in chainList)
         {
-            GetChainByName(chainName);
+           var chain = GetChainByName(chainName);
+           if (chain is null)
+           {
+               return false;
+           }
         }
+        return true;
     }
 
     private Dictionary<string, IKeyValueStoreAdapter> _keystoreCache = new Dictionary<string, IKeyValueStoreAdapter>();
@@ -565,8 +594,7 @@ public class Nexus : INexus
 
             CreateSeries(storage, tokenInfo, 0, maxSupply, TokenSeriesMode.Unique, nftScript, nftABI);
         }
-        else
-        if (symbol == DomainSettings.RewardTokenSymbol)
+        else if (symbol == DomainSettings.RewardTokenSymbol)
         {
             byte[] nftScript;
             ContractInterface nftABI;
@@ -634,11 +662,16 @@ public class Nexus : INexus
         var balances = new BalanceSheet(token);
         Runtime.Expect(balances.Add(Runtime.Storage, destination, amount), "balance add failed");
 
-        var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        if (!Runtime.IsSystemToken(token))
+        {
+            // for non system tokens, the onMint trigger is mandatory
+            var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
+            var tokenTriggerResult = Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, amount);
+            Runtime.Expect(tokenTriggerResult == TriggerResult.Success, $"token trigger {tokenTrigger} failed or missing");
+        }
 
         var accountTrigger = isSettlement ? AccountTrigger.OnReceive : AccountTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"account trigger {accountTrigger} failed");
 
         if (isSettlement)
         {
@@ -664,11 +697,16 @@ public class Nexus : INexus
         var ownerships = new OwnershipSheet(token.Symbol);
         Runtime.Expect(ownerships.Add(Runtime.Storage, destination, tokenID), "ownership add failed");
 
-        var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        if (!Runtime.IsSystemToken(token))
+        {
+            // for non system tokens, the onMint trigger is mandatory
+            var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
+            var tokenTriggerResult = Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, tokenID); 
+            Runtime.Expect(tokenTriggerResult == TriggerResult.Success, $"token {tokenTrigger} trigger failed or missing");
+        }
 
         var accountTrigger = isSettlement ? AccountTrigger.OnReceive : AccountTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed");
+        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"account trigger {accountTrigger} failed");
 
         var nft = ReadNFT(Runtime, token.Symbol, tokenID);
         using (var m = new ProfileMarker("Nexus.WriteNFT"))
@@ -917,8 +955,7 @@ public class Nexus : INexus
         {
             Runtime.Notify(EventKind.TokenStake, source, new TokenEventData(token.Symbol, amount, Runtime.Chain.Name));
         }
-        else
-        if (source.IsSystem && (source == Runtime.CurrentContext.Address || isInfusion))
+        else if (source.IsSystem && (source == Runtime.CurrentContext.Address || isInfusion))
         {
             Runtime.Notify(EventKind.TokenClaim, destination, new TokenEventData(token.Symbol, amount, Runtime.Chain.Name));
         }
@@ -963,8 +1000,7 @@ public class Nexus : INexus
         {
             Runtime.Notify(EventKind.TokenStake, source, new TokenEventData(token.Symbol, tokenID, Runtime.Chain.Name));
         }
-        else
-        if (source.IsSystem && (source == Runtime.CurrentContext.Address || isInfusion))
+        else if (source.IsSystem && (source == Runtime.CurrentContext.Address || isInfusion))
         {
             Runtime.Notify(EventKind.TokenClaim, destination, new TokenEventData(token.Symbol, tokenID, Runtime.Chain.Name));
         }
@@ -1257,48 +1293,52 @@ public class Nexus : INexus
     private Transaction NexusCreateTx(PhantasmaKeys owner, Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>> values, IEnumerable<Address> initialValidators)
     {
         var sb = ScriptUtils.BeginScript();
-        sb.CallInterop("Nexus.BeginInit", owner.Address);
 
-        var deployInterop = "Runtime.DeployContract";
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.ValidatorContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.GovernanceContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.AccountContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.ExchangeContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.SwapContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.InteropContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.StakeContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.StorageContractName);
-        sb.CallInterop(deployInterop, owner.Address, ContractNames.ConsensusContractName);
-        sb.CallInterop(deployInterop, owner.Address, "market");
-
-        var orgInterop = "Nexus.CreateOrganization";
-        var orgScript = new byte[0];
-        sb.CallInterop(orgInterop, owner.Address, DomainSettings.ValidatorsOrganizationName, "Block Producers", orgScript);
-        sb.CallInterop(orgInterop, owner.Address, DomainSettings.MastersOrganizationName, "Soul Masters", orgScript);
-        sb.CallInterop(orgInterop, owner.Address, DomainSettings.StakersOrganizationName, "Soul Stakers", orgScript);
-
-        // initial SOUL distribution to validators
-        foreach (var validator in initialValidators)
+        if (!_migratingNexus)
         {
-            sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(60000, DomainSettings.StakingTokenDecimals));
-            sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals));
-        }
-        //sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(2863626, DomainSettings.StakingTokenDecimals));
-        //sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(1000000, DomainSettings.FuelTokenDecimals));
+            sb.CallInterop("Nexus.BeginInit", owner.Address);
 
-        // requires staking token to be created previously
-        sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), owner.Address, StakeContract.DefaultMasterThreshold);
-        sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), owner.Address, owner.Address);
+            var deployInterop = "Runtime.DeployContract";
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.ValidatorContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.GovernanceContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.AccountContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.ExchangeContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.SwapContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.InteropContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.StakeContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.StorageContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.ConsensusContractName);
+            sb.CallInterop(deployInterop, owner.Address, ContractNames.MarketContractName);
 
-        sb.CallInterop("Nexus.EndInit", owner.Address);
+            var orgInterop = "Nexus.CreateOrganization";
+            var orgScript = new byte[0];
+            sb.CallInterop(orgInterop, owner.Address, DomainSettings.ValidatorsOrganizationName, "Block Producers", orgScript);
+            sb.CallInterop(orgInterop, owner.Address, DomainSettings.MastersOrganizationName, "Soul Masters", orgScript);
+            sb.CallInterop(orgInterop, owner.Address, DomainSettings.StakersOrganizationName, "Soul Stakers", orgScript);
 
-        foreach (var entry in values)
-        {
-            var name = entry.Key;
-            var initial = entry.Value.Key;
-            var constraints = entry.Value.Value;
-            var bytes = Serialization.Serialize(constraints);
-            sb.CallContract(NativeContractKind.Governance, nameof(GovernanceContract.CreateValue), name, initial, bytes);
+            // initial SOUL distribution to validators
+            foreach (var validator in initialValidators)
+            {
+                sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(60000, DomainSettings.StakingTokenDecimals));
+                sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals));
+            }
+            //sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(2863626, DomainSettings.StakingTokenDecimals));
+            //sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(1000000, DomainSettings.FuelTokenDecimals));
+
+            // requires staking token to be created previously
+            sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), owner.Address, StakeContract.DefaultMasterThreshold);
+            sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), owner.Address, owner.Address);
+
+            sb.CallInterop("Nexus.EndInit", owner.Address);
+
+            foreach (var entry in values)
+            {
+                var name = entry.Key;
+                var initial = entry.Value.Key;
+                var constraints = entry.Value.Value;
+                var bytes = Serialization.Serialize(constraints);
+                sb.CallContract(NativeContractKind.Governance, nameof(GovernanceContract.CreateValue), name, initial, bytes);
+            }
         }
 
         sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), owner.Address, new BigInteger(0), ValidatorType.Primary);
@@ -1309,39 +1349,14 @@ public class Nexus : INexus
             sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), validator, new BigInteger(index), ValidatorType.Primary);
             index++;
         }
-
-        sb.CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals)).
-        CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100, DomainSettings.FuelTokenDecimals));
-
         sb.Emit(Opcode.RET);
 
         var script = sb.EndScript();
 
-        var tx = new Transaction(this.Name, DomainSettings.RootChainName, script, Timestamp.Now + TimeSpan.FromDays(300));
+        var tx = new Transaction(this.Name, DomainSettings.RootChainName, 0L, script, owner.Address, owner.Address, Address.Null, 1, 9999, Timestamp.Now + TimeSpan.FromDays(300));
         tx.Mine(ProofOfWork.Minimal);
         tx.Sign(owner);
 
-        return tx;
-    }
-
-    private Transaction ChainCreateTx(PhantasmaKeys owner, string name, params string[] contracts)
-    {
-        var sb = ScriptUtils.
-            BeginScript().
-            //AllowGas(owner.Address, Address.Null, 1, 9999).
-            CallInterop("Nexus.CreateChain", owner.Address, name, RootChain.Name);
-
-        foreach (var contractName in contracts)
-        {
-            sb.CallInterop("Runtime.DeployContract", owner.Address, contractName);
-        }
-
-        var script = //SpendGas(owner.Address).
-            sb.EndScript();
-
-        var tx = new Transaction(Name, DomainSettings.RootChainName, script, Timestamp.Now + TimeSpan.FromDays(300));
-        tx.Mine((int)ProofOfWork.Moderate);
-        tx.Sign(owner);
         return tx;
     }
 
@@ -1354,23 +1369,26 @@ public class Nexus : INexus
         var tokenScript = new byte[] { (byte)Opcode.RET };
         var abi = ContractInterface.Empty;
 
-        //UnitConversion.ToBigInteger(91136374, DomainSettings.StakingTokenDecimals)
-        CreateToken(storage, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenName, owner, 0, DomainSettings.StakingTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Stakable, tokenScript, abi);
-        CreateToken(storage, DomainSettings.FuelTokenSymbol, DomainSettings.FuelTokenName, owner, 0, DomainSettings.FuelTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Burnable | TokenFlags.Fuel, tokenScript, abi);
+        if (!_migratingNexus)
+        {
+            CreateToken(storage, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenName, owner, 0, DomainSettings.StakingTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Stakable, tokenScript, abi);
+            CreateToken(storage, DomainSettings.FuelTokenSymbol, DomainSettings.FuelTokenName, owner, 0, DomainSettings.FuelTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Burnable | TokenFlags.Fuel, tokenScript, abi);
+            CreateToken(storage, DomainSettings.RewardTokenSymbol, DomainSettings.RewardTokenName, owner, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
+
+            CreateToken(storage, "NEO", "NEO", owner, UnitConversion.ToBigInteger(100000000, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite, tokenScript, abi);
+            CreateToken(storage, "GAS", "GAS", owner, UnitConversion.ToBigInteger(100000000, 8), 8, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Finite, tokenScript, abi);
+            CreateToken(storage, "ETH", "Ethereum", owner, UnitConversion.ToBigInteger(0, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible, tokenScript, abi);
+            //CreateToken(storage, "DAI", "Dai Stablecoin", owner, UnitConversion.ToBigInteger(0, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Foreign, tokenScript, abi);
+            //GenerateToken(_owner, "EOS", "EOS", "EOS", UnitConversion.ToBigInteger(1006245120, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite | TokenFlags.Divisible | TokenFlags.External, tokenScript, abi);
+
+            SetPlatformTokenHash(DomainSettings.StakingTokenSymbol, "neo", Hash.FromUnpaddedHex("ed07cffad18f1308db51920d99a2af60ac66a7b3"), storage);
+            SetPlatformTokenHash("NEO", "neo", Hash.FromUnpaddedHex("c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b"), storage);
+            SetPlatformTokenHash("GAS", "neo", Hash.FromUnpaddedHex("602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7"), storage);
+            SetPlatformTokenHash("ETH", "ethereum", Hash.FromString("ETH"), storage);
+            //SetPlatformTokenHash("DAI", "ethereum", Hash.FromUnpaddedHex("6b175474e89094c44da98b954eedeac495271d0f"), storage);
+        }
+
         CreateToken(storage, DomainSettings.FiatTokenSymbol, DomainSettings.FiatTokenName, owner, 0, DomainSettings.FiatTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Fiat, tokenScript, abi);
-        CreateToken(storage, DomainSettings.RewardTokenSymbol, DomainSettings.RewardTokenName, owner, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
-
-        CreateToken(storage, "NEO", "NEO", owner, UnitConversion.ToBigInteger(100000000, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite, tokenScript, abi);
-        CreateToken(storage, "GAS", "GAS", owner, UnitConversion.ToBigInteger(100000000, 8), 8, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Finite, tokenScript, abi);
-        CreateToken(storage, "ETH", "Ethereum", owner, UnitConversion.ToBigInteger(0, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible, tokenScript, abi);
-        //CreateToken(storage, "DAI", "Dai Stablecoin", owner, UnitConversion.ToBigInteger(0, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Foreign, tokenScript, abi);
-        //GenerateToken(_owner, "EOS", "EOS", "EOS", UnitConversion.ToBigInteger(1006245120, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite | TokenFlags.Divisible | TokenFlags.External, tokenScript, abi);
-
-        SetPlatformTokenHash(DomainSettings.StakingTokenSymbol, "neo", Hash.FromUnpaddedHex("ed07cffad18f1308db51920d99a2af60ac66a7b3"), storage);
-        SetPlatformTokenHash("NEO", "neo", Hash.FromUnpaddedHex("c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b"), storage);
-        SetPlatformTokenHash("GAS", "neo", Hash.FromUnpaddedHex("602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7"), storage);
-        SetPlatformTokenHash("ETH", "ethereum", Hash.FromString("ETH"), storage);
-        //SetPlatformTokenHash("DAI", "ethereum", Hash.FromUnpaddedHex("6b175474e89094c44da98b954eedeac495271d0f"), storage);
     }
 
     public void FinishInitialize(IRuntime vm, Address owner)
@@ -1391,18 +1409,9 @@ public class Nexus : INexus
         }
     }
 
-    public Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, int version, PhantasmaKeys owner, IEnumerable<Address> initialValidators)
+    private Transaction GenerateGenesisTx(PhantasmaKeys owner, int version, IEnumerable<Address> initialValidators)
     {
-        if (this.HasGenesis)
-        {
-            return new Dictionary<int, Transaction>();
-        }
-
-        // create genesis transactions
-        var transactions = new Dictionary<int, Transaction>
-        {
-
-            {1, NexusCreateTx(owner,
+        return NexusCreateTx(owner,
              new Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>>() {
                  {
                      NexusProtocolVersionTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
@@ -1414,7 +1423,7 @@ public class Nexus : INexus
 
                  {
                      ValidatorContract.ValidatorCountTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         5, new ChainConstraint[]
+                         ValidatorContract.ValidatorCountDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MustIncrease}
                      })
@@ -1422,7 +1431,7 @@ public class Nexus : INexus
 
                  {
                      ValidatorContract.ValidatorRotationTimeTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         120, new ChainConstraint[]
+                         ValidatorContract.ValidatorRotationTimeDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 30},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 3600},
@@ -1431,7 +1440,7 @@ public class Nexus : INexus
 
                  {
                      ConsensusContract.PollVoteLimitTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         50000, new ChainConstraint[]
+                         ConsensusContract.PollVoteLimitDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 100},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 500000},
@@ -1440,7 +1449,7 @@ public class Nexus : INexus
 
                  {
                      ConsensusContract.MaxEntriesPerPollTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         10, new ChainConstraint[]
+                         ConsensusContract.MaxEntriesPerPollDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 2},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 1000},
@@ -1449,7 +1458,7 @@ public class Nexus : INexus
 
                  {
                      ConsensusContract.MaximumPollLengthTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         86400 * 90, new ChainConstraint[]
+                         ConsensusContract.MaximumPollLengthDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 86400 * 2},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 86400 * 120},
@@ -1467,7 +1476,7 @@ public class Nexus : INexus
 
                  {
                      StakeContract.StakeSingleBonusPercentTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         5, new ChainConstraint[]
+                         StakeContract.StakeSingleBonusPercentDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 0},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 100 },
@@ -1476,7 +1485,7 @@ public class Nexus : INexus
 
                  {
                      StakeContract.StakeMaxBonusPercentTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         100, new ChainConstraint[]
+                         StakeContract.StakeMaxBonusPercentDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 50},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 500 },
@@ -1485,7 +1494,7 @@ public class Nexus : INexus
 
                  {
                      StakeContract.VotingStakeThresholdTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         UnitConversion.ToBigInteger(1000, DomainSettings.StakingTokenDecimals), new ChainConstraint[]
+                         StakeContract.VotingStakeThresholdDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals)},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = UnitConversion.ToBigInteger(10000, DomainSettings.StakingTokenDecimals)},
@@ -1494,7 +1503,7 @@ public class Nexus : INexus
 
                  {
                      SwapContract.SwapMakerFeePercentTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         2, new ChainConstraint[]
+                         SwapContract.SwapMakerFeePercentDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 0},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 20},
@@ -1505,7 +1514,7 @@ public class Nexus : INexus
 
                  {
                      SwapContract.SwapTakerFeePercentTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         5, new ChainConstraint[]
+                         SwapContract.SwapTakerFeePercentDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 1},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 20},
@@ -1515,7 +1524,7 @@ public class Nexus : INexus
 
                  {
                      StorageContract.KilobytesPerStakeTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         40, new ChainConstraint[]
+                         StorageContract.KilobytesPerStakeDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 1},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 10000},
@@ -1524,7 +1533,7 @@ public class Nexus : INexus
 
                  {
                      StorageContract.FreeStoragePerContractTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         1024, new ChainConstraint[]
+                         StorageContract.FreeStoragePerContractDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 0},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 1024 * 512},
@@ -1533,7 +1542,7 @@ public class Nexus : INexus
 
                  {
                      FuelPerContractDeployTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         UnitConversion.ToBigInteger(10, DomainSettings.FiatTokenDecimals), new ChainConstraint[]
+                         FuelPerContractDeployDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 0},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = UnitConversion.ToBigInteger(1000, DomainSettings.FiatTokenDecimals)},
@@ -1542,13 +1551,36 @@ public class Nexus : INexus
 
                  {
                      FuelPerTokenDeployTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         UnitConversion.ToBigInteger(100, DomainSettings.FiatTokenDecimals), new ChainConstraint[]
+                         FuelPerTokenDeployDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 0},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = UnitConversion.ToBigInteger(1000, DomainSettings.FiatTokenDecimals)},
                      })
                  },
-             }, initialValidators)},
+                 {
+                   GovernanceContract.GasMinimumFeeTag, new KeyValuePair<BigInteger, ChainConstraint[]>(GovernanceContract.GasMinimumFeeDefault, new[]
+                   {
+                       new ChainConstraint {Kind = ConstraintKind.MinValue, Value = GovernanceContract.GasMinimumFeeDefault},
+                       new ChainConstraint {Kind = ConstraintKind.MustIncrease}
+                   })
+                 },
+             }, initialValidators);
+        }
+
+    public Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, int version, PhantasmaKeys owner, IEnumerable<Address> initialValidators)
+    {
+        if (this.HasGenesis)
+        {
+            return new Dictionary<int, Transaction>();
+        }
+
+        var genesisTx = GenerateGenesisTx(owner, version, initialValidators);
+
+        // create genesis transactions
+        var transactions = new Dictionary<int, Transaction>
+        {
+
+            {1, genesisTx},
         };
 
         //var rootChain = GetChainByName(DomainSettings.RootChainName);
@@ -1558,7 +1590,6 @@ public class Nexus : INexus
         //block.AddAllTransactionHashes(transactions.Select(tx => tx.Hash));
 
 	    //Transaction inflationTx = null;
-	    //Console.WriteLine("tx cnt: " + transactions.Count);
         //var changeSet = rootChain.ProcessBlock(block, transactions, 1, out inflationTx, owner);
 	    //if (inflationTx != null)
  	    //{

@@ -1,14 +1,13 @@
 using System;
-using System.Linq;
 using System.Numerics;
-using Phantasma.Shared.Types;
-using Phantasma.Core;
-using Phantasma.Core.EdDSA;
-using Phantasma.Core.Context;
-using static Phantasma.Business.Contracts.ExchangeOrderSide;
-using static Phantasma.Business.Contracts.ExchangeOrderType;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
+using static Phantasma.Business.Blockchain.Contracts.ExchangeOrderSide;
+using static Phantasma.Business.Blockchain.Contracts.ExchangeOrderType;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public enum ExchangeOrderSide
     {
@@ -523,11 +522,25 @@ namespace Phantasma.Business.Contracts
         internal StorageList _otcBook;
 #pragma warning restore 0649
 
+        /// <summary>
+        /// Get all the OTC's orders
+        /// </summary>
+        /// <returns></returns>
         public ExchangeOrder[] GetOTC()
         {
             return _otcBook.All<ExchangeOrder>();
         }
 
+        
+        /// <summary>
+        /// Method used to create OTC orders
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="baseSymbol"></param>
+        /// <param name="quoteSymbol"></param>
+        /// <param name="amount"></param>
+        /// <param name="price"></param>
+        /// <exception cref="Exception"></exception>
         private void CreateOTC(Address from, string baseSymbol, string quoteSymbol, BigInteger amount, BigInteger price)
         {
             var uid = Runtime.GenerateUID();
@@ -551,6 +564,11 @@ namespace Phantasma.Business.Contracts
             _otcBook.Add<ExchangeOrder>(order);
         }
 
+        /// <summary>
+        /// Method used to accept an OTC order
+        /// </summary>
+        /// <param name="from">Which address is buying</param>
+        /// <param name="uid">Order UID</param>
         public void TakeOrder(Address from, BigInteger uid)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -577,6 +595,11 @@ namespace Phantasma.Business.Contracts
             Runtime.Expect(false, "order not found");
         }
 
+        /// <summary>
+        /// Method used to cancel an OTC order
+        /// </summary>
+        /// <param name="from">Which address is buying</param>
+        /// <param name="uid">Order UID</param>
         public void CancelOTCOrder(Address from, BigInteger uid)
         {
             var count = _otcBook.Count();
@@ -679,6 +702,12 @@ namespace Phantasma.Business.Contracts
             Runtime.TransferTokens(quoteSymbol, buyer, owner, price);
             Runtime.TransferToken(baseSymbol, owner, buyer, tokenID);
         }*/
+        #endregion
+        
+        #region Dex
+        
+        
+        
         #endregion
     }
 }

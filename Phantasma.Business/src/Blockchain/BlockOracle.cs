@@ -1,10 +1,11 @@
 ﻿using System;
-using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Core;
-using Phantasma.Shared.Types;
+using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Types;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
     public class BlockOracleReader : OracleReader
     {
@@ -87,6 +88,7 @@ namespace Phantasma.Business
 
         public new void Clear()
         {
+            throw new NotImplementedException();
         }
     }
 }

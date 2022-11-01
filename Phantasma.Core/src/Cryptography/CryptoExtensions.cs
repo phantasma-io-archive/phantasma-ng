@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Security.Cryptography;
-using Phantasma.Shared;
-using Phantasma.Shared.Utils;
+using Phantasma.Core.Cryptography.Hashing;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
+using SHA256 = System.Security.Cryptography.SHA256;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Cryptography
 {
     public static class CryptoExtensions
     {

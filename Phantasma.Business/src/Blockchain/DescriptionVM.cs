@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using Phantasma.Core;
-using Phantasma.Shared;
+using Phantasma.Business.VM;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 
-namespace Phantasma.Business
+namespace Phantasma.Business.Blockchain
 {
     public abstract class DescriptionVM : VirtualMachine
     {
@@ -63,8 +65,7 @@ namespace Phantasma.Business
                                 Expect(Address.IsValidAddress(text), $"expected valid address");
                                 addr = Address.FromText(text);
                             }
-                            else
-                            if (temp.Type == VMType.Bytes)
+                            else if (temp.Type == VMType.Bytes)
                             {
                                 var bytes = temp.AsByteArray();
                                 addr = Serialization.Unserialize<Address>(bytes);
@@ -102,7 +103,7 @@ namespace Phantasma.Business
             throw new VMException(this, "unknown interop: " + method);
         }
 
-        public override Phantasma.Core.ExecutionContext LoadContext(string contextName)
+        public override ExecutionContext LoadContext(string contextName)
         {
             throw new NotImplementedException();
         }

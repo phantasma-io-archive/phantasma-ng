@@ -1,12 +1,15 @@
-using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Shared.Types;
-using Phantasma.Core;
-using Phantasma.Core.Context;
-using Phantasma.Shared.Performance;
-using Phantasma.Business.Tokens;
+using System.Numerics;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.VM;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Performance;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 
-namespace Phantasma.Business.Contracts
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public struct GasLoanEntry
     {
@@ -37,25 +40,52 @@ namespace Phantasma.Business.Contracts
         internal Timestamp _lastInflationDate;
         internal bool _inflationReady;
 
-        public void AllowGas(Address from, Address target, BigInteger price, BigInteger limit)
+        private readonly int InflationPerYear = 133;
+        private readonly int SMInflationPercentage = 10;
+        private readonly int PhantasmaForcePercentage = 10;
+        private readonly int TokensToCosmicSwapPercentage = 50;
+        
+        /// <summary>
+        /// Method to check if an address has allowed gas
+        /// </summary>
+        /// <param name="from">Address of the user</param>
+        public BigInteger AllowedGas(Address from)
+        {
+            var allowance = _allowanceMap.ContainsKey(from) ? _allowanceMap.Get<Address, BigInteger>(from) : 0;
+            return allowance;
+        }
+
+
+        /// <summary>
+        /// Method used the usage of Gas to do the transaction.
+        /// </summary>
+        /// <exception cref="BalanceException"></exception>
+        public void AllowGas()
         {
             if (Runtime.IsReadOnlyMode())
             {
                 return;
             }
 
+            var from = Runtime.Transaction.GasPayer;
+            Runtime.Expect(from.IsUser, "must be a user address");
+
+            var target = Runtime.Transaction.GasTarget;
+            Runtime.Expect(target.IsSystem, "destination must be system address");
+
+            var price = Runtime.Transaction.GasPrice;
+            Runtime.Expect(price > 0, "price must be positive amount");
+
+            var limit = Runtime.Transaction.GasLimit;
+            Runtime.Expect(limit > 0, "limit must be positive amount");
+
             if (_lastInflationDate == 0)
             {
                 _lastInflationDate = Runtime.Time;
             }
 
-            Runtime.Expect(from.IsUser, "must be a user address");
-            Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName, "must be entry context");
+            Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName, $"must be entry context {Runtime.PreviousContext.Name}");
             Runtime.Expect(Runtime.IsWitness(from), $"invalid witness -> {from}");
-            Runtime.Expect(target.IsSystem, "destination must be system address");
-
-            Runtime.Expect(price > 0, "price must be positive amount");
-            Runtime.Expect(limit > 0, "limit must be positive amount");
 
             if (target.IsNull)
             {
@@ -95,6 +125,10 @@ namespace Phantasma.Business.Contracts
                 Runtime.Notify(EventKind.GasEscrow, from, new GasEventData(target, price, limit));
         }
         
+        /// <summary>
+        /// Method used to Apply Inflation and Mint Crowns and distribute them.
+        /// </summary>
+        /// <param name="from">Address of the user</param>
         public void ApplyInflation(Address from)
         {
             Runtime.Expect(_inflationReady, "inflation not ready");
@@ -110,7 +144,7 @@ namespace Phantasma.Business.Contracts
             }
 
             // NOTE this gives an approximate inflation of 3% per year (0.75% per season)
-            var inflationAmount = currentSupply / 133;
+            var inflationAmount = currentSupply / InflationPerYear;
             BigInteger mintedAmount = 0;
 
             Runtime.Expect(inflationAmount > 0, "invalid inflation amount");
@@ -131,13 +165,16 @@ namespace Phantasma.Business.Contracts
 
             if (rewardList.Count > 0)
             {
-                var rewardAmount = inflationAmount / 10;
+                var rewardAmount = inflationAmount / SMInflationPercentage;
 
                 var rewardStake = rewardAmount / rewardList.Count;
                 rewardAmount = rewardList.Count * rewardStake; // eliminate leftovers
 
                 var rewardFuel = _rewardAccum / rewardList.Count;
 
+                _rewardAccum -= rewardList.Count * rewardFuel;
+                Runtime.Expect(_rewardAccum >= 0, "invalid reward leftover");
+                
                 BigInteger stakeAmount;
 
                 stakeAmount = UnitConversion.ToBigInteger(2, DomainSettings.StakingTokenDecimals);
@@ -151,12 +188,6 @@ namespace Phantasma.Business.Contracts
                 foreach (var addr in rewardList)
                 {
                     var reward = new StakeReward(addr, Runtime.Time);
-
-                    /*var temp = VMObject.FromObject(reward);
-                    temp = VMObject.CastTo(temp, VMType.Struct);
-
-                    var rom = temp.Serialize();*/
-
                     var rom = Serialization.Serialize(reward);
 
                     var tokenID = Runtime.MintToken(DomainSettings.RewardTokenSymbol, this.Address, this.Address, rom, new byte[0], 0);
@@ -165,14 +196,11 @@ namespace Phantasma.Business.Contracts
                     Runtime.TransferToken(DomainSettings.RewardTokenSymbol, this.Address, addr, tokenID);
                 }
 
-                _rewardAccum -= rewardList.Count * rewardFuel;
-                Runtime.Expect(_rewardAccum >= 0, "invalid reward leftover");
-
                 inflationAmount -= rewardAmount;
                 inflationAmount -= stakeAmount;
             }
 
-            var refillAmount = inflationAmount / 50;
+            var refillAmount = inflationAmount / TokensToCosmicSwapPercentage;
             var cosmicAddress = SmartContract.GetAddressForNative(NativeContractKind.Swap);
             Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, cosmicAddress, refillAmount);
             inflationAmount -= refillAmount;
@@ -180,7 +208,7 @@ namespace Phantasma.Business.Contracts
             var phantomOrg = Runtime.GetOrganization(DomainSettings.PhantomForceOrganizationName);
             if (phantomOrg != null)
             {
-                var phantomFunding = inflationAmount / 3;
+                var phantomFunding = inflationAmount / PhantasmaForcePercentage;
                 Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, phantomOrg.Address, phantomFunding);
                 inflationAmount -= phantomFunding;
 
@@ -207,14 +235,21 @@ namespace Phantasma.Business.Contracts
             _inflationReady = false;
         }
 
-        public void SpendGas(Address from)
+        /// <summary>
+        /// 
+        /// </summary>
+        public void SpendGas()
         {
             if (Runtime.IsReadOnlyMode())
             {
                 return;
             }
 
-            Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName, "must be entry context");
+            Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName || Runtime.PreviousContext.Address.IsSystem,
+                    $"must be entry context, prev: {Runtime.PreviousContext.Name}, curr: {Runtime.CurrentContext.Name}");
+
+            var from = Runtime.Transaction.GasPayer;
+
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(_allowanceMap.ContainsKey(from), "no gas allowance found");
 
@@ -222,16 +257,29 @@ namespace Phantasma.Business.Contracts
 
             var spentGas = Runtime.UsedGas;
             var requiredAmount = spentGas * Runtime.GasPrice;
-            Runtime.Expect(requiredAmount > 0, $"{Runtime.GasPrice} {spentGas} gas fee must exist");
 
-            Runtime.Expect(availableAmount >= requiredAmount, "gas allowance is not enough");
+            GasEventData ged = new GasEventData(Address.Null, 0, 0);
+            var targetAddress = _allowanceTargets.Get<Address, Address>(from);
+            if (availableAmount < requiredAmount && Runtime.IsError)
+            {
+                requiredAmount = availableAmount;
+                ged = new GasEventData(targetAddress, Runtime.Transaction.GasPrice, Runtime.Transaction.GasLimit);
+            }
+
+            Runtime.Expect(requiredAmount > 0, $"{Runtime.GasPrice} {Runtime.UsedGas} gas fee must exist");
+
+            Runtime.Expect(availableAmount >= requiredAmount, $"gas allowance is not enough {availableAmount}/{requiredAmount}");
 
             var leftoverAmount = availableAmount - requiredAmount;
 
-            var targetAddress = _allowanceTargets.Get<Address, Address>(from);
             BigInteger targetGas;
 
-            Runtime.Notify(EventKind.GasPayment, from, new GasEventData(targetAddress,  Runtime.GasPrice, spentGas));
+            if (ged.address == Address.Null)
+            {
+                ged = new GasEventData(targetAddress,  Runtime.GasPrice, Runtime.UsedGas);
+            }
+
+            Runtime.Notify(EventKind.GasPayment, from, ged);
 
             // return leftover escrowed gas to transaction creator
             if (leftoverAmount > 0)
@@ -284,6 +332,9 @@ namespace Phantasma.Business.Contracts
             CheckInflation();
         }
 
+        /// <summary>
+        /// Method used to check if the inflation is ready
+        /// </summary>
         private void CheckInflation()
         {
             if (!Runtime.HasGenesis)
@@ -296,8 +347,7 @@ namespace Phantasma.Business.Contracts
                 var genesisTime = Runtime.GetGenesisTime();
                 _lastInflationDate = genesisTime;
             }
-            else
-            if (!_inflationReady)
+            else if (!_inflationReady)
             {
                 var infDiff = Runtime.Time - _lastInflationDate;
                 var inflationPeriod = SecondsInDay * 90;
@@ -306,6 +356,24 @@ namespace Phantasma.Business.Contracts
                     _inflationReady = true;
                 }
             }
+        }
+
+        /// <summary>
+        /// Method used to return the last inflation date.
+        /// </summary>
+        /// <returns></returns>
+        public Timestamp GetLastInflationDate()
+        {
+            return _lastInflationDate;
+        }
+
+        /// <summary>
+        /// Method use to return how many days are left until the next distribution.
+        /// </summary>
+        /// <returns></returns>
+        public uint GetDaysUntilDistribution()
+        {
+            return Runtime.Time - _lastInflationDate;
         }
     }
 }

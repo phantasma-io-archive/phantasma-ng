@@ -7,7 +7,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>phantasma-node</AssemblyName>
     <OutputType>Exe</OutputType>
-    <RootNamespace>Phantasma</RootNamespace>
+    <RootNamespace>Phantasma.Node</RootNamespace>
     <Company>Phantasma.io</Company>
     <Description>Phantasma.Node</Description>
     <Product>Phantasma.Node</Product>
@@ -66,8 +66,7 @@
     <ProjectReference Include="..\Phantasma.Infrastructure\src\Phantasma.Infrastructure.csproj" />
     <ProjectReference Include="..\Phantasma.Business\src\Phantasma.Business.csproj" />
     <ProjectReference Include="..\Phantasma.Core\src\Phantasma.Core.csproj" />
-    <ProjectReference Include="..\Phantasma.Shared\src\Phantasma.Shared.csproj" />
-    <ProjectReference Include="..\Tendermint\Tendermint.csproj" />
-    <ProjectReference Include="..\Tendermint.RPC\Tendermint.RPC.csproj" />
+    <ProjectReference Include="..\Tendermint\Phantasma.Tendermint.csproj" />
+    <ProjectReference Include="..\Tendermint.RPC\Phantasma.Tendermint.RPC.csproj" />
   </ItemGroup>
 </Project>

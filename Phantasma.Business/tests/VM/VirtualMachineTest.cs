@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using Phantasma.Business.VM;
 using Phantasma.Core;
+using Phantasma.Core.Domain;
 using Shouldly;
 using Xunit;
+using ExecutionContext = Phantasma.Core.Domain.ExecutionContext;
 
 namespace Phantasma.Business.Tests.VM;
 
 public class VirtualMachineTest
 {
-    
-
     public class VirtualTestMachine : VirtualMachine
     {
         public VirtualTestMachine(byte[] script, uint offset, string contextName) : base(script, offset, contextName)
@@ -76,30 +77,37 @@ public class VirtualMachineTest
     public void registerContext_test()
     {
         VirtualMachine = new VirtualTestMachine(new byte[]{0}, 0, "test");
-        VirtualMachine.RegisterContext("test", new ScriptContext("testScript", new byte[]{0}, 0));
+        var context = new ScriptContext("testScript", new byte[] {0}, 0);
+        VirtualMachine.RegisterContext("test", context);
         
+        // Fact
+        VirtualMachine.FindContext("test").ShouldBe(context);
     }
     
-    [Fact]
-    public void execute_test()
+    [Theory]
+    [InlineData(new byte[] { }, "Constraint failed: Outside of script range => 0 / 0")]
+    [InlineData(new byte[] { 0 }, "Constraint failed: Outside of script range => 1 / 1")]
+    public void Execute_should_throw_VMException(byte[] script, string expected)
     {
-        VirtualMachine = new VirtualTestMachine(new byte[]{}, 0, "test");
+        // Arrange
+        var sut = new VirtualTestMachine(script, 0, "test");
 
-        Should.Throw<VMException>(() =>
-        {
-            VirtualMachine.Execute();
-        });
+        // Act
+        var result = Should.Throw<VMException>(() => sut.Execute());
+
+        // Assert
+        result.Message.ShouldBe(expected);
     }
-    
+
     [Fact]
-    public void pushFrame_test()
+    public void PushFrame_should_not_throw()
     {
-        VirtualMachine = new VirtualTestMachine(new byte[]{}, 0, "test");
-        ExecutionContext executionContext = VirtualMachine.CurrentContext;
-        Should.NotThrow(() =>
-        {
-            VirtualMachine.PushFrame(executionContext, 0, 1);
-        });
+        // Arrange
+        var sut = new VirtualTestMachine(new byte[] { }, 0, "test");
+        var executionContext = sut.CurrentContext;
+
+        // Act & Assert
+        Should.NotThrow(() => sut.PushFrame(executionContext, 0, 1));
     }
     
     [Fact]

@@ -1,12 +1,13 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
-using Microsoft.AspNetCore.Mvc;
-using Phantasma.Core;
-using Phantasma.Business.Contracts;
+using System.Linq;
 using System.Numerics;
+using Microsoft.AspNetCore.Mvc;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
 
-namespace Phantasma.Infrastructure.Controllers
+namespace Phantasma.Infrastructure.API.Controllers
 {
     public class AuctionController : BaseControllerV1
     {

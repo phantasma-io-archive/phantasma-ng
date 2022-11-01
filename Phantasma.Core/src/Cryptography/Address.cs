@@ -1,13 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Collections.Generic;
-using Phantasma.Shared;
-using Phantasma.Shared.Utils;
-using Phantasma.Core.Hashing;
-using System.Linq;
+using Phantasma.Core.Cryptography.Hashing;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Cryptography
 {
     public enum AddressKind
     {
@@ -17,7 +17,7 @@ namespace Phantasma.Core
         Interop = 3,
     }
 
-    public struct Address: ISerializable
+    public struct Address: ISerializable, IComparable<Address>
     {
         public static readonly Address Null = new Address(NullPublicKey);
 
@@ -124,8 +124,7 @@ namespace Phantasma.Core
             {
                 ByteArrayUtils.CopyBytes(key.PublicKey, 0, bytes, 2, 32);
             }
-            else
-            if (key.PublicKey.Length == 33)
+            else if (key.PublicKey.Length == 33)
             {
                 ByteArrayUtils.CopyBytes(key.PublicKey, 0, bytes, 1, 33);
             }
@@ -376,6 +375,34 @@ namespace Phantasma.Core
             }
 
             return bytes;
+        }
+
+        public int CompareTo(Address other)
+        {
+            byte[] x = ToByteArray();
+            byte[] y = other.ToByteArray();
+            for (int i = x.Length - 1; i >= 0; i--)
+            {
+                if (x[i] > y[i])
+                    return 1;
+                if (x[i] < y[i])
+                    return -1;
+            }
+            return 0;
+        }
+
+        public bool ValidateSignedData(string signedData, string random, string data)
+        {
+            var msgData = Base16.Decode(data);
+            var randomBytes = Base16.Decode(random);
+            var signedDataBytes = Base16.Decode(signedData);
+            var msgBytes = ByteArrayUtils.ConcatBytes(randomBytes, msgData);
+            using (var stream = new MemoryStream(signedDataBytes))
+            using (var reader = new BinaryReader(stream))
+            {
+                var signature = reader.ReadSignature();
+                return signature.Verify(msgBytes, this);
+            }
         }
     }
 }

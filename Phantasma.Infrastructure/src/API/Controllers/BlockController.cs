@@ -1,9 +1,10 @@
 using System.Linq;
-using Microsoft.AspNetCore.Mvc;
-using Phantasma.Core;
 using System.Numerics;
+using Microsoft.AspNetCore.Mvc;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
 
-namespace Phantasma.Infrastructure.Controllers
+namespace Phantasma.Infrastructure.API.Controllers
 {
     public class BlockController : BaseControllerV1
     {
@@ -102,7 +103,7 @@ namespace Phantasma.Infrastructure.Controllers
         [APIFailCase("block hash is invalid", "asdfsa")]
         [APIFailCase("chain is invalid", "453dsa")]
         [HttpGet("GetBlockByHeight")]
-        public BlockResult GetBlockByHeight([APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string chainInput, [APIParameter("Height of block", "1")] uint height)
+        public BlockResult GetBlockByHeight([APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string chainInput, [APIParameter("Height of block", "1")] string height)
         {
             var chain = NexusAPI.FindChainByInput(chainInput);
 
@@ -110,8 +111,12 @@ namespace Phantasma.Infrastructure.Controllers
             {
                 throw new APIException("chain not found");
             }
-
-            var blockHash = chain.GetBlockHashAtHeight(height);
+            
+            if (!BigInteger.TryParse(height, out var parsedHeight))
+            {
+                throw new APIException("invalid number");
+            }
+            var blockHash = chain.GetBlockHashAtHeight(parsedHeight);
             var block = chain.GetBlockByHash(blockHash);
 
             if (block != null)
@@ -126,7 +131,7 @@ namespace Phantasma.Infrastructure.Controllers
         [APIFailCase("block hash is invalid", "asdfsa")]
         [APIFailCase("chain is invalid", "453dsa")]
         [HttpGet("GetRawBlockByHeight")]
-        public string GetRawBlockByHeight([APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string chainInput, [APIParameter("Height of block", "1")] uint height)
+        public string GetRawBlockByHeight([APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string chainInput, [APIParameter("Height of block", "1")] string height)
         {
             var nexus = NexusAPI.GetNexus();
 
@@ -146,7 +151,11 @@ namespace Phantasma.Infrastructure.Controllers
                 throw new APIException("chain not found");
             }
 
-            var blockHash = chain.GetBlockHashAtHeight(height);
+            if (!BigInteger.TryParse(height, out var parsedHeight))
+            {
+                throw new APIException("invalid number");
+            }
+            var blockHash = chain.GetBlockHashAtHeight(parsedHeight);
             var block = chain.GetBlockByHash(blockHash);
 
             if (block != null)

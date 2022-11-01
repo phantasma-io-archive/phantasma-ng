@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Numerics;
-using Phantasma.Core.Context;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Storage;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 
-namespace Phantasma.Core;
+namespace Phantasma.Core.Domain;
 
 public interface INexus
 {
@@ -11,6 +13,7 @@ public interface INexus
     IChain RootChain { get; }
     StorageContext RootStorage { get; init;  }
     bool HasGenesis { get; set; }
+    BigInteger MaxGas { get; set; }
 
     string NexusProtocolVersionTag { get;  }
     string FuelPerContractDeployTag { get;  }
@@ -20,7 +23,7 @@ public interface INexus
     void Attach(IOracleObserver observer);
     void Detach(IOracleObserver observer);
     void Notify(StorageContext storage);
-    void LoadNexus(StorageContext storage);
+    bool LoadNexus(StorageContext storage);
     IKeyValueStoreAdapter CreateKeyStoreAdapter(string name);
     Block FindBlockByTransaction(Transaction tx);
     Block FindBlockByTransactionHash(Hash hash);

@@ -1,4 +1,6 @@
-using Phantasma.Core;
+using Phantasma.Core.Domain;
+
+namespace Phantasma.Business.Blockchain.Contracts;
 
 public static class ContractNames
 {
@@ -16,5 +18,6 @@ public static class ContractNames
     public readonly static string RelayContractName = NativeContractKind.Relay.GetContractName();
     public readonly static string RankingContractName = NativeContractKind.Ranking.GetContractName();
     public readonly static string MailContractName = NativeContractKind.Mail.GetContractName();
+    public readonly static string MarketContractName = NativeContractKind.Market.GetContractName();
 
 }

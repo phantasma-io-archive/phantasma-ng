@@ -1,10 +1,11 @@
-﻿using Phantasma.Shared;
-using Phantasma.Shared.Utils;
-using System;
-using System.Text;
+﻿using System;
 using System.Numerics;
+using System.Text;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Core.Context
+namespace Phantasma.Core.Storage.Context
 {
     public struct StorageList : IStorageCollection
     {
@@ -50,7 +51,7 @@ namespace Phantasma.Core.Context
             }
             else
             {
-                right = ByteArrayUtils.ConcatBytes(element_begin_prefix, index.ToByteArray());
+                right = ByteArrayUtils.ConcatBytes(element_begin_prefix, index.ToSignedByteArray());
             }
 
             right = ByteArrayUtils.ConcatBytes(right, element_end_prefix);

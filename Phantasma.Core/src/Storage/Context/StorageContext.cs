@@ -1,8 +1,10 @@
 ﻿using System;
-using System.Text;
 using System.Numerics;
+using System.Text;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 
-namespace Phantasma.Core.Context
+namespace Phantasma.Core.Storage.Context
 {
     public abstract class StorageContext
     {

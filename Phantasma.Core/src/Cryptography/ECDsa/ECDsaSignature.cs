@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Core.ECC
+namespace Phantasma.Core.Cryptography.ECDsa
 {
     public class ECDsaSignature : Signature
     {

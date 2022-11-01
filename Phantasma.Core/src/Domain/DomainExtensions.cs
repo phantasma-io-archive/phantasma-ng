@@ -1,7 +1,9 @@
 using System;
 using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
 
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
     public static class DomainExtensions
     {
@@ -103,7 +105,7 @@ namespace Phantasma.Core
 
         public static bool IsReadOnlyMode(this IRuntime runtime)
         {
-            return runtime.Transaction == null;
+            return runtime.Transaction == Transaction.Null;
         }
 
         public static bool IsRootChain(this IRuntime runtime)

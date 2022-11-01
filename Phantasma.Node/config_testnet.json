@@ -39,13 +39,14 @@
     "PerformanceMetrics": {
         "CountsEnabled": false,
         "AveragesEnabled": false,
-        "LongRunningRequestThreshold": 500,
+        "LongRunningRequestThreshold": 500
     },
     "Node": {
       "web.logs": false,
       "block.time": 2,
       "minimum.fee": 100000,
       "minimum.pow": 0,
+      "max.gas": 10000,
       "api.proxy.url": "",
       "nexus.name": "simnet",
       "node.mode": "validator",
@@ -66,7 +67,6 @@
       "nexus.bootstrap": true,
       "genesis.timestamp": 0,
       "api.cache": true,
-      "readonly": false,
       "sender.host": "",
       "sender.threads": 8,
       "sender.address.count": 100,

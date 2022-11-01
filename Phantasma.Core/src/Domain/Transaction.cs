@@ -1,32 +1,45 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Linq;
-using System.Collections.Generic;
+using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Types;
+using Phantasma.Core.Utils;
 
-using Phantasma.Core;
-using Phantasma.Shared;
-using Phantasma.Shared.Types;
-using Phantasma.Core.EdDSA;
-using Phantasma.Core.ECC;
-
-namespace Phantasma.Core
+namespace Phantasma.Core.Domain
 {
-    public sealed class Transaction : ISerializable
+    public sealed class Transaction : ITransaction, ISerializable
     {
+        public readonly static Transaction Null = null;
+
         public byte[] Script { get; private set; }
 
         public string NexusName { get; private set; }
+
         public string ChainName { get; private set; }
+        
+        public Address Sender { get; private set; }
+
+        public Address GasPayer { get; private set; }
+
+        public Address GasTarget { get; private set; }
+
+        public BigInteger GasPrice { get; private set; }
+
+        public BigInteger GasLimit { get; private set; }
 
         public Timestamp Expiration { get; private set; }
+
+        public long Version { get; private set; }
 
         public byte[] Payload { get; private set; }
 
         public Signature[] Signatures { get; private set; }
+
         public Hash Hash { get; private set; }
 
-        public static Transaction Unserialize(byte[] bytes)
+        public static Transaction? Unserialize(byte[] bytes)
         {
             using (var stream = new MemoryStream(bytes))
             {
@@ -37,18 +50,31 @@ namespace Phantasma.Core
             }
         }
 
-        public static Transaction Unserialize(BinaryReader reader)
+        public static Transaction? Unserialize(BinaryReader reader)
         {
             var tx = new Transaction();
-            tx.UnserializeData(reader);
-            return tx;
+            try
+            {
+                tx.UnserializeData(reader);
+                return tx;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         public void Serialize(BinaryWriter writer, bool withSignature)
         {
             writer.WriteVarString(this.NexusName);
             writer.WriteVarString(this.ChainName);
+            writer.WriteVarInt(this.Version);
             writer.WriteByteArray(this.Script);
+            writer.WriteAddress(this.Sender);
+            writer.WriteAddress(this.GasPayer);
+            writer.WriteAddress(this.GasTarget);
+            writer.WriteBigInteger(this.GasPrice);
+            writer.WriteBigInteger(this.GasLimit);
             writer.Write(this.Expiration.Value);
             writer.WriteByteArray(this.Payload);
 
@@ -73,18 +99,55 @@ namespace Phantasma.Core
 
         }
 
-        public Transaction(string nexusName, string chainName, byte[] script, Timestamp expiration, string payload) : this(nexusName, chainName, script, expiration, Encoding.UTF8.GetBytes(payload))
+        public Transaction(
+                string nexusName,
+                string chainName,
+                byte[] script,
+                Address sender,
+                Address gasPayer,
+                BigInteger gasPrice,
+                BigInteger gasLimit,
+                Timestamp expiration,
+                string payload)
+            : this(nexusName,
+                    chainName,
+                    0L,
+                    script,
+                    sender,
+                    gasPayer,
+                    Address.Null,
+                    gasPrice,
+                    gasLimit,
+                    expiration,
+                    Encoding.UTF8.GetBytes(payload))
         {
         }
 
         // transactions are always created unsigned, call Sign() to generate signatures
-        public Transaction(string nexusName, string chainName, byte[] script, Timestamp expiration, byte[] payload = null)
+        public Transaction(
+                string nexusName,
+                string chainName,
+                long version,
+                byte[] script,
+                Address sender,
+                Address gasPayer,
+                Address gasTarget,
+                BigInteger gasPrice,
+                BigInteger gasLimit,
+                Timestamp expiration,
+                byte[] payload = null)
         {
             Throw.IfNull(script, nameof(script));
 
             this.NexusName = nexusName;
             this.ChainName = chainName;
+            this.Version = version;
             this.Script = script;
+            this.Sender = sender;
+            this.GasPayer = gasPayer;
+            this.GasTarget = gasTarget;
+            this.GasPrice = gasPrice;
+            this.GasLimit = gasLimit;
             this.Expiration = expiration;
             this.Payload = payload != null ? payload :new byte[0];
 
@@ -168,7 +231,13 @@ namespace Phantasma.Core
         {
             this.NexusName = reader.ReadVarString();
             this.ChainName = reader.ReadVarString();
+            this.Version = (long)reader.ReadVarInt();
             this.Script = reader.ReadByteArray();
+            this.Sender = reader.ReadAddress();
+            this.GasPayer = reader.ReadAddress();
+            this.GasTarget = reader.ReadAddress();
+            this.GasPrice = reader.ReadBigInteger();
+            this.GasLimit = reader.ReadBigInteger();
             this.Expiration = reader.ReadUInt32();
             this.Payload = reader.ReadByteArray();
 
