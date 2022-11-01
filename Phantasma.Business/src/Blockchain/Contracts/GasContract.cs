@@ -94,21 +94,15 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var maxAmount = price * limit;
 
-            using (var m = new ProfileMarker("_allowanceMap"))
-            {
-                var allowance = _allowanceMap.ContainsKey(from) ? _allowanceMap.Get<Address, BigInteger>(from) : 0;
-                Runtime.Expect(allowance == 0, "unexpected pending allowance");
+            var allowance = _allowanceMap.ContainsKey(from) ? _allowanceMap.Get<Address, BigInteger>(from) : 0;
+            Runtime.Expect(allowance == 0, "unexpected pending allowance");
 
-                allowance += maxAmount;
-                _allowanceMap.Set(from, allowance);
-                _allowanceTargets.Set(from, target);
-            }
-
+            allowance += maxAmount;
+            _allowanceMap.Set(from, allowance);
+            _allowanceTargets.Set(from, target);
+            
             BigInteger balance;
-            using (var m = new ProfileMarker("Runtime.GetBalance"))
-            {
-                balance = Runtime.GetBalance(DomainSettings.FuelTokenSymbol, from);
-            }
+            balance = Runtime.GetBalance(DomainSettings.FuelTokenSymbol, from);
 
             if (maxAmount > balance)
             {
@@ -119,10 +113,8 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Expect(balance >= maxAmount, $"not enough {DomainSettings.FuelTokenSymbol} {balance} in address {from} {maxAmount}");
 
-            using (var m = new ProfileMarker("Runtime.TransferTokens"))
-                Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, from, this.Address, maxAmount);
-            using (var m = new ProfileMarker("Runtime.Notify"))
-                Runtime.Notify(EventKind.GasEscrow, from, new GasEventData(target, price, limit));
+            Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, from, this.Address, maxAmount);
+            Runtime.Notify(EventKind.GasEscrow, from, new GasEventData(target, price, limit));
         }
         
         /// <summary>

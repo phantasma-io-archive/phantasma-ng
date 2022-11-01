@@ -278,29 +278,27 @@ namespace Phantasma.Business.Blockchain
                 // create snapshot
                 var snapshot = this.CurrentChangeSet.Clone();
 
-                using (var m = new ProfileMarker("ExecuteTransaction"))
+                result = ExecuteTransaction(txIndex, tx, tx.Script, this.CurrentBlock.Validator,
+                    this.CurrentBlock.Timestamp, snapshot, this.CurrentBlock.Notify, oracle,
+                    ChainTask.Null, 100000);
+
+                if (result.State == ExecutionState.Halt)
                 {
-                    result = ExecuteTransaction(txIndex, tx, tx.Script, this.CurrentBlock.Validator,
-                        this.CurrentBlock.Timestamp, snapshot, this.CurrentBlock.Notify, oracle,
-                        ChainTask.Null, 100000);
-
-                    if (result.State == ExecutionState.Halt)
+                    if (result.Result != null)
                     {
-                        if (result.Result != null)
-                        {
-                            var resultBytes = Serialization.Serialize(result.Result);
-                            this.CurrentBlock.SetResultForHash(tx.Hash, resultBytes);
-                        }
-
-                        snapshot.Execute();
-                    }
-                    else
-                    {
-                        snapshot = null;
+                        var resultBytes = Serialization.Serialize(result.Result);
+                        this.CurrentBlock.SetResultForHash(tx.Hash, resultBytes);
                     }
 
-                    this.CurrentBlock.SetStateForHash(tx.Hash, result.State);
+                    snapshot.Execute();
                 }
+                else
+                {
+                    snapshot = null;
+                }
+
+                this.CurrentBlock.SetStateForHash(tx.Hash, result.State);
+                
             }
             catch (Exception e)
             {
@@ -390,8 +388,7 @@ namespace Phantasma.Business.Blockchain
             block.AddAllTransactionHashes(transactions.Select (x => x.Hash).ToArray());
 
             // from here on, the block is accepted
-            using (var m = new ProfileMarker("changeSet.Execute"))
-                changeSet.Execute();
+            changeSet.Execute();
 
             var hashList = new StorageList(BlockHeightListTag, this.Storage);
             hashList.Add<Hash>(block.Hash);
@@ -405,50 +402,47 @@ namespace Phantasma.Business.Blockchain
                 Nexus.HasGenesis = true;
             }
 
-            using (var m = new ProfileMarker("Compress"))
+            var blockMap = new StorageMap(BlockHashMapTag, this.Storage);
+
+            var blockBytes = block.ToByteArray(true);
+
+            var blk = Block.Unserialize(blockBytes);
+            blockBytes = CompressionUtils.Compress(blockBytes);
+            blockMap.Set<Hash, byte[]>(block.Hash, blockBytes);
+
+            var txMap = new StorageMap(TransactionHashMapTag, this.Storage);
+            var txBlockMap = new StorageMap(TxBlockHashMapTag, this.Storage);
+            foreach (Transaction tx in transactions)
             {
-                var blockMap = new StorageMap(BlockHashMapTag, this.Storage);
+                var txBytes = tx.ToByteArray(true);
+                txBytes = CompressionUtils.Compress(txBytes);
+                txMap.Set<Hash, byte[]>(tx.Hash, txBytes);
+                txBlockMap.Set<Hash, Hash>(tx.Hash, block.Hash);
+            }
+        
 
-                var blockBytes = block.ToByteArray(true);
+            foreach (var transaction in transactions)
+            {
+                var addresses = new HashSet<Address>();
+                var events = block.GetEventsForTransaction(transaction.Hash);
 
-                var blk = Block.Unserialize(blockBytes);
-                blockBytes = CompressionUtils.Compress(blockBytes);
-                blockMap.Set<Hash, byte[]>(block.Hash, blockBytes);
-
-                var txMap = new StorageMap(TransactionHashMapTag, this.Storage);
-                var txBlockMap = new StorageMap(TxBlockHashMapTag, this.Storage);
-                foreach (Transaction tx in transactions)
+                foreach (var evt in events)
                 {
-                    var txBytes = tx.ToByteArray(true);
-                    txBytes = CompressionUtils.Compress(txBytes);
-                    txMap.Set<Hash, byte[]>(tx.Hash, txBytes);
-                    txBlockMap.Set<Hash, Hash>(tx.Hash, block.Hash);
+                    if (evt.Contract == "gas" && (evt.Address.IsSystem || evt.Address == block.Validator))
+                    {
+                        continue;
+                    }
+
+                    addresses.Add(evt.Address);
+                }
+
+                var addressTxMap = new StorageMap(AddressTxHashMapTag, this.Storage);
+                foreach (var address in addresses)
+                {
+                    var addressList = addressTxMap.Get<Address, StorageList>(address);
+                    addressList.Add<Hash>(transaction.Hash);
                 }
             }
-
-            using (var m = new ProfileMarker("AddressBlockHashMapTag"))
-                foreach (var transaction in transactions)
-                {
-                    var addresses = new HashSet<Address>();
-                    var events = block.GetEventsForTransaction(transaction.Hash);
-
-                    foreach (var evt in events)
-                    {
-                        if (evt.Contract == "gas" && (evt.Address.IsSystem || evt.Address == block.Validator))
-                        {
-                            continue;
-                        }
-
-                        addresses.Add(evt.Address);
-                    }
-
-                    var addressTxMap = new StorageMap(AddressTxHashMapTag, this.Storage);
-                    foreach (var address in addresses)
-                    {
-                        var addressList = addressTxMap.Get<Address, StorageList>(address);
-                        addressList.Add<Hash>(transaction.Hash);
-                    }
-                }
         }
 
         private TransactionResult ExecuteTransaction(int index, Transaction transaction, byte[] script, Address validator, Timestamp time, StorageChangeSetContext changeSet
@@ -461,25 +455,19 @@ namespace Phantasma.Business.Blockchain
             uint offset = 0;
 
             RuntimeVM runtime;
-            using (var m = new ProfileMarker("new RuntimeVM"))
-            {
-                runtime = new RuntimeVM(index, script, offset, this, validator, time, transaction, changeSet, oracle, task);
-            }
+            runtime = new RuntimeVM(index, script, offset, this, validator, time, transaction, changeSet, oracle, task);
+            
 
-            using (var m = new ProfileMarker("runtime.Execute"))
-                result.State = runtime.Execute();
+            result.State = runtime.Execute();
 
             result.Events = runtime.Events.ToArray();
             result.GasUsed = (long)runtime.UsedGas;
 
-            using (var m = new ProfileMarker("runtime.Events"))
+            foreach (var evt in runtime.Events)
             {
-                foreach (var evt in runtime.Events)
-                {
-                    using (var m2 = new ProfileMarker(evt.ToString()))
-                        onNotify(transaction.Hash, evt);
-                }
+                onNotify(transaction.Hash, evt);
             }
+            
 
             if (result.State != ExecutionState.Halt)
             {
@@ -1247,39 +1235,37 @@ namespace Phantasma.Business.Blockchain
             {
                 currentRun = 0;
             }
+            
+            var taskScript = new ScriptBuilder()
+                .AllowGas()
+                .CallContract(task.ContextName, task.Method)
+                .SpendGas()
+                .EndScript();
 
-            using (var m = new ProfileMarker("ExecuteTask"))
+            transaction = new Transaction(this.Nexus.Name, this.Name, taskScript, task.Owner, task.Owner, minimumFee, task.GasLimit, block.Timestamp.Value + 1, "TASK");
+
+            var txResult = ExecuteTransaction(-1, transaction, transaction.Script, block.Validator, block.Timestamp, changeSet,
+                        block.Notify, oracle, task, minimumFee);
+            if (txResult.Code == 0)
             {
-                var taskScript = new ScriptBuilder()
-                    .AllowGas()
-                    .CallContract(task.ContextName, task.Method)
-                    .SpendGas()
-                    .EndScript();
-
-                transaction = new Transaction(this.Nexus.Name, this.Name, taskScript, task.Owner, task.Owner, minimumFee, task.GasLimit, block.Timestamp.Value + 1, "TASK");
-
-                var txResult = ExecuteTransaction(-1, transaction, transaction.Script, block.Validator, block.Timestamp, changeSet,
-                            block.Notify, oracle, task, minimumFee);
-                if (txResult.Code == 0)
-                {
-                    var resultBytes = Serialization.Serialize(txResult.Result);
-                    block.SetResultForHash(transaction.Hash, resultBytes);
-
-                    block.SetStateForHash(transaction.Hash, txResult.State);
-
-                    // update last_run value in storage
-                    if (currentRun > 0)
-                    {
-                        changeSet.Put<BigInteger>(taskKey, currentRun);
-                    }
-
-                    var shouldStop = txResult.Result.AsBool();
-                    return shouldStop ? TaskResult.Halted : TaskResult.Running;
-                }
+                var resultBytes = Serialization.Serialize(txResult.Result);
+                block.SetResultForHash(transaction.Hash, resultBytes);
 
                 block.SetStateForHash(transaction.Hash, txResult.State);
-                return TaskResult.Crashed;
+
+                // update last_run value in storage
+                if (currentRun > 0)
+                {
+                    changeSet.Put<BigInteger>(taskKey, currentRun);
+                }
+
+                var shouldStop = txResult.Result.AsBool();
+                return shouldStop ? TaskResult.Halted : TaskResult.Running;
             }
+
+            block.SetStateForHash(transaction.Hash, txResult.State);
+            return TaskResult.Crashed;
+            
         }
         #endregion
 
