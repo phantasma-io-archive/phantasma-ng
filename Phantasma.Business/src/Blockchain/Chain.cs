@@ -11,14 +11,10 @@ using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
-using Phantasma.Core.Performance;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 using Serilog;
-using Tendermint;
-using Tendermint.Types;
-using TValidatorUpdate = Tendermint.Abci.ValidatorUpdate;
 
 namespace Phantasma.Business.Blockchain
 {
@@ -33,7 +29,7 @@ namespace Phantasma.Business.Blockchain
 
         private List<Transaction> CurrentTransactions = new();
 
-        #region PUBLIC
+#region PUBLIC
         public static readonly uint InitialHeight = 1;
 
         public INexus Nexus { get; private set; }
@@ -54,7 +50,7 @@ namespace Phantasma.Business.Blockchain
         public StorageContext Storage { get; private set; }
 
         public bool IsRoot => this.Name == DomainSettings.RootChainName;
-        #endregion
+#endregion
 
         public Chain(INexus nexus, string name)
         {
@@ -82,7 +78,9 @@ namespace Phantasma.Business.Blockchain
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
         }
 
-        public IEnumerable<Transaction> BeginBlock(Header header, IEnumerable<Address> initialValidators)
+        // header.ProposerAddress.ToByteArray()
+        //  header.Height
+        public IEnumerable<Transaction> BeginBlock(string proposerAddress, BigInteger height, IEnumerable<Address> initialValidators)
         {
             // should never happen
             if (this.CurrentBlock != null)
@@ -96,7 +94,7 @@ namespace Phantasma.Business.Blockchain
             var isFirstBlock = lastBlock == null;
 
             var protocol = Nexus.GetProtocolVersion(Nexus.RootStorage);
-            this.CurrentProposer = Base16.Encode(header.ProposerAddress.ToByteArray());
+            this.CurrentProposer = proposerAddress;
             var validator = Nexus.GetValidator(this.Storage, this.CurrentProposer);
 
             Address validatorAddress = validator.address;
@@ -118,7 +116,7 @@ namespace Phantasma.Business.Blockchain
                 }
             }
 
-            this.CurrentBlock = new Block(header.Height
+            this.CurrentBlock = new Block(height
                 , this.Address
                 , Timestamp.Now
                 , isFirstBlock ? Hash.Null : lastBlock.Hash
@@ -260,12 +258,16 @@ namespace Phantasma.Business.Blockchain
 
             return CheckTx(tx);
         }
+        public IEnumerable<T> EndBlock<T>() where T : class
+        {
+            // TODO return block events
+            // TODO validator update
+            return new List<T>();
+        }
 
-        public TransactionResult DeliverTx(ByteString serializedTx)
+        public TransactionResult DeliverTx(Transaction tx)
         {
             TransactionResult result = new();
-            var txString = serializedTx.ToStringUtf8();
-            var tx = Transaction.Unserialize(Base16.Decode(txString));
 
             Log.Information("Deliver tx {Hash}", tx);
 
@@ -310,13 +312,6 @@ namespace Phantasma.Business.Blockchain
             }
 
             return result;
-        }
-
-        public IEnumerable<TValidatorUpdate> EndBlock()
-        {
-            // TODO return block events
-            // TODO validator update
-            return new List<TValidatorUpdate>();
         }
 
         public byte[] Commit()
@@ -636,7 +631,7 @@ namespace Phantasma.Business.Blockchain
             return lastID;
         }
 
-        #region FEES
+#region FEES
         public BigInteger GetBlockReward(Block block)
         {
             if (block.TransactionCount == 0)
@@ -688,9 +683,9 @@ namespace Phantasma.Business.Blockchain
 
             return fee;
         }
-        #endregion
+#endregion
 
-        #region Contracts
+#region Contracts
         private byte[] GetContractListKey()
         {
             return Encoding.ASCII.GetBytes("contracts.");
@@ -879,7 +874,7 @@ namespace Phantasma.Business.Blockchain
             return Address.Null;
         }
 
-        #endregion
+#endregion
 
         private BigInteger GetBlockHeight()
         {
@@ -1027,7 +1022,7 @@ namespace Phantasma.Business.Blockchain
             return block.Timestamp;
         }
 
-        #region SWAPS
+#region SWAPS
         private StorageList GetSwapListForAddress(StorageContext storage, Address address)
         {
             var key = ByteArrayUtils.ConcatBytes(Encoding.UTF8.GetBytes(".swapaddr"), address.ToByteArray());
@@ -1066,9 +1061,9 @@ namespace Phantasma.Business.Blockchain
             var list = GetSwapListForAddress(storage, address);
             return list.All<Hash>();
         }
-        #endregion
+#endregion
 
-        #region TASKS
+#region TASKS
         private byte[] GetTaskKey(BigInteger taskID, string field)
         {
             var bytes = Encoding.ASCII.GetBytes(field);
@@ -1267,9 +1262,9 @@ namespace Phantasma.Business.Blockchain
             return TaskResult.Crashed;
             
         }
-        #endregion
+#endregion
 
-        #region block validation
+#region block validation
         public Address GetValidator(StorageContext storage, Timestamp targetTime)
         {
             var rootStorage = this.IsRoot ? storage : Nexus.RootStorage;
@@ -1395,7 +1390,7 @@ namespace Phantasma.Business.Blockchain
                 }
             }
         }
-        #endregion
+#endregion
 
         public Address LookUpName(StorageContext storage, string name)
         {

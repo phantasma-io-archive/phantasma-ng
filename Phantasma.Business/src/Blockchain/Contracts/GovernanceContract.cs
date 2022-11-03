@@ -141,7 +141,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             var constraints = Serialization.Unserialize<ChainConstraint[]>(serializedConstraints);
             ValidateConstraints(name, 0, initial, constraints, false);
 
-            if (name == ValidatorContract.ValidatorCountTag)
+            if (name == ValidatorContract.ValidatorCountTag && Runtime.NexusName == DomainSettings.NexusMainnet)
             {
                 Runtime.Expect(initial == InitialValidatorCount, $"The initial number of validators must always be {InitialValidatorCount}.");
             }
