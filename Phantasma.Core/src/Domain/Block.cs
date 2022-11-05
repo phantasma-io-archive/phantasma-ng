@@ -195,28 +195,14 @@ namespace Phantasma.Core.Domain
             writer.WriteAddress(ChainAddress);
             writer.WriteVarInt(Protocol);
 
-            if (OldMode)
-            {
-                writer.Write((ushort)_transactionHashes.Count);
-            }
-            else
-            {
-                writer.WriteVarInt(_transactionHashes.Count);
-            }
+            writer.WriteVarInt(_transactionHashes.Count);
 
             foreach (var hash in _transactionHashes)
             {
                 writer.WriteHash(hash);
                 var evts = GetEventsForTransaction(hash).ToArray();
 
-                if (OldMode)
-                {
-                    writer.Write((ushort)evts.Length);
-                }
-                else
-                {
-                    writer.WriteVarInt(evts.Length);
-                }
+                writer.WriteVarInt(evts.Length);
 
                 foreach (var evt in evts)
                 {
@@ -230,19 +216,9 @@ namespace Phantasma.Core.Domain
                     var result = _resultMap[hash];
                     writer.WriteByteArray(result);
                 }
-
-                var state = _stateMap[hash];
-                writer.WriteVarInt((long)state);
             }
 
-            if (OldMode)
-            {
-                writer.Write((ushort)_oracleData.Count);
-            }
-            else
-            {
-                writer.WriteVarInt(_oracleData.Count);
-            }
+            writer.WriteVarInt(_oracleData.Count);
 
             foreach (var entry in _oracleData)
             {
@@ -263,6 +239,15 @@ namespace Phantasma.Core.Domain
 
             writer.WriteAddress(this.Validator);
             writer.WriteByteArray(this.Payload);
+
+            if (Protocol >= DomainSettings.Phantasma30Protocol)
+            {
+                foreach (var hash in _transactionHashes)
+                {
+                    var state = _stateMap[hash];
+                    writer.WriteVarInt((int)state);
+                }
+            }
 
             if (withSignatures)
             {
@@ -307,8 +292,6 @@ namespace Phantasma.Core.Domain
             Serialize(writer, true);
         }
 
-        public static bool OldMode = false;
-
         public void UnserializeData(BinaryReader reader)
         {
             this.Height = reader.ReadBigInteger();
@@ -317,7 +300,7 @@ namespace Phantasma.Core.Domain
             this.ChainAddress = reader.ReadAddress();
             this.Protocol = (uint)reader.ReadVarInt();
 
-            var hashCount = OldMode ? reader.ReadUInt16() : (uint)reader.ReadVarInt();
+            var hashCount = (uint)reader.ReadVarInt();
             var hashes = new List<Hash>();
 
             _eventMap.Clear();
@@ -328,7 +311,7 @@ namespace Phantasma.Core.Domain
                 var hash = reader.ReadHash();
                 hashes.Add(hash);
 
-                var evtCount = (int)(OldMode ? reader.ReadUInt16() : (uint)reader.ReadVarInt());
+                var evtCount = (int)reader.ReadVarInt();
                 var evts = new List<Event>(evtCount);
                 for (int i = 0; i < evtCount; i++)
                 {
@@ -349,11 +332,9 @@ namespace Phantasma.Core.Domain
                         _resultMap[hash] = reader.ReadByteArray();
                     }
                 }
-
-                _stateMap[hash] = (ExecutionState)reader.ReadVarInt();
             }
 
-            var oracleCount = OldMode ? reader.ReadUInt16() : (uint)reader.ReadVarInt();
+            var oracleCount = (uint)reader.ReadVarInt();
             _oracleData.Clear();
             while (oracleCount > 0)
             {
@@ -363,7 +344,7 @@ namespace Phantasma.Core.Domain
                 oracleCount--;
             }
 
-            try
+            if (Protocol >= DomainSettings.Phantasma20Protocol)
             {
                 var evtCount = (int)reader.ReadVarInt();
                 _events = new List<Event>(evtCount);
@@ -374,17 +355,34 @@ namespace Phantasma.Core.Domain
 
                 Validator = reader.ReadAddress();
                 Payload = reader.ReadByteArray();
+            }
 
+            if (Protocol >= DomainSettings.Phantasma30Protocol)
+            {
+                foreach (var hash in _transactionHashes)
+                {
+                    _stateMap[hash] = (ExecutionState)reader.ReadVarInt();
+                }
+            }
+            else
+            {
+                // before Phantasma 3.0 only txs with Halt state were added to blocks
+                foreach (var hash in _transactionHashes)
+                {
+                    _stateMap[hash] = ExecutionState.Halt;
+                }
+            }
+
+            try
+            {
                 Signature = reader.ReadSignature();
+
+                var blockEnd = reader.ReadByte();
             }
             catch (Exception e)
             {
-                Payload = null;
-                Validator = Address.Null;
                 Signature = null;
             }
-
-            var blockEnd = reader.ReadByte();
 
             _transactionHashes = new List<Hash>();
             foreach (var hash in hashes)

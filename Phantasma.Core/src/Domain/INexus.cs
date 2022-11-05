@@ -74,7 +74,7 @@ public interface INexus
     bool HasNFT(StorageContext storage, string symbol, BigInteger tokenID);
     void BeginInitialize(IRuntime vm, Address owner);
     void FinishInitialize(IRuntime vm, Address owner);
-    Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, int version, PhantasmaKeys owner, IEnumerable<Address> initialValidators);
+    Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, PhantasmaKeys owner, IEnumerable<Address> initialValidators);
     Timestamp GetValidatorLastActivity(Address target);
     ValidatorEntry[] GetValidators();
     int GetPrimaryValidatorCount();

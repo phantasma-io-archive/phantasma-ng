@@ -267,7 +267,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         try
         {
             Dictionary<int, Transaction> systemTransactions;
-            systemTransactions = _nexus.CreateGenesisBlock(timestamp, 0, this._owner, this._initialValidators);
+            systemTransactions = _nexus.CreateGenesisBlock(timestamp, this._owner, this._initialValidators);
 
             var idx = 0;
             foreach (var tx in systemTransactions.OrderByDescending(x => x.Key))
