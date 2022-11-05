@@ -38,6 +38,8 @@ namespace Phantasma.Core.Domain
         public Block GetBlockByHeight(BigInteger height);
         public bool IsRootChain();
 
+        public IChain GetRootChain();
+
         public bool HasGenesis { get; }
         public string NexusName { get; }
         public uint ProtocolVersion { get; }

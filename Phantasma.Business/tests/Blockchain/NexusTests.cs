@@ -205,7 +205,7 @@ public class NexusTests : IDisposable
     [Fact]
     public void CreateGenesisBlock_test_success()
     {
-        var txDict = this.Nexus.CreateGenesisBlock(Timestamp.Now, 0, User1, new List<Address> { User1.Address, User2.Address });
+        var txDict = this.Nexus.CreateGenesisBlock(Timestamp.Now, User1, new List<Address> { User1.Address, User2.Address });
         txDict.Count.ShouldBe(1);
         txDict.First().Value.Script.Length.ShouldBeGreaterThan(0);
         txDict.First().Value.NexusName.ShouldBe("unittest");

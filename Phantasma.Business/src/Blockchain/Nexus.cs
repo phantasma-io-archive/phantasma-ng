@@ -1588,11 +1588,13 @@ public class Nexus : INexus
              }, initialValidators);
         }
 
-    public Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, int version, PhantasmaKeys owner, IEnumerable<Address> initialValidators)
+    public Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, PhantasmaKeys owner, IEnumerable<Address> initialValidators)
     {
         Throw.If(HasGenesis(), "genesis block already exists");
 
         _genesisAddress = owner.Address;
+
+        int version = DomainSettings.Phantasma30Protocol;
 
         var genesisTx = GenerateGenesisTx(owner, version, initialValidators);
 
