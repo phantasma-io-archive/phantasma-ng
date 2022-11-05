@@ -2317,6 +2317,17 @@ namespace Phantasma.Business.Blockchain
             return CurrentContext.Address == context.Address;
         }
 
+        public IChain GetRootChain()
+        {
+            return GetChainByName(DomainSettings.RootChainName);
+        }
+
+        public bool IsRootChain()
+        {
+            var rootChain = GetRootChain();
+            return Chain.Address == rootChain.Address;
+        }
+
         public bool HasGenesis => Nexus.HasGenesis;
         public string NexusName => Nexus.Name;
         public uint ProtocolVersion { get; private set; }

@@ -86,11 +86,6 @@ namespace Phantasma.Core.Domain
             return nativeContract.ToString().ToLower();
         }
 
-        public static IChain GetRootChain(this IRuntime runtime)
-        {
-            return runtime.GetChainByName(DomainSettings.RootChainName);
-        }
-
         public static void Notify<T>(this IRuntime runtime, Enum kind, Address address, T content)
         {
             var intVal = (int)(object)kind;
@@ -106,12 +101,6 @@ namespace Phantasma.Core.Domain
         public static bool IsReadOnlyMode(this IRuntime runtime)
         {
             return runtime.Transaction == Transaction.Null;
-        }
-
-        public static bool IsRootChain(this IRuntime runtime)
-        {
-            var rootChain = runtime.GetRootChain();
-            return runtime.Chain.Address == rootChain.Address;
         }
 
         public static InteropBlock ReadBlockFromOracle(this IRuntime runtime, string platform, string chain, Hash hash)
