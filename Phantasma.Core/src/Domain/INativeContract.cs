@@ -9,7 +9,6 @@ public interface INativeContract
     string Name { get; }
     NativeContractKind Kind { get; }
     ContractInterface ABI { get; }
-    BigInteger Order { get; } // TODO remove this?
     IRuntime Runtime { get; }
     Address Address { get; }
     void SetRuntime(IRuntime runtime);
