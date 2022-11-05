@@ -61,7 +61,6 @@ public interface IChain
     IChainTask StartTask(StorageContext storage, Address from, string contractName, ContractMethod method, uint frequency, uint delay, TaskFrequencyMode mode, BigInteger gasLimit);
     bool StopTask(StorageContext storage, BigInteger taskID);
     IChainTask GetTask(StorageContext storage, BigInteger taskID);
-    Address GetValidator(StorageContext storage, Timestamp targetTime);
     void CloseBlock(Block block, StorageChangeSetContext storage);
     Address LookUpName(StorageContext storage, string name);
     string GetNameFromAddress(StorageContext storage, Address address);

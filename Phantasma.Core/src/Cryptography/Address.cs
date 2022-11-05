@@ -21,6 +21,7 @@ namespace Phantasma.Core.Cryptography
     {
         public static readonly Address Null = new Address(NullPublicKey);
 
+        public static readonly string NullText = "NULL";
         private static byte[] NullPublicKey => new byte[LengthInBytes];
 
         private byte[] _bytes;
@@ -67,6 +68,11 @@ namespace Phantasma.Core.Cryptography
         {
             get
             {
+                if (IsNull)
+                {
+                    return NullText;
+                }
+
                 if (string.IsNullOrEmpty(_text))
                 {
                     lock (_keyToTextCache) {
@@ -270,6 +276,11 @@ namespace Phantasma.Core.Cryptography
         public static Address Parse(string text)
         {
             Address addr;
+
+            if (text.Equals(NullText, StringComparison.OrdinalIgnoreCase))
+            {
+                return Address.Null;
+            }
 
             lock (_textToAddressCache)
             {

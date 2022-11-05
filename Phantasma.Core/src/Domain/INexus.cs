@@ -12,13 +12,10 @@ public interface INexus
     string Name { get; init; }
     IChain RootChain { get; }
     StorageContext RootStorage { get; init;  }
-    bool HasGenesis { get; set; }
     BigInteger MaxGas { get; set; }
 
-    string NexusProtocolVersionTag { get;  }
-    string FuelPerContractDeployTag { get;  }
-    string FuelPerTokenDeployTag { get; }
-
+    bool HasGenesis();
+    void CommitGenesis(Hash hash);
     void SetOracleReader(IOracleReader oracleReader);
     void Attach(IOracleObserver observer);
     void Detach(IOracleObserver observer);
@@ -124,7 +121,6 @@ public interface INexus
     string[] GetPlatforms(StorageContext storage);
     string[] GetFeeds(StorageContext storage);
     string[] GetOrganizations(StorageContext storage);
-    Address GetGenesisAddress(StorageContext storage);
     Hash GetGenesisHash(StorageContext storage);
     Block GetGenesisBlock();
     bool TokenExistsOnPlatform(string symbol, string platform, StorageContext storage);

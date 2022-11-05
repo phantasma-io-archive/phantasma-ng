@@ -990,7 +990,7 @@ namespace Phantasma.Business.Blockchain
         private static ExecutionState Runtime_MintTokens(RuntimeVM vm)
         {
             vm.ExpectStackSize(4);
-            var hasGenesis = vm.Nexus.HasGenesis;
+            var hasGenesis = vm.HasGenesis;
 
             var source = vm.PopAddress();
             var destination = vm.PopAddress();
@@ -1018,7 +1018,7 @@ namespace Phantasma.Business.Blockchain
 
             var amount = vm.PopNumber("amount");
 
-            if (vm.Nexus.HasGenesis)
+            if (vm.HasGenesis)
             {
                 var isMinter = vm.IsMintingAddress(source, symbol);
                 vm.Expect(isMinter, $"{source} is not a valid minting address for {symbol}");
@@ -1341,7 +1341,7 @@ namespace Phantasma.Business.Blockchain
             var from = vm.PopAddress();
             vm.Expect(from.IsUser, "address must be user");
 
-            if (vm.Nexus.HasGenesis)
+            if (vm.HasGenesis)
             {
                 //Runtime.Expect(org != DomainSettings.ValidatorsOrganizationName, "cannot deploy contract via this organization");
                 vm.Expect(vm.IsStakeMaster(from), "needs to be master");
@@ -1385,10 +1385,11 @@ namespace Phantasma.Business.Blockchain
 
                 var isReserved = ValidationUtils.IsReservedIdentifier(contractName);
 
-                if (isReserved && vm.IsWitness(vm.GenesisAddress))
+                // TODO support reserved names
+                /*if (isReserved && vm.IsWitness(vm.GenesisAddress))
                 {
                     isReserved = false;
-                }
+                }*/
 
                 vm.Expect(!isReserved, $"name '{contractName}' reserved by system");
 
@@ -1397,7 +1398,7 @@ namespace Phantasma.Business.Blockchain
                 var abiBytes = vm.PopBytes("contractABI");
                 abi = ContractInterface.FromBytes(abiBytes);
 
-                var fuelCost = vm.GetGovernanceValue(vm.Nexus.FuelPerContractDeployTag);
+                var fuelCost = vm.GetGovernanceValue(DomainSettings.FuelPerContractDeployTag);
                 // governance value is in usd fiat, here convert from fiat to fuel amount
                 fuelCost = vm.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
 
@@ -1459,13 +1460,6 @@ namespace Phantasma.Business.Blockchain
 
             var abiBytes = vm.PopBytes("contractABI");
             abi = ContractInterface.FromBytes(abiBytes);
-
-            var fuelCost = vm.GetGovernanceValue(vm.Nexus.FuelPerContractDeployTag);
-            // governance value is in usd fiat, here convert from fiat to fuel amount
-            fuelCost = vm.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
-
-            // burn the "cost" tokens
-            vm.BurnTokens(DomainSettings.FuelTokenSymbol, from, fuelCost);
 
             // ABI validation
             ValidateABI(vm, contractName, abi, isNative);
@@ -1567,7 +1561,7 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Nexus_BeginInit(RuntimeVM vm)
         {
-            vm.Expect(!vm.Nexus.HasGenesis, "nexus already initialized");
+            vm.Expect(!vm.HasGenesis, "nexus already initialized");
 
             vm.ExpectStackSize(1);
 
@@ -1580,7 +1574,7 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Nexus_EndInit(RuntimeVM vm)
         {
-            vm.Expect(!vm.Nexus.HasGenesis, "nexus already initialized");
+            vm.Expect(!vm.HasGenesis, "nexus already initialized");
 
             vm.ExpectStackSize(1);
 
