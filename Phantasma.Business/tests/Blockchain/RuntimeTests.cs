@@ -185,7 +185,7 @@ public class RuntimeTests
                     It.IsAny<bool>())
                 );
 
-        nexusMoq.Setup( n => n.GetTokenInfo(
+        nexusMoq.Setup(n => n.GetTokenInfo(
                     It.IsAny<StorageContext>(),
                     It.IsAny<string>())
                 ).Returns(token);
@@ -197,7 +197,7 @@ public class RuntimeTests
 
         nexusMoq.Setup( n => n.HasGenesis()).Returns(true);
         nexusMoq.Setup( n => n.MaxGas).Returns(10000);
-        nexusMoq.Setup( n => n.RootStorage).Returns(this.Context);
+        nexusMoq.Setup(n => n.RootStorage).Returns(this.Context);
 
         nexusMoq.Setup( n => n.GetChainByName(
                     It.IsAny<string>())

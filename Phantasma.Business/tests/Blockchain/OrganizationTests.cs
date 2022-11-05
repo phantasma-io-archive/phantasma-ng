@@ -249,7 +249,13 @@ public class OrganizationTests : IDisposable
         runtimeMoq.Setup( r => r.SubtractAllowance(It.IsAny<Address>(), It.IsAny<string>(), It.IsAny<BigInteger>())).Returns(allowance);
 
         // setup witness 
-        runtimeMoq.Setup( r => r.IsWitness(It.IsAny<Address>())).Returns(isWitness);
+        runtimeMoq.Setup(r => r.IsWitness(It.IsAny<Address>())).Returns(isWitness);
+
+        // setup GetRootChain
+        runtimeMoq.Setup(r => r.GetRootChain()).Returns(this.Chain);
+
+        // setup IsRootChain
+        runtimeMoq.Setup(r => r.IsRootChain()).Returns(true);
 
         // setup Triggers
         runtimeMoq.SetupInvokeTriggerMoq(TriggerResult.Success, TriggerResult.Success);
