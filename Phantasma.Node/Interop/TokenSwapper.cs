@@ -276,7 +276,7 @@ namespace Phantasma.Node.Interop
 
                 if (this.platforms == null)
                 {
-                    if (!nexus.HasGenesis)
+                    if (!nexus.HasGenesis())
                     {
                         return;
                     }

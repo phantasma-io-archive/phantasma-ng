@@ -186,7 +186,7 @@ public class AccountContractTests : IDisposable
                         this.Mints.Add(token.Symbol, amount);
                     });
 
-        nexusMoq.Setup( n => n.HasGenesis).Returns(true);
+        nexusMoq.Setup( n => n.HasGenesis()).Returns(true);
         nexusMoq.Setup( n => n.MaxGas).Returns(100000);
 
         nexusMoq.Setup( n => n.GetStakeFromAddress(

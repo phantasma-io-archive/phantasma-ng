@@ -201,7 +201,7 @@ namespace Phantasma.Business.Blockchain
                 return (type, "Transaction version is not supported");
             }
 
-            if (Nexus.HasGenesis)
+            if (Nexus.HasGenesis())
             {
                 if (!tx.GasPayer.IsUser)
                 {
@@ -388,13 +388,11 @@ namespace Phantasma.Business.Blockchain
             var hashList = new StorageList(BlockHeightListTag, this.Storage);
             hashList.Add<Hash>(block.Hash);
 
-            // persist genesis hash at height 2 for height 1
-            if (block.Height == 2)
+            // persist genesis hash at height 1
+            if (block.Height == 1)
             {
-                var genesisHash = GetBlockHashAtHeight(1);
-                var storage = Nexus.RootStorage;
-                storage.Put(".nexus.hash", genesisHash);
-                Nexus.HasGenesis = true;
+                var genesisHash = block.Hash;
+                Nexus.CommitGenesis(genesisHash);
             }
 
             var blockMap = new StorageMap(BlockHashMapTag, this.Storage);
@@ -1265,57 +1263,6 @@ namespace Phantasma.Business.Blockchain
 #endregion
 
 #region block validation
-        public Address GetValidator(StorageContext storage, Timestamp targetTime)
-        {
-            var rootStorage = this.IsRoot ? storage : Nexus.RootStorage;
-
-            if (!Nexus.HasGenesis)
-            {
-                return Nexus.GetGenesisAddress(rootStorage);
-            }
-
-            var slotDuration = (int)Nexus.GetGovernanceValue(rootStorage, ValidatorContract.ValidatorRotationTimeTag);
-
-            var genesisHash = Nexus.GetGenesisHash(rootStorage);
-            var genesisBlock = Nexus.RootChain.GetBlockByHash(genesisHash);
-
-            Timestamp validationSlotTime = genesisBlock.Timestamp;
-
-            var diff = targetTime - validationSlotTime;
-
-            int validatorIndex = (int)(diff / slotDuration);
-            var validatorCount = Nexus.GetPrimaryValidatorCount();
-            var chainIndex = Nexus.GetIndexOfChain(this.Name);
-
-            if (chainIndex < 0)
-            {
-                return Address.Null;
-            }
-
-            validatorIndex += chainIndex;
-            validatorIndex = validatorIndex % validatorCount;
-
-            var currentIndex = validatorIndex;
-
-            do
-            {
-                var validator = Nexus.GetValidatorByIndex(validatorIndex);
-                if (validator.type == ValidatorType.Primary && !validator.address.IsNull)
-                {
-                    return validator.address;
-                }
-
-                validatorIndex++;
-                if (validatorIndex >= validatorCount)
-                {
-                    validatorIndex = 0;
-                }
-            } while (currentIndex != validatorIndex);
-
-            // should never reached here, failsafe
-            return Nexus.GetGenesisAddress(rootStorage);
-        }
-
         public void CloseBlock(Block block, StorageChangeSetContext storage)
         {
             var rootStorage = this.IsRoot ? storage : Nexus.RootStorage;
@@ -1338,7 +1285,7 @@ namespace Phantasma.Business.Blockchain
 
             var targets = new List<Address>();
 
-            if (Nexus.HasGenesis)
+            if (Nexus.HasGenesis())
             {
                 var validators = Nexus.GetValidators();
 
@@ -1354,10 +1301,6 @@ namespace Phantasma.Business.Blockchain
 
                     targets.Add(validator.address);
                 }
-            }
-            else if (totalAvailable > 0)
-            {
-                targets.Add(Nexus.GetGenesisAddress(rootStorage));
             }
 
             if (targets.Count > 0)

@@ -71,7 +71,8 @@ namespace Phantasma.Core.Domain
 
         public const int MAX_TOKEN_DECIMALS = 18;
         
-        public const int MinimumFee = 100000;
+        public const int DefaultMinimumGasFee = 100000;
+        public const int InitialValidatorCount = 4;
 
         public const string FuelTokenSymbol = "KCAL";
         public const string FuelTokenName = "Phantasma Energy";
@@ -94,6 +95,10 @@ namespace Phantasma.Core.Domain
         public const string LiquidityTokenSymbol = "LP";
         public const string LiquidityTokenName = "Phantasma Liquidity";
         public const int LiquidityTokenDecimals = 8;
+
+        public const string FuelPerContractDeployTag = "nexus.contract.cost";
+        public const string FuelPerTokenDeployTag = "nexus.token.cost";
+        public const string FuelPerOrganizationDeployTag = "nexus.organization.cost";
 
         public static readonly IEnumerable<string> SystemTokens = new List<string>
         {

@@ -63,7 +63,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         // For all purposes, any transfer coming from another swap address of same platform into this one shall not being considered a "swap"        
         public void RegisterAddress(Address from, string platform, Address localAddress, string externalAddress)
         {
-            Runtime.Expect(from == Runtime.GenesisAddress, "only genesis allowed");
+            Runtime.Expect(false, "not allowed for now");
+            //Runtime.Expect(from == Runtime.GenesisAddress, "only genesis allowed");
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
             Runtime.Expect(localAddress.IsInterop, "swap target must be interop address");
 

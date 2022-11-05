@@ -195,7 +195,7 @@ public class RuntimeTests
                     It.IsAny<string>())
                 ).Returns(tokenExists);
 
-        nexusMoq.Setup( n => n.HasGenesis).Returns(true);
+        nexusMoq.Setup( n => n.HasGenesis()).Returns(true);
         nexusMoq.Setup( n => n.MaxGas).Returns(10000);
         nexusMoq.Setup( n => n.RootStorage).Returns(this.Context);
 

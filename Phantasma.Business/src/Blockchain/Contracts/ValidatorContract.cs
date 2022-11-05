@@ -10,9 +10,8 @@ namespace Phantasma.Business.Blockchain.Contracts
     {
         public override NativeContractKind Kind => NativeContractKind.Validator;
 
-        public const string ValidatorCountTag = "validator.count";
-        public static readonly BigInteger ValidatorCountDefault = 5;
-
+        public const string ValidatorSlotsTag = "validator.slots";
+        public static readonly BigInteger ValidatorSlotsDefault = 5;
         
         public const string ValidatorRotationTimeTag = "validator.rotation.time";
         public static readonly BigInteger ValidatorRotationTimeDefault = 120;
@@ -22,10 +21,10 @@ namespace Phantasma.Business.Blockchain.Contracts
 
 
 #pragma warning disable 0649
-        private StorageMap _validators; // <BigInteger, ValidatorInfo>
+        private StorageList _validators; // <ValidatorInfo>
 #pragma warning restore 0649
 
-        private const int _initialValidatorCount = 5;
+        private int _initialValidatorCount => (int)ValidatorSlotsDefault;
 
         public ValidatorContract() : base()
         {
@@ -33,24 +32,16 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public ValidatorEntry[] GetValidators()
         {
-            var totalValidators = (int)Runtime.GetGovernanceValue(ValidatorCountTag);
-            var result = new ValidatorEntry[totalValidators];
-
-            for (int i = 0; i < totalValidators; i++)
-            {
-                result[i] = GetValidatorByIndex(i);
-            }
-            return result;
+            return _validators.All<ValidatorEntry>();
         }
 
-        public ValidatorEntry GetCurrentValidator(string tAddress)
+        public ValidatorEntry GetCurrentValidator(string tendermintAddress)
         {
-            var totalValidators = (int)Runtime.GetGovernanceValue(ValidatorCountTag);
+            var validators = GetValidators();
 
-            for (int i = 0; i < totalValidators; i++)
+            foreach (var validator in validators)
             {
-                var validator = GetValidatorByIndex(i);
-                if (validator.address.TendermintAddress == tAddress)
+                if (validator.address.TendermintAddress == tendermintAddress)
                 {
                     return validator;
                 }
@@ -66,11 +57,10 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public ValidatorType GetValidatorType(Address address)
         {
-            var totalValidators = (int)Runtime.GetGovernanceValue(ValidatorCountTag);
+            var validators = GetValidators();
 
-            for (int i = 0; i < totalValidators; i++)
+            foreach (var validator in validators)
             {
-                var validator = _validators.Get<BigInteger, ValidatorEntry>(i);
                 if (validator.address == address)
                 {
                     return validator.type;
@@ -87,15 +77,17 @@ namespace Phantasma.Business.Blockchain.Contracts
                 return -1;
             }
 
-            var totalValidators = (int)Runtime.GetGovernanceValue(ValidatorCountTag);
+            var validators = GetValidators();
 
-            for (int i = 0; i < totalValidators; i++)
+            int index = 0;
+            foreach (var validator in validators)
             {
-                var validator = GetValidatorByIndex(i);
                 if (validator.address == address)
                 {
-                    return i;
+                    return index;
                 }
+
+                index++;
             }
 
             return -1;
@@ -105,10 +97,10 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             if (Runtime.HasGenesis)
             {
-                return (int)Runtime.GetGovernanceValue(ValidatorCountTag);
+                return (int)Runtime.GetGovernanceValue(ValidatorSlotsTag);
             }
 
-            return (int)_validators.Count();
+            return _initialValidatorCount;
         }
 
         public ValidatorEntry GetValidatorByIndex(BigInteger index)
@@ -118,10 +110,9 @@ namespace Phantasma.Business.Blockchain.Contracts
             var totalValidators = GetMaxTotalValidators();
             Runtime.Expect(index < totalValidators, $"invalid validator index {index} {totalValidators}");
 
-            if (_validators.ContainsKey<BigInteger>(index))
+            if (index < _validators.Count())
             {
-                var validator = _validators.Get<BigInteger, ValidatorEntry>(index);
-                return validator;
+                return _validators.Get<ValidatorEntry>(index);
             }
 
             return new ValidatorEntry()
@@ -154,12 +145,13 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public BigInteger GetMaxPrimaryValidators()
         {
-            var totalValidators = Runtime.GetGovernanceValue(ValidatorCountTag);
             if (Runtime.HasGenesis)
             {
-                var result = (totalValidators * 10) / 25;
+                var maxValidators = Runtime.GetGovernanceValue(ValidatorSlotsTag);
 
-                if (totalValidators > 0 && result < 1)
+                var result = (maxValidators * 10) / 25;
+
+                if (maxValidators > 0 && result < 1)
                 {
                     result = 1;
                 }
@@ -167,15 +159,15 @@ namespace Phantasma.Business.Blockchain.Contracts
                 return result;
             }
 
-            return _validators.Count();
+            return _initialValidatorCount;
         }
 
         public BigInteger GetMaxSecondaryValidators()
         {
             if (Runtime.HasGenesis)
             {
-                var totalValidators = Runtime.GetGovernanceValue(ValidatorCountTag);
-                return totalValidators - GetMaxPrimaryValidators();
+                var maxValidators = Runtime.GetGovernanceValue(ValidatorSlotsTag);
+                return maxValidators - GetMaxPrimaryValidators();
             }
 
             return 0;
@@ -186,6 +178,9 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             Runtime.Expect(target.IsUser, "must be user address");
             Runtime.Expect(type == ValidatorType.Primary || type == ValidatorType.Secondary, "invalid validator type");
+
+            var currentType = GetValidatorType(target);
+            Runtime.Expect(currentType != type, $"Already a {type} validator");
 
             var primaryValidators = GetValidatorCount(ValidatorType.Primary);
             var secondaryValidators = GetValidatorCount(ValidatorType.Secondary);
@@ -208,20 +203,18 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             if (index > 0)
             {
-                var isPreviousSet = _validators.ContainsKey<BigInteger>(index - 1);
-                Runtime.Expect(isPreviousSet, "previous validator slot is not set");
-
-                var previousEntry = _validators.Get<BigInteger, ValidatorEntry>(index - 1);
-                Runtime.Expect(previousEntry.type != ValidatorType.Invalid, " previous validator has unexpected status");
+                var previous = _validators.Get<ValidatorEntry>(index - 1);
+                Runtime.Expect(previous.type != ValidatorType.Invalid, "previous validator has unexpected status");
             }
 
+            // check if we're expanding the validator set
             if (primaryValidators > _initialValidatorCount)
             {
-                var isValidatorProposed = _validators.Get<BigInteger, ValidatorEntry>(index).type == ValidatorType.Proposed;
+                var isValidatorProposed = _validators.Get<ValidatorEntry>(index).type == ValidatorType.Proposed;
 
                 if (isValidatorProposed)
                 {
-                    var currentEntry = _validators.Get<BigInteger, ValidatorEntry>(index);
+                    var currentEntry = _validators.Get<ValidatorEntry>(index);
                     if (currentEntry.type != ValidatorType.Proposed)
                     {
                         Runtime.Expect(currentEntry.type == ValidatorType.Invalid, "invalid validator state");
@@ -252,16 +245,32 @@ namespace Phantasma.Business.Blockchain.Contracts
                     }
                     else
                     {
-                        Runtime.Expect(Runtime.IsWitness(firstValidator), "invalid witness");
+                        Runtime.Expect(Runtime.IsWitness(firstValidator), "invalid validator witness");
                     }
 
                     type = ValidatorType.Proposed;
                 }
             }
             else
+            if (primaryValidators > 0)
             {
-                Runtime.Expect(Runtime.IsWitness(Runtime.GenesisAddress), "invalid witness");
+                var passedWitnessCheck = false;
+
+                var validators = GetValidators();
+                foreach (var validator in validators)
+                {
+                    if (validator.type == ValidatorType.Primary && Runtime.IsWitness(validator.address))
+                    {
+                        passedWitnessCheck = true;
+                        break;
+                    }
+                }
+
+                Runtime.Expect(passedWitnessCheck, "invalid validator witness");
             }
+
+            var currentSize = _validators.Count();
+            Runtime.Expect(currentSize == index, "validator list has unexpected size");
 
             var entry = new ValidatorEntry()
             {
@@ -269,7 +278,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 election = Runtime.Time,
                 type = type,
             };
-            _validators.Set<BigInteger, ValidatorEntry>(index, entry);
+            _validators.Add<ValidatorEntry>(entry);
 
             if (type == ValidatorType.Primary)
             {
@@ -339,11 +348,11 @@ namespace Phantasma.Business.Blockchain.Contracts
             var index = GetIndexOfValidator(from);
             Runtime.Expect(index >= 0, "validator index not found");
 
-            var entry = _validators.Get<BigInteger, ValidatorEntry>(index);
+            var entry = _validators.Get<ValidatorEntry>(index);
             Runtime.Expect(entry.type == ValidatorType.Primary || entry.type == ValidatorType.Secondary, "not active validator");
 
             entry.address = to;
-            _validators.Set<BigInteger, ValidatorEntry>(index, entry);
+            _validators.Replace<ValidatorEntry>(index, entry);
 
             Runtime.MigrateMember(DomainSettings.ValidatorsOrganizationName, this.Address, from, to);
 
