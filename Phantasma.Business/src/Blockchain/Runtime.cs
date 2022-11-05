@@ -2319,6 +2319,18 @@ namespace Phantasma.Business.Blockchain
         }
 
         public bool HasGenesis => Nexus.HasGenesis(); // TODO cache this, as it does not change during a Runtime execution
+        
+        public IChain GetRootChain()
+        {
+            return GetChainByName(DomainSettings.RootChainName);
+        }
+
+        public bool IsRootChain()
+        {
+            var rootChain = GetRootChain();
+            return Chain.Address == rootChain.Address;
+        }
+
         public string NexusName => Nexus.Name;
         public uint ProtocolVersion { get; private set; }
         public Hash GenesisHash => Nexus.GetGenesisHash(RootStorage);       

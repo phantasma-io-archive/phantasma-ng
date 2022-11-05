@@ -15,8 +15,6 @@ namespace Phantasma.Core.Domain
         public ContractInterface ABI { get; protected set; }
         public abstract string Name { get; }
 
-        public BigInteger Order { get; internal set; } // TODO remove this?
-
         private readonly Dictionary<byte[], byte[]> _storage = new Dictionary<byte[], byte[]>(new ByteArrayComparer()); // TODO remove this?
 
         public IRuntime Runtime { get; protected set; }
@@ -37,7 +35,6 @@ namespace Phantasma.Core.Domain
 
         public SmartContract()
         {
-            this.Order = 0;
             _address = Address.Null;
         }
 
