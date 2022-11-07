@@ -36,13 +36,13 @@ namespace Phantasma.Core.Domain
 
         public Block GetBlockByHash(Hash hash);
         public Block GetBlockByHeight(BigInteger height);
+        public bool IsRootChain();
 
-        public Address GetValidator(Timestamp time);
+        public IChain GetRootChain();
 
         public bool HasGenesis { get; }
         public string NexusName { get; }
         public uint ProtocolVersion { get; }
-        public Address GenesisAddress { get; }
         public Hash GenesisHash { get; }
         public Timestamp GetGenesisTime();
 
@@ -136,18 +136,17 @@ namespace Phantasma.Core.Domain
         public TriggerResult InvokeTrigger(bool allowThrow, byte[] script, string contextName, ContractInterface abi, string triggerName, params object[] args);
 
         public bool IsWitness(Address address);
-
         public BigInteger GetBalance(string symbol, Address address);
         public BigInteger[] GetOwnerships(string symbol, Address address);
         public BigInteger GetTokenSupply(string symbol);
 
         public void CreateToken(Address owner, string symbol, string name, BigInteger maxSupply, int decimals, TokenFlags flags, byte[] script, ContractInterface abi);
-        public void SetPlatformTokenHash(string symbol, string platform, Hash hash);
+        //public void SetPlatformTokenHash(string symbol, string platform, Hash hash);
         public void CreateChain(Address creator, string organization, string name, string parentChain);
         public void CreateFeed(Address owner, string name, FeedMode mode);
         public IArchive CreateArchive(MerkleTree merkleTree, Address owner, string name, BigInteger size, Timestamp time, IArchiveEncryption encryption);
 
-        public BigInteger CreatePlatform(Address from, string name, string externalAddress, Address interopAddress, string fuelSymbol);
+        //public BigInteger CreatePlatform(Address from, string name, string externalAddress, Address interopAddress, string fuelSymbol);
 
         public bool IsAddressOfParentChain(Address address);
         public bool IsAddressOfChildChain(Address address);

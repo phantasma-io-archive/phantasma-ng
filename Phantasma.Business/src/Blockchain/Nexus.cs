@@ -11,7 +11,6 @@ using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
-using Phantasma.Core.Performance;
 using Phantasma.Core.Storage;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
@@ -29,15 +28,14 @@ public class Nexus : INexus
     private string ChainChildrenBlockKey => ".chain.children.";
 
     private string ChainArchivesKey => ".chain.archives.";
-
     public string NexusProtocolVersionTag => "nexus.protocol.version";
-    public string FuelPerContractDeployTag => "nexus.contract.cost";
-    public string FuelPerTokenDeployTag => "nexus.token.cost";
     
     public static readonly BigInteger FuelPerContractDeployDefault = UnitConversion.ToBigInteger(10, DomainSettings.FiatTokenDecimals);
     public static readonly BigInteger FuelPerTokenDeployDefault = UnitConversion.ToBigInteger(100, DomainSettings.FiatTokenDecimals);
+    public static readonly BigInteger FuelPerOrganizationDeployDefault = UnitConversion.ToBigInteger(10, DomainSettings.FiatTokenDecimals);
 
     private bool _migratingNexus;
+    private Address _genesisAddress; // NOTE this no longer is persisted and is used only during creation of first block
 
     public string Name { get; init; }
 
@@ -56,8 +54,6 @@ public class Nexus : INexus
 
     private KeyValueStore<Hash, byte[]> _archiveContents;
 
-    public bool HasGenesis { get; set; }
-
     public BigInteger MaxGas { get; set; }
 
     private Func<string, IKeyValueStoreAdapter> _adapterFactory = null;
@@ -69,12 +65,11 @@ public class Nexus : INexus
     /// </summary>
     public Nexus(string name, BigInteger maxGas, Func<string, IKeyValueStoreAdapter> adapterFactory = null, PhantasmaKeys owner = null)
     {
-        this._adapterFactory = adapterFactory;
+        _genesisAddress = Address.Null;
+        _adapterFactory = adapterFactory;
 
-        var key = GetNexusKey("hash");
         var storage = new KeyStoreStorage(GetChainStorage(DomainSettings.RootChainName));
         RootStorage = storage;
-        HasGenesis = storage.Has(key);
 
         if (!ValidationUtils.IsValidIdentifier(name))
         {
@@ -85,7 +80,7 @@ public class Nexus : INexus
 
         this.MaxGas = maxGas;
 
-        if (HasGenesis)
+        if (HasGenesis())
         {
             _migratingNexus = false;
 
@@ -118,6 +113,21 @@ public class Nexus : INexus
 
         this._oracleReader = null;
     }
+
+    public bool HasGenesis()
+    {
+        var key = GetNexusKey("hash");
+        return RootStorage.Has(key);
+    }
+
+    public void CommitGenesis(Hash hash)
+    {
+        Throw.If(HasGenesis(), "genesis already exists");
+        var key = GetNexusKey("hash");
+        RootStorage.Put(key, hash);
+        _genesisAddress = Address.Null;
+    }
+
 
     public void SetOracleReader(IOracleReader oracleReader)
     {
@@ -584,6 +594,7 @@ public class Nexus : INexus
         var tokenInfo = new TokenInfo(symbol, name, owner, maxSupply, decimals, flags, script, abi);
         EditToken(storage, symbol, tokenInfo);
 
+        // TODO_Migration, migrete TTRS with standard conform script!
         if (symbol == "TTRS")  // support for 22series tokens with a dummy script that conforms to the standard
         {
             byte[] nftScript;
@@ -709,11 +720,9 @@ public class Nexus : INexus
         Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"account trigger {accountTrigger} failed");
 
         var nft = ReadNFT(Runtime, token.Symbol, tokenID);
-        using (var m = new ProfileMarker("Nexus.WriteNFT"))
-            WriteNFT(Runtime, token.Symbol, tokenID, Runtime.Chain.Name, source, destination, nft.ROM, nft.RAM,
+        WriteNFT(Runtime, token.Symbol, tokenID, Runtime.Chain.Name, source, destination, nft.ROM, nft.RAM,
                     nft.SeriesID, nft.Timestamp, nft.Infusion, !isSettlement);
 
-        using (var m = new ProfileMarker("Runtime.Notify"))
         if (isSettlement)
         {
             Runtime.Notify(EventKind.TokenSend, source, new TokenEventData(token.Symbol, tokenID, sourceChain));
@@ -1073,7 +1082,7 @@ public class Nexus : INexus
         return series;
     }
 
-    private byte[] GetTokenSeriesKey(string symbol, BigInteger seriesID)
+    public byte[] GetTokenSeriesKey(string symbol, BigInteger seriesID)
     {
         return GetKeyForNFT(symbol, $"serie{seriesID}");
     }
@@ -1330,15 +1339,15 @@ public class Nexus : INexus
             sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), owner.Address, owner.Address);
 
             sb.CallInterop("Nexus.EndInit", owner.Address);
+        }
 
-            foreach (var entry in values)
-            {
-                var name = entry.Key;
-                var initial = entry.Value.Key;
-                var constraints = entry.Value.Value;
-                var bytes = Serialization.Serialize(constraints);
-                sb.CallContract(NativeContractKind.Governance, nameof(GovernanceContract.CreateValue), name, initial, bytes);
-            }
+        foreach (var entry in values)
+        {
+            var name = entry.Key;
+            var initial = entry.Value.Key;
+            var constraints = entry.Value.Value;
+            var bytes = Serialization.Serialize(constraints);
+            sb.CallContract(NativeContractKind.Governance, nameof(GovernanceContract.CreateValue), owner.Address, name, initial, bytes);
         }
 
         sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), owner.Address, new BigInteger(0), ValidatorType.Primary);
@@ -1369,6 +1378,7 @@ public class Nexus : INexus
         var tokenScript = new byte[] { (byte)Opcode.RET };
         var abi = ContractInterface.Empty;
 
+
         if (!_migratingNexus)
         {
             CreateToken(storage, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenName, owner, 0, DomainSettings.StakingTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Stakable, tokenScript, abi);
@@ -1389,6 +1399,7 @@ public class Nexus : INexus
         }
 
         CreateToken(storage, DomainSettings.FiatTokenSymbol, DomainSettings.FiatTokenName, owner, 0, DomainSettings.FiatTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Fiat, tokenScript, abi);
+
     }
 
     public void FinishInitialize(IRuntime vm, Address owner)
@@ -1422,8 +1433,8 @@ public class Nexus : INexus
                  },
 
                  {
-                     ValidatorContract.ValidatorCountTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         ValidatorContract.ValidatorCountDefault, new ChainConstraint[]
+                     ValidatorContract.ValidatorSlotsTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
+                         ValidatorContract.ValidatorSlotsDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MustIncrease}
                      })
@@ -1541,7 +1552,7 @@ public class Nexus : INexus
                  },
 
                  {
-                     FuelPerContractDeployTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
+                     DomainSettings.FuelPerContractDeployTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
                          FuelPerContractDeployDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 0},
@@ -1550,29 +1561,40 @@ public class Nexus : INexus
                  },
 
                  {
-                     FuelPerTokenDeployTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
+                     DomainSettings.FuelPerTokenDeployTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
                          FuelPerTokenDeployDefault, new ChainConstraint[]
                      {
                          new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 0},
                          new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = UnitConversion.ToBigInteger(1000, DomainSettings.FiatTokenDecimals)},
                      })
                  },
+
                  {
-                   GovernanceContract.GasMinimumFeeTag, new KeyValuePair<BigInteger, ChainConstraint[]>(GovernanceContract.GasMinimumFeeDefault, new[]
+                     DomainSettings.FuelPerOrganizationDeployTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
+                         FuelPerOrganizationDeployDefault, new ChainConstraint[]
+                     {
+                         new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 0},
+                         new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = UnitConversion.ToBigInteger(1000, DomainSettings.FiatTokenDecimals)},
+                     })
+                 },
+
+                 {
+                   GovernanceContract.GasMinimumFeeTag, new KeyValuePair<BigInteger, ChainConstraint[]>(DomainSettings.DefaultMinimumGasFee, new[]
                    {
-                       new ChainConstraint {Kind = ConstraintKind.MinValue, Value = GovernanceContract.GasMinimumFeeDefault},
+                       new ChainConstraint {Kind = ConstraintKind.MinValue, Value = DomainSettings.DefaultMinimumGasFee},
                        new ChainConstraint {Kind = ConstraintKind.MustIncrease}
                    })
                  },
              }, initialValidators);
         }
 
-    public Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, int version, PhantasmaKeys owner, IEnumerable<Address> initialValidators)
+    public Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, PhantasmaKeys owner, IEnumerable<Address> initialValidators)
     {
-        if (this.HasGenesis)
-        {
-            return new Dictionary<int, Transaction>();
-        }
+        Throw.If(HasGenesis(), "genesis block already exists");
+
+        _genesisAddress = owner.Address;
+
+        int version = DomainSettings.Phantasma30Protocol;
 
         var genesisTx = GenerateGenesisTx(owner, version, initialValidators);
 
@@ -1644,6 +1666,16 @@ public class Nexus : INexus
 
     public bool IsPrimaryValidator(Address address)
     {
+        if (address.IsNull)
+        {
+            return false;
+        }
+
+        if (!HasGenesis())
+        {
+            return address == _genesisAddress;
+        }
+
         var result = GetValidatorType(address);
         return result == ValidatorType.Primary;
     }
@@ -2041,13 +2073,13 @@ public class Nexus : INexus
         organizationMap.Set<Address, string>(organization.Address, ID);
     }
 
-    public bool OrganizationExists(StorageContext storage, string name)
+    public bool OrganizationExists(StorageContext storage, string name) // name in this case is actually the id....
     {
         var orgs = GetOrganizations(storage);
         return orgs.Contains(name);
     }
 
-    public IOrganization GetOrganizationByName(StorageContext storage, string name)
+    public IOrganization GetOrganizationByName(StorageContext storage, string name) // name in this case is actually the id....
     {
         if (OrganizationExists(storage, name))
         {
@@ -2115,7 +2147,7 @@ public class Nexus : INexus
 
     public BigInteger GetGovernanceValue(StorageContext storage, string name)
     {
-        if (HasGenesis)
+        if (HasGenesis())
         {
             return OptimizedGetGovernanceValue(storage, name);
         }
@@ -2241,17 +2273,6 @@ public class Nexus : INexus
         return bytes;
     }
 
-    public Address GetGenesisAddress(StorageContext storage)
-    {
-        var key = GetNexusKey("owner");
-        if (storage.Has(key))
-        {
-            return storage.Get<Address>(key);
-        }
-
-        return Address.Null;
-    }
-
     public Hash GetGenesisHash(StorageContext storage)
     {
         var key = GetNexusKey("hash");
@@ -2265,7 +2286,7 @@ public class Nexus : INexus
 
     public Block GetGenesisBlock()
     {
-        if (HasGenesis)
+        if (HasGenesis())
         {
             var genesisHash = GetGenesisHash(RootStorage);
             return RootChain.GetBlockByHash(genesisHash);

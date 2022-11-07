@@ -357,7 +357,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 var validatorCount = Runtime.GetPrimaryValidatorCount();
                 if (validatorCount <= 1)
                 {
-                    return Runtime.IsWitness(Runtime.GenesisAddress);
+                    return false;
                 }
             }
 

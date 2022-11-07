@@ -54,7 +54,6 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                 {
                     var txString = Base16.Encode(tx.Value.ToByteArray(true));
                     Log.Information("Broadcast tx {Transaction}", tx);
-                    var cnt = _broadcastedTxs.Count;
                     while (true)
                     {
                         try
@@ -76,7 +75,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             var chain = _nexus.RootChain as Chain;
 
             IEnumerable<Transaction> systemTransactions;
-            systemTransactions = chain.BeginBlock(request.Header, this._initialValidators); 
+            systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, this._initialValidators); 
 
             if (proposerAddress.Equals(this._owner.Address.TendermintAddress))
             {
@@ -134,7 +133,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     public override Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
     {
         var chain = _nexus.RootChain as Chain;
-        var result = chain.DeliverTx(request.Tx);
+
+        var txString = request.Tx.ToStringUtf8();
+        var newTx = Transaction.Unserialize(Base16.Decode(txString));
+
+        var result = chain.DeliverTx(newTx);
 
         var bytes = Serialization.Serialize(result.Result);
 
@@ -189,7 +192,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         try
         {
             var chain = _nexus.RootChain as Chain;
-            var result = chain.EndBlock();
+            var result = chain.EndBlock<ValidatorUpdate>();
 
             response.ValidatorUpdates.AddRange(result);
 
@@ -264,7 +267,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         try
         {
             Dictionary<int, Transaction> systemTransactions;
-            systemTransactions = _nexus.CreateGenesisBlock(timestamp, 0, this._owner, this._initialValidators);
+            systemTransactions = _nexus.CreateGenesisBlock(timestamp, this._owner, this._initialValidators);
 
             var idx = 0;
             foreach (var tx in systemTransactions.OrderByDescending(x => x.Key))

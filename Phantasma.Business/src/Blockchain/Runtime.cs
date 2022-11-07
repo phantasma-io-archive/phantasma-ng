@@ -142,8 +142,7 @@ namespace Phantasma.Business.Blockchain
             {
                 if (handlers.ContainsKey(method))
                 {
-                    using (var m = new ProfileMarker(method))
-                        return handlers[method](this);
+                    return handlers[method](this);
                 }
             }
 
@@ -215,7 +214,7 @@ namespace Phantasma.Business.Blockchain
                     throw new VMException(this, "VM changeset modified in read-only mode");
                 }
             }
-            else if (!IsError && PaidGas < UsedGas && Nexus.HasGenesis && !DelayPayment)
+            else if (!IsError && PaidGas < UsedGas && !DelayPayment && Nexus.HasGenesis())
             {
                 this.CurrentContext = FindContext(VirtualMachine.EntryContextName);
                 // we cannot throw here, would allow pushing failing txs without paying gas 
@@ -466,7 +465,7 @@ namespace Phantasma.Business.Blockchain
             ExpectEnumIsDefined(opcode, nameof(opcode));
 
             // required for allowing transactions to occur pre-minting of native token
-            if (!Nexus.HasGenesis)
+            if (!HasGenesis)
             {
                 return ExecutionState.Running;
             }
@@ -497,7 +496,7 @@ namespace Phantasma.Business.Blockchain
             }
 
             // required for allowing transactions to occur pre-minting of native token
-            if (!Nexus.HasGenesis)
+            if (!HasGenesis)
             {
                 return ExecutionState.Running;
             }
@@ -803,11 +802,10 @@ namespace Phantasma.Business.Blockchain
                 return false;
             }
 
-            using (var m = new ProfileMarker("validatedWitnesses.Contains"))
-                if (validatedWitnesses.Contains(address))
-                {
-                    return true;
-                }
+            if (validatedWitnesses.Contains(address))
+            {
+                return true;
+            }
 
             if (address.IsSystem)
             {
@@ -855,11 +853,10 @@ namespace Phantasma.Business.Blockchain
             {
                 accountResult = true;
             }
-            else if (address.IsUser && Nexus.HasGenesis && OptimizedHasAddressScript(RootStorage, address))
+            else if (address.IsUser && HasGenesis && OptimizedHasAddressScript(RootStorage, address))
             {
                 TriggerResult triggerResult;
-                using (var m = new ProfileMarker("InvokeTriggerOnAccount"))
-                    triggerResult = InvokeTriggerOnAccount(false, address, AccountTrigger.OnWitness, address);
+                triggerResult = InvokeTriggerOnAccount(false, address, AccountTrigger.OnWitness, address);
 
                 if (triggerResult == TriggerResult.Missing)
                 {
@@ -874,8 +871,7 @@ namespace Phantasma.Business.Blockchain
             {
                 if (Transaction != null)
                 {
-                    using (var m = new ProfileMarker("Transaction.IsSignedBy"))
-                        accountResult = Transaction.IsSignedBy(address);
+                    accountResult = Transaction.IsSignedBy(address);
                 }
                 else
                 if (CurrentTask != null)
@@ -1186,6 +1182,7 @@ namespace Phantasma.Business.Blockchain
             return Chain.GetTokenSupply(Storage, symbol);
         }
 
+        /*
         public void SetPlatformTokenHash(string symbol, string platform, Hash hash)
         {
             ExpectNameLength(symbol, nameof(symbol));
@@ -1211,7 +1208,7 @@ namespace Phantasma.Business.Blockchain
             Expect(!string.IsNullOrEmpty(platform), "chain name required");
 
             Nexus.SetPlatformTokenHash(symbol, platform, hash, RootStorage);
-        }
+        }*/
 
         public void CreateToken(Address owner, string symbol, string name, BigInteger maxSupply, int decimals, TokenFlags flags, byte[] script, ContractInterface abi)
         {
@@ -1292,7 +1289,7 @@ namespace Phantasma.Business.Blockchain
             Expect(!currentOwner.IsNull, "missing or invalid token owner");
             Expect(currentOwner == owner, "token owner constructor failure");
 
-            var fuelCost = GetGovernanceValue(Nexus.FuelPerTokenDeployTag);
+            var fuelCost = GetGovernanceValue(DomainSettings.FuelPerTokenDeployTag);
             // governance value is in usd fiat, here convert from fiat to fuel amount
             fuelCost = this.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
             // burn the "cost" tokens
@@ -1354,7 +1351,7 @@ namespace Phantasma.Business.Blockchain
             this.Notify(EventKind.FeedCreate, owner, name);
         }
 
-        public BigInteger CreatePlatform(Address from, string name, string externalAddress, Address interopAddress, string fuelSymbol)
+        /*public BigInteger CreatePlatform(Address from, string name, string externalAddress, Address interopAddress, string fuelSymbol)
         {
             ExpectAddressSize(from, nameof(from));
             ExpectNameLength(name, nameof(name));
@@ -1374,7 +1371,7 @@ namespace Phantasma.Business.Blockchain
 
             this.Notify(EventKind.PlatformCreate, from, name);
             return platformID;
-        }
+        }*/
 
         public void CreateOrganization(Address from, string ID, string name, byte[] script)
         {
@@ -1385,7 +1382,6 @@ namespace Phantasma.Business.Blockchain
 
             Expect(this.IsRootChain(), "must be root chain");
 
-            Expect(from == GenesisAddress, $"(CreateOrganization) must be genesis from: {from} genesis: {GenesisAddress}");
             Expect(IsWitness(from), "invalid witness");
 
             Expect(ValidationUtils.IsValidIdentifier(ID), "invalid organization name");
@@ -1393,6 +1389,14 @@ namespace Phantasma.Business.Blockchain
             Expect(!Nexus.OrganizationExists(RootStorage, ID), "organization already exists");
 
             Nexus.CreateOrganization(RootStorage, ID, name, script);
+
+            // TODO org cost
+            /*var fuelCost = GetGovernanceValue(DomainSettings.FuelPerOrganizationDeployTag);
+            // governance value is in usd fiat, here convert from fiat to fuel amount
+            fuelCost = this.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
+            // burn the "cost" tokens
+            BurnTokens(DomainSettings.FuelTokenSymbol, from, fuelCost);*/
+
 
             this.Notify(EventKind.OrganizationCreate, from, ID);
         }
@@ -1476,7 +1480,7 @@ namespace Phantasma.Business.Blockchain
             ExpectAddressSize(from, nameof(from));
             ExpectAddressSize(target, nameof(target));
 
-            if (Nexus.HasGenesis)
+            if (HasGenesis)
             {
                 if (IsSystemToken(symbol))
                 {
@@ -1494,14 +1498,12 @@ namespace Phantasma.Business.Blockchain
             Expect(amount > 0, "amount must be positive and greater than zero");
 
             Expect(TokenExists(symbol), "invalid token");
-            IToken token;
-            using (var m = new ProfileMarker("Runtime.GetToken"))
-                token = GetToken(symbol);
+            IToken token; 
+            token = GetToken(symbol);
             Expect(token.Flags.HasFlag(TokenFlags.Fungible), "token must be fungible");
             Expect(!token.Flags.HasFlag(TokenFlags.Fiat), "token can't be fiat");
-
-            using (var m = new ProfileMarker("Nexus.MintTokens"))
-                Nexus.MintTokens(this, token, from, target, Chain.Name, amount);
+            
+            Nexus.MintTokens(this, token, from, target, Chain.Name, amount);
         }
 
         public BigInteger MintToken(string symbol, Address from, Address target, byte[] rom, byte[] ram, BigInteger seriesID)
@@ -1518,8 +1520,7 @@ namespace Phantasma.Business.Blockchain
 
             Expect(TokenExists(symbol), "invalid token");
             IToken token;
-            using (var m = new ProfileMarker("Runtime.GetToken"))
-                token = GetToken(symbol);
+            token = GetToken(symbol);
             Expect(!token.IsFungible(), "token must be non-fungible");
 
             // TODO should not be necessary, verified by trigger
@@ -1534,12 +1535,10 @@ namespace Phantasma.Business.Blockchain
             Address creator = from;
 
             BigInteger tokenID;
-            using (var m = new ProfileMarker("Nexus.CreateNFT"))
-                tokenID = Nexus.GenerateNFT(this, symbol, Chain.Name, creator, rom, ram, seriesID);
+            tokenID = Nexus.GenerateNFT(this, symbol, Chain.Name, creator, rom, ram, seriesID);
             Expect(tokenID > 0, "invalid tokenID");
 
-            using (var m = new ProfileMarker("Nexus.MintToken"))
-                Nexus.MintToken(this, token, from, target, Chain.Name, tokenID);
+            Nexus.MintToken(this, token, from, target, Chain.Name, tokenID);
 
             return tokenID;
         }
@@ -1981,12 +1980,6 @@ namespace Phantasma.Business.Blockchain
             org.MigrateMember(this, admin, source, destination);
         }
 
-        public Address GetValidator(Timestamp time)
-        {
-            return Chain.GetValidator(RootStorage, time);
-        }
-
-
         public Timestamp GetGenesisTime()
         {
             if (HasGenesis)
@@ -2326,10 +2319,21 @@ namespace Phantasma.Business.Blockchain
             return CurrentContext.Address == context.Address;
         }
 
-        public bool HasGenesis => Nexus.HasGenesis;
+        public bool HasGenesis => Nexus.HasGenesis(); // TODO cache this, as it does not change during a Runtime execution
+        
+        public IChain GetRootChain()
+        {
+            return GetChainByName(DomainSettings.RootChainName);
+        }
+
+        public bool IsRootChain()
+        {
+            var rootChain = GetRootChain();
+            return Chain.Address == rootChain.Address;
+        }
+
         public string NexusName => Nexus.Name;
         public uint ProtocolVersion { get; private set; }
-        public Address GenesisAddress => Nexus.GetGenesisAddress(RootStorage);
         public Hash GenesisHash => Nexus.GetGenesisHash(RootStorage);       
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Google.Protobuf;
 using Tendermint.Abci;
+using Phantasma.Business.Blockchain;
 
 namespace Tendermint
 {

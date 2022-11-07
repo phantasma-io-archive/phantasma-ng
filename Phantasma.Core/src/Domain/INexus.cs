@@ -12,13 +12,10 @@ public interface INexus
     string Name { get; init; }
     IChain RootChain { get; }
     StorageContext RootStorage { get; init;  }
-    bool HasGenesis { get; set; }
     BigInteger MaxGas { get; set; }
 
-    string NexusProtocolVersionTag { get;  }
-    string FuelPerContractDeployTag { get;  }
-    string FuelPerTokenDeployTag { get; }
-
+    bool HasGenesis();
+    void CommitGenesis(Hash hash);
     void SetOracleReader(IOracleReader oracleReader);
     void Attach(IOracleObserver observer);
     void Detach(IOracleObserver observer);
@@ -61,6 +58,7 @@ public interface INexus
     void TransferToken(IRuntime Runtime, IToken token, Address source, Address destination, BigInteger tokenID, bool isInfusion = false);
     byte[] GetKeyForNFT(string symbol, BigInteger tokenID);
     byte[] GetKeyForNFT(string symbol, string key);
+    byte[] GetTokenSeriesKey(string symbol, BigInteger seriesID);
     BigInteger[] GetAllSeriesForToken(StorageContext storage, string symbol);
     TokenSeries CreateSeries(StorageContext storage, IToken token, BigInteger seriesID, BigInteger maxSupply, TokenSeriesMode mode, byte[] script, ContractInterface abi);
     TokenSeries GetTokenSeries(StorageContext storage, string symbol, BigInteger seriesID);
@@ -76,7 +74,7 @@ public interface INexus
     bool HasNFT(StorageContext storage, string symbol, BigInteger tokenID);
     void BeginInitialize(IRuntime vm, Address owner);
     void FinishInitialize(IRuntime vm, Address owner);
-    Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, int version, PhantasmaKeys owner, IEnumerable<Address> initialValidators);
+    Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, PhantasmaKeys owner, IEnumerable<Address> initialValidators);
     Timestamp GetValidatorLastActivity(Address target);
     ValidatorEntry[] GetValidators();
     int GetPrimaryValidatorCount();
@@ -123,7 +121,6 @@ public interface INexus
     string[] GetPlatforms(StorageContext storage);
     string[] GetFeeds(StorageContext storage);
     string[] GetOrganizations(StorageContext storage);
-    Address GetGenesisAddress(StorageContext storage);
     Hash GetGenesisHash(StorageContext storage);
     Block GetGenesisBlock();
     bool TokenExistsOnPlatform(string symbol, string platform, StorageContext storage);

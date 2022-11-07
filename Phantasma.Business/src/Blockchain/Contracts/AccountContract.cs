@@ -29,7 +29,6 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void RegisterName(Address target, string name)
         {
             Runtime.Expect(target.IsUser, "must be user address");
-            Runtime.Expect(target != Runtime.GenesisAddress, "address must not be genesis");
             Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
             Runtime.Expect(ValidationUtils.IsValidIdentifier(name), "invalid name");
 
@@ -49,12 +48,13 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var isReserved = ValidationUtils.IsReservedIdentifier(name);
 
-            if (isReserved && Runtime.IsWitness(Runtime.GenesisAddress))
+            /* // TODO reserved names not allowed for now 
+            if (isReserved) 
             {
                 var pollName = ConsensusContract.SystemPoll + name;
                 var hasConsensus = Runtime.CallNativeContext(NativeContractKind.Consensus, "HasConsensus", pollName, name).AsBool();
                 isReserved = false;
-            }
+            }*/
 
             Runtime.Expect(!isReserved, $"name '{name}' reserved by system");
 
@@ -67,7 +67,6 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void UnregisterName(Address target)
         {
             Runtime.Expect(target.IsUser, "must be user address");
-            Runtime.Expect(target != Runtime.GenesisAddress, "address must not be genesis");
             Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
 
             Runtime.Expect(_addressMap.ContainsKey(target), "address doest not have a name yet");
@@ -82,7 +81,6 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void RegisterScript(Address target, byte[] script, byte[] abiBytes)
         {
             Runtime.Expect(target.IsUser, "must be user address");
-            Runtime.Expect(target != Runtime.GenesisAddress, "address must not be genesis");
             Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
 
             var stake = Runtime.GetStake(target);
@@ -130,11 +128,6 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public string LookUpAddress(Address target)
         {
-            if (target == Runtime.GenesisAddress)
-            {
-                return ValidationUtils.GENESIS_NAME;
-            }
-
             if (_addressMap.ContainsKey(target))
             {
                 return _addressMap.Get<Address, string>(target);
@@ -168,11 +161,6 @@ namespace Phantasma.Business.Blockchain.Contracts
             if (name == ValidationUtils.ANONYMOUS_NAME || name == ValidationUtils.NULL_NAME)
             {
                 return Address.Null;
-            }
-
-            if (name == ValidationUtils.GENESIS_NAME)
-            {
-                return Runtime.GenesisAddress;
             }
 
             if (_nameMap.ContainsKey(name))

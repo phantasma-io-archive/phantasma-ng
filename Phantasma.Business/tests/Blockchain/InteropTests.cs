@@ -273,6 +273,7 @@ public class InteropTests : IDisposable
         }
     }
 
+    /*
     [Fact]
     public void invoke_Nexus_CreateOrganization_success()
     {
@@ -305,7 +306,7 @@ public class InteropTests : IDisposable
         }
 
         count.ShouldBe(1);
-    }
+    }*/
 
     // currently unused
     //[TestMethod]
@@ -865,10 +866,6 @@ public class InteropTests : IDisposable
                     It.IsAny<string>())
                 ).Returns(new Organization("someorgid", storage));
 
-        nexusMoq.Setup( n => n.GetGenesisAddress(
-                    It.IsAny<StorageContext>())
-                ).Returns(Validator.Address);
-
         nexusMoq.Setup( n => n.TransferTokens(
                     It.IsAny<IRuntime>(),
                     It.IsAny<IToken>(),
@@ -912,7 +909,7 @@ public class InteropTests : IDisposable
                         this.Mints.Add(token.Symbol, amount);
                     });
 
-        nexusMoq.Setup( n => n.HasGenesis).Returns(true);
+        nexusMoq.Setup( n => n.HasGenesis()).Returns(true);
         nexusMoq.Setup( n => n.MaxGas).Returns(100000);
 
         nexusMoq.Setup( n => n.GetTokenInfo(

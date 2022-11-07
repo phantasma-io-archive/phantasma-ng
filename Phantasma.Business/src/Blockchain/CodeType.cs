@@ -1,4 +1,4 @@
-﻿namespace Tendermint
+﻿namespace Phantasma.Business.Blockchain
 {
     public enum CodeType : uint
     {
