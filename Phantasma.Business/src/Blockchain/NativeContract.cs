@@ -5,10 +5,13 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Text;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Core;
+using Phantasma.Core.Domain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Core.Domain
+namespace Phantasma.Business.Blockchain
 {
     public static class ContractPatch
     {
@@ -339,6 +342,66 @@ namespace Phantasma.Core.Domain
         }
 
         #endregion
+
+        private static Dictionary<Address, Type> _nativeContractMap = null;
+        private static void RegisterContract<T>() where T : NativeContract
+        {
+            var alloc = (NativeContract)Activator.CreateInstance<T>();
+            var addr = alloc.Address;
+            _nativeContractMap[addr] = typeof(T);
+        }
+
+        public static NativeContract GetNativeContractByName(string name)
+        {
+            var kind = name.FindNativeContractKindByName();
+            return GetNativeContractByKind(kind);
+        }
+
+        public static NativeContract GetNativeContractByKind(NativeContractKind kind)
+        {
+            if (kind == NativeContractKind.Unknown)
+            {
+                return null;
+            }
+
+            var address = GetAddressForNative(kind);
+            return GetNativeContractByAddress(address);
+        }
+
+        public static NativeContract GetNativeContractByAddress(Address contractAddress)
+        {
+            if (_nativeContractMap == null)
+            {
+                _nativeContractMap = new Dictionary<Address, Type>();
+                RegisterContract<ValidatorContract>();
+                RegisterContract<GovernanceContract>();
+                RegisterContract<ConsensusContract>();
+                RegisterContract<AccountContract>();
+                RegisterContract<FriendsContract>();
+                RegisterContract<ExchangeContract>();
+                RegisterContract<MarketContract>();
+                RegisterContract<StakeContract>();
+                RegisterContract<SwapContract>();
+                RegisterContract<GasContract>();
+                RegisterContract<PrivacyContract>();
+                RegisterContract<BlockContract>();
+                RegisterContract<RelayContract>();
+                RegisterContract<StorageContract>();
+                RegisterContract<InteropContract>();
+                RegisterContract<RankingContract>();
+                RegisterContract<FriendsContract>();
+                RegisterContract<MailContract>();
+                RegisterContract<SaleContract>();
+            }
+
+            if (_nativeContractMap.ContainsKey(contractAddress))
+            {
+                var type = _nativeContractMap[contractAddress];
+                return (NativeContract)Activator.CreateInstance(type);
+            }
+
+            return null;
+        }
 
     }
 }

@@ -35,7 +35,8 @@ public class Nexus : INexus
     public static readonly BigInteger FuelPerOrganizationDeployDefault = UnitConversion.ToBigInteger(10, DomainSettings.FiatTokenDecimals);
 
     private bool _migratingNexus;
-    private Address _genesisAddress; // NOTE this no longer is persisted and is used only during creation of first block
+    private IEnumerable<Address> _initialValidators = Enumerable.Empty<Address>();
+    private Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>> _genesisValues = null;
 
     public string Name { get; init; }
 
@@ -65,7 +66,6 @@ public class Nexus : INexus
     /// </summary>
     public Nexus(string name, BigInteger maxGas, Func<string, IKeyValueStoreAdapter> adapterFactory = null, PhantasmaKeys owner = null)
     {
-        _genesisAddress = Address.Null;
         _adapterFactory = adapterFactory;
 
         var storage = new KeyStoreStorage(GetChainStorage(DomainSettings.RootChainName));
@@ -92,6 +92,8 @@ public class Nexus : INexus
         }
         else
         {
+            InitGenesisValues();
+
             var tokens = GetTokens(storage);
             _migratingNexus = tokens.Any(x => x.Equals(DomainSettings.StakingTokenSymbol));
 
@@ -114,6 +116,11 @@ public class Nexus : INexus
         this._oracleReader = null;
     }
 
+    public void SetInitialValidators(IEnumerable<Address> initialValidators)
+    {
+        this._initialValidators = initialValidators;
+    }
+
     public bool HasGenesis()
     {
         var key = GetNexusKey("hash");
@@ -125,9 +132,8 @@ public class Nexus : INexus
         Throw.If(HasGenesis(), "genesis already exists");
         var key = GetNexusKey("hash");
         RootStorage.Put(key, hash);
-        _genesisAddress = Address.Null;
+        _genesisValues.Clear();
     }
-
 
     public void SetOracleReader(IOracleReader oracleReader)
     {
@@ -233,19 +239,19 @@ public class Nexus : INexus
         }
 
         var chain = RootChain;
-        return chain.InvokeContract(storage, ContractNames.AccountContractName, nameof(AccountContract.LookUpName), name).AsAddress();
+        return chain.InvokeContract(storage, NativeContractKind.Account, nameof(AccountContract.LookUpName), name).AsAddress();
     }
 
     public byte[] LookUpAddressScript(StorageContext storage, Address address)
     {
         var chain = RootChain;
-        return chain.InvokeContract(storage, ContractNames.AccountContractName, nameof(AccountContract.LookUpScript), address).AsByteArray();
+        return chain.InvokeContract(storage, NativeContractKind.Account, nameof(AccountContract.LookUpScript), address).AsByteArray();
     }
 
     public bool HasAddressScript(StorageContext storage, Address address)
     {
         var chain = RootChain;
-        return chain.InvokeContract(storage, ContractNames.AccountContractName, nameof(AccountContract.HasScript), address).AsBool();
+        return chain.InvokeContract(storage, NativeContractKind.Account, nameof(AccountContract.HasScript), address).AsBool();
     }
     #endregion
 
@@ -260,53 +266,10 @@ public class Nexus : INexus
             return new CustomContract(contractName, tokenInfo.Script, tokenInfo.ABI);
         }
 
-        var address = SmartContract.GetAddressForName(contractName);
-        var result = GetNativeContractByAddress(address);
+        var address = SmartContract.GetAddressFromContractName(contractName);
+        var result = NativeContract.GetNativeContractByAddress(address);
 
         return result;
-    }
-
-    private Dictionary<Address, Type> _contractMap = null;
-    private void RegisterContract<T>() where T : SmartContract
-    {
-        var alloc = (SmartContract)Activator.CreateInstance<T>();
-        var addr = alloc.Address;
-        _contractMap[addr] = typeof(T);
-    }
-
-    // only works for native contracts!!
-    public NativeContract GetNativeContractByAddress(Address contractAddress)
-    {
-        if (_contractMap == null)
-        {
-            _contractMap = new Dictionary<Address, Type>();
-            RegisterContract<ValidatorContract>();
-            RegisterContract<GovernanceContract>();
-            RegisterContract<ConsensusContract>();
-            RegisterContract<AccountContract>();
-            RegisterContract<FriendsContract>();
-            RegisterContract<ExchangeContract>();
-            RegisterContract<MarketContract>();
-            RegisterContract<StakeContract>();
-            RegisterContract<SwapContract>();
-            RegisterContract<GasContract>();
-            RegisterContract<PrivacyContract>();
-            RegisterContract<BlockContract>();
-            RegisterContract<RelayContract>();
-            RegisterContract<StorageContract>();
-            RegisterContract<InteropContract>();
-            RegisterContract<RankingContract>();
-            RegisterContract<FriendsContract>();
-            RegisterContract<MailContract>();
-            RegisterContract<SaleContract>();
-       }
-
-        if (_contractMap.ContainsKey(contractAddress)) {
-            var type = _contractMap[contractAddress];
-            return (NativeContract)Activator.CreateInstance(type);
-        }
-
-        return null;
     }
 
     #endregion
@@ -1299,26 +1262,44 @@ public class Nexus : INexus
     #endregion
 
     #region GENESIS
-    private Transaction NexusCreateTx(PhantasmaKeys owner, Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>> values, IEnumerable<Address> initialValidators)
+
+    private void DeployNativeContract(ScriptBuilder sb, PhantasmaKeys owner, NativeContractKind nativeContract)
+    {
+        var script = new byte[] { (byte)Opcode.RET };
+        var abi = new byte[0] { };
+
+        var contractName = nativeContract.GetContractName();
+
+        sb.CallInterop("Runtime.DeployContract", owner.Address, contractName, script, abi);
+    }
+
+    private Transaction NexusCreateTx(PhantasmaKeys owner, Timestamp genesisTime)
     {
         var sb = ScriptUtils.BeginScript();
 
+        sb.CallInterop("Nexus.BeginInit", owner.Address);
+
+        DeployNativeContract(sb, owner, NativeContractKind.Validator);
+        DeployNativeContract(sb, owner, NativeContractKind.Governance);
+        DeployNativeContract(sb, owner, NativeContractKind.Consensus);
+        DeployNativeContract(sb, owner, NativeContractKind.Account);
+        DeployNativeContract(sb, owner, NativeContractKind.Exchange);
+        DeployNativeContract(sb, owner, NativeContractKind.Swap);
+        DeployNativeContract(sb, owner, NativeContractKind.Stake);
+        DeployNativeContract(sb, owner, NativeContractKind.Storage);
+        DeployNativeContract(sb, owner, NativeContractKind.Market);
+
+        foreach (var entry in _genesisValues)
+        {
+            var name = entry.Key;
+            var initial = entry.Value.Key;
+            var constraints = entry.Value.Value;
+            var bytes = Serialization.Serialize(constraints);
+            sb.CallContract(NativeContractKind.Governance, nameof(GovernanceContract.CreateValue), owner.Address, name, initial, bytes);
+        }
+
         if (!_migratingNexus)
         {
-            sb.CallInterop("Nexus.BeginInit", owner.Address);
-
-            var deployInterop = "Runtime.DeployContract";
-            sb.CallInterop(deployInterop, owner.Address, ContractNames.ValidatorContractName);
-            sb.CallInterop(deployInterop, owner.Address, ContractNames.GovernanceContractName);
-            sb.CallInterop(deployInterop, owner.Address, ContractNames.AccountContractName);
-            sb.CallInterop(deployInterop, owner.Address, ContractNames.ExchangeContractName);
-            sb.CallInterop(deployInterop, owner.Address, ContractNames.SwapContractName);
-            sb.CallInterop(deployInterop, owner.Address, ContractNames.InteropContractName);
-            sb.CallInterop(deployInterop, owner.Address, ContractNames.StakeContractName);
-            sb.CallInterop(deployInterop, owner.Address, ContractNames.StorageContractName);
-            sb.CallInterop(deployInterop, owner.Address, ContractNames.ConsensusContractName);
-            sb.CallInterop(deployInterop, owner.Address, ContractNames.MarketContractName);
-
             var orgInterop = "Nexus.CreateOrganization";
             var orgScript = new byte[0];
             sb.CallInterop(orgInterop, owner.Address, DomainSettings.ValidatorsOrganizationName, "Block Producers", orgScript);
@@ -1326,7 +1307,7 @@ public class Nexus : INexus
             sb.CallInterop(orgInterop, owner.Address, DomainSettings.StakersOrganizationName, "Soul Stakers", orgScript);
 
             // initial SOUL distribution to validators
-            foreach (var validator in initialValidators)
+            foreach (var validator in _initialValidators)
             {
                 sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(60000, DomainSettings.StakingTokenDecimals));
                 sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals));
@@ -1337,33 +1318,22 @@ public class Nexus : INexus
             // requires staking token to be created previously
             sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), owner.Address, StakeContract.DefaultMasterThreshold);
             sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), owner.Address, owner.Address);
-
-            sb.CallInterop("Nexus.EndInit", owner.Address);
-        }
-
-        foreach (var entry in values)
-        {
-            var name = entry.Key;
-            var initial = entry.Value.Key;
-            var constraints = entry.Value.Value;
-            var bytes = Serialization.Serialize(constraints);
-            sb.CallContract(NativeContractKind.Governance, nameof(GovernanceContract.CreateValue), owner.Address, name, initial, bytes);
         }
 
         sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), owner.Address, new BigInteger(0), ValidatorType.Primary);
 
         var index = 1;
-        foreach (var validator in initialValidators.Where(x => x != owner.Address))
+        foreach (var validator in _initialValidators.Where(x => x != owner.Address))
         {
             sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), validator, new BigInteger(index), ValidatorType.Primary);
             index++;
         }
-        sb.Emit(Opcode.RET);
+
+        sb.CallInterop("Nexus.EndInit", owner.Address);
 
         var script = sb.EndScript();
 
-        var tx = new Transaction(this.Name, DomainSettings.RootChainName, 0L, script, owner.Address, owner.Address, Address.Null, 1, 9999, Timestamp.Now + TimeSpan.FromDays(300));
-        tx.Mine(ProofOfWork.Minimal);
+        var tx = new Transaction(this.Name, DomainSettings.RootChainName, script, genesisTime + TimeSpan.FromDays(1000));
         tx.Sign(owner);
 
         return tx;
@@ -1420,10 +1390,11 @@ public class Nexus : INexus
         }
     }
 
-    private Transaction GenerateGenesisTx(PhantasmaKeys owner, int version, IEnumerable<Address> initialValidators)
+    private void InitGenesisValues()
     {
-        return NexusCreateTx(owner,
-             new Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>>() {
+        var version = GetProtocolVersion(RootStorage);
+
+        _genesisValues = new Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>>() {
                  {
                      NexusProtocolVersionTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
                          version, new ChainConstraint[]
@@ -1585,47 +1556,16 @@ public class Nexus : INexus
                        new ChainConstraint {Kind = ConstraintKind.MustIncrease}
                    })
                  },
-             }, initialValidators);
-        }
+        };
+    }
 
-    public Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, PhantasmaKeys owner, IEnumerable<Address> initialValidators)
+    public Transaction CreateGenesisBlock(Timestamp timestamp, PhantasmaKeys owner)
     {
         Throw.If(HasGenesis(), "genesis block already exists");
 
-        _genesisAddress = owner.Address;
+        Throw.If(!_initialValidators.Any(), "initial validators have not been set");
 
-        int version = DomainSettings.Phantasma30Protocol;
-
-        var genesisTx = GenerateGenesisTx(owner, version, initialValidators);
-
-        // create genesis transactions
-        var transactions = new Dictionary<int, Transaction>
-        {
-
-            {1, genesisTx},
-        };
-
-        //var rootChain = GetChainByName(DomainSettings.RootChainName);
-
-        //var payload = Encoding.UTF8.GetBytes("A Phantasma was born...");
-        //var block = new Block(Chain.InitialHeight, rootChain.Address, timestamp, Hash.Null, 0, owner.Address, payload);
-        //block.AddAllTransactionHashes(transactions.Select(tx => tx.Hash));
-
-	    //Transaction inflationTx = null;
-        //var changeSet = rootChain.ProcessBlock(block, transactions, 1, out inflationTx, owner);
-	    //if (inflationTx != null)
- 	    //{
-		//    transactions.Add(inflationTx);
-	    //}
-
-        //block.Sign(owner);
-        //rootChain.AddBlock(block, transactions, 1, changeSet);
-
-        //var storage = RootStorage;
-        //storage.Put(GetNexusKey("hash"), block.Hash);
-
-        //this.HasGenesis = true;
-        return transactions;
+        return NexusCreateTx(owner, timestamp);
     }
 
     #endregion
@@ -1638,13 +1578,13 @@ public class Nexus : INexus
 
     public ValidatorEntry[] GetValidators()
     {
-        var validators = (ValidatorEntry[])RootChain.InvokeContract(this.RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidators)).ToObject();
+        var validators = (ValidatorEntry[])RootChain.InvokeContract(this.RootStorage, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToObject();
         return validators;
     }
 
     public int GetPrimaryValidatorCount()
     {
-        var count = RootChain.InvokeContract(this.RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
+        var count = RootChain.InvokeContract(this.RootStorage, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
         if (count < 1)
         {
             return 1;
@@ -1654,13 +1594,13 @@ public class Nexus : INexus
 
     public int GetSecondaryValidatorCount()
     {
-        var count = RootChain.InvokeContract(this.RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
+        var count = RootChain.InvokeContract(this.RootStorage, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
         return (int)count;
     }
 
     public ValidatorType GetValidatorType(Address address)
     {
-        var result = RootChain.InvokeContract(this.RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidatorType), address).AsEnum<ValidatorType>();
+        var result = RootChain.InvokeContract(this.RootStorage, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorType), address).AsEnum<ValidatorType>();
         return result;
     }
 
@@ -1673,7 +1613,7 @@ public class Nexus : INexus
 
         if (!HasGenesis())
         {
-            return address == _genesisAddress;
+            return _initialValidators.Contains(address);
         }
 
         var result = GetValidatorType(address);
@@ -1695,19 +1635,19 @@ public class Nexus : INexus
 
     public BigInteger GetStakeFromAddress(StorageContext storage, Address address)
     {
-        var result = RootChain.InvokeContract(storage, ContractNames.StakeContractName, nameof(StakeContract.GetStake), address).AsNumber();
+        var result = RootChain.InvokeContract(storage, NativeContractKind.Stake, nameof(StakeContract.GetStake), address).AsNumber();
         return result;
     }
 
     public BigInteger GetUnclaimedFuelFromAddress(StorageContext storage, Address address)
     {
-        var result = RootChain.InvokeContract(storage, ContractNames.StakeContractName, nameof(StakeContract.GetUnclaimed), address).AsNumber();
+        var result = RootChain.InvokeContract(storage, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), address).AsNumber();
         return result;
     }
 
     public Timestamp GetStakeTimestampOfAddress(StorageContext storage, Address address)
     {
-        var result = RootChain.InvokeContract(storage, ContractNames.StakeContractName, nameof(StakeContract.GetStakeTimestamp), address).AsTimestamp();
+        var result = RootChain.InvokeContract(storage, NativeContractKind.Stake, nameof(StakeContract.GetStakeTimestamp), address).AsTimestamp();
         return result;
     }
 
@@ -1719,7 +1659,7 @@ public class Nexus : INexus
             return false;
         }
 
-        var masterThresold = RootChain.InvokeContract(storage, ContractNames.StakeContractName, nameof(StakeContract.GetMasterThreshold)).AsNumber();
+        var masterThresold = RootChain.InvokeContract(storage, NativeContractKind.Stake, nameof(StakeContract.GetMasterThreshold)).AsNumber();
         return stake >= masterThresold;
     }
 
@@ -1735,7 +1675,7 @@ public class Nexus : INexus
             return -1;
         }
 
-        var result = (int)RootChain.InvokeContract(this.RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetIndexOfValidator), address).AsNumber();
+        var result = (int)RootChain.InvokeContract(this.RootStorage, NativeContractKind.Validator, nameof(ValidatorContract.GetIndexOfValidator), address).AsNumber();
         return result;
     }
 
@@ -1753,7 +1693,7 @@ public class Nexus : INexus
 
         Throw.If(index < 0, "invalid validator index");
 
-        var result = (ValidatorEntry)RootChain.InvokeContract(this.RootStorage, ContractNames.ValidatorContractName, nameof(ValidatorContract.GetValidatorByIndex), (BigInteger)index).ToObject();
+        var result = (ValidatorEntry)RootChain.InvokeContract(this.RootStorage, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorByIndex), (BigInteger)index).ToObject();
         return result;
     }
     #endregion
@@ -2126,7 +2066,9 @@ public class Nexus : INexus
 
     public ValidatorEntry GetValidator(StorageContext storage, string tAddress)
     {
-        var valueMapKey = Encoding.UTF8.GetBytes($".{ContractNames.ValidatorContractName}._validators");
+        var validatorContractName = NativeContractKind.Validator.GetContractName();
+        // TODO use builtin methods instead of doing this directly
+        var valueMapKey = Encoding.UTF8.GetBytes($".{validatorContractName}._validators");
         var validators = new StorageMap(valueMapKey, storage);
 
         foreach (var validator in validators.AllValues<ValidatorEntry>())
@@ -2152,15 +2094,41 @@ public class Nexus : INexus
             return OptimizedGetGovernanceValue(storage, name);
         }
 
+        if (_genesisValues != null)
+        {
+            foreach (var entry in _genesisValues)
+            {
+                if (entry.Key == name)
+                {
+                    return entry.Value.Key;
+                }
+            }
+        }
+
         return 0;
+        //throw new ChainException("Cannot read governance values without a genesis block");
     }
+
+
+    private static byte[] _optimizedGovernanceKey = null;
 
     private BigInteger OptimizedGetGovernanceValue(StorageContext storage, string name)
     {
-        var valueMapKey = Encoding.UTF8.GetBytes($".{ContractNames.GovernanceContractName}._valueMap");
-        var valueMap = new StorageMap(valueMapKey, storage);
+        if (_optimizedGovernanceKey == null)
+        {
+            var governanceContractName = NativeContractKind.Governance.GetContractName();
+            _optimizedGovernanceKey = Encoding.UTF8.GetBytes($".{governanceContractName}._valueMap");
+        }
 
-        Throw.If(valueMap.ContainsKey(name) == false, "invalid value name");
+        var valueMap = new StorageMap(_optimizedGovernanceKey, storage);
+
+        var count = valueMap.Count();
+        Console.WriteLine($"=>>>>>>>>>>>>> FOUND {count} GOVS");
+
+        if (!valueMap.ContainsKey(name))
+        {
+            throw new ChainException("invalid governance value name: " + name);            
+        }
 
         var value = valueMap.Get<string, BigInteger>(name);
         return value;
@@ -2499,6 +2467,11 @@ public class Nexus : INexus
 
     public uint GetProtocolVersion(StorageContext storage)
     {
+        if (!HasGenesis())
+        {
+            return DomainSettings.Phantasma30Protocol;
+        }
+
         return (uint)this.GetGovernanceValue(storage, NexusProtocolVersionTag);
     }
 

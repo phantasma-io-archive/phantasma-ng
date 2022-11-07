@@ -317,6 +317,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
+    /*
     [Fact]
     public void invoke_Nexus_CreateTokenSeries_success()
     {
@@ -326,10 +327,6 @@ public class InteropTests : IDisposable
             "mainnet",
             DomainSettings.RootChainName,
             new byte[1] { 0 },
-            User1.Address,
-            User1.Address,
-            10000,
-            999,
             Timestamp.Now + TimeSpan.FromDays(300),
             "UnitTest");
 
@@ -346,7 +343,7 @@ public class InteropTests : IDisposable
                 new byte[2] { (byte)Opcode.NOP, (byte)Opcode.RET },
                 new byte[2] { 0, 0}
                 );
-    }
+    }*/
 
     // TODO::
     //[TestMethod]
@@ -548,6 +545,7 @@ public class InteropTests : IDisposable
         count.ShouldBe(1);
     }
 
+    /*
     [Fact]
     public void invoke_Runtime_Log_success()
     {
@@ -560,7 +558,7 @@ public class InteropTests : IDisposable
             evt.Kind.ShouldBe(EventKind.Log);
         }
         count.ShouldBe(1);
-    }
+    }*/
 
     [Fact]
     public void invoke_Runtime_IsMinter_success()
@@ -596,10 +594,6 @@ public class InteropTests : IDisposable
             "mainnet",
             DomainSettings.RootChainName,
             new byte[1] { 0 },
-            User1.Address,
-            User1.Address,
-            1,
-            1,
             Timestamp.Now + TimeSpan.FromDays(300),
             "UnitTest");
 
@@ -617,10 +611,6 @@ public class InteropTests : IDisposable
             "mainnet",
             DomainSettings.RootChainName,
             new byte[1] { 0 },
-            User1.Address,
-            User1.Address,
-            1,
-            1,
             Timestamp.Now + TimeSpan.FromDays(300),
             "UnitTest");
 
@@ -643,10 +633,6 @@ public class InteropTests : IDisposable
             "mainnet",
             DomainSettings.RootChainName,
             new byte[1] { 0 },
-            User1.Address,
-            User1.Address,
-            10000,
-            999,
             Timestamp.Now + TimeSpan.FromDays(300),
             "UnitTest");
 
@@ -739,7 +725,7 @@ public class InteropTests : IDisposable
     {
         var runtime = CreateRuntime_Default();
         var gasInfo = new GasEventData(User1.Address, 10000, 10000);
-        runtime.Notify(EventKind.GasEscrow, User1.Address, Serialization.Serialize(gasInfo), ContractNames.GasContractName);
+        runtime.Notify(EventKind.GasEscrow, User1.Address, Serialization.Serialize(gasInfo), NativeContractKind.Gas.GetContractName());
         var result = runtime.CallInterop("Runtime.GasTarget");
         var address = (Address)result.Data;
         address.ShouldBe(User1.Address);
@@ -809,10 +795,6 @@ public class InteropTests : IDisposable
             "mainnet",
             DomainSettings.RootChainName,
             new byte[1] { 0 },
-            User1.Address,
-            User1.Address,
-            10000,
-            999,
             Timestamp.Now + TimeSpan.FromDays(300),
             "UnitTest");
 
@@ -833,10 +815,6 @@ public class InteropTests : IDisposable
                 "mainnet",
                 DomainSettings.RootChainName,
                 new byte[1] { 0 },
-                User1.Address,
-                User1.Address,
-                10000,
-                999,
                 Timestamp.Now + TimeSpan.FromDays(300),
                 "UnitTest");
 

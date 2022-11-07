@@ -114,10 +114,6 @@ public class AccountContractTests : IDisposable
                 "mainnet",
                 DomainSettings.RootChainName,
                 new byte[1] { 0 },
-                User1.Address,
-                User1.Address,
-                10000,
-                999,
                 Timestamp.Now + TimeSpan.FromDays(300),
                 "UnitTest");
 
@@ -136,10 +132,6 @@ public class AccountContractTests : IDisposable
                 "mainnet",
                 DomainSettings.RootChainName,
                 new byte[1] { 0 },
-                User1.Address,
-                User1.Address,
-                10000,
-                999,
                 Timestamp.Now + TimeSpan.FromDays(300),
                 "UnitTest");
 

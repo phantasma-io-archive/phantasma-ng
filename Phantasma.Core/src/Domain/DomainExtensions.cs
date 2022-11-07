@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
@@ -76,6 +77,23 @@ namespace Phantasma.Core.Domain
             return runtime.GetBlockByHeight(runtime.Chain.Height);
         }
 
+        private static void RequireNativeContractMap()
+        {
+            if (_nativeContractNames == null)
+            {
+                _nativeContractNames = new Dictionary<NativeContractKind, string>();
+                _nativeContractNamesInverseMap = new Dictionary<string, NativeContractKind>();
+
+                var values = Enum.GetValues<NativeContractKind>();
+                foreach (var kind in values)
+                {
+                    var name = kind.ToString().ToLower();
+                    _nativeContractNames[kind] = name;
+                    _nativeContractNamesInverseMap[name] = kind;
+                }
+            }
+        }
+
         public static IContract GetContract(this IRuntime runtime, NativeContractKind nativeContract)
         {
             return runtime.GetContract(nativeContract.GetContractName());
@@ -83,8 +101,24 @@ namespace Phantasma.Core.Domain
 
         public static string GetContractName(this NativeContractKind nativeContract)
         {
-            return nativeContract.ToString().ToLower();
+            RequireNativeContractMap();
+            return _nativeContractNames[nativeContract];
         }
+
+        public static NativeContractKind FindNativeContractKindByName(this string name)
+        {
+            RequireNativeContractMap();
+
+            if (_nativeContractNamesInverseMap.ContainsKey(name))
+            {
+                return _nativeContractNamesInverseMap[name];
+            }
+
+            return NativeContractKind.Unknown;
+        }
+
+        private static Dictionary<NativeContractKind, string> _nativeContractNames = null;
+        private static Dictionary<string, NativeContractKind> _nativeContractNamesInverseMap = null;
 
         public static void Notify<T>(this IRuntime runtime, Enum kind, Address address, T content)
         {

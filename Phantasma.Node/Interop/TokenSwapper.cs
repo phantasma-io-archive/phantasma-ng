@@ -528,14 +528,14 @@ namespace Phantasma.Node.Interop
         private Hash SettleTransaction(string sourcePlatform, string chain, Hash txHash)
         {
             var script = new ScriptBuilder().
-                AllowGas().
+                AllowGas(SwapKeys.Address, Address.Null, MinimumFee, 9999).
                 CallContract("interop", nameof(InteropContract.SettleTransaction), SwapKeys.Address, sourcePlatform, chain, txHash).
-                SpendGas().
+                SpendGas(SwapKeys.Address).
                 EndScript();
 
             var nexus = NexusAPI.GetNexus();
 
-            var tx = new Transaction(nexus.Name, "main", script, SwapKeys.Address, SwapKeys.Address, MinimumFee, 9999, Timestamp.Now + TimeSpan.FromMinutes(5), Node.TxIdentifier);
+            var tx = new Transaction(nexus.Name, "main", script, Timestamp.Now + TimeSpan.FromMinutes(5), Node.TxIdentifier);
             tx.Sign(SwapKeys);
 
             var bytes = tx.ToByteArray(true);

@@ -60,23 +60,16 @@ namespace Phantasma.Business.Blockchain.Contracts
         /// Method used the usage of Gas to do the transaction.
         /// </summary>
         /// <exception cref="BalanceException"></exception>
-        public void AllowGas()
+        public void AllowGas(Address from, Address target, BigInteger price, BigInteger limit)
         {
-            if (Runtime.IsReadOnlyMode())
+            /*if (Runtime.IsReadOnlyMode())
             {
                 return;
-            }
+            }*/
 
-            var from = Runtime.Transaction.GasPayer;
             Runtime.Expect(from.IsUser, "must be a user address");
-
-            var target = Runtime.Transaction.GasTarget;
             Runtime.Expect(target.IsSystem, "destination must be system address");
-
-            var price = Runtime.Transaction.GasPrice;
             Runtime.Expect(price > 0, "price must be positive amount");
-
-            var limit = Runtime.Transaction.GasLimit;
             Runtime.Expect(limit > 0, "limit must be positive amount");
 
             if (_lastInflationDate == 0)
@@ -103,13 +96,6 @@ namespace Phantasma.Business.Blockchain.Contracts
             
             BigInteger balance;
             balance = Runtime.GetBalance(DomainSettings.FuelTokenSymbol, from);
-
-            if (maxAmount > balance)
-            {
-                var diff = maxAmount - balance;
-                var fuelToken = Runtime.GetToken(DomainSettings.FuelTokenSymbol);
-                throw new BalanceException(fuelToken, from, diff);
-            }
 
             Runtime.Expect(balance >= maxAmount, $"not enough {DomainSettings.FuelTokenSymbol} {balance} in address {from} {maxAmount}");
 
@@ -230,17 +216,15 @@ namespace Phantasma.Business.Blockchain.Contracts
         /// <summary>
         /// 
         /// </summary>
-        public void SpendGas()
+        public void SpendGas(Address from)
         {
-            if (Runtime.IsReadOnlyMode())
+            /*if (Runtime.IsReadOnlyMode())
             {
                 return;
-            }
+            }*/
 
             Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName || Runtime.PreviousContext.Address.IsSystem,
                     $"must be entry context, prev: {Runtime.PreviousContext.Name}, curr: {Runtime.CurrentContext.Name}");
-
-            var from = Runtime.Transaction.GasPayer;
 
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(_allowanceMap.ContainsKey(from), "no gas allowance found");
@@ -255,7 +239,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             if (availableAmount < requiredAmount && Runtime.IsError)
             {
                 requiredAmount = availableAmount;
-                ged = new GasEventData(targetAddress, Runtime.Transaction.GasPrice, Runtime.Transaction.GasLimit);
+                ged = new GasEventData(targetAddress, Runtime.GasPrice, spentGas);
             }
 
             Runtime.Expect(requiredAmount > 0, $"{Runtime.GasPrice} {Runtime.UsedGas} gas fee must exist");

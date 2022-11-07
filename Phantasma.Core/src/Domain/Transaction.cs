@@ -19,19 +19,7 @@ namespace Phantasma.Core.Domain
 
         public string ChainName { get; private set; }
         
-        public Address Sender { get; private set; }
-
-        public Address GasPayer { get; private set; }
-
-        public Address GasTarget { get; private set; }
-
-        public BigInteger GasPrice { get; private set; }
-
-        public BigInteger GasLimit { get; private set; }
-
         public Timestamp Expiration { get; private set; }
-
-        public long Version { get; private set; }
 
         public byte[] Payload { get; private set; }
 
@@ -68,13 +56,7 @@ namespace Phantasma.Core.Domain
         {
             writer.WriteVarString(this.NexusName);
             writer.WriteVarString(this.ChainName);
-            writer.WriteVarInt(this.Version);
             writer.WriteByteArray(this.Script);
-            writer.WriteAddress(this.Sender);
-            writer.WriteAddress(this.GasPayer);
-            writer.WriteAddress(this.GasTarget);
-            writer.WriteBigInteger(this.GasPrice);
-            writer.WriteBigInteger(this.GasLimit);
             writer.Write(this.Expiration.Value);
             writer.WriteByteArray(this.Payload);
 
@@ -103,21 +85,11 @@ namespace Phantasma.Core.Domain
                 string nexusName,
                 string chainName,
                 byte[] script,
-                Address sender,
-                Address gasPayer,
-                BigInteger gasPrice,
-                BigInteger gasLimit,
                 Timestamp expiration,
                 string payload)
             : this(nexusName,
                     chainName,
-                    0L,
                     script,
-                    sender,
-                    gasPayer,
-                    Address.Null,
-                    gasPrice,
-                    gasLimit,
                     expiration,
                     Encoding.UTF8.GetBytes(payload))
         {
@@ -127,13 +99,7 @@ namespace Phantasma.Core.Domain
         public Transaction(
                 string nexusName,
                 string chainName,
-                long version,
                 byte[] script,
-                Address sender,
-                Address gasPayer,
-                Address gasTarget,
-                BigInteger gasPrice,
-                BigInteger gasLimit,
                 Timestamp expiration,
                 byte[] payload = null)
         {
@@ -141,13 +107,7 @@ namespace Phantasma.Core.Domain
 
             this.NexusName = nexusName;
             this.ChainName = chainName;
-            this.Version = version;
             this.Script = script;
-            this.Sender = sender;
-            this.GasPayer = gasPayer;
-            this.GasTarget = gasTarget;
-            this.GasPrice = gasPrice;
-            this.GasLimit = gasLimit;
             this.Expiration = expiration;
             this.Payload = payload != null ? payload :new byte[0];
 
@@ -231,13 +191,7 @@ namespace Phantasma.Core.Domain
         {
             this.NexusName = reader.ReadVarString();
             this.ChainName = reader.ReadVarString();
-            this.Version = (long)reader.ReadVarInt();
             this.Script = reader.ReadByteArray();
-            this.Sender = reader.ReadAddress();
-            this.GasPayer = reader.ReadAddress();
-            this.GasTarget = reader.ReadAddress();
-            this.GasPrice = reader.ReadBigInteger();
-            this.GasLimit = reader.ReadBigInteger();
             this.Expiration = reader.ReadUInt32();
             this.Payload = reader.ReadByteArray();
 

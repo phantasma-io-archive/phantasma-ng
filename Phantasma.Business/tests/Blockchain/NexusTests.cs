@@ -205,11 +205,11 @@ public class NexusTests : IDisposable
     [Fact]
     public void CreateGenesisBlock_test_success()
     {
-        var txDict = this.Nexus.CreateGenesisBlock(Timestamp.Now, User1, new List<Address> { User1.Address, User2.Address });
-        txDict.Count.ShouldBe(1);
-        txDict.First().Value.Script.Length.ShouldBeGreaterThan(0);
-        txDict.First().Value.NexusName.ShouldBe("unittest");
-        txDict.First().Value.ChainName.ShouldBe("main");
+        this.Nexus.SetInitialValidators(new List<Address> { User1.Address, User2.Address });
+        var tx = this.Nexus.CreateGenesisBlock(Timestamp.Now, User1);
+        tx.Script.Length.ShouldBeGreaterThan(0);
+        tx.NexusName.ShouldBe("unittest");
+        tx.ChainName.ShouldBe("main");
     }
 
     [Fact]
