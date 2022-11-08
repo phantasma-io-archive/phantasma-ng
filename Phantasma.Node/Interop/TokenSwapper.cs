@@ -528,7 +528,7 @@ namespace Phantasma.Node.Interop
         private Hash SettleTransaction(string sourcePlatform, string chain, Hash txHash)
         {
             var script = new ScriptBuilder().
-                AllowGas(SwapKeys.Address, Address.Null, MinimumFee, 9999).
+                AllowGas(SwapKeys.Address, Address.Null, MinimumFee, Transaction.DefaultGasLimit).
                 CallContract("interop", nameof(InteropContract.SettleTransaction), SwapKeys.Address, sourcePlatform, chain, txHash).
                 SpendGas(SwapKeys.Address).
                 EndScript();

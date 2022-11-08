@@ -30,7 +30,7 @@ public class NexusTests : IDisposable
                         Path.DirectorySeparatorChar;
         Directory.CreateDirectory(PartitionPath);
 
-        Nexus = new Nexus("unittest", 10000, name => new DBPartition(PartitionPath + name));
+        Nexus = new Nexus("unittest", name => new DBPartition(PartitionPath + name));
         var maxSupply = 10000000;
 
         var flags = TokenFlags.Burnable | TokenFlags.Divisible | TokenFlags.Fungible | TokenFlags.Mintable |

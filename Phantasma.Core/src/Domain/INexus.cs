@@ -12,7 +12,6 @@ public interface INexus
     string Name { get; init; }
     IChain RootChain { get; }
     StorageContext RootStorage { get; init;  }
-    BigInteger MaxGas { get; set; }
 
     bool HasGenesis();
     void CommitGenesis(Hash hash);

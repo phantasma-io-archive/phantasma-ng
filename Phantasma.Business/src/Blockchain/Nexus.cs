@@ -55,8 +55,6 @@ public class Nexus : INexus
 
     private KeyValueStore<Hash, byte[]> _archiveContents;
 
-    public BigInteger MaxGas { get; set; }
-
     private Func<string, IKeyValueStoreAdapter> _adapterFactory = null;
     private IOracleReader _oracleReader = null;
     private List<IOracleObserver> _observers = new List<IOracleObserver>();
@@ -64,7 +62,7 @@ public class Nexus : INexus
     /// <summary>
     /// The constructor bootstraps the main chain and all core side chains.
     /// </summary>
-    public Nexus(string name, BigInteger maxGas, Func<string, IKeyValueStoreAdapter> adapterFactory = null, PhantasmaKeys owner = null)
+    public Nexus(string name, Func<string, IKeyValueStoreAdapter> adapterFactory = null, PhantasmaKeys owner = null)
     {
         _adapterFactory = adapterFactory;
 
@@ -77,8 +75,6 @@ public class Nexus : INexus
         }
 
         this.Name = name;
-
-        this.MaxGas = maxGas;
 
         if (HasGenesis())
         {

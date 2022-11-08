@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using Google.Protobuf;
@@ -24,10 +25,12 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     private NodeRpcClient _rpc;
     private IEnumerable<Address> _initialValidators;
     private List<Transaction> _pendingTxs = new List<Transaction>();
+    private BigInteger _minimumFee;
 
     // TODO add logger
-    public ABCIConnector(IEnumerable<Address> initialValidators)
+    public ABCIConnector(IEnumerable<Address> initialValidators, BigInteger minimumFee)
     {
+        _minimumFee = minimumFee;
         _initialValidators = initialValidators;
         Log.Information("ABCI Connector initialized");
     }
@@ -73,7 +76,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             var chain = _nexus.RootChain as Chain;
 
             IEnumerable<Transaction> systemTransactions;
-            systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, this._initialValidators); 
+            systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, this._initialValidators); 
         }
         catch (Exception e)
         {
@@ -234,7 +237,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         {
             AppVersion = 0,
             LastBlockHeight = (lastBlock != null) ? (long)lastBlock.Height : 0,
-            Version = "0.0.1",
+            Version = "0.0.2",
         };
 
         return Task.FromResult(response);
@@ -257,12 +260,6 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
                 var txString = Base16.Encode(tx.ToByteArray(true));
                 Task.Factory.StartNew(() => _rpc.BroadcastTxSync(txString));
-
-                /*var rootChain = _nexus.RootChain as Chain;
-                rootChain.BeginBlock(signerAddress, 1, _initialValidators);
-                rootChain.DeliverTx(tx);
-                rootChain.EndBlock<Block>();
-                rootChain.Commit();*/
 
                 Log.Information($"Broadcasting genesis tx {tx} signed by {signerAddress}");
             }

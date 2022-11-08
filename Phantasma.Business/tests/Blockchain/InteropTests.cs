@@ -888,7 +888,6 @@ public class InteropTests : IDisposable
                     });
 
         nexusMoq.Setup( n => n.HasGenesis()).Returns(true);
-        nexusMoq.Setup( n => n.MaxGas).Returns(100000);
 
         nexusMoq.Setup( n => n.GetTokenInfo(
                     It.IsAny<StorageContext>(),

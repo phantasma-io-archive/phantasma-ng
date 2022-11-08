@@ -195,7 +195,6 @@ public class RuntimeTests
                 ).Returns(tokenExists);
 
         nexusMoq.Setup( n => n.HasGenesis()).Returns(true);
-        nexusMoq.Setup( n => n.MaxGas).Returns(10000);
         nexusMoq.Setup(n => n.RootStorage).Returns(this.Context);
 
         nexusMoq.Setup( n => n.GetChainByName(
@@ -292,7 +291,7 @@ public class RuntimeTests
         this.PartitionPath = Path.Combine(Path.GetTempPath(), "PhantasmaUnitTest", $"{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
         Directory.CreateDirectory(this.PartitionPath);
 
-        this.Nexus = new Nexus("unittest", 10000, (name) => new DBPartition(PartitionPath + name));
+        this.Nexus = new Nexus("unittest", (name) => new DBPartition(PartitionPath + name));
         var maxSupply = 10000000;
 
         var ftFlags = TokenFlags.Burnable | TokenFlags.Divisible | TokenFlags.Fungible | TokenFlags.Mintable | TokenFlags.Stakable | TokenFlags.Transferable;

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using Google.Protobuf;
-using Org.BouncyCastle.Asn1.X509;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM.Utils;
@@ -79,7 +78,7 @@ namespace Phantasma.Business.Blockchain
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
         }
 
-        public IEnumerable<Transaction> BeginBlock(string proposerAddress, BigInteger height, IEnumerable<Address> availableValidators)
+        public IEnumerable<Transaction> BeginBlock(string proposerAddress, BigInteger height, BigInteger minimumFee, IEnumerable<Address> availableValidators)
         {
             // should never happen
             if (this.CurrentBlock != null)
@@ -135,7 +134,7 @@ namespace Phantasma.Business.Blockchain
                     var senderAddress = this.CurrentBlock.Validator;
 
                     var script = new ScriptBuilder()
-                        .AllowGas(senderAddress, Address.Null, 1000, 9999)
+                        .AllowGas(senderAddress, Address.Null, minimumFee, Transaction.DefaultGasLimit)
                         .CallContract(NativeContractKind.Gas, nameof(GasContract.ApplyInflation), this.CurrentBlock.Validator)
                         .SpendGas(senderAddress)
                         .EndScript();
@@ -153,10 +152,9 @@ namespace Phantasma.Business.Blockchain
             }
 
             var oracle = Nexus.GetOracleReader();
-            systemTransactions.AddRange(ProcessPendingTasks(this.CurrentBlock, oracle, 100000 /*TODO hardcoded min fee */,
-                        this.CurrentChangeSet));
+            systemTransactions.AddRange(ProcessPendingTasks(this.CurrentBlock, oracle, minimumFee, this.CurrentChangeSet));
 
-            // returns eventual system transactions that need to be broadcasted to tendermint to be included into the current block
+            // returns eventual system transactions that need to be broadcasted to tenderm int to be included into the current block
             return systemTransactions;
         }
 
@@ -268,7 +266,7 @@ namespace Phantasma.Business.Blockchain
 
                 result = ExecuteTransaction(txIndex, tx, tx.Script, this.CurrentBlock.Validator,
                     this.CurrentBlock.Timestamp, snapshot, this.CurrentBlock.Notify, oracle,
-                    ChainTask.Null, 100000);
+                    ChainTask.Null);
 
                 if (result.State == ExecutionState.Halt)
                 {
@@ -425,7 +423,7 @@ namespace Phantasma.Business.Blockchain
         }
 
         private TransactionResult ExecuteTransaction(int index, Transaction transaction, byte[] script, Address validator, Timestamp time, StorageChangeSetContext changeSet
-                , Action<Hash, Event> onNotify, IOracleReader oracle, IChainTask task, BigInteger minimumFee, bool allowModify = true)
+                , Action<Hash, Event> onNotify, IOracleReader oracle, IChainTask task)
         {
             var result = new TransactionResult();
 
@@ -436,7 +434,6 @@ namespace Phantasma.Business.Blockchain
             RuntimeVM runtime;
             runtime = new RuntimeVM(index, script, offset, this, validator, time, transaction, changeSet, oracle, task);
             
-
             result.State = runtime.Execute();
 
             result.Events = runtime.Events.ToArray();
@@ -1229,7 +1226,7 @@ namespace Phantasma.Business.Blockchain
             transaction = new Transaction(this.Nexus.Name, this.Name, taskScript, block.Timestamp.Value + 1, "TASK");
 
             var txResult = ExecuteTransaction(-1, transaction, transaction.Script, block.Validator, block.Timestamp, changeSet,
-                        block.Notify, oracle, task, minimumFee);
+                        block.Notify, oracle, task);
             if (txResult.Code == 0)
             {
                 var resultBytes = Serialization.Serialize(txResult.Result);
