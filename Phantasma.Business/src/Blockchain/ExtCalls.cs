@@ -559,7 +559,7 @@ namespace Phantasma.Business.Blockchain
             var obj = vm.Stack.Pop();
             var valBytes = obj.AsByteArray();
 
-            var contractAddress = SmartContract.GetAddressForName(contractName);
+            var contractAddress = SmartContract.GetAddressFromContractName(contractName);
             vm.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.WriteData), contractAddress, key, valBytes);
 
             return ExecutionState.Running;
@@ -578,7 +578,7 @@ namespace Phantasma.Business.Blockchain
             var field = vm.PopString("field");
             var key = SmartContract.GetKeyForField(contractName, field, false);
 
-            var contractAddress = SmartContract.GetAddressForName(contractName);
+            var contractAddress = SmartContract.GetAddressFromContractName(contractName);
             vm.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.DeleteData), contractAddress, key);
 
             return ExecutionState.Running;
@@ -1333,10 +1333,13 @@ namespace Phantasma.Business.Blockchain
             var tx = vm.Transaction;
             Throw.IfNull(tx, nameof(tx));
 
-            var pow = tx.Hash.GetDifficulty();
-            vm.Expect(pow >= (int)ProofOfWork.Minimal, "expected proof of work");
+            if (vm.HasGenesis)
+            {
+                var pow = tx.Hash.GetDifficulty();
+                vm.Expect(pow >= (int)ProofOfWork.Minimal, "expected proof of work");
+            }
 
-            vm.ExpectStackSize(2);
+            vm.ExpectStackSize(4);
 
             var from = vm.PopAddress();
             vm.Expect(from.IsUser, "address must be user");
@@ -1351,13 +1354,17 @@ namespace Phantasma.Business.Blockchain
 
             var contractName = vm.PopString("contractName");
 
-            var contractAddress = SmartContract.GetAddressForName(contractName);
+            var contractAddress = SmartContract.GetAddressFromContractName(contractName);
             var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
 
             vm.Expect(!deployed, $"{contractName} is already deployed");
 
             byte[] script;
             ContractInterface abi;
+
+            script = vm.PopBytes("contractScript");
+
+            var abiBytes = vm.PopBytes("contractABI");
 
             bool isNative = Nexus.IsNativeContractStatic(contractName);
             if (isNative)
@@ -1367,9 +1374,10 @@ namespace Phantasma.Business.Blockchain
                     vm.Nexus.BeginInitialize(vm, from);
                 }*/
 
-                script = new byte[] { (byte)Opcode.RET };
+                vm.Expect(script.Length == 1 && script[0] == (byte)Opcode.RET, "invalid script for native contract");
+                vm.Expect(abiBytes.Length == 0, "invalid abi for native contract");
 
-                var contractInstance = vm.Nexus.GetNativeContractByAddress(contractAddress);
+                var contractInstance = NativeContract.GetNativeContractByAddress(contractAddress);
                 abi = contractInstance.ABI;
             }
             else
@@ -1393,10 +1401,9 @@ namespace Phantasma.Business.Blockchain
 
                 vm.Expect(!isReserved, $"name '{contractName}' reserved by system");
 
-                script = vm.PopBytes("contractScript");
-
-                var abiBytes = vm.PopBytes("contractABI");
                 abi = ContractInterface.FromBytes(abiBytes);
+
+                vm.Expect(abi.Methods.Any(), "contract must have at least one public method");
 
                 var fuelCost = vm.GetGovernanceValue(DomainSettings.FuelPerContractDeployTag);
                 // governance value is in usd fiat, here convert from fiat to fuel amount
@@ -1443,7 +1450,7 @@ namespace Phantasma.Business.Blockchain
 
             var contractName = vm.PopString("contractName");
 
-            var contractAddress = SmartContract.GetAddressForName(contractName);
+            var contractAddress = SmartContract.GetAddressFromContractName(contractName);
             var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
 
             vm.Expect(deployed, $"{contractName} does not exist");
@@ -1513,7 +1520,7 @@ namespace Phantasma.Business.Blockchain
 
             var contractName = vm.PopString("contractName");
 
-            var contractAddress = SmartContract.GetAddressForName(contractName);
+            var contractAddress = SmartContract.GetAddressFromContractName(contractName);
             var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
 
             vm.Expect(deployed, $"{contractName} does not exist");

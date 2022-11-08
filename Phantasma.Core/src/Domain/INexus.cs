@@ -12,7 +12,6 @@ public interface INexus
     string Name { get; init; }
     IChain RootChain { get; }
     StorageContext RootStorage { get; init;  }
-    BigInteger MaxGas { get; set; }
 
     bool HasGenesis();
     void CommitGenesis(Hash hash);
@@ -74,7 +73,8 @@ public interface INexus
     bool HasNFT(StorageContext storage, string symbol, BigInteger tokenID);
     void BeginInitialize(IRuntime vm, Address owner);
     void FinishInitialize(IRuntime vm, Address owner);
-    Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, PhantasmaKeys owner, IEnumerable<Address> initialValidators);
+    void SetInitialValidators(IEnumerable<Address> initialValidators);
+    Transaction CreateGenesisBlock(Timestamp timestamp, PhantasmaKeys owner);
     Timestamp GetValidatorLastActivity(Address target);
     ValidatorEntry[] GetValidators();
     int GetPrimaryValidatorCount();
@@ -134,6 +134,5 @@ public interface INexus
     SmartContract GetTokenContract(StorageContext storage, string symbol);
     SmartContract GetTokenContract(StorageContext storage, Address contractAddress);
     uint GetProtocolVersion(StorageContext storage);
-    NativeContract GetNativeContractByAddress(Address contractAddress);
     bool IsNativeContract(string name);
 }

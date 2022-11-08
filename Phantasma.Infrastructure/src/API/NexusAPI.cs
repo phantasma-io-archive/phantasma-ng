@@ -155,7 +155,7 @@ public static class NexusAPI
             burnedSupply = burnedSupply.ToString(),
             decimals = tokenInfo.Decimals,
             flags = tokenInfo.Flags.ToString(),//.Split(',').Select(x => x.Trim()).ToArray(),
-            address = SmartContract.GetAddressForName(tokenInfo.Symbol).Text,
+            address = SmartContract.GetAddressFromContractName(tokenInfo.Symbol).Text,
             owner = tokenInfo.Owner.Text,
             script = tokenInfo.Script.Encode(),
             series = seriesList.ToArray(),
@@ -268,6 +268,10 @@ public static class NexusAPI
         var block = Nexus.FindBlockByTransaction(tx);
         var chain = block != null ? Nexus.GetChainByAddress(block.ChainAddress) : null;
 
+        Address from, target;
+        BigInteger gasPrice, gasLimit;
+        GasExtensions.ExtractGasDetails(tx.Script, out from, out target, out gasPrice, out gasLimit);
+
         var result = new TransactionResult
         {
             hash = tx.Hash.ToString(),
@@ -279,11 +283,11 @@ public static class NexusAPI
             payload = tx.Payload.Encode(),
             fee = chain != null ? chain.GetTransactionFee(tx.Hash).ToString() : "0",
             state = block != null ? block.GetStateForTransaction(tx.Hash).ToString() : ExecutionState.Break.ToString(),
-            sender = tx.Sender.Text,
-            gasPayer = tx.GasPayer.Text,
-            gasTarget = tx.GasTarget.Text,
-            gasPrice = tx.GasPrice.ToString(),
-            gasLimit = tx.GasLimit.ToString(),
+            sender = Address.Null.Text,
+            gasPayer = from.Text,
+            gasTarget = target.Text,
+            gasPrice = gasPrice.ToString(),
+            gasLimit = gasLimit.ToString(),
             expiration = tx.Expiration.Value,
             signatures = tx.Signatures.Select(x => new SignatureResult() { Kind = x.Kind.ToString(), Data = Base16.Encode(x.ToByteArray()) }).ToArray(),
         };
@@ -297,6 +301,11 @@ public static class NexusAPI
             {
                 var eventEntry = FillEvent(evt);
                 eventList.Add(eventEntry);
+
+                if (evt.Kind == EventKind.GasEscrow && evt.Contract == "gas")
+                {
+                    result.sender = evt.Address.Text;
+                }
             }
 
             var txResult = block.GetResultForTransaction(tx.Hash);

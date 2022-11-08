@@ -409,3 +409,7 @@ DOCKER/testnet/node*/config/write-file-*
 DOCKER/testnet/node*/config/addrbook.json
 
 testnet/tendermint.exe
+
+testnet/node0/tendermint.exe
+
+Phantasma.Node/Properties/launchSettings.json

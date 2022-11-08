@@ -78,9 +78,7 @@ namespace Phantasma.Business.Blockchain
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
         }
 
-        // header.ProposerAddress.ToByteArray()
-        //  header.Height
-        public IEnumerable<Transaction> BeginBlock(string proposerAddress, BigInteger height, IEnumerable<Address> initialValidators)
+        public IEnumerable<Transaction> BeginBlock(string proposerAddress, BigInteger height, BigInteger minimumFee, IEnumerable<Address> availableValidators)
         {
             // should never happen
             if (this.CurrentBlock != null)
@@ -101,7 +99,7 @@ namespace Phantasma.Business.Blockchain
 
             if (validator.address == Address.Null)
             {
-                foreach (var address in initialValidators)
+                foreach (var address in availableValidators)
                 {
                     if (address.TendermintAddress == this.CurrentProposer)
                     {
@@ -133,20 +131,18 @@ namespace Phantasma.Business.Blockchain
                 var inflationReady = NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
                 if (inflationReady)
                 {
+                    var senderAddress = this.CurrentBlock.Validator;
+
                     var script = new ScriptBuilder()
-                        .AllowGas()
+                        .AllowGas(senderAddress, Address.Null, minimumFee, Transaction.DefaultGasLimit)
                         .CallContract(NativeContractKind.Gas, nameof(GasContract.ApplyInflation), this.CurrentBlock.Validator)
-                        .SpendGas()
+                        .SpendGas(senderAddress)
                         .EndScript();
 
                     var transaction = new Transaction(
                             this.Nexus.Name,
                             this.Name,
                             script,
-                            this.CurrentBlock.Validator,
-                            this.CurrentBlock.Validator,
-                            1,
-                            1,
                             this.CurrentBlock.Timestamp.Value + 1,
                             "SYSTEM");
 
@@ -156,10 +152,9 @@ namespace Phantasma.Business.Blockchain
             }
 
             var oracle = Nexus.GetOracleReader();
-            systemTransactions.AddRange(ProcessPendingTasks(this.CurrentBlock, oracle, 100000 /*TODO hardcoded min fee */,
-                        this.CurrentChangeSet));
+            systemTransactions.AddRange(ProcessPendingTasks(this.CurrentBlock, oracle, minimumFee, this.CurrentChangeSet));
 
-            // returns eventual system transactions that need to be broadcasted to tendermint to be included into the current block
+            // returns eventual system transactions that need to be broadcasted to tenderm int to be included into the current block
             return systemTransactions;
         }
 
@@ -187,51 +182,40 @@ namespace Phantasma.Business.Blockchain
                 return (type, "Transaction is not signed");
             }
 
-            if (!tx.IsSignedBy(tx.Sender))
-            {
-                var type = CodeType.NotSignedBySender;
-                Log.Information("check tx error {NotSignedBySender} {Hash}", type, tx.Hash);
-                return (type, "Transaction is not signed by sender");
-            }
-
-            if (tx.Version != 0L)
-            {
-                var type = CodeType.UnsupportedVersion;
-                Log.Information("check tx error {UnsupportedVersion} {Hash}", type, tx.Hash);
-                return (type, "Transaction version is not supported");
-            }
-
             if (Nexus.HasGenesis())
             {
-                if (!tx.GasPayer.IsUser)
+                Address from, target;
+                BigInteger gasPrice, gasLimit;
+
+                if (!GasExtensions.ExtractGasDetails(tx.Script, out from, out target, out gasPrice, out gasLimit))
                 {
                     var type = CodeType.NoUserAddress;
                     Log.Information("check tx error {type} {Hash}", type, tx.Hash);
-                    return (type, "Address has to be a user address");
+                    return (type, "AllowGas call not found in transaction script (or wrong number of arguments)");
                 }
 
-                if (!tx.GasTarget.IsSystem)
+                /*if (from.IsNull || target.IsNull || gasLimit <= 0 || gasPrice <= 0)
                 {
                     var type = CodeType.NoSystemAddress;
                     Log.Information("check tx error {type} {Hash}", type, tx.Hash);
-                    return (type, "Address has to be a system address");
+                    return (type, "AllowGas call not found in transaction script");
+                }*/
+
+                var minFee = Nexus.GetGovernanceValue(Nexus.RootStorage, GovernanceContract.GasMinimumFeeTag);
+                if (gasPrice < minFee)
+                {
+                    var type = CodeType.GasFeeTooLow;
+                    Log.Information("check tx error {type} {Hash}", type, tx.Hash);
+                    return (type, "Gas fee too low");
                 }
 
-                var maxGas = tx.GasPrice * tx.GasLimit;
-                var balance = GetTokenBalance(this.Storage, DomainSettings.FuelTokenSymbol, tx.GasPayer);
+                var maxGas = gasPrice * gasLimit;
+                var balance = GetTokenBalance(this.Storage, DomainSettings.FuelTokenSymbol, from);
                 if (balance < maxGas)
                 {
                     var type = CodeType.MissingFuel;
                     Log.Information("check tx error {MissingFuel} {Hash}", type, tx.Hash);
                     return (type, "Missing fuel");
-                }
-
-                var minFee = Nexus.GetGovernanceValue(Nexus.RootStorage, GovernanceContract.GasMinimumFeeTag);
-                if (tx.GasPrice < minFee)
-                {
-                    var type = CodeType.GasFeeTooLow;
-                    Log.Information("check tx error {type} {Hash}", type, tx.Hash);
-                    return (type, "Gas fee too low");
                 }
             }
 
@@ -282,7 +266,7 @@ namespace Phantasma.Business.Blockchain
 
                 result = ExecuteTransaction(txIndex, tx, tx.Script, this.CurrentBlock.Validator,
                     this.CurrentBlock.Timestamp, snapshot, this.CurrentBlock.Notify, oracle,
-                    ChainTask.Null, 100000);
+                    ChainTask.Null);
 
                 if (result.State == ExecutionState.Halt)
                 {
@@ -439,7 +423,7 @@ namespace Phantasma.Business.Blockchain
         }
 
         private TransactionResult ExecuteTransaction(int index, Transaction transaction, byte[] script, Address validator, Timestamp time, StorageChangeSetContext changeSet
-                , Action<Hash, Event> onNotify, IOracleReader oracle, IChainTask task, BigInteger minimumFee, bool allowModify = true)
+                , Action<Hash, Event> onNotify, IOracleReader oracle, IChainTask task)
         {
             var result = new TransactionResult();
 
@@ -450,7 +434,6 @@ namespace Phantasma.Business.Blockchain
             RuntimeVM runtime;
             runtime = new RuntimeVM(index, script, offset, this, validator, time, transaction, changeSet, oracle, task);
             
-
             result.State = runtime.Execute();
 
             result.Events = runtime.Events.ToArray();
@@ -703,19 +686,24 @@ namespace Phantasma.Business.Blockchain
                 return Nexus.TokenExists(storage, name);
             }
 
-            return IsContractDeployed(storage, SmartContract.GetAddressForName(name));
+            return IsContractDeployed(storage, SmartContract.GetAddressFromContractName(name));
         }
 
         public bool IsContractDeployed(StorageContext storage, Address contractAddress)
         {
-            if (contractAddress == SmartContract.GetAddressForName(ContractNames.GasContractName))
+            if (contractAddress == SmartContract.GetAddressForNative(NativeContractKind.Gas))
             {
                 return true;
             }
 
-            if (contractAddress == SmartContract.GetAddressForName(ContractNames.BlockContractName))
+            if (contractAddress == SmartContract.GetAddressForNative(NativeContractKind.Block))
             {
                 return true;
+            }
+
+            if (contractAddress == SmartContract.GetAddressForNative(NativeContractKind.Unknown))
+            {
+                return false;
             }
 
             var key = GetContractKey(contractAddress, "script");
@@ -780,7 +768,7 @@ namespace Phantasma.Business.Blockchain
                 }
             }
 
-            return Nexus.GetNativeContractByAddress(contractAddress);
+            return NativeContract.GetNativeContractByAddress(contractAddress);
         }
 
         public SmartContract GetContractByName(StorageContext storage, string name)
@@ -790,7 +778,7 @@ namespace Phantasma.Business.Blockchain
                 return Nexus.GetContractByName(storage, name);
             }
 
-            var address = SmartContract.GetAddressForName(name);
+            var address = SmartContract.GetAddressFromContractName(name);
             var scriptKey = GetContractKey(address, "script");
             if (!storage.Has(scriptKey))
             {
@@ -818,7 +806,7 @@ namespace Phantasma.Business.Blockchain
                 throw new ChainException($"Cannot upgrade non-existing contract: {name}");
             }
 
-            var address = SmartContract.GetAddressForName(name);
+            var address = SmartContract.GetAddressFromContractName(name);
 
             var scriptKey = GetContractKey(address, "script");
             storage.Put(scriptKey, script);
@@ -840,7 +828,7 @@ namespace Phantasma.Business.Blockchain
                 throw new ChainException($"Cannot kill non-existing contract: {name}");
             }
 
-            var address = SmartContract.GetAddressForName(name);
+            var address = SmartContract.GetAddressFromContractName(name);
 
             var scriptKey = GetContractKey(address, "script");
             storage.Delete(scriptKey);
@@ -1230,15 +1218,15 @@ namespace Phantasma.Business.Blockchain
             }
             
             var taskScript = new ScriptBuilder()
-                .AllowGas()
+                .AllowGas(task.Owner, Address.Null, minimumFee, task.GasLimit)
                 .CallContract(task.ContextName, task.Method)
-                .SpendGas()
+                .SpendGas(task.Owner)
                 .EndScript();
 
-            transaction = new Transaction(this.Nexus.Name, this.Name, taskScript, task.Owner, task.Owner, minimumFee, task.GasLimit, block.Timestamp.Value + 1, "TASK");
+            transaction = new Transaction(this.Nexus.Name, this.Name, taskScript, block.Timestamp.Value + 1, "TASK");
 
             var txResult = ExecuteTransaction(-1, transaction, transaction.Script, block.Validator, block.Timestamp, changeSet,
-                        block.Notify, oracle, task, minimumFee);
+                        block.Notify, oracle, task);
             if (txResult.Code == 0)
             {
                 var resultBytes = Serialization.Serialize(txResult.Result);
@@ -1339,7 +1327,7 @@ namespace Phantasma.Business.Blockchain
         {
             if (IsContractDeployed(storage, name))
             {
-                return SmartContract.GetAddressForName(name);
+                return SmartContract.GetAddressFromContractName(name);
             }
 
             return this.Nexus.LookUpName(storage, name);
@@ -1382,7 +1370,7 @@ namespace Phantasma.Business.Blockchain
                 }
             }
 
-            return Nexus.RootChain.InvokeContract(storage, ContractNames.AccountContractName, nameof(AccountContract.LookUpAddress), address).AsString();
+            return Nexus.RootChain.InvokeContract(storage, NativeContractKind.Account, nameof(AccountContract.LookUpAddress), address).AsString();
         }
 
     }

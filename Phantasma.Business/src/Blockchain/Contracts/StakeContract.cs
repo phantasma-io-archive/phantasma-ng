@@ -287,12 +287,6 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var balance = Runtime.GetBalance(DomainSettings.StakingTokenSymbol, from);
 
-            if (stakeAmount > balance) 
-            {
-                var diff = stakeAmount - balance;
-                throw new BalanceException(Runtime.GetToken(DomainSettings.StakingTokenSymbol), from, diff);
-            }
-
             Runtime.Expect(balance >= stakeAmount, $"balance: {balance} stake: {stakeAmount} not enough balance to stake at {from}");
 
             Runtime.TransferTokens(DomainSettings.StakingTokenSymbol, from, this.Address, stakeAmount);
@@ -760,7 +754,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public void UpdateRate(BigInteger rate)
         {
-            var bombAddress = GetAddressForName("bomb");
+            var bombAddress = GetAddressFromContractName("bomb");
             Runtime.Expect(Runtime.IsWitness(bombAddress), "must be called from bomb address");
 
             Runtime.Expect(rate > 0, "invalid rate");

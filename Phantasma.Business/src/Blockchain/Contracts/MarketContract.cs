@@ -485,11 +485,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                     // check that we have enough balance first
                     var balance = Runtime.GetBalance(quoteToken.Symbol, from);
 
-                    if (combinedFees > balance)
-                    {
-                        var diff = combinedFees - balance;
-                        throw new BalanceException(quoteToken, from, diff);
-                    }
+                    Runtime.Expect(balance >= combinedFees, "not enough balance to pay the fees");
 
                     Runtime.TransferTokens(auction.QuoteSymbol, from, this.Address, combinedFees);
                 }

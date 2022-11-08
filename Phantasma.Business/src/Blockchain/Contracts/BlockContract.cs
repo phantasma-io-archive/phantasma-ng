@@ -57,6 +57,8 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public void SettleTransaction(Address sourceChainAddress, Hash hash)
         {
+            Runtime.Expect(false, "block.SettleTransaction is obsolete");
+
             Runtime.Expect(Runtime.IsAddressOfParentChain(sourceChainAddress) || Runtime.IsAddressOfChildChain(sourceChainAddress), "source must be parent or child chain");
 
             Runtime.Expect(!IsSettled(hash), "hash already settled");

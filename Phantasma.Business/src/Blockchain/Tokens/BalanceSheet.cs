@@ -9,25 +9,6 @@ using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.Blockchain.Tokens
 {
-    public class BalanceException : Exception
-    {
-        public static IToken token = null;
-        public static Address address;
-        public static BigInteger amount;
-
-        public BalanceException(IToken token, Address address, BigInteger amount) : base($"Address {address} lacks {UnitConversion.ToDecimal(amount, token.Decimals)} {token.Symbol}")
-        {
-            if (BalanceException.token != null)
-            {
-                BalanceException.token = null; // should never enter here...
-            }
-
-            BalanceException.token = token;
-            BalanceException.address = address;
-            BalanceException.amount = amount;
-        }
-    }
-
     public struct BalanceSheet
     {
         private byte[] _prefix;

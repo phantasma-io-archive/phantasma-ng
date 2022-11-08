@@ -114,10 +114,6 @@ public class AccountContractTests : IDisposable
                 "mainnet",
                 DomainSettings.RootChainName,
                 new byte[1] { 0 },
-                User1.Address,
-                User1.Address,
-                10000,
-                999,
                 Timestamp.Now + TimeSpan.FromDays(300),
                 "UnitTest");
 
@@ -136,10 +132,6 @@ public class AccountContractTests : IDisposable
                 "mainnet",
                 DomainSettings.RootChainName,
                 new byte[1] { 0 },
-                User1.Address,
-                User1.Address,
-                10000,
-                999,
                 Timestamp.Now + TimeSpan.FromDays(300),
                 "UnitTest");
 
@@ -187,7 +179,6 @@ public class AccountContractTests : IDisposable
                     });
 
         nexusMoq.Setup( n => n.HasGenesis()).Returns(true);
-        nexusMoq.Setup( n => n.MaxGas).Returns(100000);
 
         nexusMoq.Setup( n => n.GetStakeFromAddress(
                     It.IsAny<StorageContext>(),

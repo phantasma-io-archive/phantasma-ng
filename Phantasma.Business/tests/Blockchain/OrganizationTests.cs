@@ -147,10 +147,6 @@ public class OrganizationTests : IDisposable
             "mainnet",
             DomainSettings.RootChainName,
             new byte[1] { 0 },
-            User1.Address,
-            User1.Address,
-            10000,
-            999,
             Timestamp.Now + TimeSpan.FromDays(300),
             "UnitTest");
 
@@ -190,10 +186,6 @@ public class OrganizationTests : IDisposable
             "mainnet",
             DomainSettings.RootChainName,
             new byte[1] { 0 },
-            User1.Address,
-            User1.Address,
-            10000,
-            999,
             Timestamp.Now + TimeSpan.FromDays(300),
             "UnitTest");
 
@@ -297,7 +289,7 @@ public class OrganizationTests : IDisposable
         }
         Directory.CreateDirectory(this.PartitionPath);
 
-        this.Nexus = new Nexus("unittest", 10000, (name) => new DBPartition(PartitionPath + name));
+        this.Nexus = new Nexus("unittest", (name) => new DBPartition(PartitionPath + name));
 
         var storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage("main"));
         this.Context = new StorageChangeSetContext(storage);

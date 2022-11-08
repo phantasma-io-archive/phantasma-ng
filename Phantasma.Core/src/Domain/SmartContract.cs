@@ -26,7 +26,7 @@ namespace Phantasma.Core.Domain
             {
                 if (_address.IsNull)
                 {
-                   _address = GetAddressForName(Name);
+                   _address = GetAddressFromContractName(Name);
                 }
 
                 return _address;
@@ -40,12 +40,22 @@ namespace Phantasma.Core.Domain
 
         public static Address GetAddressForNative(NativeContractKind kind)
         {
-            return GetAddressForName(kind.GetContractName());
+            return GetAddressFromContractName(kind.GetContractName());
         }
 
-        public static Address GetAddressForName(string name)
+        private static Dictionary<string, Address> _contractNameMap = new Dictionary<string, Address>();
+
+        public static Address GetAddressFromContractName(string name)
         {
-            return Address.FromHash(name);
+            if (_contractNameMap.ContainsKey(name))
+            {
+                return _contractNameMap[name];
+            }
+
+            var address = Address.FromHash(name);
+            _contractNameMap[name] = address;
+
+            return address;
         }
 
         public static byte[] GetKeyForField(NativeContractKind nativeContract, string fieldName, bool isProtected)
