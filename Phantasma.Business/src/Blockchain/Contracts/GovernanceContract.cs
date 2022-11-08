@@ -136,7 +136,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             Runtime.Expect(!HasName(name), "name already exists");
 
-            Runtime.Expect(Runtime.IsPrimaryValidator(from), "must be validator address");
+            Runtime.Expect(Runtime.IsPrimaryValidator(from), $"{from.TendermintAddress} is not a validator address");
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
             var constraints = Serialization.Unserialize<ChainConstraint[]>(serializedConstraints);

@@ -102,7 +102,7 @@ namespace Phantasma.Tests
             var contractName = "test";
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(owner, ProofOfWork.Minimal,
-                () => ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, 1, 9999)
+                () => ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, 1, Transaction.GasLimit)
                     .CallInterop("Runtime.DeployContract", owner.Address, contractName, script, abiBytes)
                     .SpendGas(owner.Address)
                     .EndScript());
@@ -121,7 +121,7 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(owner, ProofOfWork.None, (() =>
                 ScriptUtils.BeginScript()
-                    .AllowGas(owner.Address, Address.Null, 1, 9999)
+                    .AllowGas(owner.Address, Address.Null, 1, Transaction.GasLimit)
                     .EmitRaw(script)
                     .SpendGas(owner.Address)
                     .EndScript()));
@@ -388,7 +388,7 @@ namespace Phantasma.Tests
             simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, "SOUL", UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals));
             simulator.GenerateCustomTransaction(target, ProofOfWork.None,
                 () => ScriptUtils.BeginScript()
-                        .AllowGas(target.Address, Address.Null, 1, 9999)
+                        .AllowGas(target.Address, Address.Null, 1, Transaction.GasLimit)
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), target.Address, UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals))
                         .SpendGas(target.Address)
                     .EndScript());
@@ -398,7 +398,7 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(target, ProofOfWork.None,
                 () => ScriptUtils.BeginScript()
-                        .AllowGas(target.Address, Address.Null, 1, 9999)
+                        .AllowGas(target.Address, Address.Null, 1, Transaction.GasLimit)
                     .CallContract(NativeContractKind.Account, nameof(AccountContract.RegisterScript), target.Address, script, abi.ToByteArray())
                         .SpendGas(target.Address)
                     .EndScript());
@@ -522,7 +522,7 @@ namespace Phantasma.Tests
             simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, "KCAL", 60000000000000);
             simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, "SOUL", UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals)*50000);
             simulator.GenerateCustomTransaction(target, ProofOfWork.None,
-                () => ScriptUtils.BeginScript().AllowGas(target.Address, Address.Null, 1, 9999)
+                () => ScriptUtils.BeginScript().AllowGas(target.Address, Address.Null, 1, Transaction.GasLimit)
                     .CallContract("stake", "Stake", target.Address, UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals)*50000)
                     .CallContract("account", "RegisterScript", target.Address, script, abi.ToByteArray()).SpendGas(target.Address)
                     .EndScript());

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using Google.Protobuf;
@@ -14,6 +15,7 @@ using Serilog;
 using Tendermint;
 using Tendermint.Abci;
 using Tendermint.RPC;
+using Chain = Phantasma.Business.Blockchain.Chain;
 
 namespace Phantasma.Node;
 public class ABCIConnector : ABCIApplication.ABCIApplicationBase
@@ -22,12 +24,13 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     private PhantasmaKeys _owner;
     private NodeRpcClient _rpc;
     private IEnumerable<Address> _initialValidators;
-    private SortedDictionary<int, Transaction>_systemTxs = new SortedDictionary<int, Transaction>();
-    private List<Transaction> _broadcastedTxs = new List<Transaction>();
+    private List<Transaction> _pendingTxs = new List<Transaction>();
+    private BigInteger _minimumFee;
 
     // TODO add logger
-    public ABCIConnector(IEnumerable<Address> initialValidators)
+    public ABCIConnector(IEnumerable<Address> initialValidators, BigInteger minimumFee)
     {
+        _minimumFee = minimumFee;
         _initialValidators = initialValidators;
         Log.Information("ABCI Connector initialized");
     }
@@ -50,16 +53,15 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             Log.Information("proposer {ProposerAddress} current node {CurrentAddress}", proposerAddress, this._owner.Address.TendermintAddress);
             if (proposerAddress.Equals(this._owner.Address.TendermintAddress))
             {
-                foreach (var tx in _systemTxs.OrderBy(x => x.Key))
+                foreach (var tx in _pendingTxs)
                 {
-                    var txString = Base16.Encode(tx.Value.ToByteArray(true));
+                    var txString = Base16.Encode(tx.ToByteArray(true));
                     Log.Information("Broadcast tx {Transaction}", tx);
                     while (true)
                     {
                         try
                         {
                             _rpc.BroadcastTxSync(txString);
-                            _broadcastedTxs.Add(tx.Value);
                             break;
                         }
                         catch (Exception e)
@@ -70,29 +72,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                     Log.Information("Broadcast tx {Transaction} done", tx);
                 }
             }
-            _systemTxs.Clear();
 
             var chain = _nexus.RootChain as Chain;
 
             IEnumerable<Transaction> systemTransactions;
-            systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, this._initialValidators); 
-
-            if (proposerAddress.Equals(this._owner.Address.TendermintAddress))
-            {
-                var idx = 0;
-                foreach (var tx in systemTransactions)
-                {
-                    Log.Information("Broadcasting system transaction {Transaction}", tx);
-                    _systemTxs.Add(idx, tx);
-                    var txString = Base16.Encode(tx.ToByteArray(true));
-                    Task.Factory.StartNew(() => _rpc.BroadcastTxSync(txString));
-                    idx++;
-                }
-            }
-            else
-            {
-                _systemTxs.Clear();
-            }
+            systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, this._initialValidators); 
         }
         catch (Exception e)
         {
@@ -172,13 +156,13 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         }
 
         // check if a system tx was executed, if yes, remove it
-        for (var i = 0; i < _broadcastedTxs.Count; i++)
+        for (var i = 0; i < _pendingTxs.Count; i++)
         {
-            var tx = _broadcastedTxs[i];
+            var tx = _pendingTxs[i];
             if (tx.Hash == result.Hash)
             {
                 Log.Information($"Transaction {tx.Hash} has been executed, remove now");
-                _broadcastedTxs.Remove(tx);
+                _pendingTxs.Remove(tx);
             }
         }
 
@@ -253,7 +237,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         {
             AppVersion = 0,
             LastBlockHeight = (lastBlock != null) ? (long)lastBlock.Height : 0,
-            Version = "0.0.1",
+            Version = "0.0.2",
         };
 
         return Task.FromResult(response);
@@ -266,15 +250,18 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
         try
         {
-            Dictionary<int, Transaction> systemTransactions;
-            systemTransactions = _nexus.CreateGenesisBlock(timestamp, this._owner, this._initialValidators);
+            var signerAddress = _initialValidators.Last().TendermintAddress;
 
-            var idx = 0;
-            foreach (var tx in systemTransactions.OrderByDescending(x => x.Key))
+            _nexus.SetInitialValidators(this._initialValidators);
+
+            if (this._owner.Address.TendermintAddress == signerAddress)
             {
-                Log.Information("Preparing tx {Transaction} for broadcast", tx.Value);
-                _systemTxs.Add(tx.Key, tx.Value);
-                idx++;
+                var tx = _nexus.CreateGenesisBlock(timestamp, this._owner);
+
+                var txString = Base16.Encode(tx.ToByteArray(true));
+                Task.Factory.StartNew(() => _rpc.BroadcastTxSync(txString));
+
+                Log.Information($"Broadcasting genesis tx {tx} signed by {signerAddress}");
             }
         }
         catch (Exception e)

@@ -128,7 +128,7 @@ namespace Phantasma.Core.Domain
         public static readonly uint ArchiveBlockSize = MerkleTree.ChunkSize;
 
         public static readonly string InfusionName = "infusion";
-        public static readonly Address InfusionAddress = SmartContract.GetAddressForName(InfusionName);
+        public static readonly Address InfusionAddress = SmartContract.GetAddressFromContractName(InfusionName);
 
         public const int NameMaxLength = 255;
         public const int UrlMaxLength = 2048;

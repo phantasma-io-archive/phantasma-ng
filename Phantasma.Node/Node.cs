@@ -65,7 +65,7 @@ namespace Phantasma.Node
 
         public Node()
         {
-            this.ABCIConnector = new ABCIConnector(Settings.Default.Node.SeedValidators);
+            this.ABCIConnector = new ABCIConnector(Settings.Default.Node.SeedValidators, Settings.Default.Node.MinimumFee);
         }
 
         protected override void OnStart()
@@ -265,18 +265,17 @@ namespace Phantasma.Node
             var oraclePath = Settings.Default.Node.OraclePath;
             var nexusName = Settings.Default.Node.NexusName;
             var rpcUrl = Settings.Default.Node.TendermintRPCHost+ ":" + Settings.Default.Node.TendermintRPCPort;
-            var maxGas = Settings.Default.Node.MaxGas;
 
             switch (Settings.Default.Node.StorageBackend)
             {
                 case StorageBackendType.CSV:
                     Log.Information("Setting CSV nexus...");
-                    NexusAPI.Nexus = new Nexus(nexusName, maxGas, (name) => new BasicDiskStore(storagePath + name + ".csv"));
+                    NexusAPI.Nexus = new Nexus(nexusName, (name) => new BasicDiskStore(storagePath + name + ".csv"));
                     break;
 
                 case StorageBackendType.RocksDB:
                     Log.Information("Setting RocksDB nexus...");
-                    NexusAPI.Nexus = new Nexus(nexusName, maxGas, (name) => new DBPartition(storagePath + name));
+                    NexusAPI.Nexus = new Nexus(nexusName, (name) => new DBPartition(storagePath + name));
                     break;
                 default:
                     throw new Exception("Backend has to be set to either \"db\" or \"file\"");
