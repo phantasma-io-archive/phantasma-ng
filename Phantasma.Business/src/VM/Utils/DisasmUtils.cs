@@ -83,7 +83,7 @@ namespace Phantasma.Business.VM.Utils
             table["Runtime.InfuseToken"] = 5;
             table["Runtime.DeployContract"] = 4;
 
-            table["Nexus.CreateToken"] = 7;
+            table["Nexus.CreateToken"] = 3;
             table["Nexus.CreateTokenSeries"] = 7;
             table["Nexus.CreateOrganization"] = 4;
             table["Nexus.BeginInit"] = 1;

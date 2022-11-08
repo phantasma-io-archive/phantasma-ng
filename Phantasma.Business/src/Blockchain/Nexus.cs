@@ -2118,9 +2118,6 @@ public class Nexus : INexus
 
         var valueMap = new StorageMap(_optimizedGovernanceKey, storage);
 
-        var count = valueMap.Count();
-        Console.WriteLine($"=>>>>>>>>>>>>> FOUND {count} GOVS");
-
         if (!valueMap.ContainsKey(name))
         {
             throw new ChainException("invalid governance value name: " + name);            
