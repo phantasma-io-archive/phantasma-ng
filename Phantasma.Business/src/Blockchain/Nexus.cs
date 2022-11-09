@@ -1275,15 +1275,18 @@ public class Nexus : INexus
 
         sb.CallInterop("Nexus.BeginInit", owner.Address);
 
-        DeployNativeContract(sb, owner, NativeContractKind.Validator);
-        DeployNativeContract(sb, owner, NativeContractKind.Governance);
-        DeployNativeContract(sb, owner, NativeContractKind.Consensus);
-        DeployNativeContract(sb, owner, NativeContractKind.Account);
-        DeployNativeContract(sb, owner, NativeContractKind.Exchange);
-        DeployNativeContract(sb, owner, NativeContractKind.Swap);
-        DeployNativeContract(sb, owner, NativeContractKind.Stake);
-        DeployNativeContract(sb, owner, NativeContractKind.Storage);
-        DeployNativeContract(sb, owner, NativeContractKind.Market);
+        if (!_migratingNexus)
+        {
+            DeployNativeContract(sb, owner, NativeContractKind.Validator);
+            DeployNativeContract(sb, owner, NativeContractKind.Governance);
+            DeployNativeContract(sb, owner, NativeContractKind.Consensus);
+            DeployNativeContract(sb, owner, NativeContractKind.Account);
+            DeployNativeContract(sb, owner, NativeContractKind.Exchange);
+            DeployNativeContract(sb, owner, NativeContractKind.Swap);
+            DeployNativeContract(sb, owner, NativeContractKind.Stake);
+            DeployNativeContract(sb, owner, NativeContractKind.Storage);
+            DeployNativeContract(sb, owner, NativeContractKind.Market);
+        }
 
         foreach (var entry in _genesisValues)
         {
@@ -1301,20 +1304,21 @@ public class Nexus : INexus
             sb.CallInterop(orgInterop, owner.Address, DomainSettings.ValidatorsOrganizationName, "Block Producers", orgScript);
             sb.CallInterop(orgInterop, owner.Address, DomainSettings.MastersOrganizationName, "Soul Masters", orgScript);
             sb.CallInterop(orgInterop, owner.Address, DomainSettings.StakersOrganizationName, "Soul Stakers", orgScript);
+        }
 
-            // initial SOUL distribution to validators
-            foreach (var validator in _initialValidators)
-            {
-                sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(60000, DomainSettings.StakingTokenDecimals));
-                sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals));
-            }
-            //sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(2863626, DomainSettings.StakingTokenDecimals));
-            //sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(1000000, DomainSettings.FuelTokenDecimals));
+        // initial SOUL distribution to validators
+        foreach (var validator in _initialValidators)
+        {
+            sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, validator, StakeContract.DefaultMasterThreshold);
+            sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(1000, DomainSettings.FuelTokenDecimals));
 
             // requires staking token to be created previously
-            sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), owner.Address, StakeContract.DefaultMasterThreshold);
-            sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), owner.Address, owner.Address);
+            sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), validator, StakeContract.DefaultMasterThreshold);
+            //sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), owner.Address, owner.Address);
         }
+
+        //sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(2863626, DomainSettings.StakingTokenDecimals));
+        //sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(1000000, DomainSettings.FuelTokenDecimals));
 
         sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), owner.Address, new BigInteger(0), ValidatorType.Primary);
 
@@ -1370,6 +1374,11 @@ public class Nexus : INexus
 
     public void FinishInitialize(IRuntime vm, Address owner)
     {
+        if (_migratingNexus)
+        {
+            return;
+        }
+
         var storage = RootStorage;
 
         var symbols = GetTokens(storage);
@@ -1928,22 +1937,6 @@ public class Nexus : INexus
     #endregion
 
     #region Contracts
-    public void CreateContract(StorageContext storage, string name, byte[] script)
-    {
-        var contractList = this.GetSystemList(ContractTag, storage);
-
-        /*
-        var entry = new PlatformInfo(name, fuelSymbol, new PlatformSwapAddress[] {
-            new PlatformSwapAddress() { LocalAddress = interopAddress, ExternalAddress = externalAddress }
-        });
-
-        // add to persistent list of tokens
-        contractList.Add(name);
-
-        EditPlatform(storage, name, entry);
-        return platformID;*/
-    }
-
     private byte[] GetContractInfoKey(string name)
     {
         return GetNexusKey($"contract.{name}");
@@ -2120,6 +2113,11 @@ public class Nexus : INexus
 
         if (!valueMap.ContainsKey(name))
         {
+            if (name == GovernanceContract.GasMinimumFeeTag)
+            {
+                return DomainSettings.DefaultMinimumGasFee;
+            }
+
             throw new ChainException("invalid governance value name: " + name);            
         }
 
@@ -2186,7 +2184,6 @@ public class Nexus : INexus
     }
 
     private const string TokenTag = "tokens";
-    private const string ContractTag = "contracts";
     private const string ChainTag = "chains";
     private const string PlatformTag = "platforms";
     private const string FeedTag = "feeds";
@@ -2195,12 +2192,6 @@ public class Nexus : INexus
     public string[] GetTokens(StorageContext storage)
     {
         var list = GetSystemList(TokenTag, storage);
-        return list.All<string>();
-    }
-
-    public string[] GetContracts(StorageContext storage)
-    {
-        var list = GetSystemList(ContractTag, storage);
         return list.All<string>();
     }
 

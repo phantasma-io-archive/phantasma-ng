@@ -14,9 +14,6 @@ namespace Phantasma.Business.Blockchain.Tokens
 {
     public static class TokenUtils
     {
-        public const string BurnMethodName = "burn";
-        public const string MintMethodName = "mint";
-
         public static Address GetContractAddress(this IToken token)
         {
             return GetContractAddress(token.Symbol);
