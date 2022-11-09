@@ -83,6 +83,7 @@ namespace Phantasma.Business.VM.Utils
             table["Runtime.BurnToken"] = 3;
             table["Runtime.InfuseToken"] = 5;
             table["Runtime.DeployContract"] = 4;
+            table["Runtime.UpgradeContract"] = 4;
 
             table["Nexus.CreateToken"] = 3;
             table["Nexus.CreateTokenSeries"] = 7;
