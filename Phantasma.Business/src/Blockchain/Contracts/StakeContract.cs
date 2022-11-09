@@ -283,7 +283,15 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void Stake(Address from, BigInteger stakeAmount)
         {
             Runtime.Expect(stakeAmount >= MinimumValidStake, "invalid amount");
-            Runtime.Expect(Runtime.IsWitness(from), "witness failed");
+
+            if (Runtime.HasGenesis)
+            {
+                Runtime.Expect(Runtime.IsWitness(from), "witness failed");
+            }
+            else
+            {
+                Runtime.Expect(Runtime.IsPrimaryValidator(from), "only primary validators can stake during genesis");
+            }
 
             var balance = Runtime.GetBalance(DomainSettings.StakingTokenSymbol, from);
 
