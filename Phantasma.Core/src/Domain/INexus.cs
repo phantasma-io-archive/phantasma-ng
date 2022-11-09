@@ -103,7 +103,6 @@ public interface INexus
     int CreatePlatform(StorageContext storage, string externalAddress, Address interopAddress, string name, string fuelSymbol);
     bool PlatformExists(StorageContext storage, string name);
     PlatformInfo GetPlatformInfo(StorageContext storage, string name);
-    void CreateContract(StorageContext storage, string name, byte[] script);
     bool ContractExists(StorageContext storage, string name);
     void CreateOrganization(StorageContext storage, string ID, string name, byte[] script);
     bool OrganizationExists(StorageContext storage, string name);
@@ -116,7 +115,6 @@ public interface INexus
     void RegisterPlatformAddress(StorageContext storage, string platform, Address localAddress, string externalAddress);
     bool IsPlatformAddress(StorageContext storage, Address address);
     string[] GetTokens(StorageContext storage);
-    string[] GetContracts(StorageContext storage);
     string[] GetChains(StorageContext storage);
     string[] GetPlatforms(StorageContext storage);
     string[] GetFeeds(StorageContext storage);
