@@ -844,6 +844,9 @@ namespace Phantasma.Business.Blockchain
             var abiKey = GetContractKey(address, "abi");
             var abiBytes = abi.ToByteArray();
             storage.Put(abiKey, abiBytes);
+
+            // make it null here to force next txs received to rebuild it
+            _methodTableForGasExtraction = null;
         }
 
         public void KillContract(StorageContext storage, string name)
