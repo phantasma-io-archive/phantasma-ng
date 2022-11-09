@@ -727,7 +727,7 @@ namespace Phantasma.Business.Blockchain
 
         private ContractInterface OptimizedAddressABILookup(Address target)
         {
-            if (_optimizedScriptMapKey == null)
+            if (_optimizedABIMapKey == null)
             {
                 var accountContractName = NativeContractKind.Account.GetContractName();
                 _optimizedABIMapKey = Encoding.UTF8.GetBytes($".{accountContractName}._abiMap");
