@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using Phantasma.Business.Blockchain;
@@ -99,19 +100,22 @@ namespace Phantasma.Business.VM.Utils
                 }
 
                 var contract = NativeContract.GetNativeContractByKind(kind);
-                var abi = contract.ABI;
-
-                var contractName = kind.GetContractName();
-
-                foreach (var method in abi.Methods)
-                {
-                    var key = $"{contractName}.{method.name}";
-                    table[key] = method.parameters.Length;
-                }
+                table.AddContractToTable(contract);
             }
 
             // TODO add more here
             return table;
+        }
+
+        public static void AddContractToTable(this Dictionary<string, int> table, IContract contract)
+        {
+            var abi = contract.ABI;
+
+            foreach (var method in abi.Methods)
+            {
+                var key = $"{contract.Name}.{method.name}";
+                table[key] = method.parameters.Length;
+            }
         }
 
         public static IEnumerable<string> ExtractContractNames(Disassembler disassembler)

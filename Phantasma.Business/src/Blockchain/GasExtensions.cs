@@ -3,6 +3,7 @@ using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Serilog;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
@@ -10,9 +11,9 @@ namespace Phantasma.Business.Blockchain
 {
     public static class GasExtensions
     {
-        public static bool ExtractGasDetails(byte[] script, out Address from, out Address target, out BigInteger gasPrice, out BigInteger gasLimit)
+        public static bool ExtractGasDetails(byte[] script, out Address from, out Address target, out BigInteger gasPrice, out BigInteger gasLimit, Dictionary<string, int> methodArgumentCountTable = null)
         {
-            var methods = DisasmUtils.ExtractMethodCalls(script);
+            var methods = DisasmUtils.ExtractMethodCalls(script, methodArgumentCountTable);
             var allowGas = methods.FirstOrDefault(x => x.ContractName.Equals("gas") && x.MethodName.Equals(nameof(GasContract.AllowGas)));
 
             if (allowGas == null || allowGas.Arguments.Length != 4)

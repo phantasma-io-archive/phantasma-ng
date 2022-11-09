@@ -29,6 +29,8 @@ namespace Phantasma.Business.Blockchain
 
         private List<Transaction> CurrentTransactions = new();
 
+        private Dictionary<string, int> _methodTableForGasExtraction = null;
+
 #region PUBLIC
         public static readonly uint InitialHeight = 1;
 
@@ -187,7 +189,12 @@ namespace Phantasma.Business.Blockchain
                 Address from, target;
                 BigInteger gasPrice, gasLimit;
 
-                if (!GasExtensions.ExtractGasDetails(tx.Script, out from, out target, out gasPrice, out gasLimit))
+                if (_methodTableForGasExtraction == null)
+                {
+                    _methodTableForGasExtraction = GenerateMethodTable();
+                }
+
+                if (!GasExtensions.ExtractGasDetails(tx.Script, out from, out target, out gasPrice, out gasLimit, _methodTableForGasExtraction))
                 {
                     var type = CodeType.NoUserAddress;
                     Log.Information("check tx error {type} {Hash}", type, tx.Hash);
@@ -233,6 +240,26 @@ namespace Phantasma.Business.Blockchain
 
             Log.Information("check tx Successful {Hash}", tx.Hash);
             return (CodeType.Ok, "");
+        }
+
+        private Dictionary<string, int> GenerateMethodTable()
+        {
+            var table = DisasmUtils.GetDefaultDisasmTable();
+
+            var contracts = GetContracts(this.Storage);
+
+            foreach (var contract in contracts)
+            {
+                var nativeKind = contract.Name.FindNativeContractKindByName();
+                if (nativeKind != NativeContractKind.Unknown)
+                {
+                    continue; // we skip native contracts as those are already in the dictionary from GetDefaultDisasmTable()
+                }
+
+                table.AddContractToTable(contract);
+            }
+
+            return table;
         }
 
         public (CodeType, string) CheckTx(ByteString serializedTx)
@@ -740,6 +767,9 @@ namespace Phantasma.Business.Blockchain
 
             var contractList = new StorageList(GetContractListKey(), storage);
             contractList.Add<Address>(contractAddress);
+
+            // make it null here to force next txs received to rebuild it
+            _methodTableForGasExtraction = null;
 
             return true;
         }
