@@ -896,7 +896,16 @@ public class Nexus : INexus
             Runtime.Expect(destName != ValidationUtils.ANONYMOUS_NAME, "anonymous system address as destination");
         }
 
-        var allowed = Runtime.IsWitness(source);
+        bool allowed;
+
+        if (Runtime.HasGenesis)
+        {
+            allowed = Runtime.IsWitness(source);
+        }
+        else
+        {
+            allowed = Runtime.IsPrimaryValidator(source);
+        }
 
         if (!allowed)
         {
