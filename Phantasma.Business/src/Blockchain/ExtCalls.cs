@@ -1653,7 +1653,7 @@ namespace Phantasma.Business.Blockchain
                 }
             }
 
-            if (flags.HasFlag(TokenFlags.Burnable))
+            /*if (flags.HasFlag(TokenFlags.Burnable))
             {
                 vm.Expect(abi.HasMethod(TokenUtils.BurnMethodName), "Token contract has to implement a burn method");
             }
@@ -1661,17 +1661,7 @@ namespace Phantasma.Business.Blockchain
             if (flags.HasFlag(TokenFlags.Mintable))
             {
                 vm.Expect(abi.HasMethod(TokenUtils.MintMethodName), "Token contract has to implement a mint method");
-            }
-
-            if (!flags.HasFlag(TokenFlags.Burnable) && abi.HasMethod(TokenUtils.BurnMethodName))
-            {
-                flags |= TokenFlags.Burnable;
-            }
-
-            if (!flags.HasFlag(TokenFlags.Mintable) && abi.HasMethod(TokenUtils.MintMethodName))
-            {
-                flags |= TokenFlags.Mintable;
-            }
+            }*/
 
             if (flags.HasFlag(TokenFlags.Finite))
             {
