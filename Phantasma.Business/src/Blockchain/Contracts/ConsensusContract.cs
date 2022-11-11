@@ -66,9 +66,9 @@ namespace Phantasma.Business.Blockchain.Contracts
         public override NativeContractKind Kind => NativeContractKind.Consensus;
 
 #pragma warning disable 0649
-        private StorageMap _pollMap; //<string, Poll> 
-        private StorageList _pollList; 
-        private StorageMap _presences; // address, List<PollPresence>
+        internal StorageMap _pollMap; //<string, Poll> 
+        internal StorageList _pollList; 
+        internal StorageMap _presences; // address, List<PollPresence>
 #pragma warning restore 0649
 
         public const int MinimumPollLength = 86400;
@@ -126,6 +126,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                     var rankings = poll.entries.OrderByDescending(x => x.votes).ToArray();
 
                     var winner = rankings[0];
+                    
                     bool hasTies = rankings.Length > 1 && rankings[1].votes == winner.votes;
 
                     for (int i = 0; i < poll.entries.Length; i++)
