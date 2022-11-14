@@ -101,7 +101,7 @@ namespace Phantasma.Business.Blockchain
             this.ProtocolVersion = Nexus.GetProtocolVersion(this.RootStorage);
             this.MinimumFee = GetGovernanceValue(GovernanceContract.GasMinimumFeeTag);
 
-            this.MaxGas = 300;  // a minimum amount required for allowing calls to Gas contract etc
+            this.MaxGas = 999999999;  // a minimum amount required for allowing calls to Gas contract etc
 
             ExtCalls.RegisterWithRuntime(this);
         }
