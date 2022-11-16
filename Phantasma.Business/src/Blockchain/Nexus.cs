@@ -1313,6 +1313,7 @@ public class Nexus : INexus
             sb.CallInterop(orgInterop, owner.Address, DomainSettings.ValidatorsOrganizationName, "Block Producers", orgScript);
             sb.CallInterop(orgInterop, owner.Address, DomainSettings.MastersOrganizationName, "Soul Masters", orgScript);
             sb.CallInterop(orgInterop, owner.Address, DomainSettings.StakersOrganizationName, "Soul Stakers", orgScript);
+            sb.CallInterop(orgInterop, owner.Address, DomainSettings.PhantomForceOrganizationName, "Phantom Force", orgScript);
         }
 
         var validatorInitialBalance = StakeContract.DefaultMasterThreshold;
@@ -1334,6 +1335,10 @@ public class Nexus : INexus
             sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), validator, StakeContract.DefaultMasterThreshold);
             //sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), owner.Address, owner.Address);
         }
+
+        var orgFunding = UnitConversion.ToBigInteger(1863626, DomainSettings.StakingTokenDecimals);
+        var orgAddress = Organization.GetAddressFromID(DomainSettings.PhantomForceOrganizationName);
+        sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, orgAddress, UnitConversion.ToBigInteger(1214623, DomainSettings.StakingTokenDecimals));
 
         //sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(2863626, DomainSettings.StakingTokenDecimals));
         //sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(1000000, DomainSettings.FuelTokenDecimals));

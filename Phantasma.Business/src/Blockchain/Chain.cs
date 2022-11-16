@@ -319,7 +319,8 @@ namespace Phantasma.Business.Blockchain
                 Log.Error("Exception for {Hash} in DeliverTx {Exception}", tx.Hash, e);
                 result.Code = 1;
                 result.Codespace = e.Message;
-                this.CurrentBlock.SetStateForHash(tx.Hash, ExecutionState.Fault);
+                result.State = ExecutionState.Fault;
+                this.CurrentBlock.SetStateForHash(tx.Hash, result.State);
             }
 
             return result;
