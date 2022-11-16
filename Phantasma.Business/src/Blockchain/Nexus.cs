@@ -1270,6 +1270,11 @@ public class Nexus : INexus
 
     private void DeployNativeContract(ScriptBuilder sb, PhantasmaKeys owner, NativeContractKind nativeContract)
     {
+        if (nativeContract == NativeContractKind.Unknown)
+        {
+            throw new ChainException("Invalid native contract: " + nativeContract);
+        }
+
         var script = new byte[] { (byte)Opcode.RET };
         var abi = new byte[0] { };
 
@@ -1295,6 +1300,11 @@ public class Nexus : INexus
             DeployNativeContract(sb, owner, NativeContractKind.Stake);
             DeployNativeContract(sb, owner, NativeContractKind.Storage);
             DeployNativeContract(sb, owner, NativeContractKind.Market);
+            DeployNativeContract(sb, owner, NativeContractKind.Sale);
+            DeployNativeContract(sb, owner, NativeContractKind.Relay);
+            DeployNativeContract(sb, owner, NativeContractKind.Ranking);
+            DeployNativeContract(sb, owner, NativeContractKind.Mail);
+            DeployNativeContract(sb, owner, NativeContractKind.Friends);
         }
 
         foreach (var entry in _genesisValues)
@@ -1323,6 +1333,11 @@ public class Nexus : INexus
             BigInteger swapAmount = 40000000; // legacy NEP5 supply
             swapAmount /= _initialValidators.Count();
             validatorInitialBalance += swapAmount;
+        }
+        else
+        if (Name != DomainSettings.NexusMainnet)
+        {
+            validatorInitialBalance *= 2; // extra funding for testnet / simnet
         }
 
         // initial SOUL distribution to validators
@@ -1371,12 +1386,12 @@ public class Nexus : INexus
         var tokenScript = new byte[] { (byte)Opcode.RET };
         var abi = ContractInterface.Empty;
 
-
         if (!_migratingNexus)
         {
             CreateToken(storage, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenName, owner, 0, DomainSettings.StakingTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Stakable, tokenScript, abi);
             CreateToken(storage, DomainSettings.FuelTokenSymbol, DomainSettings.FuelTokenName, owner, 0, DomainSettings.FuelTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Burnable | TokenFlags.Fuel, tokenScript, abi);
             CreateToken(storage, DomainSettings.RewardTokenSymbol, DomainSettings.RewardTokenName, owner, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
+            CreateToken(storage, DomainSettings.FiatTokenSymbol, DomainSettings.FiatTokenName, owner, 0, DomainSettings.FiatTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Fiat, tokenScript, abi);
 
             CreateToken(storage, "NEO", "NEO", owner, UnitConversion.ToBigInteger(100000000, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite, tokenScript, abi);
             CreateToken(storage, "GAS", "GAS", owner, UnitConversion.ToBigInteger(100000000, 8), 8, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Finite, tokenScript, abi);
@@ -1390,9 +1405,6 @@ public class Nexus : INexus
             SetPlatformTokenHash("ETH", "ethereum", Hash.FromString("ETH"), storage);
             //SetPlatformTokenHash("DAI", "ethereum", Hash.FromUnpaddedHex("6b175474e89094c44da98b954eedeac495271d0f"), storage);
         }
-
-        CreateToken(storage, DomainSettings.FiatTokenSymbol, DomainSettings.FiatTokenName, owner, 0, DomainSettings.FiatTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Fiat, tokenScript, abi);
-
     }
 
     public void FinishInitialize(IRuntime vm, Address owner)
