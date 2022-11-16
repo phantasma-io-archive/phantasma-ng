@@ -10,10 +10,10 @@ using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM.Utils;
 
-namespace Phantasma.LegacyTests
+namespace Phantasma.LegacyTests.ContractTests
 {
     [TestClass]
-    public class MarketContractTests
+    public class MarketContractTest
     {
 
         [TestMethod]
