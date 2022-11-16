@@ -413,3 +413,5 @@ testnet/tendermint.exe
 testnet/node0/tendermint.exe
 
 Phantasma.Node/Properties/launchSettings.json
+DOCKER/Storage/
+Phantasma.Node/testnet/

@@ -1,9 +1,9 @@
 #!/bin/bash
-if [[ $(id -u) -ne 0 ]] ; then echo "Please run as root" ; exit 1 ; fi
+#if [[ $(id -u) -ne 0 ]] ; then echo "Please run as root" ; exit 1 ; fi
 
 # Stop old containers
-sudo docker container stop phantasma-devnet
-sudo docker container rm phantasma-devnet
+docker container stop phantasma-devnet
+docker container rm phantasma-devnet
 
 # Remove old images
 echo y | docker image prune -a
@@ -13,4 +13,4 @@ chmod u+x ./build-docker-testnet-arm64.sh
 ./build-docker-testnet-arm64.sh
 
 # Run the testnet
-sudo docker run --name phantasma-devnet -v $(pwd)/DOCKER/testnet:/app/testnet -tid -p 5102:5102 -p 5101:5101 -p 26057:26057 phantasma-devnet
+docker run --name phantasma-devnet -v $(pwd)/DOCKER/testnet:/app/testnet -tid -p 5102:5102 -p 5101:5101 -p 26057:26057 phantasma-devnet

@@ -22,6 +22,6 @@
   <ItemGroup>
     <ProjectReference Include="../../Phantasma.Business/src/Phantasma.Business.csproj" />
     <ProjectReference Include="../../Phantasma.Core/src/Phantasma.Core.csproj" />
-    <ProjectReference Include="..\..\Tendermint.RPC\Phantasma.Tendermint.RPC.csproj" />
+    <ProjectReference Include="..\..\Phantasma.Tendermint.RPC\Phantasma.Tendermint.RPC.csproj" />
   </ItemGroup>
 </Project>

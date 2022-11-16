@@ -177,11 +177,13 @@ namespace Phantasma.Infrastructure.API.Controllers
             }
             catch
             {
+                Log.Error("Error while decoding the transaction.");
                 return Hash.Null.ToString();
             }
             
             if (bytes.Length == 0)
             {
+                Log.Error("Transaction length is equal to 0.");
                 return Hash.Null.ToString();
             }
             
@@ -199,7 +201,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                 Log.Error("CheckTx returned code {code} {log}", res.Code, res.Log);
                 return Hash.Null.ToString();
             }
-
+            
             return tx.Hash.ToString();
         }
 

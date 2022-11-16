@@ -26,4 +26,3 @@ cd /app/testnet/node3/publish/; rm -rf Storage
 wait -n
 
 exit $?
-
