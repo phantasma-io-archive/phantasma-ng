@@ -1,4 +1,4 @@
-﻿/*using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 using System.Numerics;
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using Phantasma.Core;
 using Phantasma.Core.Storage;
 using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Tests
+namespace Phantasma.LegacyTests
 {
     [TestClass]
     public class StorageTests
@@ -14,7 +14,8 @@ namespace Phantasma.Tests
         [TestMethod]
         public void TestStorageList()
         {
-            var context = new MemoryStore();
+            var context = new StorageChangeSetContext(new KeyStoreStorage(new MemoryStore()));
+            
             var list = new StorageList("test", context);
             Assert.IsTrue(list.Count() == 0);
 
@@ -37,7 +38,8 @@ namespace Phantasma.Tests
         [TestMethod]
         public void TestStorageMap()
         {
-            var context = new MemoryStore();
+            var context = new StorageChangeSetContext(new KeyStoreStorage(new MemoryStore()));
+
 
             var map = new StorageMap("test".AsByteArray(), context);
             Assert.IsTrue(map.Count() == 0);
@@ -61,7 +63,7 @@ namespace Phantasma.Tests
         [TestMethod]
         public void TestStorageMapClear()
         {
-            var context = new MemoryStore();
+            var context = new StorageChangeSetContext(new KeyStoreStorage(new MemoryStore()));
 
             var map = new StorageMap("test".AsByteArray(), context);
             Assert.IsTrue(map.Count() == 0);
@@ -82,7 +84,8 @@ namespace Phantasma.Tests
         [TestMethod]
         public void TestStorageMapClearEmpty()
         {
-            var context = new MemoryStore();
+            var context = new StorageChangeSetContext(new KeyStoreStorage(new MemoryStore()));
+
 
             var map = new StorageMap("test".AsByteArray(), context);
             Assert.IsTrue(map.Count() == 0);
@@ -93,7 +96,8 @@ namespace Phantasma.Tests
         [TestMethod]
         public void TestStorageMapBigInt()
         {
-            var context = new MemoryStore();
+            var context = new StorageChangeSetContext(new KeyStoreStorage(new MemoryStore()));
+
 
             var map = new StorageMap("test".AsByteArray(), context);
             Assert.IsTrue(map.Count() == 0);
@@ -111,7 +115,8 @@ namespace Phantasma.Tests
         [TestMethod]
         public void TestStorageMapAllValues()
         {
-            var context = new MemoryStore();
+            var context = new StorageChangeSetContext(new KeyStoreStorage(new MemoryStore()));
+
 
             var map = new StorageMap("test".AsByteArray(), context);
             Assert.IsTrue(map.Count() == 0);
@@ -142,7 +147,8 @@ namespace Phantasma.Tests
         [TestMethod]
         public void TestStorageListWithNestedMap()
         {
-            var context = new MemoryStore();
+            var context = new StorageChangeSetContext(new KeyStoreStorage(new MemoryStore()));
+
 
             var map = new StorageMap("map".AsByteArray(), context);
             Assert.IsTrue(map.Count() == 0);
@@ -168,7 +174,8 @@ namespace Phantasma.Tests
         [TestMethod]
         public void TestStorageMapWithNestedList()
         {
-            var context = new MemoryStore();
+            var context = new StorageChangeSetContext(new KeyStoreStorage(new MemoryStore()));
+
 
             var list = new StorageList("list".AsByteArray(), context);
             Assert.IsTrue(list.Count() == 0);
@@ -201,4 +208,3 @@ namespace Phantasma.Tests
         }
     }
 }
-*/
