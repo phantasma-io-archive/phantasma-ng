@@ -293,6 +293,9 @@ namespace Phantasma.LegacyTests
                     {
                         Assert.IsTrue(tx != null);
 
+                        var state = lastBlock.GetStateForTransaction(tx.Hash);
+                        Assert.IsTrue(state == ExecutionState.Halt);
+
                         var evts = lastBlock.GetEventsForTransaction(tx.Hash);
                         Assert.IsTrue(evts.Any(x => x.Kind == EventKind.AddressRegister));
                     }

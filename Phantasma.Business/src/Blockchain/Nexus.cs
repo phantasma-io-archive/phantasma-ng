@@ -1270,6 +1270,11 @@ public class Nexus : INexus
 
     private void DeployNativeContract(ScriptBuilder sb, PhantasmaKeys owner, NativeContractKind nativeContract)
     {
+        if (nativeContract == NativeContractKind.Unknown)
+        {
+            throw new ChainException("Invalid native contract: " + nativeContract);
+        }
+
         var script = new byte[] { (byte)Opcode.RET };
         var abi = new byte[0] { };
 
@@ -1295,6 +1300,11 @@ public class Nexus : INexus
             DeployNativeContract(sb, owner, NativeContractKind.Stake);
             DeployNativeContract(sb, owner, NativeContractKind.Storage);
             DeployNativeContract(sb, owner, NativeContractKind.Market);
+            DeployNativeContract(sb, owner, NativeContractKind.Sale);
+            DeployNativeContract(sb, owner, NativeContractKind.Relay);
+            DeployNativeContract(sb, owner, NativeContractKind.Ranking);
+            DeployNativeContract(sb, owner, NativeContractKind.Mail);
+            DeployNativeContract(sb, owner, NativeContractKind.Friends);
         }
 
         foreach (var entry in _genesisValues)
@@ -1323,6 +1333,11 @@ public class Nexus : INexus
             BigInteger swapAmount = 40000000; // legacy NEP5 supply
             swapAmount /= _initialValidators.Count();
             validatorInitialBalance += swapAmount;
+        }
+        else
+        if (Name != DomainSettings.NexusMainnet)
+        {
+            validatorInitialBalance *= 2; // extra funding for testnet / simnet
         }
 
         // initial SOUL distribution to validators
@@ -1370,7 +1385,6 @@ public class Nexus : INexus
 
         var tokenScript = new byte[] { (byte)Opcode.RET };
         var abi = ContractInterface.Empty;
-
 
         if (!_migratingNexus)
         {
