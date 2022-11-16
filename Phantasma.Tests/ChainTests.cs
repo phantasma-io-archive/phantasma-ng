@@ -236,7 +236,6 @@ namespace Phantasma.LegacyTests
             var simulator = new NexusSimulator(owner);
             var nexus = simulator.Nexus;
 
-            var accountChain = nexus.GetChainByName("account");
             var symbol = "BLA";
 
             var tokenSupply = UnitConversion.ToBigInteger(100000000, 18);
