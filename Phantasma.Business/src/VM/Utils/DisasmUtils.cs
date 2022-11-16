@@ -90,7 +90,9 @@ namespace Phantasma.Business.VM.Utils
             table["Nexus.CreateOrganization"] = 4;
             table["Nexus.BeginInit"] = 1;
             table["Nexus.EndInit"] = 1;
-            table["Nexus.GetGovernanceValue"] = 1;            
+            table["Nexus.GetGovernanceValue"] = 1;
+
+            table["Organization.AddMember"] = 3;
 
             var nativeContracts = Enum.GetValues<NativeContractKind>();
             foreach (var kind in nativeContracts)
