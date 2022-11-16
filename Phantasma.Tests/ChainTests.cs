@@ -236,7 +236,6 @@ namespace Phantasma.LegacyTests
             var simulator = new NexusSimulator(owner);
             var nexus = simulator.Nexus;
 
-            var accountChain = nexus.GetChainByName("account");
             var symbol = "BLA";
 
             var tokenSupply = UnitConversion.ToBigInteger(100000000, 18);
@@ -292,6 +291,9 @@ namespace Phantasma.LegacyTests
                     if (lastBlock != null)
                     {
                         Assert.IsTrue(tx != null);
+
+                        var state = lastBlock.GetStateForTransaction(tx.Hash);
+                        Assert.IsTrue(state == ExecutionState.Halt);
 
                         var evts = lastBlock.GetEventsForTransaction(tx.Hash);
                         Assert.IsTrue(evts.Any(x => x.Kind == EventKind.AddressRegister));
