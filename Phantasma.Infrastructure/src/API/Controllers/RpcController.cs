@@ -47,7 +47,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                     var methodInfo = controller.GetMethods(BindingFlags.Public | BindingFlags.Instance);
                     foreach (var method in methodInfo)
                     {
-                        if(method.Name.ToLower() == req.method.ToLower())
+                        if(method.Name.ToLower().Equals(req.method.ToLower()))
                         {
                             var methodParameters = method.GetParameters();
 

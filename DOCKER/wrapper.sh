@@ -21,5 +21,3 @@ screen -S node3p -dm bash -c 'cd /app/testnet/node3/publish/; ./phantasma-node -
 
 #screen -rd node0p
 /bin/bash 
-
-
