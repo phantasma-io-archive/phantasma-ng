@@ -1377,6 +1377,7 @@ public class Nexus : INexus
             CreateToken(storage, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenName, owner, 0, DomainSettings.StakingTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Stakable, tokenScript, abi);
             CreateToken(storage, DomainSettings.FuelTokenSymbol, DomainSettings.FuelTokenName, owner, 0, DomainSettings.FuelTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Burnable | TokenFlags.Fuel, tokenScript, abi);
             CreateToken(storage, DomainSettings.RewardTokenSymbol, DomainSettings.RewardTokenName, owner, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
+            CreateToken(storage, DomainSettings.FiatTokenSymbol, DomainSettings.FiatTokenName, owner, 0, DomainSettings.FiatTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Fiat, tokenScript, abi);
 
             CreateToken(storage, "NEO", "NEO", owner, UnitConversion.ToBigInteger(100000000, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite, tokenScript, abi);
             CreateToken(storage, "GAS", "GAS", owner, UnitConversion.ToBigInteger(100000000, 8), 8, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Finite, tokenScript, abi);
@@ -1390,9 +1391,6 @@ public class Nexus : INexus
             SetPlatformTokenHash("ETH", "ethereum", Hash.FromString("ETH"), storage);
             //SetPlatformTokenHash("DAI", "ethereum", Hash.FromUnpaddedHex("6b175474e89094c44da98b954eedeac495271d0f"), storage);
         }
-
-        CreateToken(storage, DomainSettings.FiatTokenSymbol, DomainSettings.FiatTokenName, owner, 0, DomainSettings.FiatTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Fiat, tokenScript, abi);
-
     }
 
     public void FinishInitialize(IRuntime vm, Address owner)
