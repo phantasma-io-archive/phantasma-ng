@@ -57,7 +57,7 @@ namespace Phantasma.Simulator
         };
 
         public TimeSpan blockTimeSkip = TimeSpan.FromSeconds(2);
-        public BigInteger MinimumFee = 100000;
+        public int MinimumFee => DomainSettings.DefaultMinimumGasFee;
 
         private List<Address> initialValidators;
 
@@ -188,12 +188,13 @@ namespace Phantasma.Simulator
             var bscText = EthereumKey.FromWIF(bscKeys.ToWIF()).Address;
             var bscAddress = BSCWallet.EncodeAddress(bscText);*/
 
+            /*
             BeginBlock();
-            /*GenerateCustomTransaction(_owner, 0, () => new ScriptBuilder().AllowGas(_owner.Address, Address.Null, MinimumFee, 9999).
+            GenerateCustomTransaction(_owner, 0, () => new ScriptBuilder().AllowGas(_owner.Address, Address.Null, MinimumFee, 9999).
                 CallInterop("Nexus.CreatePlatform", _owner.Address, neoPlatform, neoText, neoAddress, "GAS").
                 CallInterop("Nexus.CreatePlatform", _owner.Address, ethPlatform, ethText, ethAddress, "ETH").
                 CallInterop("Nexus.CreatePlatform", _owner.Address, bscPlatform, bscText, bscAddress, "BNB").
-            SpendGas(_owner.Address).EndScript());*/
+            SpendGas(_owner.Address).EndScript());
 
             var orgFunding = UnitConversion.ToBigInteger(1863626, DomainSettings.StakingTokenDecimals);
             var orgScript = new byte[0];
@@ -211,8 +212,9 @@ namespace Phantasma.Simulator
                 SpendGas(_owner.Address).
                 EndScript();
             });
-            EndBlock();
+            EndBlock();*/
 
+            /*
             BeginBlock();
             var communitySupply = 100000;
             GenerateToken(_owner, "MKNI", "Mankini Token", UnitConversion.ToBigInteger(communitySupply, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite);
@@ -227,8 +229,7 @@ namespace Phantasma.Simulator
                 SpendGas(_owner.Address).
                 EndScript();
             });
-
-            EndBlock();
+            EndBlock();*/
 
 
             //TODO add SOUL/KCAL on ethereum, removed for now because hash is not fixed yet
@@ -366,6 +367,11 @@ namespace Phantasma.Simulator
                             foreach (var tx in pendingTxs)
                             {
                                 var result = chain.DeliverTx(tx);
+
+                                if (result.State != ExecutionState.Halt)
+                                {
+                                    throw new ChainException("Transaction failed to execute properly: " + result.Codespace);
+                                }
                             }
 
                             var blockData = chain.EndBlock<Block>();
