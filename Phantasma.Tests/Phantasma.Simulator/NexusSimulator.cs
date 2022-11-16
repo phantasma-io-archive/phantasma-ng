@@ -214,6 +214,7 @@ namespace Phantasma.Simulator
             });
             EndBlock();*/
 
+            /*
             BeginBlock();
             var communitySupply = 100000;
             GenerateToken(_owner, "MKNI", "Mankini Token", UnitConversion.ToBigInteger(communitySupply, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite);
@@ -228,8 +229,7 @@ namespace Phantasma.Simulator
                 SpendGas(_owner.Address).
                 EndScript();
             });
-
-            EndBlock();
+            EndBlock();*/
 
 
             //TODO add SOUL/KCAL on ethereum, removed for now because hash is not fixed yet

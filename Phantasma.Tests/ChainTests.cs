@@ -277,7 +277,7 @@ namespace Phantasma.LegacyTests
             var simulator = new NexusSimulator(owner);
             var nexus = simulator.Nexus;
 
-            var symbol = DomainSettings.FuelTokenSymbol;
+            var fuelSymbol = DomainSettings.FuelTokenSymbol;
 
             Func<PhantasmaKeys, string, bool> registerName = (keypair, name) =>
             {
@@ -307,14 +307,17 @@ namespace Phantasma.LegacyTests
 
             var testUser = PhantasmaKeys.Generate();
 
-            var token = nexus.GetTokenInfo(nexus.RootStorage, symbol);
+            var token = nexus.GetTokenInfo(nexus.RootStorage, fuelSymbol);
             var amount = UnitConversion.ToBigInteger(10, token.Decimals);
 
             var stakeAmount = UnitConversion.ToBigInteger(3, DomainSettings.StakingTokenDecimals);
 
+            var initialBalance = nexus.RootChain.GetTokenBalance(nexus.RootStorage, DomainSettings.StakingTokenSymbol, owner.Address);
+            Assert.IsTrue(initialBalance >= stakeAmount);
+
             // Send from Genesis address to test user
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, symbol, amount);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, fuelSymbol, amount);
             simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, stakeAmount);
             simulator.EndBlock();
 
