@@ -2,16 +2,9 @@
 using System.Linq;
 using System.Numerics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Phantasma.Blockchain;
-using Phantasma.Simulator;
-using Phantasma.Cryptography;
-using Phantasma.Numerics;
-using Phantasma.VM.Utils;
-using static Phantasma.Blockchain.Contracts.StakeContract;
-using static Phantasma.Blockchain.Contracts.StorageContract;
-using Phantasma.Blockchain.Contracts;
-using Phantasma.Domain;
-using Phantasma.Blockchain.Storage;
+using Phantasma.Business.Blockchain;
+using Phantasma.Core.Cryptography;
+/*
 
 namespace Phantasma.Tests
 {
@@ -1099,3 +1092,4 @@ namespace Phantasma.Tests
         }
     }
 }
+*/

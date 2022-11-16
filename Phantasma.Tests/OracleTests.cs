@@ -1,16 +1,15 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using System;
 using System.Linq;
 using System.Numerics;
 
-using Phantasma.Blockchain;
-using Phantasma.Storage.Context;
-using Phantasma.Cryptography;
 using Phantasma.Simulator;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Phantasma.Domain;
+using Phantasma.Core.Cryptography;
+using Phantasma.Business.Blockchain;
+using Phantasma.Core.Domain;
 
-namespace Phantasma.Tests
+namespace Phantasma.LegacyTests
 {
     [TestClass]
     public class OracleTests
@@ -20,9 +19,9 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
             var wallet = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             //for (var i = 0; i < 65536; i++)
             for (var i = 0; i < 100; i++)
@@ -32,7 +31,7 @@ namespace Phantasma.Tests
             }
 
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain, "SOUL", 100);
+            simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain as Chain, "SOUL", 100);
             var block = simulator.EndBlock().First();
 
             Assert.IsTrue(block.OracleData.Count() == 0);
@@ -45,9 +44,9 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
             var wallet = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             //for (var i = 0; i < 65536; i++)
             for (var i = 0; i < 100; i++)
@@ -57,7 +56,7 @@ namespace Phantasma.Tests
             }
 
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain, "SOUL", 100);
+            simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain as Chain, "SOUL", 100);
             var block = simulator.EndBlock().First();
 
             Console.WriteLine("block oracle data: " + block.OracleData.Count());
@@ -69,9 +68,9 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
             var wallet = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             for (int i = 0; i < DomainSettings.MaxOracleEntriesPerBlock + 1; i++)
             {
@@ -82,7 +81,7 @@ namespace Phantasma.Tests
             Assert.ThrowsException<ChainException>(() =>
             {
                 simulator.BeginBlock();
-                simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain, "SOUL", 100);
+                simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain as Chain, "SOUL", 100);
                 simulator.EndBlock().First();
             });
         }

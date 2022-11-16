@@ -1,12 +1,12 @@
 ﻿using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Cryptography;
-using Phantasma.Numerics;
-using Phantasma.Blockchain;
-using Phantasma.Domain;
-using Phantasma.Pay.Chains;
+
 using Phantasma.Core.Types;
-using System;
+using Phantasma.Business.Blockchain;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Infrastructure.Pay.Chains;
 
 namespace Phantasma.Simulator
 {
@@ -149,7 +149,7 @@ namespace Phantasma.Simulator
 
         protected override BigInteger PullFee(Timestamp time, string platform)
         {
-            return Phantasma.Numerics.UnitConversion.ToBigInteger(0.1m, DomainSettings.FiatTokenDecimals);
+            return UnitConversion.ToBigInteger(0.1m, DomainSettings.FiatTokenDecimals);
         }
 
         protected override decimal PullPrice(Timestamp time, string baseSymbol)

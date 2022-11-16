@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk" ToolsVersion="Current">
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>Phantasma.Tests</RootNamespace>
     <FileUpgradeFlags>40</FileUpgradeFlags>
     <UpgradeBackupLocation>C:\code\PhantasmaSpook\Backup\Phantasma.Tests\</UpgradeBackupLocation>
@@ -16,17 +16,8 @@
     <PackageReference Include="Neo" Version="2.12.2" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Phantasma.API\Phantasma.API.csproj" />
-    <ProjectReference Include="..\Phantasma.Blockchain\Phantasma.Blockchain.csproj" />
-    <ProjectReference Include="..\Phantasma.CodeGen\Phantasma.CodeGen.csproj" />
-    <ProjectReference Include="..\Phantasma.Core\Phantasma.Core.csproj" />
-    <ProjectReference Include="..\Phantasma.Cryptography\Phantasma.Cryptography.csproj" />
-    <ProjectReference Include="..\Phantasma.Numerics\Phantasma.Numerics.csproj" />
-    <ProjectReference Include="..\Phantasma.P2P\Phantasma.P2P.csproj" />
-    <ProjectReference Include="..\Phantasma.Pay\Phantasma.Pay.csproj" />
-    <ProjectReference Include="..\Phantasma.Simulator\Phantasma.Simulator.csproj" />
-    <ProjectReference Include="..\Phantasma.Storage\Phantasma.Storage.csproj" />
-    <ProjectReference Include="..\Phantasma.VM\Phantasma.VM.csproj" />
-    <ProjectReference Include="..\Phantasma.RocksDB\Phantasma.RocksDB.csproj" />
+    <ProjectReference Include="..\Phantasma.Business\src\Phantasma.Business.csproj" />
+    <ProjectReference Include="..\Phantasma.Core\src\Phantasma.Core.csproj" />
+    <ProjectReference Include="..\Phantasma.Infrastructure\src\Phantasma.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

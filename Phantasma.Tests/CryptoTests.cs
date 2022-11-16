@@ -4,15 +4,10 @@ using System;
 using System.Linq;
 using System.Text;
 
-using Phantasma.Cryptography;
-using Phantasma.Numerics;
-using Phantasma.Cryptography.ECC;
-using Phantasma.Ethereum.Hex.HexConvertors.Extensions;
-using Phantasma.Neo.Core;
-using NeoNetwork = Neo.Network;
 using System.Numerics;
+using Phantasma.Core.Cryptography;
 
-namespace Phantasma.Tests
+namespace Phantasma.LegacyTests
 {
     [TestClass]
     public class CryptoTests
@@ -73,6 +68,7 @@ namespace Phantasma.Tests
             Assert.IsFalse(verified);
         }
 
+        /*
         [TestMethod]
         public void ECDsaSecP256r1()
         {
@@ -195,7 +191,7 @@ namespace Phantasma.Tests
 
             var validateNeoSig = neoSig.Verify(payload, transposedAddress);
             Assert.IsTrue(validateNeoSig);
-        }
+        }*/
     }
 
 }

@@ -1582,7 +1582,7 @@ public class Nexus : INexus
         };
     }
 
-    public Transaction CreateGenesisBlock(Timestamp timestamp, PhantasmaKeys owner)
+    public Transaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner)
     {
         Throw.If(HasGenesis(), "genesis block already exists");
 
