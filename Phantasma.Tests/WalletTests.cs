@@ -1,12 +1,11 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Phantasma.Blockchain;
-using Phantasma.Cryptography;
-using Phantasma.Domain;
-using Phantasma.Numerics;
-using Phantasma.VM.Utils;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Domain;
 using System.Linq;
+using Phantasma.Business.VM.Utils;
 
-namespace Phantasma.Tests
+namespace Phantasma.LegacyTests
 {
     [TestClass]
     public class WalletTests

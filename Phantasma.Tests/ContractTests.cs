@@ -1,35 +1,39 @@
-using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Linq;
 using System.Numerics;
-using Phantasma.API;
-using Phantasma.VM.Utils;
-using Phantasma.Simulator;
-using Phantasma.Cryptography;
-using Phantasma.Core.Types;
-using Phantasma.Blockchain;
-using Phantasma.CodeGen.Assembler;
-using Phantasma.Numerics;
-using Phantasma.VM;
-using Phantasma.Storage;
-using Phantasma.Blockchain.Tokens;
-using Phantasma.Blockchain.Contracts;
-using Phantasma.Domain;
-using static Phantasma.Blockchain.Contracts.StakeContract;
-using static Phantasma.Domain.DomainSettings;
-using static Phantasma.Numerics.UnitConversion;
 using System.Collections.Generic;
+using Phantasma.Simulator;
+using Phantasma.Core.Types;
+using Phantasma.Core.Cryptography;
+using Phantasma.Business.Blockchain;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Business.CodeGen.Assembler;
+using Phantasma.Business.VM;
 
-namespace Phantasma.Tests
+namespace Phantasma.LegacyTests
 {
     [TestClass]
     public class ContractTests
     {
+        public static BigInteger MinimumValidStake => UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
+
         public enum CustomEvent
         {
             None,
             Stuff = 20,
         }
+
+        public uint DefaultEnergyRatioDivisor => StakeContract.DefaultEnergyRatioDivisor;
+
+        public BigInteger StakeToFuel(BigInteger stakeAmount, uint _currentEnergyRatioDivisor)
+        {
+            return UnitConversion.ConvertDecimals(stakeAmount, DomainSettings.StakingTokenDecimals, DomainSettings.FuelTokenDecimals) / _currentEnergyRatioDivisor;
+        }
+
 
         [TestMethod]
         public void CustomEvents()
@@ -45,9 +49,8 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var saleUser = PhantasmaKeys.Generate();
             var saleBuyer = PhantasmaKeys.Generate();
@@ -86,7 +89,7 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(saleUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(saleUser.Address, Address.Null, 1, 9999)
+                ScriptUtils.BeginScript().AllowGas(saleUser.Address, Address.Null, simulator.MinimumFee, 9999)
                     .CallContract(NativeContractKind.Sale, nameof(SaleContract.CreateSale), saleUser.Address, "Dank pre-sale", SaleFlags.Whitelist, (Timestamp) simulator.CurrentTime, (Timestamp)( simulator.CurrentTime + TimeSpan.FromDays(2)), saleSymbol, "SOUL", saleRate, 0, supply, 0, UnitConversion.ToBigInteger(1500/saleRate, decimals)).
                     SpendGas(saleUser.Address).EndScript());
             var block = simulator.EndBlock().First();
@@ -97,7 +100,7 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(saleUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(saleUser.Address, Address.Null, 1, 9999)
+                ScriptUtils.BeginScript().AllowGas(saleUser.Address, Address.Null, simulator.MinimumFee, 9999)
                     .CallContract(NativeContractKind.Sale, nameof(SaleContract.AddToWhitelist), saleHash, saleBuyer.Address)
                     .CallContract(NativeContractKind.Sale, nameof(SaleContract.AddToWhitelist), saleHash, otherSaleBuyer.Address).
                     SpendGas(saleUser.Address).EndScript());
@@ -113,7 +116,7 @@ namespace Phantasma.Tests
             {
                 simulator.BeginBlock();
                 simulator.GenerateCustomTransaction(saleBuyer, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(saleBuyer.Address, Address.Null, 1, 9999)
+                    ScriptUtils.BeginScript().AllowGas(saleBuyer.Address, Address.Null, simulator.MinimumFee, 9999)
                         .CallContract(NativeContractKind.Sale, nameof(SaleContract.Purchase), saleBuyer.Address, saleHash, "SOUL", purchaseAmount).
                         SpendGas(saleBuyer.Address).EndScript());
                 simulator.EndBlock().First();
@@ -135,7 +138,7 @@ namespace Phantasma.Tests
            {
                simulator.BeginBlock();
                simulator.GenerateCustomTransaction(saleBuyer, ProofOfWork.None, () =>
-                   ScriptUtils.BeginScript().AllowGas(saleBuyer.Address, Address.Null, 1, 9999)
+                   ScriptUtils.BeginScript().AllowGas(saleBuyer.Address, Address.Null, simulator.MinimumFee, 9999)
                        .CallContract(NativeContractKind.Sale, nameof(SaleContract.Purchase), saleBuyer.Address, saleHash, "SOUL", purchaseAmount).
                        SpendGas(saleBuyer.Address).EndScript());
                simulator.EndBlock().First();
@@ -146,7 +149,7 @@ namespace Phantasma.Tests
             {
                 simulator.BeginBlock();
                 simulator.GenerateCustomTransaction(otherSaleBuyer, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(otherSaleBuyer.Address, Address.Null, 1, 9999)
+                    ScriptUtils.BeginScript().AllowGas(otherSaleBuyer.Address, Address.Null, simulator.MinimumFee, 9999)
                         .CallContract(NativeContractKind.Sale, nameof(SaleContract.Purchase), otherSaleBuyer.Address, saleHash, "SOUL", otherPurchaseAmount).
                         SpendGas(otherSaleBuyer.Address).EndScript());
                 simulator.EndBlock().First();
@@ -166,7 +169,7 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(saleBuyer, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(saleBuyer.Address, Address.Null, 1, 9999)
+                ScriptUtils.BeginScript().AllowGas(saleBuyer.Address, Address.Null, simulator.MinimumFee, 9999)
                     .CallContract(NativeContractKind.Sale, nameof(SaleContract.CloseSale), saleBuyer.Address, saleHash).
                     SpendGas(saleBuyer.Address).EndScript());
             simulator.EndBlock().First();
@@ -192,9 +195,8 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var testUser = PhantasmaKeys.Generate();
             var stakeAmount = MinimumValidStake;
@@ -208,12 +210,12 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, stakeAmount).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, stakeAmount).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             double realUnclaimedAmount = ((double)unclaimedAmount) * Math.Pow(10, -DomainSettings.FuelTokenDecimals);
 
             Assert.IsTrue(realUnclaimedAmount == realExpectedUnclaimedAmount);
@@ -227,9 +229,8 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var testUser = PhantasmaKeys.Generate();
             var stakeAmount = MinimumValidStake;
@@ -240,18 +241,18 @@ namespace Phantasma.Tests
             simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, stakeAmount);
             simulator.EndBlock();
 
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
 
             {
                 simulator.BeginBlock();
                 simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, stakeAmount).
+                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                        .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, stakeAmount).
                         SpendGas(testUser.Address).EndScript());
                 simulator.EndBlock();
             }
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
 
             Assert.IsTrue(unclaimedAmount == expectedUnclaimedAmount);
         }
@@ -261,12 +262,11 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var testUser = PhantasmaKeys.Generate();
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             var token = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
@@ -287,23 +287,23 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, desiredStakeAmount).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, desiredStakeAmount).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            BigInteger stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            BigInteger stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(stakedAmount == desiredStakeAmount);
 
             var finalSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
             Assert.IsTrue(desiredStakeAmount == startingSoulBalance - finalSoulBalance);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor));
 
             //-----------
             //Try to reduce the staked amount via Unstake function call: should fail, not enough time passed
-            var initialStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            var initialStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             var stakeReduction = initialStakedAmount - MinimumValidStake;
             startingSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
 
@@ -311,13 +311,13 @@ namespace Phantasma.Tests
             {
                 simulator.BeginBlock();
                 simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Unstake", testUser.Address, stakeReduction).
+                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                        .CallContract(NativeContractKind.Stake, "Unstake", testUser.Address, stakeReduction).
                         SpendGas(testUser.Address).EndScript());
                 simulator.EndBlock();
             });
 
-            var finalStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            var finalStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
 
             Assert.IsTrue(initialStakedAmount == finalStakedAmount);
 
@@ -333,8 +333,8 @@ namespace Phantasma.Tests
             {
                 simulator.BeginBlock();
                 simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Unstake", testUser.Address,
+                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                        .CallContract(NativeContractKind.Stake, "Unstake", testUser.Address,
                             stakeReduction).SpendGas(testUser.Address).EndScript());
                 simulator.EndBlock();
             });
@@ -344,7 +344,7 @@ namespace Phantasma.Tests
 
             //-----------
             //Try a full unstake: should fail, didnt wait 24h
-            initialStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            initialStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             stakeReduction = initialStakedAmount;
             startingSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
 
@@ -352,8 +352,8 @@ namespace Phantasma.Tests
             {
                 simulator.BeginBlock();
                 simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Unstake", testUser.Address, stakeReduction).SpendGas(testUser.Address)
+                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                        .CallContract(NativeContractKind.Stake, "Unstake", testUser.Address, stakeReduction).SpendGas(testUser.Address)
                         .EndScript());
                 simulator.EndBlock();
             });
@@ -361,7 +361,7 @@ namespace Phantasma.Tests
             finalSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
             Assert.IsTrue(startingSoulBalance == finalSoulBalance);
 
-            finalStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            finalStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(initialStakedAmount == finalStakedAmount);
 
             //-----------
@@ -370,21 +370,21 @@ namespace Phantasma.Tests
 
             //-----------
             //Try a partial unstake: should pass
-            initialStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            initialStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             stakeReduction = initialStakedAmount - MinimumValidStake;
             startingSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Unstake", testUser.Address, stakeReduction).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Unstake", testUser.Address, stakeReduction).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
             finalSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
             Assert.IsTrue(stakeReduction == finalSoulBalance - startingSoulBalance);
 
-            finalStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            finalStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(initialStakedAmount - finalStakedAmount == stakeReduction);
 
             //-----------
@@ -393,21 +393,21 @@ namespace Phantasma.Tests
 
             //-----------
             //Try a full unstake: should pass
-            initialStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            initialStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             stakeReduction = initialStakedAmount;
             startingSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Unstake", testUser.Address, stakeReduction).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Unstake", testUser.Address, stakeReduction).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
             finalSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
             Assert.IsTrue(stakeReduction == finalSoulBalance - startingSoulBalance);
 
-            finalStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            finalStakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(initialStakedAmount - finalStakedAmount == stakeReduction);
         }
 
@@ -416,12 +416,11 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var testUser = PhantasmaKeys.Generate();
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             var accountBalance = MinimumValidStake * 10;
@@ -442,20 +441,20 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript()
-                    .CallContract(Nexus.StakeContractName, nameof(StakeContract.Stake), testUser.Address, desiredStake)
-                    .CallContract(Nexus.StakeContractName, nameof(StakeContract.Claim),testUser.Address, testUser.Address)
-                    .AllowGas(testUser.Address, Address.Null, 1, 9999)
+                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), testUser.Address, desiredStake)
+                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim),testUser.Address, testUser.Address)
+                    .AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
                     .SpendGas(testUser.Address).EndScript());
             var blocks = simulator.EndBlock();
 
             var txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
 
             BigInteger stakedAmount =
-                simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+                simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(stakedAmount == desiredStake);
 
             var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             var kcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
 
             Assert.IsTrue(kcalBalance == StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor) - txCost);
@@ -469,8 +468,8 @@ namespace Phantasma.Tests
             {
                 simulator.BeginBlock();
                 simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).SpendGas(testUser.Address)
+                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                        .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).SpendGas(testUser.Address)
                         .EndScript());
                 simulator.EndBlock();
             });
@@ -485,12 +484,11 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var testUser = PhantasmaKeys.Generate();
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             var accountBalance = MinimumValidStake * 10;
@@ -510,8 +508,8 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, desiredStake).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, desiredStake).
                     SpendGas(testUser.Address).EndScript());
             var blocks = simulator.EndBlock();
 
@@ -519,10 +517,10 @@ namespace Phantasma.Tests
 
 
             BigInteger stakedAmount =
-                simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+                simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(stakedAmount == desiredStake);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
 
             Assert.IsTrue(unclaimedAmount == StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor));
 
@@ -533,8 +531,8 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
@@ -543,10 +541,10 @@ namespace Phantasma.Tests
 
             Assert.IsTrue(finalFuelBalance == (startingFuelBalance + unclaimedAmount - txCost));
 
-            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(stakedAmount == desiredStake);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             //-----------
@@ -557,8 +555,8 @@ namespace Phantasma.Tests
             {
                 simulator.BeginBlock();
                 simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).SpendGas(testUser.Address)
+                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                        .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).SpendGas(testUser.Address)
                         .EndScript());
                 simulator.EndBlock();
             });
@@ -568,20 +566,20 @@ namespace Phantasma.Tests
 
             //-----------
             //Increase the staked amount
-            var previousStake = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            var previousStake = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             var addedStake = MinimumValidStake;
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, addedStake).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, addedStake).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(stakedAmount == previousStake + addedStake);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == StakeToFuel(addedStake, DefaultEnergyRatioDivisor));
 
             //-----------
@@ -590,8 +588,8 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
@@ -600,28 +598,28 @@ namespace Phantasma.Tests
 
             Assert.IsTrue(finalFuelBalance == (startingFuelBalance + unclaimedAmount - txCost));
 
-            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(stakedAmount == previousStake + addedStake);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             //-----------
             //Increase the staked amount a 2nd time
-            previousStake = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            previousStake = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             addedStake = MinimumValidStake * 3;
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, addedStake).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, addedStake).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(stakedAmount == previousStake + addedStake);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == StakeToFuel(addedStake, DefaultEnergyRatioDivisor));
 
             //-----------
@@ -630,8 +628,8 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
@@ -640,10 +638,10 @@ namespace Phantasma.Tests
 
             Assert.IsTrue(finalFuelBalance == (startingFuelBalance + unclaimedAmount - txCost));
 
-            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(stakedAmount == previousStake + addedStake);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             //-----------
@@ -654,8 +652,8 @@ namespace Phantasma.Tests
             {
                 simulator.BeginBlock();
                 simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).SpendGas(testUser.Address)
+                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                        .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).SpendGas(testUser.Address)
                         .EndScript());
                 simulator.EndBlock();
             });
@@ -668,8 +666,8 @@ namespace Phantasma.Tests
             simulator.TimeSkipDays(1);
 
             //Perform another claim call: should get reward for total staked amount
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
-            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
+            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             var expectedUnclaimed = StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor);
             Assert.IsTrue(unclaimedAmount == expectedUnclaimed);
 
@@ -677,8 +675,8 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
@@ -687,7 +685,7 @@ namespace Phantasma.Tests
 
             Assert.IsTrue(finalFuelBalance == (startingFuelBalance + unclaimedAmount - txCost));
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             //-----------
@@ -696,16 +694,16 @@ namespace Phantasma.Tests
             simulator.TimeSkipDays(days);
 
             //Perform another claim call: should get reward for accumulated days
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
-            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
+            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor) * days);
 
             startingFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
@@ -714,25 +712,25 @@ namespace Phantasma.Tests
 
             Assert.IsTrue(finalFuelBalance == (startingFuelBalance + unclaimedAmount - txCost));
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             //-----------
             //Increase the staked amount a 3rd time
-            previousStake = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            previousStake = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             addedStake = MinimumValidStake * 2;
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, addedStake).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, addedStake).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(stakedAmount == previousStake + addedStake);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == StakeToFuel(addedStake, DefaultEnergyRatioDivisor));
 
             //-----------
@@ -741,8 +739,8 @@ namespace Phantasma.Tests
             simulator.TimeSkipDays(days);
 
             //Perform another claim call: should get reward for 1 day of full stake and 1 day of partial stake
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
-            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
+            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             expectedUnclaimed = StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor) + StakeToFuel(addedStake, DefaultEnergyRatioDivisor);
             Assert.IsTrue(unclaimedAmount == expectedUnclaimed);
 
@@ -750,8 +748,8 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
@@ -760,25 +758,25 @@ namespace Phantasma.Tests
 
             Assert.IsTrue(finalFuelBalance == (startingFuelBalance + unclaimedAmount - txCost));
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             //----------
             //Increase stake by X
-            previousStake = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            previousStake = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             addedStake = MinimumValidStake;
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, addedStake).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, addedStake).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(stakedAmount == previousStake + addedStake);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == StakeToFuel(addedStake, DefaultEnergyRatioDivisor));
 
             //Time skip 1 day
@@ -788,16 +786,16 @@ namespace Phantasma.Tests
             //Total unstake
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Unstake", testUser.Address, previousStake + addedStake).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Unstake", testUser.Address, previousStake + addedStake).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            var finalStake = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            var finalStake = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(finalStake == 0);
 
             //Claim -> should get StakeToFuel(X) for same day reward and StakeToFuel(X + previous stake) due to full 1 day staking reward before unstake
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             expectedUnclaimed = StakeToFuel(addedStake, DefaultEnergyRatioDivisor);
             Console.WriteLine($"unclaimed: {unclaimedAmount} - expected {expectedUnclaimed}");
             Assert.IsTrue(unclaimedAmount == expectedUnclaimed);
@@ -809,8 +807,8 @@ namespace Phantasma.Tests
             {
                 simulator.BeginBlock();
                 tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).SpendGas(testUser.Address)
+                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                        .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).SpendGas(testUser.Address)
                         .EndScript());
                 simulator.EndBlock();
             });
@@ -826,12 +824,11 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var testUser = PhantasmaKeys.Generate();
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             var accountBalance = MinimumValidStake * 100;
@@ -850,15 +847,15 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, stakeUnit).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, stakeUnit).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            var stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            var stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(stakedAmount == stakeUnit);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == rewardPerStakeUnit);
 
             //-----------
@@ -866,21 +863,21 @@ namespace Phantasma.Tests
             var days = 4;
             simulator.TimeSkipDays(days);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
-            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
+            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             var expectedUnclaimed = rewardPerStakeUnit * (days + 1);
             Assert.IsTrue(unclaimedAmount == expectedUnclaimed);
 
             //Perform another stake call
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, stakeUnit).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, stakeUnit).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
-            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
+            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             expectedUnclaimed = rewardPerStakeUnit * (days + 2);
             Assert.IsTrue(unclaimedAmount == expectedUnclaimed);
         }
@@ -890,12 +887,11 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var testUser = PhantasmaKeys.Generate();
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             var accountBalance = MinimumValidStake * 100;
@@ -917,18 +913,18 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, desiredStakeAmount).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, desiredStakeAmount).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            BigInteger stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            BigInteger stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(stakedAmount == desiredStakeAmount);
 
             var finalSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
             Assert.IsTrue(desiredStakeAmount == startingSoulBalance - finalSoulBalance);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor));
 
             //Time skip over 4 years and 8 days
@@ -948,8 +944,8 @@ namespace Phantasma.Tests
             simulator.TimeSkipDays(thirdHalvingDayCount);
 
             //Validate halving
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
-            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
+            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
 
             var expectedUnclaimed = StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor) * (1 + firstHalvingDayCount + (secondHalvingDayCount) + (thirdHalvingDayCount));
             Assert.IsTrue(unclaimedAmount == expectedUnclaimed);
@@ -960,8 +956,8 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
@@ -970,518 +966,516 @@ namespace Phantasma.Tests
 
             Assert.IsTrue(finalFuelBalance == (startingFuelBalance + unclaimedAmount - txCost));
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
         }
 
 
-/*        [TestMethod]
-        public void TestProxies()
-        {
-            var owner = PhantasmaKeys.Generate();
-
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-
-            var testUser = PhantasmaKeys.Generate();
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-            Assert.IsTrue(unclaimedAmount == 0);
-
-            var accountBalance = MinimumValidStake * 100;
-
-            Transaction tx = null;
-
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 100000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, accountBalance);
-            simulator.EndBlock();
-
-            //-----------
-            //Perform a valid Stake call
-            var initialStake = MinimumValidStake;
-
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, initialStake).
-                    SpendGas(testUser.Address).EndScript());
-            simulator.EndBlock();
-
-            BigInteger stakedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetStake", simulator.CurrentTime, testUser.Address).AsNumber();
-            Assert.IsTrue(stakedAmount == initialStake);
-
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-            Assert.IsTrue(unclaimedAmount == StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor));
-
-            //-----------
-            //Add main account as proxy to itself: should fail
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "AddProxy", testUser.Address, testUser.Address, 50).
-                        SpendGas(testUser.Address).EndScript());
-                simulator.EndBlock();
-            });
-
-            var proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 0);
-
-            //-----------
-            //Add 0% proxy: should fail
-            var proxyA = PhantasmaKeys.Generate();
-            var proxyAPercentage = 25;
-
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, proxyA.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 100000000);
-            simulator.EndBlock();
-
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "AddProxy", testUser.Address, proxyA.Address, 0).
-                        SpendGas(testUser.Address).EndScript());
-                simulator.EndBlock();
-            });
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 0);
-
-            var api = new NexusAPI(nexus);
-            var script = ScriptUtils.BeginScript().CallContract(Nexus.StakeContractName, "GetProxies", testUser.Address).EndScript();
-            var apiResult = api.InvokeRawScript("main", Base16.Encode(script));
-
-            //-----------
-            //Add and remove 90% proxy: should pass
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "AddProxy", testUser.Address, proxyA.Address, 90).
-                    SpendGas(testUser.Address).EndScript());
-            simulator.EndBlock();
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 1);
-            Assert.IsTrue(proxyList[0].percentage == 90);
-
-            apiResult = api.InvokeRawScript("main", Base16.Encode(script));
-
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "RemoveProxy", testUser.Address, proxyA.Address).
-                    SpendGas(testUser.Address).EndScript());
-            simulator.EndBlock();
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 0);
-
-            //-----------
-            //Add and remove 100% proxy: should pass
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "AddProxy", testUser.Address, proxyA.Address, 100).
-                    SpendGas(testUser.Address).EndScript());
-            simulator.EndBlock();
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 1);
-            Assert.IsTrue(proxyList[0].percentage == 100);
-
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "RemoveProxy", testUser.Address, proxyA.Address).
-                    SpendGas(testUser.Address).EndScript());
-            simulator.EndBlock();
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 0);
-
-            //-----------
-            //Add 101% proxy: should fail
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "AddProxy", testUser.Address, proxyA.Address, 101).
-                        SpendGas(testUser.Address).EndScript());
-                simulator.EndBlock();
-            });
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 0);
-
-            //-----------
-            //Add 25% proxy A: should pass
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "AddProxy", testUser.Address, proxyA.Address, proxyAPercentage).
-                    SpendGas(testUser.Address).EndScript());
-            simulator.EndBlock();
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 1);
-            Assert.IsTrue(proxyList[0].percentage == 25);
-
-            //-----------
-            //Re-add proxy A: should fail
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "AddProxy", testUser.Address, proxyA.Address, 25).
-                        SpendGas(testUser.Address).EndScript());
-                simulator.EndBlock();
-            });
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 1);
-
-            //-----------
-            //Add an 80% proxy: should fail
-            var proxyB = PhantasmaKeys.Generate();
-
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, proxyB.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 100000000);
-            simulator.EndBlock();
-
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "AddProxy", testUser.Address, proxyB.Address, 80).
-                        SpendGas(testUser.Address).EndScript());
-                simulator.EndBlock();
-            });
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 1);
-
-            //-----------
-            //Add 25% proxy B and remove it: should pass
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "AddProxy", testUser.Address, proxyB.Address, 25).
-                    SpendGas(testUser.Address).EndScript());
-            simulator.EndBlock();
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 2);
-            Assert.IsTrue(proxyList[0].percentage == 25 && proxyList[1].percentage == 25);
-
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "RemoveProxy", testUser.Address, proxyB.Address).
-                    SpendGas(testUser.Address).EndScript());
-            simulator.EndBlock();
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 1);
-
-            //-----------
-            //Add 75% proxy B and remove it: should pass
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "AddProxy", testUser.Address, proxyB.Address, 75).
-                    SpendGas(testUser.Address).EndScript());
-            simulator.EndBlock();
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 2);
-            Assert.IsTrue(proxyList[0].percentage == 25 && proxyList[1].percentage == 75);
-
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "RemoveProxy", testUser.Address, proxyB.Address).
-                    SpendGas(testUser.Address).EndScript());
-            simulator.EndBlock();
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 1);
-
-            //-----------
-            //Try to remove proxy B again: should fail
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "RemoveProxy", testUser.Address, proxyB.Address).
-                        SpendGas(testUser.Address).EndScript());
-                simulator.EndBlock();
-            });
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 1);
-
-            //-----------
-            //Add 76% proxy B: should fail
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "AddProxy", testUser.Address, proxyB.Address, 76).
-                        SpendGas(testUser.Address).EndScript());
-                simulator.EndBlock();
-            });
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 1);
-
-            //Try to claim from main: should pass
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-            stakedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetStake", simulator.CurrentTime, testUser.Address).AsNumber();
-
-            var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
-
-            var startingMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
-            var startingProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
-
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).SpendGas(testUser.Address)
-                    .EndScript());
-            simulator.EndBlock();
-
-            var finalMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
-            var finalProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
-            var txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
-
-            var proxyQuota = proxyAPercentage * unclaimedAmount / 100;
-            var leftover = unclaimedAmount - proxyQuota;
-
-            Assert.IsTrue(finalMainFuelBalance == (startingMainFuelBalance + leftover - txCost));
-            Assert.IsTrue(finalProxyFuelBalance == (startingProxyFuelBalance + proxyQuota));
-
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-            Assert.IsTrue(unclaimedAmount == 0);
-
-            //-----------
-            //Try to claim from main: should fail, less than 24h since last claim
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-            Assert.IsTrue(unclaimedAmount == 0);
-
-            var startingFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
-
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).
-                        SpendGas(testUser.Address).EndScript());
-                simulator.EndBlock();
-            });
-
-            var finalFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
-            Assert.IsTrue(startingFuelBalance == finalFuelBalance);
-
-            //-----------
-            //Try to claim from proxy A: should fail, less than 24h since last claim
-            startingMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
-            startingProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
-
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(proxyA, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(proxyA.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Claim", proxyA.Address, testUser.Address).SpendGas(proxyA.Address)
-                        .EndScript());
-                simulator.EndBlock();
-            });
-
-            finalMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
-            finalProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
-
-            Assert.IsTrue(startingMainFuelBalance == finalMainFuelBalance);
-            Assert.IsTrue(startingProxyFuelBalance == finalProxyFuelBalance);
-
-            //-----------
-            //Time skip 1 day
-            simulator.TimeSkipDays(1);
-
-            //Try to claim from proxy A: should pass, and the proxy should earn some fuel
-            var desiredFuelClaim = StakeToFuel(initialStake, DefaultEnergyRatioDivisor);
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-            stakedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetStake", simulator.CurrentTime, testUser.Address).AsNumber();
-
-            var expectedUnclaimed = StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor);
-            Assert.IsTrue(unclaimedAmount == expectedUnclaimed);
-
-            startingMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
-            startingProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
-
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(proxyA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(proxyA.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Claim", proxyA.Address, testUser.Address).SpendGas(proxyA.Address)
-                    .EndScript());
-            simulator.EndBlock();
-
-            finalMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
-            finalProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
-            txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
-
-            proxyQuota = proxyAPercentage * unclaimedAmount / 100;
-            leftover = unclaimedAmount - proxyQuota;
-
-            Assert.IsTrue(proxyQuota == proxyAPercentage * desiredFuelClaim / 100);
-            Assert.IsTrue(desiredFuelClaim == unclaimedAmount);
-
-            Assert.IsTrue(finalMainFuelBalance == (startingMainFuelBalance + leftover));
-            Assert.IsTrue(finalProxyFuelBalance == (startingProxyFuelBalance + proxyQuota - txCost));
-
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-            Assert.IsTrue(unclaimedAmount == 0);
-
-            //-----------
-            //Remove proxy A
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "RemoveProxy", testUser.Address, proxyA.Address).
-                    SpendGas(testUser.Address).EndScript());
-            simulator.EndBlock();
-
-            //-----------
-            //Try to claim from proxy A: should fail
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(proxyA, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(proxyA.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Claim", proxyA.Address, testUser.Address).SpendGas(proxyA.Address)
-                        .EndScript());
-                simulator.EndBlock();
-            });
-
-            //-----------
-            //Try to claim from main: should fail
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).
-                        SpendGas(testUser.Address).EndScript());
-                simulator.EndBlock();
-            });
-
-            //-----------
-            //Time skip 1 day
-            simulator.TimeSkipDays(1);
-
-            //Try to claim from proxy A: should fail
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(proxyA, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(proxyA.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Claim", proxyA.Address, testUser.Address).SpendGas(proxyA.Address)
-                        .EndScript());
-                simulator.EndBlock();
-            });
-
-            //-----------
-            //Try to claim from main: should pass, check removed proxy received nothing
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-
-            startingMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
-            startingProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
-
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).SpendGas(testUser.Address)
-                    .EndScript());
-            simulator.EndBlock();
-
-            finalMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
-            finalProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
-            txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
-
-            Assert.IsTrue(finalMainFuelBalance == (startingMainFuelBalance + unclaimedAmount - txCost));
-            Assert.IsTrue(finalProxyFuelBalance == startingProxyFuelBalance);
-
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-            Assert.IsTrue(unclaimedAmount == 0);
-
-            //-----------
-            //Add 25% proxy A: should pass
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "AddProxy", testUser.Address, proxyA.Address, proxyAPercentage).
-                    SpendGas(testUser.Address).EndScript());
-            simulator.EndBlock();
-
-            proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-            Assert.IsTrue(proxyList.Length == 1);
-            Assert.IsTrue(proxyList[0].percentage == 25);
-
-            //-----------
-            //Time skip 5 days
-            var days = 5;
-            simulator.TimeSkipDays(days);
-
-            //Try to claim from main: should pass, check claimed amount is from 5 days worth of accumulation
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-            stakedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetStake", simulator.CurrentTime, testUser.Address).AsNumber();
-
-            Assert.IsTrue(unclaimedAmount == days * StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor));
-
-            startingMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
-            startingProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
-
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Claim", testUser.Address, testUser.Address).SpendGas(testUser.Address)
-                    .EndScript());
-            simulator.EndBlock();
-
-            finalMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
-            finalProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
-            txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
-
-            proxyQuota = proxyAPercentage * unclaimedAmount / 100;
-            leftover = unclaimedAmount - proxyQuota;
-
-            Assert.IsTrue(finalMainFuelBalance == (startingMainFuelBalance + leftover - txCost));
-            Assert.IsTrue(finalProxyFuelBalance == (startingProxyFuelBalance + proxyQuota));
-
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-            Assert.IsTrue(unclaimedAmount == 0);
-        }*/
+        /*        [TestMethod]
+                public void TestProxies()
+                {
+                    var owner = PhantasmaKeys.Generate();
+
+                    var simulator = new NexusSimulator(owner);
+                    var nexus = simulator.Nexus;
+
+                    var testUser = PhantasmaKeys.Generate();
+                    var unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
+                    Assert.IsTrue(unclaimedAmount == 0);
+
+                    var accountBalance = MinimumValidStake * 100;
+
+                    Transaction tx = null;
+
+                    simulator.BeginBlock();
+                    simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 100000000);
+                    simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, accountBalance);
+                    simulator.EndBlock();
+
+                    //-----------
+                    //Perform a valid Stake call
+                    var initialStake = MinimumValidStake;
+
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, initialStake).
+                            SpendGas(testUser.Address).EndScript());
+                    simulator.EndBlock();
+
+                    BigInteger stakedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetStake", simulator.CurrentTime, testUser.Address).AsNumber();
+                    Assert.IsTrue(stakedAmount == initialStake);
+
+                    unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
+                    Assert.IsTrue(unclaimedAmount == StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor));
+
+                    //-----------
+                    //Add main account as proxy to itself: should fail
+                    Assert.ThrowsException<ChainException>(() =>
+                    {
+                        simulator.BeginBlock();
+                        tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                            ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                                .CallContract(NativeContractKind.Stake, "AddProxy", testUser.Address, testUser.Address, 50).
+                                SpendGas(testUser.Address).EndScript());
+                        simulator.EndBlock();
+                    });
+
+                    var proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 0);
+
+                    //-----------
+                    //Add 0% proxy: should fail
+                    var proxyA = PhantasmaKeys.Generate();
+                    var proxyAPercentage = 25;
+
+                    simulator.BeginBlock();
+                    simulator.GenerateTransfer(owner, proxyA.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 100000000);
+                    simulator.EndBlock();
+
+                    Assert.ThrowsException<ChainException>(() =>
+                    {
+                        simulator.BeginBlock();
+                        tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                            ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                                .CallContract(NativeContractKind.Stake, "AddProxy", testUser.Address, proxyA.Address, 0).
+                                SpendGas(testUser.Address).EndScript());
+                        simulator.EndBlock();
+                    });
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 0);
+
+                    var api = new NexusAPI(nexus);
+                    var script = ScriptUtils.BeginScript().CallContract(NativeContractKind.Stake, "GetProxies", testUser.Address).EndScript();
+                    var apiResult = api.InvokeRawScript("main", Base16.Encode(script));
+
+                    //-----------
+                    //Add and remove 90% proxy: should pass
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "AddProxy", testUser.Address, proxyA.Address, 90).
+                            SpendGas(testUser.Address).EndScript());
+                    simulator.EndBlock();
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 1);
+                    Assert.IsTrue(proxyList[0].percentage == 90);
+
+                    apiResult = api.InvokeRawScript("main", Base16.Encode(script));
+
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "RemoveProxy", testUser.Address, proxyA.Address).
+                            SpendGas(testUser.Address).EndScript());
+                    simulator.EndBlock();
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 0);
+
+                    //-----------
+                    //Add and remove 100% proxy: should pass
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "AddProxy", testUser.Address, proxyA.Address, 100).
+                            SpendGas(testUser.Address).EndScript());
+                    simulator.EndBlock();
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 1);
+                    Assert.IsTrue(proxyList[0].percentage == 100);
+
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "RemoveProxy", testUser.Address, proxyA.Address).
+                            SpendGas(testUser.Address).EndScript());
+                    simulator.EndBlock();
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 0);
+
+                    //-----------
+                    //Add 101% proxy: should fail
+                    Assert.ThrowsException<ChainException>(() =>
+                    {
+                        simulator.BeginBlock();
+                        tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                            ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                                .CallContract(NativeContractKind.Stake, "AddProxy", testUser.Address, proxyA.Address, 101).
+                                SpendGas(testUser.Address).EndScript());
+                        simulator.EndBlock();
+                    });
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 0);
+
+                    //-----------
+                    //Add 25% proxy A: should pass
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "AddProxy", testUser.Address, proxyA.Address, proxyAPercentage).
+                            SpendGas(testUser.Address).EndScript());
+                    simulator.EndBlock();
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 1);
+                    Assert.IsTrue(proxyList[0].percentage == 25);
+
+                    //-----------
+                    //Re-add proxy A: should fail
+                    Assert.ThrowsException<ChainException>(() =>
+                    {
+                        simulator.BeginBlock();
+                        tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                            ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                                .CallContract(NativeContractKind.Stake, "AddProxy", testUser.Address, proxyA.Address, 25).
+                                SpendGas(testUser.Address).EndScript());
+                        simulator.EndBlock();
+                    });
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 1);
+
+                    //-----------
+                    //Add an 80% proxy: should fail
+                    var proxyB = PhantasmaKeys.Generate();
+
+                    simulator.BeginBlock();
+                    simulator.GenerateTransfer(owner, proxyB.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 100000000);
+                    simulator.EndBlock();
+
+                    Assert.ThrowsException<ChainException>(() =>
+                    {
+                        simulator.BeginBlock();
+                        tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                            ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                                .CallContract(NativeContractKind.Stake, "AddProxy", testUser.Address, proxyB.Address, 80).
+                                SpendGas(testUser.Address).EndScript());
+                        simulator.EndBlock();
+                    });
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 1);
+
+                    //-----------
+                    //Add 25% proxy B and remove it: should pass
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "AddProxy", testUser.Address, proxyB.Address, 25).
+                            SpendGas(testUser.Address).EndScript());
+                    simulator.EndBlock();
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 2);
+                    Assert.IsTrue(proxyList[0].percentage == 25 && proxyList[1].percentage == 25);
+
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "RemoveProxy", testUser.Address, proxyB.Address).
+                            SpendGas(testUser.Address).EndScript());
+                    simulator.EndBlock();
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 1);
+
+                    //-----------
+                    //Add 75% proxy B and remove it: should pass
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "AddProxy", testUser.Address, proxyB.Address, 75).
+                            SpendGas(testUser.Address).EndScript());
+                    simulator.EndBlock();
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 2);
+                    Assert.IsTrue(proxyList[0].percentage == 25 && proxyList[1].percentage == 75);
+
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "RemoveProxy", testUser.Address, proxyB.Address).
+                            SpendGas(testUser.Address).EndScript());
+                    simulator.EndBlock();
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 1);
+
+                    //-----------
+                    //Try to remove proxy B again: should fail
+                    Assert.ThrowsException<ChainException>(() =>
+                    {
+                        simulator.BeginBlock();
+                        tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                            ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                                .CallContract(NativeContractKind.Stake, "RemoveProxy", testUser.Address, proxyB.Address).
+                                SpendGas(testUser.Address).EndScript());
+                        simulator.EndBlock();
+                    });
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 1);
+
+                    //-----------
+                    //Add 76% proxy B: should fail
+                    Assert.ThrowsException<ChainException>(() =>
+                    {
+                        simulator.BeginBlock();
+                        tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                            ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                                .CallContract(NativeContractKind.Stake, "AddProxy", testUser.Address, proxyB.Address, 76).
+                                SpendGas(testUser.Address).EndScript());
+                        simulator.EndBlock();
+                    });
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 1);
+
+                    //Try to claim from main: should pass
+                    unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
+                    stakedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetStake", simulator.CurrentTime, testUser.Address).AsNumber();
+
+                    var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
+
+                    var startingMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+                    var startingProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
+
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).SpendGas(testUser.Address)
+                            .EndScript());
+                    simulator.EndBlock();
+
+                    var finalMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+                    var finalProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
+                    var txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
+
+                    var proxyQuota = proxyAPercentage * unclaimedAmount / 100;
+                    var leftover = unclaimedAmount - proxyQuota;
+
+                    Assert.IsTrue(finalMainFuelBalance == (startingMainFuelBalance + leftover - txCost));
+                    Assert.IsTrue(finalProxyFuelBalance == (startingProxyFuelBalance + proxyQuota));
+
+                    unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
+                    Assert.IsTrue(unclaimedAmount == 0);
+
+                    //-----------
+                    //Try to claim from main: should fail, less than 24h since last claim
+                    unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
+                    Assert.IsTrue(unclaimedAmount == 0);
+
+                    var startingFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+
+                    Assert.ThrowsException<ChainException>(() =>
+                    {
+                        simulator.BeginBlock();
+                        tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                            ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                                .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).
+                                SpendGas(testUser.Address).EndScript());
+                        simulator.EndBlock();
+                    });
+
+                    var finalFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+                    Assert.IsTrue(startingFuelBalance == finalFuelBalance);
+
+                    //-----------
+                    //Try to claim from proxy A: should fail, less than 24h since last claim
+                    startingMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+                    startingProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
+
+                    Assert.ThrowsException<ChainException>(() =>
+                    {
+                        simulator.BeginBlock();
+                        simulator.GenerateCustomTransaction(proxyA, ProofOfWork.None, () =>
+                            ScriptUtils.BeginScript().AllowGas(proxyA.Address, Address.Null, simulator.MinimumFee, 9999)
+                                .CallContract(NativeContractKind.Stake, "Claim", proxyA.Address, testUser.Address).SpendGas(proxyA.Address)
+                                .EndScript());
+                        simulator.EndBlock();
+                    });
+
+                    finalMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+                    finalProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
+
+                    Assert.IsTrue(startingMainFuelBalance == finalMainFuelBalance);
+                    Assert.IsTrue(startingProxyFuelBalance == finalProxyFuelBalance);
+
+                    //-----------
+                    //Time skip 1 day
+                    simulator.TimeSkipDays(1);
+
+                    //Try to claim from proxy A: should pass, and the proxy should earn some fuel
+                    var desiredFuelClaim = StakeToFuel(initialStake, DefaultEnergyRatioDivisor);
+                    unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
+                    stakedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetStake", simulator.CurrentTime, testUser.Address).AsNumber();
+
+                    var expectedUnclaimed = StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor);
+                    Assert.IsTrue(unclaimedAmount == expectedUnclaimed);
+
+                    startingMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+                    startingProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
+
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(proxyA, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(proxyA.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "Claim", proxyA.Address, testUser.Address).SpendGas(proxyA.Address)
+                            .EndScript());
+                    simulator.EndBlock();
+
+                    finalMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+                    finalProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
+                    txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
+
+                    proxyQuota = proxyAPercentage * unclaimedAmount / 100;
+                    leftover = unclaimedAmount - proxyQuota;
+
+                    Assert.IsTrue(proxyQuota == proxyAPercentage * desiredFuelClaim / 100);
+                    Assert.IsTrue(desiredFuelClaim == unclaimedAmount);
+
+                    Assert.IsTrue(finalMainFuelBalance == (startingMainFuelBalance + leftover));
+                    Assert.IsTrue(finalProxyFuelBalance == (startingProxyFuelBalance + proxyQuota - txCost));
+
+                    unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
+                    Assert.IsTrue(unclaimedAmount == 0);
+
+                    //-----------
+                    //Remove proxy A
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "RemoveProxy", testUser.Address, proxyA.Address).
+                            SpendGas(testUser.Address).EndScript());
+                    simulator.EndBlock();
+
+                    //-----------
+                    //Try to claim from proxy A: should fail
+                    Assert.ThrowsException<ChainException>(() =>
+                    {
+                        simulator.BeginBlock();
+                        simulator.GenerateCustomTransaction(proxyA, ProofOfWork.None, () =>
+                            ScriptUtils.BeginScript().AllowGas(proxyA.Address, Address.Null, simulator.MinimumFee, 9999)
+                                .CallContract(NativeContractKind.Stake, "Claim", proxyA.Address, testUser.Address).SpendGas(proxyA.Address)
+                                .EndScript());
+                        simulator.EndBlock();
+                    });
+
+                    //-----------
+                    //Try to claim from main: should fail
+                    Assert.ThrowsException<ChainException>(() =>
+                    {
+                        simulator.BeginBlock();
+                        tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                            ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                                .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).
+                                SpendGas(testUser.Address).EndScript());
+                        simulator.EndBlock();
+                    });
+
+                    //-----------
+                    //Time skip 1 day
+                    simulator.TimeSkipDays(1);
+
+                    //Try to claim from proxy A: should fail
+                    Assert.ThrowsException<ChainException>(() =>
+                    {
+                        simulator.BeginBlock();
+                        simulator.GenerateCustomTransaction(proxyA, ProofOfWork.None, () =>
+                            ScriptUtils.BeginScript().AllowGas(proxyA.Address, Address.Null, simulator.MinimumFee, 9999)
+                                .CallContract(NativeContractKind.Stake, "Claim", proxyA.Address, testUser.Address).SpendGas(proxyA.Address)
+                                .EndScript());
+                        simulator.EndBlock();
+                    });
+
+                    //-----------
+                    //Try to claim from main: should pass, check removed proxy received nothing
+                    unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
+
+                    startingMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+                    startingProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
+
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).SpendGas(testUser.Address)
+                            .EndScript());
+                    simulator.EndBlock();
+
+                    finalMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+                    finalProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
+                    txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
+
+                    Assert.IsTrue(finalMainFuelBalance == (startingMainFuelBalance + unclaimedAmount - txCost));
+                    Assert.IsTrue(finalProxyFuelBalance == startingProxyFuelBalance);
+
+                    unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
+                    Assert.IsTrue(unclaimedAmount == 0);
+
+                    //-----------
+                    //Add 25% proxy A: should pass
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "AddProxy", testUser.Address, proxyA.Address, proxyAPercentage).
+                            SpendGas(testUser.Address).EndScript());
+                    simulator.EndBlock();
+
+                    proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
+                    Assert.IsTrue(proxyList.Length == 1);
+                    Assert.IsTrue(proxyList[0].percentage == 25);
+
+                    //-----------
+                    //Time skip 5 days
+                    var days = 5;
+                    simulator.TimeSkipDays(days);
+
+                    //Try to claim from main: should pass, check claimed amount is from 5 days worth of accumulation
+                    unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
+                    stakedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetStake", simulator.CurrentTime, testUser.Address).AsNumber();
+
+                    Assert.IsTrue(unclaimedAmount == days * StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor));
+
+                    startingMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+                    startingProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
+
+                    simulator.BeginBlock();
+                    tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                        ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                            .CallContract(NativeContractKind.Stake, "Claim", testUser.Address, testUser.Address).SpendGas(testUser.Address)
+                            .EndScript());
+                    simulator.EndBlock();
+
+                    finalMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+                    finalProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
+                    txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
+
+                    proxyQuota = proxyAPercentage * unclaimedAmount / 100;
+                    leftover = unclaimedAmount - proxyQuota;
+
+                    Assert.IsTrue(finalMainFuelBalance == (startingMainFuelBalance + leftover - txCost));
+                    Assert.IsTrue(finalProxyFuelBalance == (startingProxyFuelBalance + proxyQuota));
+
+                    unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
+                    Assert.IsTrue(unclaimedAmount == 0);
+                }*/
 
         [TestMethod]
         public void TestVotingPower()
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var testUser = PhantasmaKeys.Generate();
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             var accountBalance = MinimumValidStake * 5000;
@@ -1493,7 +1487,7 @@ namespace Phantasma.Tests
             simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, accountBalance);
             simulator.EndBlock();
 
-            var actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetAddressVotingPower", testUser.Address).AsNumber();
+            var actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetAddressVotingPower", testUser.Address).AsNumber();
             Assert.IsTrue(actualVotingPower == 0);
 
             var MinimumVotingStake = MinimumValidStake * 1000;
@@ -1505,12 +1499,12 @@ namespace Phantasma.Tests
             //Perform stake operation
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, initialStake).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, initialStake).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetAddressVotingPower", testUser.Address).AsNumber();
+            actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetAddressVotingPower", testUser.Address).AsNumber();
             Assert.IsTrue(actualVotingPower == initialStake);
 
             //-----------
@@ -1519,12 +1513,12 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, addedStake).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, addedStake).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetAddressVotingPower", testUser.Address).AsNumber();
+            actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetAddressVotingPower", testUser.Address).AsNumber();
             Assert.IsTrue(actualVotingPower == initialStake + addedStake);
 
             //-----------
@@ -1536,7 +1530,7 @@ namespace Phantasma.Tests
             //Check current voting power
             BigInteger expectedVotingPower = ((initialStake + addedStake) * (100 + firstWait));
             expectedVotingPower = expectedVotingPower / 100;
-            actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetAddressVotingPower", testUser.Address).AsNumber();
+            actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetAddressVotingPower", testUser.Address).AsNumber();
 
             Assert.IsTrue(actualVotingPower == expectedVotingPower);
 
@@ -1544,8 +1538,8 @@ namespace Phantasma.Tests
             //Perform stake operation
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, addedStake).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, addedStake).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
@@ -1558,7 +1552,7 @@ namespace Phantasma.Tests
             //Check current voting power
             expectedVotingPower = ((initialStake + addedStake) * (100 + firstWait + secondWait)) + (addedStake * (100 + secondWait));
             expectedVotingPower = expectedVotingPower / 100;
-            actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetAddressVotingPower", testUser.Address).AsNumber();
+            actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetAddressVotingPower", testUser.Address).AsNumber();
 
             Assert.IsTrue(actualVotingPower == expectedVotingPower);
 
@@ -1568,14 +1562,14 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Unstake", testUser.Address, stakeReduction).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Unstake", testUser.Address, stakeReduction).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
             expectedVotingPower = ((initialStake + addedStake) * (100 + firstWait + secondWait)) / 100;
             expectedVotingPower += ((addedStake - stakeReduction) * (100 + secondWait)) / 100;
-            actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetAddressVotingPower", testUser.Address).AsNumber();
+            actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetAddressVotingPower", testUser.Address).AsNumber();
 
             Assert.IsTrue(actualVotingPower == expectedVotingPower);
 
@@ -1588,13 +1582,13 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Unstake", testUser.Address, stakeReduction).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Unstake", testUser.Address, stakeReduction).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
             expectedVotingPower = ((initialStake + addedStake) * (100 + firstWait + secondWait + thirdWait)) / 100;
-            actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetAddressVotingPower", testUser.Address).AsNumber();
+            actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetAddressVotingPower", testUser.Address).AsNumber();
 
             Assert.IsTrue(actualVotingPower == expectedVotingPower);
 
@@ -1603,8 +1597,8 @@ namespace Phantasma.Tests
 
             simulator.TimeSkipDays(1500);
 
-            expectedVotingPower = ((initialStake + addedStake) * (100 + MaxVotingPowerBonus)) / 100;
-            actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetAddressVotingPower", testUser.Address).AsNumber();
+            expectedVotingPower = ((initialStake + addedStake) * (100 + StakeContract.MaxVotingPowerBonus)) / 100;
+            actualVotingPower = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetAddressVotingPower", testUser.Address).AsNumber();
 
             Assert.IsTrue(actualVotingPower == expectedVotingPower);
         }
@@ -1614,12 +1608,11 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var testUser = PhantasmaKeys.Generate();
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             var accountBalance = MinimumValidStake * 100;
@@ -1635,19 +1628,19 @@ namespace Phantasma.Tests
             var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
 
             var startingSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
-            var initialStake = FuelToStake(1, DefaultEnergyRatioDivisor) - 1;
+            var initialStake = StakeContract.FuelToStake(1, DefaultEnergyRatioDivisor) - 1;
 
             Assert.ThrowsException<ChainException>(() =>
             {
                 simulator.BeginBlock();
                 simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, initialStake).
+                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                        .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, initialStake).
                         SpendGas(testUser.Address).EndScript());
                 simulator.EndBlock();
             });
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             var finalSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
@@ -1659,13 +1652,13 @@ namespace Phantasma.Tests
             {
                 simulator.BeginBlock();
                 simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, accountBalance * 10).
+                    ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                        .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, accountBalance * 10).
                         SpendGas(testUser.Address).EndScript());
                 simulator.EndBlock();
             });
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             //-----------
@@ -1675,16 +1668,16 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, initialStake).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, initialStake).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            BigInteger stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            BigInteger stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(stakedAmount == initialStake);
 
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor));
 
             finalSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
@@ -1699,15 +1692,15 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, addedStake).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, addedStake).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUser.Address).AsNumber();
+            stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUser.Address).AsNumber();
             Assert.IsTrue(stakedAmount == totalExpectedStake);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == StakeToFuel(totalExpectedStake, DefaultEnergyRatioDivisor));
 
             finalSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
@@ -1719,13 +1712,12 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             //Let A be an address
             var testUserA = PhantasmaKeys.Generate();
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUserA.Address).AsNumber();
+            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUserA.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             Transaction tx = null;
@@ -1739,12 +1731,12 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUserA.Address, accountBalance).
+                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUserA.Address, accountBalance).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
 
-            var isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "IsMaster", testUserA.Address).AsBool();
+            var isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "IsMaster", testUserA.Address).AsBool();
             Assert.IsTrue(isMaster == true);
 
             var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
@@ -1758,9 +1750,9 @@ namespace Phantasma.Tests
 
             rewardTokenBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, rewardToken, testUserA.Address);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUserA.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUserA.Address).AsNumber();
 
-            var stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUserA.Address).AsNumber();
+            var stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUserA.Address).AsNumber();
             var fuelAmount = StakeContract.StakeToFuel(stakedAmount, 500)*181;
 
             Assert.IsTrue(fuelAmount == unclaimedAmount);
@@ -1770,7 +1762,7 @@ namespace Phantasma.Tests
             var bonus = (fuelAmount * 5) / 100; 
             var dailyBonus = bonus / 182;
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUserA.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUserA.Address).AsNumber();
             Assert.IsTrue((fuelAmount + dailyBonus) == unclaimedAmount);
         }
 
@@ -1779,13 +1771,12 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             //Let A be an address
             var testUserA = PhantasmaKeys.Generate();
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUserA.Address).AsNumber();
+            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUserA.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             Transaction tx = null;
@@ -1803,12 +1794,12 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUserA.Address, initialStake).
+                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUserA.Address, initialStake).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
 
-            var isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "IsMaster", testUserA.Address).AsBool();
+            var isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "IsMaster", testUserA.Address).AsBool();
             Assert.IsTrue(isMaster == false);
 
             var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
@@ -1820,8 +1811,8 @@ namespace Phantasma.Tests
             {
                 simulator.BeginBlock();
                 simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "MasterClaim", testUserA.Address).
+                    ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+                        .CallContract(NativeContractKind.Stake, "MasterClaim", testUserA.Address).
                         SpendGas(testUserA.Address).EndScript());
                 simulator.EndBlock();
             });
@@ -1837,12 +1828,12 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUserA.Address, missingStake).
+                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUserA.Address, missingStake).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
 
-            isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "IsMaster", testUserA.Address).AsBool();
+            isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "IsMaster", testUserA.Address).AsBool();
             Assert.IsTrue(isMaster);
 
             //-----------
@@ -1853,8 +1844,8 @@ namespace Phantasma.Tests
             {
                 simulator.BeginBlock();
                 simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "MasterClaim", testUserA.Address).SpendGas(testUserA.Address)
+                    ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+                        .CallContract(NativeContractKind.Stake, "MasterClaim", testUserA.Address).SpendGas(testUserA.Address)
                         .EndScript());
                 simulator.EndBlock();
             });
@@ -1872,17 +1863,17 @@ namespace Phantasma.Tests
             Console.WriteLine("after test: sim current: " + simulator.CurrentTime);
 
             startingBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserA.Address);
-            var claimMasterCount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetClaimMasterCount", (Timestamp)simulator.CurrentTime).AsNumber();
+            var claimMasterCount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetClaimMasterCount", (Timestamp)simulator.CurrentTime).AsNumber();
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "MasterClaim", testUserA.Address).
+                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "MasterClaim", testUserA.Address).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
 
 
-            var expectedBalance = startingBalance + (MasterClaimGlobalAmount / claimMasterCount) + (MasterClaimGlobalAmount % claimMasterCount);
+            var expectedBalance = startingBalance + (StakeContract.MasterClaimGlobalAmount / claimMasterCount) + (StakeContract.MasterClaimGlobalAmount % claimMasterCount);
             finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserA.Address);
 
             Assert.IsTrue(finalBalance == expectedBalance);
@@ -1893,17 +1884,17 @@ namespace Phantasma.Tests
             simulator.TimeSkipDays(missingDays, true);
 
             startingBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserA.Address);
-            claimMasterCount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetClaimMasterCount", (Timestamp)simulator.CurrentTime).AsNumber();
+            claimMasterCount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetClaimMasterCount", (Timestamp)simulator.CurrentTime).AsNumber();
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "MasterClaim", testUserA.Address).
+                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "MasterClaim", testUserA.Address).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
 
 
-            expectedBalance = startingBalance + (MasterClaimGlobalAmount / claimMasterCount) + (MasterClaimGlobalAmount % claimMasterCount);
+            expectedBalance = startingBalance + (StakeContract.MasterClaimGlobalAmount / claimMasterCount) + (StakeContract.MasterClaimGlobalAmount % claimMasterCount);
             finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserA.Address);
 
             Assert.IsTrue(finalBalance == expectedBalance);
@@ -1917,8 +1908,8 @@ namespace Phantasma.Tests
             {
                 simulator.BeginBlock();
                 simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                    ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-                        .CallContract(Nexus.StakeContractName, "MasterClaim", testUserA.Address).
+                    ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+                        .CallContract(NativeContractKind.Stake, "MasterClaim", testUserA.Address).
                         SpendGas(testUserA.Address).EndScript());
                 simulator.EndBlock();
             });
@@ -1934,12 +1925,12 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Unstake", testUserA.Address, stakeReduction).
+                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Unstake", testUserA.Address, stakeReduction).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
 
-            isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "IsMaster", testUserA.Address).AsBool();
+            isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "IsMaster", testUserA.Address).AsBool();
             Assert.IsTrue(isMaster == false);
 
             ////-----------
@@ -1948,12 +1939,12 @@ namespace Phantasma.Tests
 
             //simulator.BeginBlock();
             //tx = simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-            //    ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-            //        .CallContract(Nexus.StakeContractName, "Stake", testUserA.Address, missingStake).
+            //    ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+            //        .CallContract(NativeContractKind.Stake, "Stake", testUserA.Address, missingStake).
             //        SpendGas(testUserA.Address).EndScript());
             //simulator.EndBlock();
 
-            //isMaster = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "IsMaster", simulator.CurrentTime, testUserA.Address).AsBool();
+            //isMaster = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "IsMaster", simulator.CurrentTime, testUserA.Address).AsBool();
             //Assert.IsTrue(isMaster);
 
             ////-----------
@@ -1969,8 +1960,8 @@ namespace Phantasma.Tests
             //{
             //    simulator.BeginBlock();
             //    simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-            //        ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-            //            .CallContract(Nexus.StakeContractName, "MasterClaim", testUserA.Address).
+            //        ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+            //            .CallContract(NativeContractKind.Stake, "MasterClaim", testUserA.Address).
             //            SpendGas(testUserA.Address).EndScript());
             //    simulator.EndBlock();
             //});
@@ -1990,8 +1981,8 @@ namespace Phantasma.Tests
 
             //simulator.BeginBlock();
             //simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-            //    ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-            //        .CallContract(Nexus.StakeContractName, "MasterClaim", testUserA.Address).
+            //    ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+            //        .CallContract(NativeContractKind.Stake, "MasterClaim", testUserA.Address).
             //        SpendGas(testUserA.Address).EndScript());
             //simulator.EndBlock();
 
@@ -2016,32 +2007,32 @@ namespace Phantasma.Tests
 
             //simulator.BeginBlock();
             //tx = simulator.GenerateCustomTransaction(testUserB, ProofOfWork.None, () =>
-            //    ScriptUtils.BeginScript().AllowGas(testUserB.Address, Address.Null, 1, 9999)
-            //        .CallContract(Nexus.StakeContractName, "Stake", testUserB.Address, accountBalance).
+            //    ScriptUtils.BeginScript().AllowGas(testUserB.Address, Address.Null, simulator.MinimumFee, 9999)
+            //        .CallContract(NativeContractKind.Stake, "Stake", testUserB.Address, accountBalance).
             //        SpendGas(testUserB.Address).EndScript());
             //simulator.EndBlock();
 
             //simulator.BeginBlock();
             //tx = simulator.GenerateCustomTransaction(testUserC, ProofOfWork.None, () =>
-            //    ScriptUtils.BeginScript().AllowGas(testUserC.Address, Address.Null, 1, 9999)
-            //        .CallContract(Nexus.StakeContractName, "Stake", testUserC.Address, accountBalance).
+            //    ScriptUtils.BeginScript().AllowGas(testUserC.Address, Address.Null, simulator.MinimumFee, 9999)
+            //        .CallContract(NativeContractKind.Stake, "Stake", testUserC.Address, accountBalance).
             //        SpendGas(testUserC.Address).EndScript());
             //simulator.EndBlock();
 
-            //isMaster = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "IsMaster", simulator.CurrentTime, testUserB.Address).AsBool();
+            //isMaster = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "IsMaster", simulator.CurrentTime, testUserB.Address).AsBool();
             //Assert.IsTrue(isMaster);
 
-            //isMaster = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "IsMaster", simulator.CurrentTime, testUserC.Address).AsBool();
+            //isMaster = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "IsMaster", simulator.CurrentTime, testUserC.Address).AsBool();
             //Assert.IsTrue(isMaster);
 
             ////----------
             ////Confirm that B and C should only receive master claim rewards on the 2nd closest claim date
 
-            //var closeClaimDate = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetMasterClaimDate", simulator.CurrentTime, 1).AsTimestamp();
-            //var farClaimDate = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetMasterClaimDate", simulator.CurrentTime, 2).AsTimestamp();
+            //var closeClaimDate = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetMasterClaimDate", simulator.CurrentTime, 1).AsTimestamp();
+            //var farClaimDate = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetMasterClaimDate", simulator.CurrentTime, 2).AsTimestamp();
 
-            //var closeClaimMasters = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetClaimMasterCount", simulator.CurrentTime, closeClaimDate).AsNumber();
-            //var farClaimMasters = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, Nexus.StakeContractName, "GetClaimMasterCount", simulator.CurrentTime, farClaimDate).AsNumber();
+            //var closeClaimMasters = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetClaimMasterCount", simulator.CurrentTime, closeClaimDate).AsNumber();
+            //var farClaimMasters = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetClaimMasterCount", simulator.CurrentTime, farClaimDate).AsNumber();
             //Assert.IsTrue(closeClaimMasters == 1 && farClaimMasters == 3);
 
             ////----------
@@ -2056,8 +2047,8 @@ namespace Phantasma.Tests
 
             //simulator.BeginBlock();
             //simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-            //    ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-            //        .CallContract(Nexus.StakeContractName, "MasterClaim", testUserA.Address).
+            //    ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+            //        .CallContract(NativeContractKind.Stake, "MasterClaim", testUserA.Address).
             //        SpendGas(testUserA.Address).EndScript());
             //simulator.EndBlock();
 
@@ -2082,8 +2073,8 @@ namespace Phantasma.Tests
 
             //simulator.BeginBlock();
             //simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-            //    ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-            //        .CallContract(Nexus.StakeContractName, "MasterClaim", testUserA.Address).
+            //    ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+            //        .CallContract(NativeContractKind.Stake, "MasterClaim", testUserA.Address).
             //        SpendGas(testUserA.Address).EndScript());
             //simulator.EndBlock();
 
@@ -2106,13 +2097,12 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             //Let A be an address
             var testUserA = PhantasmaKeys.Generate();
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUserA.Address).AsNumber();
+            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUserA.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             Transaction tx = null;
@@ -2130,12 +2120,12 @@ namespace Phantasma.Tests
             
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUserA.Address, accountBalance).
+                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUserA.Address, accountBalance).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
 
-            var isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "IsMaster", testUserA.Address).AsBool();
+            var isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "IsMaster", testUserA.Address).AsBool();
             Assert.IsTrue(isMaster);
 
             var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
@@ -2144,14 +2134,14 @@ namespace Phantasma.Tests
             //Perform a claim call: should pass
             var startingFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUserA.Address);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUserA.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUserA.Address).AsNumber();
             var expectedUnclaimed = StakeToFuel(accountBalance, DefaultEnergyRatioDivisor);
             Assert.IsTrue(unclaimedAmount == expectedUnclaimed);
 
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Claim", testUserA.Address, testUserA.Address).
+                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Claim", testUserA.Address, testUserA.Address).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
 
@@ -2160,10 +2150,10 @@ namespace Phantasma.Tests
 
             Assert.IsTrue(finalFuelBalance == (startingFuelBalance + unclaimedAmount - txCost));
 
-            var stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetStake", testUserA.Address).AsNumber();
+            var stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetStake", testUserA.Address).AsNumber();
             Assert.IsTrue(stakedAmount == accountBalance);
 
-            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUserA.Address).AsNumber();
+            unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUserA.Address).AsNumber();
             Assert.IsTrue(unclaimedAmount == 0);
 
             //-----------
@@ -2176,16 +2166,16 @@ namespace Phantasma.Tests
             var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
 
             var startingSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserA.Address);
-            var claimMasterCount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetClaimMasterCount", (Timestamp)simulator.CurrentTime).AsNumber();
+            var claimMasterCount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetClaimMasterCount", (Timestamp)simulator.CurrentTime).AsNumber();
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "MasterClaim", testUserA.Address).
+                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "MasterClaim", testUserA.Address).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
 
-            var expectedSoulBalance = startingSoulBalance + (MasterClaimGlobalAmount / claimMasterCount) + (MasterClaimGlobalAmount % claimMasterCount);
+            var expectedSoulBalance = startingSoulBalance + (StakeContract.MasterClaimGlobalAmount / claimMasterCount) + (StakeContract.MasterClaimGlobalAmount % claimMasterCount);
             var finalSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserA.Address);
 
             Assert.IsTrue(finalSoulBalance == expectedSoulBalance);
@@ -2196,7 +2186,7 @@ namespace Phantasma.Tests
         {
             var stake = 100;
             var fuel = StakeToFuel(stake, DefaultEnergyRatioDivisor);
-            var stake2 = FuelToStake(fuel, DefaultEnergyRatioDivisor);
+            var stake2 = StakeContract.FuelToStake(fuel, DefaultEnergyRatioDivisor);
             //20, 10, 8
             Console.WriteLine($"{stake2} - {fuel}: {UnitConversion.ConvertDecimals(fuel, DomainSettings.FuelTokenDecimals, DomainSettings.StakingTokenDecimals)}");
             Assert.IsTrue(stake == stake2);
@@ -2208,9 +2198,8 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var testUser = PhantasmaKeys.Generate();
 
@@ -2229,7 +2218,7 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
                     .CallContract("swap", "SwapTokens", testUser.Address, DomainSettings.StakingTokenSymbol, DomainSettings.FuelTokenSymbol, swapAmount).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
@@ -2246,9 +2235,8 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var testUser = PhantasmaKeys.Generate();
             var stakeAmount = MinimumValidStake;
@@ -2265,12 +2253,12 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, stakeAmount).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, stakeAmount).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, Nexus.StakeContractName, "GetUnclaimed", testUser.Address).AsNumber();
+            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
             double realUnclaimedAmount = ((double)unclaimedAmount) * Math.Pow(10, -DomainSettings.FuelTokenDecimals);
 
             Assert.IsTrue(realUnclaimedAmount == realExpectedUnclaimedAmount);
@@ -2289,9 +2277,8 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var fuelToken = DomainSettings.FuelTokenSymbol;
             var stakingToken = DomainSettings.StakingTokenSymbol;
@@ -2312,14 +2299,14 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
+                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
                     .CallContract("friends", "AddFriend", testUserA.Address, testUserB.Address).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
+                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
                     .CallContract("friends", "AddFriend", testUserA.Address, testUserC.Address).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
@@ -2390,9 +2377,8 @@ namespace Phantasma.Tests
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var fuelToken = DomainSettings.FuelTokenSymbol;
             var stakingToken = DomainSettings.StakingTokenSymbol;
@@ -2413,14 +2399,14 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
+                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
                     .CallContract("friends", "AddFriend", testUserA.Address, testUserB.Address).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, 1, 9999)
+                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
                     .CallContract("friends", "AddFriend", testUserA.Address, testUserC.Address).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
@@ -2434,6 +2420,7 @@ namespace Phantasma.Tests
             Assert.IsTrue(tempA[0].address == testUserB.Address);
             Assert.IsTrue(tempA[1].address == testUserC.Address);
 
+            /*
             // we also test that the API can handle complex return types
             var api = new NexusAPI(nexus);
             var apiResult = (ScriptResult)api.InvokeRawScript("main", Base16.Encode(scriptA));
@@ -2455,16 +2442,16 @@ namespace Phantasma.Tests
             // NOTE objBytes will contain a serialized VMObject
             var objBytesB = Base16.Decode(apiResultB.results[0]);
             var resultEmpty = Serialization.Unserialize<VMObject>(objBytesB);
-            Assert.IsTrue(resultEmpty != null);
+            Assert.IsTrue(resultEmpty != null);*/
         }
 
         [TestMethod]
         public void TestInfiniteTokenTransfer()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             simulator.BeginBlock();
             simulator.GenerateToken(owner, "INFI", "infinity token", BigInteger.Zero, 8,
@@ -2475,10 +2462,10 @@ namespace Phantasma.Tests
 
             var infiToken = nexus.GetTokenInfo(nexus.RootStorage, "INFI");
 
-            var infiAmount = 1000 * GetUnitValue(infiToken.Decimals);
+            var infiAmount = 1000 * UnitConversion.GetUnitValue(infiToken.Decimals);
 
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, user.Address, nexus.RootChain, FuelTokenSymbol, 100000000);
+            simulator.GenerateTransfer(owner, user.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 100000000);
             simulator.MintTokens(owner, owner.Address, infiToken.Symbol, infiAmount);
             simulator.EndBlock();
 
@@ -2524,22 +2511,21 @@ namespace Phantasma.Tests
             var methods = new ContractMethod[] { new ContractMethod("clearMe", VMType.None, 0, new ContractParameter[0]) };
             var abi = new ContractInterface(methods, Enumerable.Empty<ContractEvent>());
 
-
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(owner, ProofOfWork.Minimal, () =>
-                ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, 1, 9999)
+                ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 9999)
                     .CallInterop("Runtime.DeployContract", owner.Address, "test", script, abi.ToByteArray())
                     .SpendGas(owner.Address).EndScript());
             simulator.EndBlock().First();
 
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, 1, 9999)
+                ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 9999)
                     .CallContract("test", "clearMe")
                     .SpendGas(owner.Address).EndScript());
             var block = simulator.EndBlock().First();

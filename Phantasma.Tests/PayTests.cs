@@ -1,14 +1,13 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
 using System.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Core.Utils;
-using Phantasma.Cryptography;
-using Phantasma.Numerics;
-using Phantasma.Pay;
-using Phantasma.Pay.Chains;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Infrastructure.Pay.Chains;
 
-namespace Phantasma.Tests
+namespace Phantasma.LegacyTests
 {
     [TestClass]
     public class PayTests
@@ -22,6 +21,7 @@ namespace Phantasma.Tests
             Assert.IsTrue(address.Equals("0xe57a6c074d1db5ed7c98228df71ce5fa35b6bc72", StringComparison.OrdinalIgnoreCase));
         }
 
+        /*
         [TestMethod]
         public void TestEOSWallet()
         {
@@ -35,7 +35,7 @@ namespace Phantasma.Tests
             var wallet = new EOSWallet(keys);
             var address = wallet.Address;
             Assert.IsTrue(address.Equals("EOS8dBKtG9fbhC1wi1SscL32iFRsSi4PsZDT2EHJcYXwV5dAMiBcK", StringComparison.OrdinalIgnoreCase));
-        }
+        }*/
 
         [TestMethod]
         public void TestNeoWallet()
@@ -54,6 +54,7 @@ namespace Phantasma.Tests
             Assert.IsTrue(newAddress.Equals(expectedAddress, StringComparison.OrdinalIgnoreCase));
         }
 
+        /*
         [TestMethod]
         public void TestBitcoinWallet()
         {
@@ -61,7 +62,7 @@ namespace Phantasma.Tests
             var wallet = new BitcoinWallet(keys);
             var address = wallet.Address;
             Assert.IsTrue(address.Equals("17JsmEygbbEUEpvt4PFtYaTeSqfb9ki1F1", StringComparison.OrdinalIgnoreCase));
-        }
+        }*/
 
         [TestMethod]
         public void TestEndian()

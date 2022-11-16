@@ -1,19 +1,19 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.IO;
 using System.Numerics;
-using Phantasma.Numerics;
-using Phantasma.Cryptography;
-using Phantasma.VM;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
-using Phantasma.CodeGen.Assembler;
-using Phantasma.VM.Utils;
-using Phantasma.Storage;
-using Phantasma.Storage.Utils;
-using System.IO;
+using Phantasma.Business.VM;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Cryptography;
+using Phantasma.Business.CodeGen.Assembler;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
 
-namespace Phantasma.Tests
+namespace Phantasma.LegacyTests
 {
     public class TestVM : VirtualMachine
     {
@@ -152,10 +152,10 @@ namespace Phantasma.Tests
             RegisterInterop("PushEnum", (frame) =>
             {
                 var obj = frame.VM.Stack.Pop();
-                var n = obj.AsNumber();
+                var n = obj.AsNumber().ToString();
                 DebugEnum enm;
 
-                switch (n.ToDecimal())
+                switch (n)
                 {
                     case "1":
                         enm = DebugEnum.enum1;

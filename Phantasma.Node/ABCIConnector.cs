@@ -256,7 +256,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
             if (this._owner.Address.TendermintAddress == signerAddress)
             {
-                var tx = _nexus.CreateGenesisBlock(timestamp, this._owner);
+                var tx = _nexus.CreateGenesisTransaction(timestamp, this._owner);
 
                 var txString = Base16.Encode(tx.ToByteArray(true));
                 Task.Factory.StartNew(() => _rpc.BroadcastTxSync(txString));

@@ -1,24 +1,16 @@
-using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Linq;
-using Phantasma.API;
-using Phantasma.VM.Utils;
 using Phantasma.Simulator;
-using Phantasma.Cryptography;
 using Phantasma.Core.Types;
-using Phantasma.Blockchain;
-using Phantasma.CodeGen.Assembler;
-using Phantasma.Numerics;
-using Phantasma.VM;
-using Phantasma.Storage;
-using Phantasma.Blockchain.Tokens;
-using Phantasma.Blockchain.Contracts;
-using Phantasma.Domain;
-using static Phantasma.Blockchain.Contracts.StakeContract;
-using static Phantasma.Domain.DomainSettings;
-using static Phantasma.Numerics.UnitConversion;
+using Phantasma.Core.Cryptography;
+using Phantasma.Business.Blockchain;
+using Phantasma.Core.Domain;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.VM.Utils;
 
-namespace Phantasma.Tests
+namespace Phantasma.LegacyTests
 {
     [TestClass]
     public class MarketContractTests
@@ -28,9 +20,8 @@ namespace Phantasma.Tests
         public void TestMarketContractBasic()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var chain = nexus.RootChain;
 
@@ -40,8 +31,8 @@ namespace Phantasma.Tests
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, Domain.TokenFlags.Transferable);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
@@ -117,9 +108,8 @@ namespace Phantasma.Tests
         public void TestMarketContractAuctionDutch()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var chain = nexus.RootChain;
 
@@ -129,9 +119,9 @@ namespace Phantasma.Tests
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, Domain.TokenFlags.Transferable);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
+            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
@@ -257,9 +247,9 @@ namespace Phantasma.Tests
         public void TestMarketContractAuctionClassic()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var chain = nexus.RootChain;
 
@@ -270,11 +260,11 @@ namespace Phantasma.Tests
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, Domain.TokenFlags.Transferable);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
+            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
@@ -523,9 +513,9 @@ namespace Phantasma.Tests
         public void TestMarketContractAuctionClassicNoWinner()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var chain = nexus.RootChain;
 
@@ -536,11 +526,11 @@ namespace Phantasma.Tests
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, Domain.TokenFlags.Transferable);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
+            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
@@ -645,9 +635,9 @@ namespace Phantasma.Tests
         public void TestMarketContractAuctionReserve()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var chain = nexus.RootChain;
 
@@ -658,11 +648,11 @@ namespace Phantasma.Tests
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, Domain.TokenFlags.Transferable);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
+            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
@@ -836,9 +826,9 @@ namespace Phantasma.Tests
         public void TestMarketContractAuctionFixed()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var chain = nexus.RootChain;
 
@@ -848,9 +838,9 @@ namespace Phantasma.Tests
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, Domain.TokenFlags.Transferable);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
+            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
@@ -992,9 +982,9 @@ namespace Phantasma.Tests
         public void TestMarketContractAuctionEdit()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var chain = nexus.RootChain;
 
@@ -1004,9 +994,9 @@ namespace Phantasma.Tests
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, Domain.TokenFlags.Transferable);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
+            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
@@ -1145,9 +1135,9 @@ namespace Phantasma.Tests
         public void TestMarketContractAuctionCancel()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var chain = nexus.RootChain;
 
@@ -1157,9 +1147,9 @@ namespace Phantasma.Tests
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, Domain.TokenFlags.Transferable);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
+            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
@@ -1273,9 +1263,9 @@ namespace Phantasma.Tests
         public void TestMarketContractAuctionFeesDivisible()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var chain = nexus.RootChain;
 
@@ -1287,9 +1277,9 @@ namespace Phantasma.Tests
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, Domain.TokenFlags.Transferable);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
+            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
@@ -1443,9 +1433,9 @@ namespace Phantasma.Tests
         public void TestMarketContractAuctionFeesIndivisible()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var chain = nexus.RootChain;
 
@@ -1457,10 +1447,10 @@ namespace Phantasma.Tests
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, "MKNI", 10000);
-            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, Domain.TokenFlags.Transferable);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, "MKNI", 10000);
+            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);

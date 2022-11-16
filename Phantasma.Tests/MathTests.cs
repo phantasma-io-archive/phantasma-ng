@@ -1,11 +1,11 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
 using System;
 using System.Linq;
 using System.Numerics;
-using Phantasma.Numerics;
-using Phantasma.Cryptography;
 
-namespace Phantasma.Tests
+namespace Phantasma.LegacyTests
 {
     [TestClass]
     public class MathTests
@@ -59,6 +59,28 @@ namespace Phantasma.Tests
         }
         #endregion
 
+        #region Proof of Work
+        [TestMethod]
+        public void PowDifficulty()
+        {
+            int diff;
+            var bytes = new byte[32];
+
+            bytes[0] = 1;
+            diff = new Hash(bytes).GetDifficulty();
+            Assert.IsTrue(diff == 255);
+
+            bytes[31] = 1;
+            diff = new Hash(bytes).GetDifficulty();
+            Assert.IsTrue(diff == 7);
+
+            bytes[31] = 128;
+            diff = new Hash(bytes).GetDifficulty();
+            Assert.IsTrue(diff == 0);
+        }
+        #endregion
+
+        /*
         #region BIG INT
 
         [TestMethod]
@@ -434,26 +456,6 @@ namespace Phantasma.Tests
         //    Assert.IsTrue(negBigInt.ToUintArray().SequenceEqual(posBigint.ToUintArray()));
         //}
         //#endregion
-
-        //#region Proof of Work
-        //[TestMethod]
-        //public void PowDifficulty()
-        //{
-        //    int diff;
-        //    var bytes = new byte[32];
-
-        //    bytes[0] = 1;
-        //    diff = new Hash(bytes).GetDifficulty();
-        //    Assert.IsTrue(diff == 255);
-
-        //    bytes[31] = 1;
-        //    diff = new Hash(bytes).GetDifficulty();
-        //    Assert.IsTrue(diff == 7);
-
-        //    bytes[31] = 128;
-        //    diff = new Hash(bytes).GetDifficulty();
-        //    Assert.IsTrue(diff == 0);
-        //}
-        #endregion
+        */
     }
 }
