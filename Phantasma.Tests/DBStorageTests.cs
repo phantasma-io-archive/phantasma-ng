@@ -1,17 +1,15 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.IO;
 using System.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
-using Phantasma.Core;
-using Phantasma.RocksDB;
-using Phantasma.Storage;
 using System.Threading;
 using System.Text;
-using Phantasma.Storage.Context;
-using Phantasma.Numerics;
-using Phantasma.Core.Log;
+using Phantasma.Core;
+using Phantasma.Core.Storage;
+using Phantasma.Infrastructure.RocksDB;
 
+/*
 namespace Phantasma.Tests
 {
 
@@ -25,7 +23,7 @@ namespace Phantasma.Tests
         [TestInitialize()]
         public void TestInitialize()
         {
-            _adapterFactory = _adapterFactory = (name) => { return new DBPartition(new DebugLogger(), path + name); };
+            _adapterFactory = _adapterFactory = (name) => { return new DBPartition(path + name); };
             _testStorage = new KeyValueStore<string, string>(CreateKeyStoreAdapterTest("test"));
         }
 
@@ -443,3 +441,4 @@ namespace Phantasma.Tests
         }
     }
 }
+*/

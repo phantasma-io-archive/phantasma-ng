@@ -1,29 +1,31 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
 using System.Text;
 using System.Numerics;
 using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Phantasma.Blockchain;
-using Phantasma.Core.Log;
-using Phantasma.Cryptography;
-using Phantasma.CodeGen.Assembler;
-using Phantasma.Core.Types;
-using Phantasma.Numerics;
-using Phantasma.VM;
-using Phantasma.Simulator;
-using Phantasma.Storage.Context;
-using Phantasma.VM.Utils;
-using Phantasma.Domain;
-using Phantasma.Storage;
-using Phantasma.Blockchain.Contracts;
-using Phantasma.Blockchain.Tokens;
+using System.Transactions;
 
-namespace Phantasma.Tests
+using Phantasma.Core.Types;
+using Phantasma.Simulator;
+using Phantasma.Core.Cryptography;
+using Phantasma.Business.CodeGen.Assembler;
+using Phantasma.Business.Blockchain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Domain;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Business.Blockchain.Contracts;
+using Transaction = Phantasma.Core.Domain.Transaction;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.VM;
+
+namespace Phantasma.LegacyTests
 {
     [TestClass]
     public class AssemblerTests
     {
+        public const int TestGasLimit = 9999;
+
 
         [TestMethod]
         public void Alias()
@@ -63,9 +65,8 @@ namespace Phantasma.Tests
             var owner = PhantasmaKeys.Generate();
             var addressStr = Base16.Encode(owner.Address.ToByteArray());
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             string message = "customEvent";
             var methodName = "notify";
@@ -102,7 +103,7 @@ namespace Phantasma.Tests
             var contractName = "test";
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(owner, ProofOfWork.Minimal,
-                () => ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, 1, Transaction.GasLimit)
+                () => ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, 1, TestGasLimit)
                     .CallInterop("Runtime.DeployContract", owner.Address, contractName, script, abiBytes)
                     .SpendGas(owner.Address)
                     .EndScript());
@@ -121,7 +122,7 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(owner, ProofOfWork.None, (() =>
                 ScriptUtils.BeginScript()
-                    .AllowGas(owner.Address, Address.Null, 1, Transaction.GasLimit)
+                    .AllowGas(owner.Address, Address.Null, 1, TestGasLimit)
                     .EmitRaw(script)
                     .SpendGas(owner.Address)
                     .EndScript()));
@@ -147,9 +148,9 @@ namespace Phantasma.Tests
             var target = PhantasmaKeys.Generate();
             var symbol = "TEST";
             var flags = TokenFlags.Transferable | TokenFlags.Finite | TokenFlags.Fungible | TokenFlags.Divisible;
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             string message = "customEvent";
             var addressStr = Base16.Encode(owner.Address.ToByteArray());
@@ -198,7 +199,7 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             simulator.GenerateToken(owner, symbol, $"{symbol}Token", 1000000000, 3, flags, script, labels);
             var tx = simulator.MintTokens(owner, owner.Address, symbol, 1000);
-            simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, symbol, 10);
+            simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain as Chain, symbol, 10);
             simulator.EndBlock();
 
             //var token = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, symbol);
@@ -227,9 +228,9 @@ namespace Phantasma.Tests
             var target = PhantasmaKeys.Generate();
             var symbol = "TEST";
             var flags = TokenFlags.Transferable | TokenFlags.Finite | TokenFlags.Fungible | TokenFlags.Divisible;
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             string message = "customEvent";
             var addressStr = Base16.Encode(owner.Address.ToByteArray());
@@ -331,9 +332,8 @@ namespace Phantasma.Tests
             var target = PhantasmaKeys.Generate();
             var other = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var symbol = "SOUL";
             var addressStr = Base16.Encode(other.Address.ToByteArray());
@@ -384,11 +384,11 @@ namespace Phantasma.Tests
             var abi = new ContractInterface(methods, Enumerable.Empty<ContractEvent>());
 
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, "KCAL", UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals));
-            simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, "SOUL", UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals));
+            simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain as Chain, "KCAL", UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals));
+            simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain as Chain, "SOUL", UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals));
             simulator.GenerateCustomTransaction(target, ProofOfWork.None,
                 () => ScriptUtils.BeginScript()
-                        .AllowGas(target.Address, Address.Null, 1, Transaction.GasLimit)
+                        .AllowGas(target.Address, Address.Null, 1, TestGasLimit)
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), target.Address, UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals))
                         .SpendGas(target.Address)
                     .EndScript());
@@ -398,7 +398,7 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(target, ProofOfWork.None,
                 () => ScriptUtils.BeginScript()
-                        .AllowGas(target.Address, Address.Null, 1, Transaction.GasLimit)
+                        .AllowGas(target.Address, Address.Null, 1, TestGasLimit)
                     .CallContract(NativeContractKind.Account, nameof(AccountContract.RegisterScript), target.Address, script, abi.ToByteArray())
                         .SpendGas(target.Address)
                     .EndScript());
@@ -409,7 +409,7 @@ namespace Phantasma.Tests
             var amount = UnitConversion.ToBigInteger(5, DomainSettings.StakingTokenDecimals);
 
             simulator.BeginBlock();
-            var tx = simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, symbol, amount * 2);
+            var tx = simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain as Chain, symbol, amount * 2);
             simulator.EndBlock();
 
             var balance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, symbol, target.Address);
@@ -430,9 +430,9 @@ namespace Phantasma.Tests
             var target = PhantasmaKeys.Generate();
             var symbol = "TEST";
             var flags = TokenFlags.Transferable | TokenFlags.Finite | TokenFlags.Fungible | TokenFlags.Divisible;
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             string message = "customEvent";
             var addressStr = Base16.Encode(target.Address.ToByteArray());
@@ -519,10 +519,10 @@ namespace Phantasma.Tests
             var abi = new ContractInterface(methods, new List<ContractEvent>());
 
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, "KCAL", 60000000000000);
-            simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, "SOUL", UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals)*50000);
+            simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain as Chain, "KCAL", 60000000000000);
+            simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain as Chain, "SOUL", UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals)*50000);
             simulator.GenerateCustomTransaction(target, ProofOfWork.None,
-                () => ScriptUtils.BeginScript().AllowGas(target.Address, Address.Null, 1, Transaction.GasLimit)
+                () => ScriptUtils.BeginScript().AllowGas(target.Address, Address.Null, 1, TestGasLimit)
                     .CallContract("stake", "Stake", target.Address, UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals)*50000)
                     .CallContract("account", "RegisterScript", target.Address, script, abi.ToByteArray()).SpendGas(target.Address)
                     .EndScript());
@@ -550,7 +550,7 @@ namespace Phantasma.Tests
             Assert.ThrowsException<ChainException>(() =>
             {
                 simulator.BeginBlock();
-                simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, symbol, 10);
+                simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain as Chain, symbol, 10);
                 simulator.EndBlock();
             });
 
@@ -2772,8 +2772,8 @@ namespace Phantasma.Tests
             var owner = PhantasmaKeys.Generate();
             var script = AssemblerUtils.BuildScript(scriptString);
 
-            var nexus = new Nexus("asmnet", new DebugLogger());
-            nexus.CreateGenesisBlock(owner, Timestamp.Now, 1);
+            var nexus = new Nexus("asmnet");
+            nexus.CreateGenesisTransaction(Timestamp.Now, owner);
             var tx = new Transaction(nexus.Name, nexus.RootChain.Name, script, 0);
 
             var vm = new TestVM(tx.Script, 0);
@@ -2804,8 +2804,8 @@ namespace Phantasma.Tests
             var script = AssemblerUtils.BuildScript(scriptString);
 
             var keys = PhantasmaKeys.Generate();
-            var nexus = new Nexus("asmnet", new DebugLogger());
-            nexus.CreateGenesisBlock(owner, Timestamp.Now, 1);
+            var nexus = new Nexus("asmnet");
+            nexus.CreateGenesisTransaction(Timestamp.Now, owner);
             tx = new Transaction(nexus.Name, nexus.RootChain.Name, script, 0);
 
             var vm = new TestVM(tx.Script, 0);

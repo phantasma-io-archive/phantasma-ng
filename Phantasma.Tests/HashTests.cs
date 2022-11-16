@@ -1,13 +1,10 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-
+using Phantasma.Core.Cryptography.Hashing;
+using Phantasma.Core.Numerics;
 using System.Linq;
 using System.Text;
 
-using Phantasma.Cryptography.Hashing;
-using SHA256 = Phantasma.Cryptography.Hashing.SHA256;
-using Phantasma.Numerics;
-
-namespace Phantasma.Tests
+namespace Phantasma.LegacyTests
 {
     [TestClass]
     public class HashTests
@@ -104,7 +101,7 @@ namespace Phantasma.Tests
 
             for (int i = 0; i < 1000; i++)
             {
-                var ripemd160Test = new Cryptography.RIPEMD160().ComputeHash(source);
+                var ripemd160Test = new RIPEMD160().ComputeHash(source);
 
                 Assert.IsTrue(ripemd160Test.SequenceEqual(ripemd160Target));
             }

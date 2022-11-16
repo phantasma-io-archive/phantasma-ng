@@ -1315,10 +1315,19 @@ public class Nexus : INexus
             sb.CallInterop(orgInterop, owner.Address, DomainSettings.StakersOrganizationName, "Soul Stakers", orgScript);
         }
 
+        var validatorInitialBalance = StakeContract.DefaultMasterThreshold;
+
+        if (_migratingNexus)
+        {
+            BigInteger swapAmount = 40000000; // legacy NEP5 supply
+            swapAmount /= _initialValidators.Count();
+            validatorInitialBalance += swapAmount;
+        }
+
         // initial SOUL distribution to validators
         foreach (var validator in _initialValidators)
         {
-            sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, validator, StakeContract.DefaultMasterThreshold);
+            sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, validator, validatorInitialBalance);
             sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(1000, DomainSettings.FuelTokenDecimals));
 
             // requires staking token to be created previously
@@ -1573,7 +1582,7 @@ public class Nexus : INexus
         };
     }
 
-    public Transaction CreateGenesisBlock(Timestamp timestamp, PhantasmaKeys owner)
+    public Transaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner)
     {
         Throw.If(HasGenesis(), "genesis block already exists");
 

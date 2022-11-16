@@ -1,6 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Phantasma.Numerics;
-using Phantasma.Cryptography.EdDSA;
+﻿/*using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text;
 
 // Testing methods:
@@ -60,4 +58,4 @@ namespace Phantasma.Tests
             Assert.IsFalse(Ed25519.Verify(signatureIncorrectBytes, msgIncorrectBytes, keysIncorrect.PublicKey));
         }
     }
-}
+}*/

@@ -206,7 +206,7 @@ public class NexusTests : IDisposable
     public void CreateGenesisBlock_test_success()
     {
         this.Nexus.SetInitialValidators(new List<Address> { User1.Address, User2.Address });
-        var tx = this.Nexus.CreateGenesisBlock(Timestamp.Now, User1);
+        var tx = this.Nexus.CreateGenesisTransaction(Timestamp.Now, User1);
         tx.Script.Length.ShouldBeGreaterThan(0);
         tx.NexusName.ShouldBe("unittest");
         tx.ChainName.ShouldBe("main");

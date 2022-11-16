@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿/*using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using Phantasma.API;
 using Phantasma.Blockchain;
@@ -266,3 +266,4 @@ namespace Phantasma.Tests
         }
     }
 }
+*/

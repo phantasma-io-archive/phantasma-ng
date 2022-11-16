@@ -1,12 +1,12 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Phantasma.Core.Cryptography;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mime;
 using System.Text;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Phantasma.Cryptography;
 
-namespace Phantasma.Tests
+namespace Phantasma.LegacyTests
 {
     [TestClass]
     public class MerkleTreeTests
