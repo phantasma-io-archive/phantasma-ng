@@ -74,7 +74,7 @@ namespace Phantasma.Core.Domain
 
         public const int MAX_TOKEN_DECIMALS = 18;
         
-        public const int DefaultMinimumGasFee = 100000;
+        public const int DefaultMinimumGasFee = 1; // 100000
         public const int InitialValidatorCount = 4;
 
         public const string FuelTokenSymbol = "KCAL";

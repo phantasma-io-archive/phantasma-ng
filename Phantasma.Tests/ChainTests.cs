@@ -761,6 +761,7 @@ namespace Phantasma.LegacyTests
             Assert.IsTrue(price == 5);
         }
 
+        /*
         [TestMethod]
         public void GetRatesForSwap()
         {
@@ -788,7 +789,7 @@ namespace Phantasma.LegacyTests
             }
 
             Assert.IsTrue(targetRate == 5m);
-        }
+        }*/
 
         [TestMethod]
         public void TransferToAccountName()
@@ -1741,9 +1742,6 @@ namespace Phantasma.LegacyTests
 
             var simulator = new NexusSimulator(owner);
             var nexus = simulator.Nexus;
-
-            simulator.MinimumFee = 100000;
-
 
             var testUserA = PhantasmaKeys.Generate();
             var testUserB = PhantasmaKeys.Generate();
