@@ -16,7 +16,7 @@ namespace Phantasma.LegacyTests.ContractTests;
 public class ConsensusContractTest
 {
     static PhantasmaKeys owner = PhantasmaKeys.Generate();
-    static Nexus nexus = new Nexus("simnet", null, null);
+    static Nexus nexus = new Nexus("simnet");
     static NexusSimulator simulator;
 
 
