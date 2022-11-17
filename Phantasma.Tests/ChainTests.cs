@@ -1471,14 +1471,18 @@ namespace Phantasma.LegacyTests
             var simulator = new NexusSimulator(owner);
             var nexus = simulator.Nexus;
 
+            // skip 3 months to reach next inflation date
+            simulator.TimeSkipDays(90);
+
             Block block = null;
-            simulator.TimeSkipDays(90, false, x => block = x);
+            // we need to generate at least one block more to trigger inflation tx
+            simulator.TimeSkipDays(1, false, x => block = x);
 
             var inflation = false;
             foreach(var tx in block.TransactionHashes)
             {
-                Console.WriteLine("tx: " + tx);
-                foreach (var evt in block.GetEventsForTransaction(tx))
+                var events = block.GetEventsForTransaction(tx);
+                foreach (var evt in events)
                 {
                     if (evt.Kind == EventKind.Inflation)
                     {
@@ -1487,7 +1491,7 @@ namespace Phantasma.LegacyTests
                 }
             }
 
-            Assert.AreEqual(true, inflation);
+            Assert.IsTrue(inflation);
         }
 
 
