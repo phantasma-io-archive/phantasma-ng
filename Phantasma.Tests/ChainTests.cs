@@ -17,6 +17,7 @@ using Phantasma.Core.Storage.Context;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM;
+using Phantasma.Infrastructure.Pay.Chains;
 
 namespace Phantasma.LegacyTests
 {
@@ -445,7 +446,7 @@ namespace Phantasma.LegacyTests
             // 1 - at this point a real NEO transaction would be done to the NEO address obtained from getPlatforms in the API
             // here we just use a random hardcoded hash and a fake oracle to simulate it
             var swapSymbol = "GAS";
-            var neoTxHash = OracleSimulator.SimulateExternalTransaction("neo", Pay.Chains.NeoWallet.NeoID, neoKeys.PublicKey, neoKeys.Address, swapSymbol, 2);
+            var neoTxHash = OracleSimulator.SimulateExternalTransaction("neo", NeoWallet.NeoID, neoKeys.PublicKey, neoKeys.Address, swapSymbol, 2);
 
             var tokenInfo = nexus.GetTokenInfo(nexus.RootStorage, swapSymbol);
 
@@ -454,8 +455,8 @@ namespace Phantasma.LegacyTests
 
             var testUser = PhantasmaKeys.Generate();
 
-            var platformName = Pay.Chains.NeoWallet.NeoPlatform;
-            var platformChain = Pay.Chains.NeoWallet.NeoPlatform;
+            var platformName = NeoWallet.NeoPlatform;
+            var platformChain = NeoWallet.NeoPlatform;
 
             var gasPrice = simulator.MinimumFee;
 
@@ -496,8 +497,8 @@ namespace Phantasma.LegacyTests
 
             var fuelToken = nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
             var leftoverBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, transcodedAddress);
-            //Assert.IsTrue(leftoverBalance == 0);
-        }
+            Assert.IsTrue(leftoverBalance == 0);
+        }*/
 
         [TestMethod]
         public void ChainSwapOut()
@@ -538,7 +539,7 @@ namespace Phantasma.LegacyTests
             Assert.IsTrue(currentBalance == 0);
 
             Assert.IsTrue(currentSupply < oldSupply);
-        }*/
+        }
 
         [TestMethod]
         public void QuoteConversions()
@@ -1051,7 +1052,7 @@ namespace Phantasma.LegacyTests
             Assert.IsTrue(finalBalance == transferAmount);
         }
 
-        /*[TestMethod]
+        [TestMethod]
         public void ValidatorSwitch()
         {
             var owner = PhantasmaKeys.Generate();
@@ -1093,7 +1094,7 @@ namespace Phantasma.LegacyTests
             var tx = simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript().
                     AllowGas(owner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
-                    CallContract(Nexus.ValidatorContractName, "SetValidator", secondValidator.Address, 1, ValidatorType.Primary).
+                    CallContract(NativeContractKind.Validator, "SetValidator", secondValidator.Address, 1, ValidatorType.Primary).
                     SpendGas(owner.Address).
                     EndScript());
             var block = simulator.EndBlock().First();
@@ -1108,7 +1109,7 @@ namespace Phantasma.LegacyTests
             tx = simulator.GenerateCustomTransaction(secondValidator, ProofOfWork.None, () =>
             ScriptUtils.BeginScript().
                 AllowGas(secondValidator.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
-                CallContract(Nexus.ValidatorContractName, "SetValidator", secondValidator.Address, 1, ValidatorType.Primary).
+                CallContract(NativeContractKind.Validator, "SetValidator", secondValidator.Address, 1, ValidatorType.Primary).
                 SpendGas(secondValidator.Address).
                 EndScript());
             block = simulator.EndBlock().First();
@@ -1144,7 +1145,8 @@ namespace Phantasma.LegacyTests
 
                 //TODO needs to be checked again
                 //var currentValidator = currentValidatorIndex == 0 ? owner : secondValidator;
-                var currentValidator = (simulator.Nexus.RootChain.GetValidator(simulator.Nexus.RootStorage, simulator.CurrentTime) == owner.Address) ? owner : secondValidator;
+                // .GetValidator(simulator.Nexus.RootStorage, simulator.CurrentTime)
+                var currentValidator = (simulator.Nexus.RootChain.ValidatorAddress == owner.Address) ? owner : secondValidator;
 
                 simulator.BeginBlock(currentValidator);
                 simulator.GenerateTransfer(testUserA, testUserB.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
@@ -1164,7 +1166,7 @@ namespace Phantasma.LegacyTests
             // Send from user A to user B
             // NOTE this block is baked by the second validator
             
-        }*/
+        }
 
         private void SkipToValidatorIndex(NexusSimulator simulator, int i)
         {
@@ -1495,106 +1497,6 @@ namespace Phantasma.LegacyTests
             Assert.IsTrue(inflation);
         }
 
-
-        [TestMethod]
-        public void PriceOracle()
-        {
-            var owner = PhantasmaKeys.Generate();
-
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.Moderate,
-                () => ScriptUtils.BeginScript()
-                    .CallInterop("Oracle.Price", "SOUL")
-                    .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
-                    .SpendGas(owner.Address)
-                    .EndScript());
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.Moderate,
-                () => ScriptUtils.BeginScript()
-                    .CallInterop("Oracle.Price", "SOUL")
-                    .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 9997)
-                    .SpendGas(owner.Address)
-                    .EndScript());
-            var block = simulator.EndBlock().First();
-
-            foreach (var txHash in block.TransactionHashes)
-            {
-                var blkResult = block.GetResultForTransaction(txHash);
-                var vmObj = VMObject.FromBytes(blkResult);
-                Console.WriteLine("price: " + vmObj);
-            }
-
-            //TODO finish test
-        }
-
-        [TestMethod]
-        public void OracleData()
-        {
-            var owner = PhantasmaKeys.Generate();
-
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.Moderate,
-                () => ScriptUtils.BeginScript()
-                    .CallInterop("Oracle.Price", "SOUL")
-                    .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
-                    .SpendGas(owner.Address)
-                    .EndScript());
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.Moderate,
-                () => ScriptUtils.BeginScript()
-                    .CallInterop("Oracle.Price", "KCAL")
-                    .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
-                    .SpendGas(owner.Address)
-                    .EndScript());
-            var block1 = simulator.EndBlock().First();
-
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.Moderate,
-                () => ScriptUtils.BeginScript()
-                    .CallInterop("Oracle.Price", "SOUL")
-                    .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
-                    .SpendGas(owner.Address)
-                    .EndScript());
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.Moderate,
-                () => ScriptUtils.BeginScript()
-                    .CallInterop("Oracle.Price", "KCAL")
-                    .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
-                    .SpendGas(owner.Address)
-                    .EndScript());
-            var block2 = simulator.EndBlock().First();
-
-            var oData1 = block1.OracleData.Count();
-            var oData2 = block2.OracleData.Count();
-
-            Console.WriteLine("odata1: " + oData1);
-            Console.WriteLine("odata2: " + oData2);
-
-            Assert.IsTrue(oData1 == oData2);
-        }
-
-        [TestMethod]
-        public void DuplicateTransferTest()
-        {
-            var owner = PhantasmaKeys.Generate();
-
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-
-            var target = PhantasmaKeys.Generate();
-
-            simulator.BeginBlock();
-            var tx1 = simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, 1);
-            var tx2 = simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, 1);
-
-            Assert.IsTrue(tx1.Hash == tx2.Hash);
-
-            simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
-        }
     }
 
 }

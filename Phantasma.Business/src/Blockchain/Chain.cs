@@ -220,13 +220,21 @@ namespace Phantasma.Business.Blockchain
                     return (type, "Gas fee too low");
                 }
 
-                var maxGas = gasPrice * gasLimit;
+                var minGasRequired = gasPrice * gasLimit;
                 var balance = GetTokenBalance(this.Storage, DomainSettings.FuelTokenSymbol, from);
-                if (balance < maxGas)
+                if (balance < minGasRequired)
                 {
                     var type = CodeType.MissingFuel;
                     Log.Information("check tx error {MissingFuel} {Hash}", type, tx.Hash);
-                    return (type, "Missing fuel");
+
+                    if (balance == 0)
+                    {
+                        return (type, $"Missing fuel, {from} has 0 {DomainSettings.FuelTokenSymbol}");
+                    }
+                    else
+                    {
+                        return (type, $"Missing fuel, {from} has {UnitConversion.ToDecimal(balance, DomainSettings.FuelTokenDecimals)} {DomainSettings.FuelTokenSymbol} expected at least {UnitConversion.ToDecimal(minGasRequired, DomainSettings.FuelTokenDecimals)} {DomainSettings.FuelTokenSymbol}");
+                    }
                 }
             }
 

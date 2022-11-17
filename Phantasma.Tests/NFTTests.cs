@@ -76,11 +76,11 @@ public class NFTTests
         Assert.IsTrue(currentSupply == 1, "why supply did not increase?");
 
         var testScript = new ScriptBuilder().CallNFT(symbol, 0, "getName", tokenID).EndScript();
-        var temp  = simulator.Nexus.RootChain.InvokeScript(simulator.Nexus.RootStorage, testScript);
+        var temp = simulator.Nexus.RootChain.InvokeScript(simulator.Nexus.RootStorage, testScript);
         var testResult = temp.AsString();
         Assert.IsTrue(testResult == "CoolToken");
     }
-    
+
     [TestMethod]
     public void NftBurn()
     {
@@ -287,7 +287,7 @@ public class NFTTests
         var chain = nexus.RootChain;
 
         var symbol = "COOL";
-        
+
         var testUser = PhantasmaKeys.Generate();
 
         // Create the token CoolToken as an NFT
@@ -327,7 +327,7 @@ public class NFTTests
 
         // Mint several nfts to test limit per tx
         simulator.BeginBlock();
-        for (int i=1; i<=nftCount; i++)
+        for (int i = 1; i <= nftCount; i++)
         {
             var tokenROM = BitConverter.GetBytes(i);
             simulator.MintNonFungibleToken(owner, testUser.Address, symbol, tokenROM, tokenRAM, 0);
@@ -452,5 +452,11 @@ public class NFTTests
         nft = nexus.ReadNFT(nexus.RootStorage, symbol, tokenId);
         Assert.IsTrue(nft.ROM.SequenceEqual(tokenROM) || nft.RAM.SequenceEqual(tokenRAM),
             "And why is this NFT different than expected? Not the same data");
+    }
+
+    [TestMethod]
+    public void NftInfuse()
+    {
+        Assert.IsTrue(false, "not implemented");
     }
 }

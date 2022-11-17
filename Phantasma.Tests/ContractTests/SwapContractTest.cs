@@ -39,6 +39,7 @@ public class SwapContractTest
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 100000000);
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 100000000);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
         var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
@@ -56,7 +57,8 @@ public class SwapContractTest
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
-        
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
         var currentSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         var currentKcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
 
