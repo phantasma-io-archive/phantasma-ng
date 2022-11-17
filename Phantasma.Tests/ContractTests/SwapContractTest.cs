@@ -1,5 +1,6 @@
 using System.Numerics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
@@ -22,6 +23,13 @@ public class SwapContractTest
         var testUser = PhantasmaKeys.Generate();
 
         simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 9999)
+                .CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.StakingTokenSymbol, 100000000)
+                .CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.FuelTokenSymbol, 10000000000)
+                .SpendGas(owner.Address)
+                .EndScript());
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 100000000);
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 100000000);
         simulator.EndBlock();
@@ -36,15 +44,17 @@ public class SwapContractTest
 
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-            ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
-                .CallContract("swap", "SwapTokens", testUser.Address, DomainSettings.StakingTokenSymbol, DomainSettings.FuelTokenSymbol, swapAmount).
-                SpendGas(testUser.Address).EndScript());
+            ScriptUtils.BeginScript()
+                .AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                .CallContract("swap", "SwapTokens", testUser.Address, DomainSettings.StakingTokenSymbol, DomainSettings.FuelTokenSymbol, swapAmount)
+                .SpendGas(testUser.Address)
+                .EndScript());
         simulator.EndBlock();
-
+        
         var currentSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         var currentKcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
 
-        Assert.IsTrue(currentSoulBalance < startingSoulBalance);
+        Assert.IsTrue(currentSoulBalance < startingSoulBalance, $"{currentSoulBalance} < {startingSoulBalance}");
         Assert.IsTrue(currentKcalBalance > startingKcalBalance);
     }
     
