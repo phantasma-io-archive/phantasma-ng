@@ -76,7 +76,7 @@ namespace Phantasma.Simulator
 
             if (nexus == null)
             {
-                nexus = new Nexus("simnet", null, _currentValidator);
+                nexus = new Nexus("simnet");
                 nexus.SetOracleReader(new OracleSimulator(nexus));
             }
 
@@ -392,6 +392,8 @@ namespace Phantasma.Simulator
                         {
 
                             var proposerAddress = _currentValidator.Address.TendermintAddress;
+
+                            chain.ValidatorKeys = _currentValidator;
 
                             var pendingTxs = chain.BeginBlock(proposerAddress, chain.Height + 1, MinimumFee, this.CurrentTime, CurrentValidatorAddresses).ToList();
                             pendingTxs.AddRange(transactions);

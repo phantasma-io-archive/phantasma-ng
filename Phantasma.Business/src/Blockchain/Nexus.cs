@@ -62,7 +62,7 @@ public class Nexus : INexus
     /// <summary>
     /// The constructor bootstraps the main chain and all core side chains.
     /// </summary>
-    public Nexus(string name, Func<string, IKeyValueStoreAdapter> adapterFactory = null, PhantasmaKeys owner = null)
+    public Nexus(string name, Func<string, IKeyValueStoreAdapter> adapterFactory = null)
     {
         _adapterFactory = adapterFactory;
 
