@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -245,6 +246,12 @@ namespace Phantasma.Business.Blockchain
             return (CodeType.Ok, "");
         }
 
+        internal void FlushExtCalls()
+        {
+            // make it null here to force next txs received to rebuild it
+            _methodTableForGasExtraction = null;
+        }
+
         private Dictionary<string, int> GenerateMethodTable()
         {
             var table = DisasmUtils.GetDefaultDisasmTable();
@@ -262,6 +269,18 @@ namespace Phantasma.Business.Blockchain
                 table.AddContractToTable(contract);
             }
 
+            var tokens = this.Nexus.GetTokens(Nexus.RootStorage);
+            foreach (var symbol in tokens)
+            {
+                if (Nexus.IsSystemToken(symbol))
+                {
+                    continue;
+                }
+
+                var token = Nexus.GetTokenInfo(Nexus.RootStorage, symbol);
+                table.AddTokenToTable(token);
+            }
+
             return table;
         }
 
@@ -276,6 +295,10 @@ namespace Phantasma.Business.Blockchain
         {
             // TODO return block events
             // TODO validator update
+
+            // TODO currently the managing of the ABI cache is broken so we have to call this at end of the block
+            ((Chain)Nexus.RootChain).FlushExtCalls();
+
             return new List<T>();
         }
 
@@ -777,8 +800,7 @@ namespace Phantasma.Business.Blockchain
             var contractList = new StorageList(GetContractListKey(), storage);
             contractList.Add<Address>(contractAddress);
 
-            // make it null here to force next txs received to rebuild it
-            _methodTableForGasExtraction = null;
+            FlushExtCalls();
 
             return true;
         }
@@ -854,8 +876,7 @@ namespace Phantasma.Business.Blockchain
             var abiBytes = abi.ToByteArray();
             storage.Put(abiKey, abiBytes);
 
-            // make it null here to force next txs received to rebuild it
-            _methodTableForGasExtraction = null;
+            FlushExtCalls();
         }
 
         public void KillContract(StorageContext storage, string name)

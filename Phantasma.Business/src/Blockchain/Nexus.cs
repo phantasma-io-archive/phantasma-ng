@@ -579,6 +579,14 @@ public class Nexus : INexus
         var tokenList = this.GetSystemList(TokenTag, storage);
         tokenList.Add(symbol);
 
+        // we need to flush every chain ABI cache otherwise calls to the new token methods wont work
+        var chainNames = GetChains(RootStorage);
+        foreach (var chainName in chainNames)
+        {
+            var chain = GetChainByName(chainName) as Chain;
+            chain.FlushExtCalls();
+        }
+
         return tokenInfo;
     }
 
