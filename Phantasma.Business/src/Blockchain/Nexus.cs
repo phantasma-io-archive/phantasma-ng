@@ -1337,7 +1337,7 @@ public class Nexus : INexus
         else
         if (Name != DomainSettings.NexusMainnet)
         {
-            validatorInitialBalance *= 2; // extra funding for testnet / simnet
+            validatorInitialBalance *= 10; // extra funding for testnet / simnet
         }
 
         // initial SOUL distribution to validators
