@@ -1222,6 +1222,34 @@ namespace Phantasma.Simulator
             var txCost = Nexus.RootChain.GetTransactionFee(tx);
             
         }
+
+        public bool LastBlockWasSuccessful()
+        {
+            var chain = Nexus.RootChain;
+            var block_hash = chain.GetBlockHashAtHeight(chain.Height);
+            if (block_hash.IsNull)
+            {
+                return false;
+            }
+
+            var block = chain.GetBlockByHash(block_hash);
+            if (block == null)
+            {
+                return false;
+            }
+
+            foreach (var tx_hash in block.TransactionHashes)
+            {
+                var state = block.GetStateForTransaction(tx_hash);
+                if (state == ExecutionState.Fault)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
     }
 
 }
