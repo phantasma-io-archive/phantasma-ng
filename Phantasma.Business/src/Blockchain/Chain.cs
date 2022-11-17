@@ -287,6 +287,11 @@ namespace Phantasma.Business.Blockchain
 
             try
             {
+                if (CurrentTransactions.Any(x => x.Hash == tx.Hash))
+                {
+                    throw new ChainException("Duplicated transaction hash");
+                }
+
                 CurrentTransactions.Add(tx);
                 var txIndex = CurrentTransactions.Count - 1;
                 var oracle = Nexus.GetOracleReader();

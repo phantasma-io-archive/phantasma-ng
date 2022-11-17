@@ -1587,8 +1587,11 @@ namespace Phantasma.LegacyTests
             var target = PhantasmaKeys.Generate();
 
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, 1);
-            simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, 1);
+            var tx1 = simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, 1);
+            var tx2 = simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, 1);
+
+            Assert.IsTrue(tx1.Hash == tx2.Hash);
+
             simulator.EndBlock();
             Assert.IsFalse(simulator.LastBlockWasSuccessful());
         }
