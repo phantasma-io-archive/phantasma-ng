@@ -283,7 +283,16 @@ namespace Phantasma.Core.Domain
 
         public void SetStateForHash(Hash hash, ExecutionState state)
         {
-            _stateMap[hash] = state;
+            switch (state)
+            {
+                case ExecutionState.Fault:
+                case ExecutionState.Halt:
+                    _stateMap[hash] = state;
+                    break;
+
+                default:
+                    throw new ChainException($"A transaction with state {state} cannot be saved inside a block!");
+            }
         }
 
         public void SerializeData(BinaryWriter writer)

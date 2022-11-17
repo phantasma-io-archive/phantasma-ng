@@ -76,7 +76,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             var chain = _nexus.RootChain as Chain;
 
             IEnumerable<Transaction> systemTransactions;
-            systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, this._initialValidators); 
+            systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, Timestamp.Now, this._initialValidators); 
         }
         catch (Exception e)
         {
