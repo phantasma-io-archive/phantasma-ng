@@ -1369,8 +1369,8 @@ namespace Phantasma.LegacyTests
 
             var testUser = PhantasmaKeys.Generate();
 
-            var fuelAmount = UnitConversion.ToBigInteger(10000, DomainSettings.FuelTokenDecimals);
-            var stakeAmount = UnitConversion.ToBigInteger(50000, DomainSettings.StakingTokenDecimals);
+            var fuelAmount = UnitConversion.ToBigInteger(8000, DomainSettings.FuelTokenDecimals);
+            var stakeAmount = StakeContract.DefaultMasterThreshold;
 
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
