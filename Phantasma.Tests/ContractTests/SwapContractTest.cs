@@ -1,10 +1,16 @@
+using System;
+using System.Linq;
 using System.Numerics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
+using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Simulator;
 
 namespace Phantasma.LegacyTests.ContractTests;
@@ -57,6 +63,8 @@ public class SwapContractTest
         Assert.IsTrue(currentSoulBalance < startingSoulBalance, $"{currentSoulBalance} < {startingSoulBalance}");
         Assert.IsTrue(currentKcalBalance > startingKcalBalance);
     }
+    
+    
     
     /*
         [TestMethod]

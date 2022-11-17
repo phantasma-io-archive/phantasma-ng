@@ -539,40 +539,7 @@ namespace Phantasma.LegacyTests
                     Assert.IsTrue(unclaimedAmount == 0);
                 }*/
         
-        [TestMethod]
-        public void TestInfiniteTokenTransfer()
-        {
-            var owner = PhantasmaKeys.Generate();
-
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-
-            simulator.BeginBlock();
-            simulator.GenerateToken(owner, "INFI", "infinity token", BigInteger.Zero, 8,
-            TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible);
-            simulator.EndBlock();
-
-            var user = PhantasmaKeys.Generate();
-
-            var infiToken = nexus.GetTokenInfo(nexus.RootStorage, "INFI");
-
-            var infiAmount = 1000 * UnitConversion.GetUnitValue(infiToken.Decimals);
-
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, user.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 100000000);
-            simulator.MintTokens(owner, owner.Address, infiToken.Symbol, infiAmount);
-            simulator.EndBlock();
-
-            var balance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, infiToken, owner.Address);
-            Assert.IsTrue(balance == infiAmount);
-
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, user.Address, nexus.RootChain, infiToken.Symbol, infiAmount);
-            simulator.EndBlock();
-
-            balance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, infiToken, user.Address);
-            Assert.IsTrue(balance == infiAmount);
-        }
+        
 
         [TestMethod]
         public void MapClearBug()
