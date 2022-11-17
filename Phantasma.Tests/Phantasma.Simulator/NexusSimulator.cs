@@ -44,7 +44,11 @@ namespace Phantasma.Simulator
 
         private Random _rnd;
         private List<PhantasmaKeys> _keys = new List<PhantasmaKeys>();
-        private PhantasmaKeys _owner;
+
+        private PhantasmaKeys[] _validators;
+        private PhantasmaKeys _currentValidator;
+
+        public IEnumerable<Address> CurrentValidatorAddresses => _validators.Select(x => x.Address);
 
         private Chain bankChain;
 
@@ -61,15 +65,18 @@ namespace Phantasma.Simulator
         public TimeSpan blockTimeSkip = TimeSpan.FromSeconds(2);
         public int MinimumFee => DomainSettings.DefaultMinimumGasFee;
 
-        private List<Address> initialValidators;
-
-        public NexusSimulator(PhantasmaKeys owner, int seed = 1234, Nexus nexus = null)
+        public NexusSimulator(PhantasmaKeys owner, int seed = 1234, Nexus nexus = null) : this(new PhantasmaKeys[] {owner}, seed, nexus)
         {
-            _owner = owner;
+        }
+
+        public NexusSimulator(PhantasmaKeys[] owners, int seed = 1234, Nexus nexus = null)
+        {
+            _validators = owners;
+            _currentValidator = owners[0];
 
             if (nexus == null)
             {
-                nexus = new Nexus("simnet", null, owner);
+                nexus = new Nexus("simnet", null, _currentValidator);
                 nexus.SetOracleReader(new OracleSimulator(nexus));
             }
 
@@ -77,9 +84,7 @@ namespace Phantasma.Simulator
 
             CurrentTime = new DateTime(2018, 8, 26, 0, 0, 0, DateTimeKind.Utc);
 
-            initialValidators = new List<Address>() { owner.Address, PhantasmaKeys.Generate().Address, PhantasmaKeys.Generate().Address, PhantasmaKeys.Generate().Address };
-
-            nexus.SetInitialValidators(initialValidators);
+            nexus.SetInitialValidators(CurrentValidatorAddresses);
 
             if (!Nexus.HasGenesis())
             {
@@ -94,11 +99,11 @@ namespace Phantasma.Simulator
             }
 
             _rnd = new Random(seed);
-            _keys.Add(_owner);
+            _keys.Add(_currentValidator);
 
             var oneFuel = UnitConversion.ToBigInteger(1, DomainSettings.FuelTokenDecimals);
             var token = Nexus.GetTokenInfo(Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
-            var localBalance = Nexus.RootChain.GetTokenBalance(Nexus.RootStorage, token, _owner.Address);
+            var localBalance = Nexus.RootChain.GetTokenBalance(Nexus.RootStorage, token, _currentValidator.Address);
 
             if (localBalance < oneFuel)
             {
@@ -159,22 +164,43 @@ namespace Phantasma.Simulator
             */
         }
 
+        public void TransferOwnerAssetsToAddress(Address target)
+        {
+            var rootChain = Nexus.RootChain;
+
+            BeginBlock();
+            foreach (var validator in _validators)
+            {
+                if (validator.Address == target)
+                {
+                    continue;
+                }
+
+                var balance = rootChain.GetTokenBalance(Nexus.RootStorage, DomainSettings.StakingTokenSymbol, validator.Address);
+                if (balance > 0)
+                {
+                    GenerateTransfer(validator, target, rootChain, DomainSettings.StakingTokenSymbol, balance);
+                }
+            }
+            EndBlock();
+        }
+
         private void InitGenesis()
         {
-            var genesisTx = Nexus.CreateGenesisTransaction(CurrentTime, _owner);
+            var genesisTx = Nexus.CreateGenesisTransaction(CurrentTime, _currentValidator);
             if (genesisTx == null)
             {
                 throw new ChainException("Genesis block failure");
             }
 
-            genesisTx.Sign(_owner);
+            genesisTx.Sign(_currentValidator);
 
             // genesis block
             BeginBlock();
             AddTransactionToPendingBlock(genesisTx, Nexus.RootChain);
             EndBlock();
 
-            var initialBalance = Nexus.RootChain.GetTokenBalance(Nexus.RootStorage, DomainSettings.StakingTokenSymbol, _owner.Address);
+            var initialBalance = Nexus.RootChain.GetTokenBalance(Nexus.RootStorage, DomainSettings.StakingTokenSymbol, _currentValidator.Address);
             // check if the owner address got at least enough tokens to be a SM
             Assert.IsTrue(initialBalance >= StakeContract.DefaultMasterThreshold);
 
@@ -264,7 +290,7 @@ namespace Phantasma.Simulator
 
         public void BeginBlock()
         {
-            BeginBlock(_owner);
+            BeginBlock(_currentValidator);
         }
 
         public void BeginBlock(PhantasmaKeys validator)
@@ -276,7 +302,7 @@ namespace Phantasma.Simulator
 
             this.blockValidator = validator;
 
-            _owner = validator;
+            _currentValidator = validator;
 
             transactions.Clear();
             txChainMap.Clear();
@@ -365,9 +391,9 @@ namespace Phantasma.Simulator
                         try
                         {
 
-                            var proposerAddress = _owner.Address.TendermintAddress;
+                            var proposerAddress = _currentValidator.Address.TendermintAddress;
 
-                            var pendingTxs = chain.BeginBlock(proposerAddress, chain.Height + 1, MinimumFee, initialValidators).ToList();
+                            var pendingTxs = chain.BeginBlock(proposerAddress, chain.Height + 1, MinimumFee, CurrentValidatorAddresses).ToList();
                             pendingTxs.AddRange(transactions);
 
                             foreach (var tx in pendingTxs)
@@ -1113,10 +1139,10 @@ namespace Phantasma.Simulator
             DateTime.SpecifyKind(CurrentTime, DateTimeKind.Utc);
 
             BeginBlock();
-            var tx = GenerateCustomTransaction(_owner, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_owner.Address, Address.Null, MinimumFee, 9999)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _owner.Address).
-                    SpendGas(_owner.Address).EndScript());
+            var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
+                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
+                    SpendGas(_currentValidator.Address).EndScript());
             EndBlock();
 
             var txCost = Nexus.RootChain.GetTransactionFee(tx);
@@ -1127,10 +1153,10 @@ namespace Phantasma.Simulator
             DateTime.SpecifyKind(CurrentTime, DateTimeKind.Utc);
 
             BeginBlock();
-            var tx = GenerateCustomTransaction(_owner, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_owner.Address, Address.Null, MinimumFee, 9999)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _owner.Address).
-                    SpendGas(_owner.Address).EndScript());
+            var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
+                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
+                    SpendGas(_currentValidator.Address).EndScript());
             EndBlock();
 
             var txCost = Nexus.RootChain.GetTransactionFee(tx);
@@ -1142,10 +1168,10 @@ namespace Phantasma.Simulator
             DateTime.SpecifyKind(CurrentTime, DateTimeKind.Utc);
 
             BeginBlock();
-            var tx = GenerateCustomTransaction(_owner, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_owner.Address, Address.Null, MinimumFee, 9999)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _owner.Address).
-                    SpendGas(_owner.Address).EndScript());
+            var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
+                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
+                    SpendGas(_currentValidator.Address).EndScript());
             EndBlock();
 
             var txCost = Nexus.RootChain.GetTransactionFee(tx);
@@ -1157,10 +1183,10 @@ namespace Phantasma.Simulator
             DateTime.SpecifyKind(CurrentTime, DateTimeKind.Utc);
 
             BeginBlock();
-            var tx = GenerateCustomTransaction(_owner, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_owner.Address, Address.Null, MinimumFee, 9999)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _owner.Address).
-                    SpendGas(_owner.Address).EndScript());
+            var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
+                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
+                    SpendGas(_currentValidator.Address).EndScript());
             EndBlock();
         }
 
@@ -1182,10 +1208,10 @@ namespace Phantasma.Simulator
             }
 
             BeginBlock();
-            var tx = GenerateCustomTransaction(_owner, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_owner.Address, Address.Null, MinimumFee, 9999)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _owner.Address).
-                    SpendGas(_owner.Address).EndScript());
+            var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
+                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
+                    SpendGas(_currentValidator.Address).EndScript());
             
             var blocks = EndBlock();
             if (block != null)

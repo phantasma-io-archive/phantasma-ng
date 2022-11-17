@@ -106,6 +106,8 @@ namespace Phantasma.LegacyTests
 
             /*var txCount = nexus.GetTotalTransactionCount();
             Assert.IsTrue(txCount > 0);*/
+
+            simulator.TransferOwnerAssetsToAddress(randomKey.Address);
         }
 
         
