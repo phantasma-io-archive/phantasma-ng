@@ -76,7 +76,7 @@ namespace Phantasma.LegacyTests
 
             var chainKeys = PhantasmaKeys.Generate();
             var hashes = txs.Select(x => x.Hash);
-            uint protocol = 42;
+            uint protocol = DomainSettings.LatestKnownProtocol;
 
             var oracleEntries = new OracleEntry[]
             {
@@ -94,6 +94,7 @@ namespace Phantasma.LegacyTests
                 var data = new TokenEventData(symbol, amounts[index], "main");
                 var dataBytes = Serialization.Serialize(data);
                 block.Notify(hash, new Event(EventKind.TokenSend, keysA.Address, "test", dataBytes));
+                block.SetStateForHash(hash, ExecutionState.Halt);
                 index++;
             }
 
