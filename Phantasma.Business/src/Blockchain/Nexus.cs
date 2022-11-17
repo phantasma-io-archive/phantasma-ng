@@ -600,6 +600,16 @@ public class Nexus : INexus
         return storage.Has(key);
     }
 
+    public bool IsSystemToken(string symbol)
+    {
+        if (DomainSettings.SystemTokens.Contains(symbol, StringComparer.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     public IToken GetTokenInfo(StorageContext storage, string symbol)
     {
         var key = GetTokenInfoKey(symbol);
@@ -632,7 +642,7 @@ public class Nexus : INexus
         var balances = new BalanceSheet(token);
         Runtime.Expect(balances.Add(Runtime.Storage, destination, amount), "balance add failed");
 
-        if (!Runtime.IsSystemToken(token))
+        if (!Runtime.IsSystemToken(token.Symbol))
         {
             // for non system tokens, the onMint trigger is mandatory
             var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
@@ -667,7 +677,7 @@ public class Nexus : INexus
         var ownerships = new OwnershipSheet(token.Symbol);
         Runtime.Expect(ownerships.Add(Runtime.Storage, destination, tokenID), "ownership add failed");
 
-        if (!Runtime.IsSystemToken(token))
+        if (!Runtime.IsSystemToken(token.Symbol))
         {
             // for non system tokens, the onMint trigger is mandatory
             var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;

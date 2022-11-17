@@ -72,5 +72,10 @@ namespace Phantasma.Core.Domain
 
             return Encoding.UTF8.GetBytes($"{prefix}{contractName}.{fieldName}");
         }
+
+        public override string ToString()
+        {
+            return Name;
+        }
     }
 }

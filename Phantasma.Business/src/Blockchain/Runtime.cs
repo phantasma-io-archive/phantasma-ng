@@ -447,20 +447,8 @@ namespace Phantasma.Business.Blockchain
 
         public bool IsSystemToken(string symbol)
         {
-            var info = GetToken(symbol);
-            return IsSystemToken(info);
+            return Nexus.IsSystemToken(symbol);
         }
-
-        public bool IsSystemToken(IToken token)
-        {
-            if (DomainSettings.SystemTokens.Contains(token.Symbol, StringComparer.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
 
         public bool IsMintingAddress(Address address, string symbol)
         {
