@@ -568,7 +568,7 @@ namespace Phantasma.LegacyTests
         }
 
 
-        /*
+        [Ignore]
         [TestMethod]
         public void SideChainTransferDifferentAccounts()
         {
@@ -634,6 +634,7 @@ namespace Phantasma.LegacyTests
             Assert.IsTrue(balance == leftoverAmount);
         }
 
+        [Ignore]
         [TestMethod]
         public void SideChainTransferSameAccount()
         {
@@ -707,6 +708,7 @@ namespace Phantasma.LegacyTests
             Assert.IsTrue(simulator.LastBlockWasSuccessful());
         }
 
+        [Ignore]
         [TestMethod]
         public void SideChainTransferMultipleSteps()
         {
@@ -792,7 +794,6 @@ namespace Phantasma.LegacyTests
 
             // TODO  verify balances
         }
-        */
 
 
         [TestMethod]
@@ -852,6 +853,7 @@ namespace Phantasma.LegacyTests
             Assert.IsTrue(transferBalance == 0, "Transaction failed completely as expected");
         }
 
+        [Ignore]
         [TestMethod]
         public void NoGasTestSideChainTransfer()
         {
@@ -923,14 +925,13 @@ namespace Phantasma.LegacyTests
 
             Assert.IsTrue(expectedAddress == input);
 
-            /*
             var simulator = new NexusSimulator(owner);
             var nexus = simulator.Nexus;
 
-            var genesisAddress = nexus.GetGenesisAddress(nexus.RootStorage);
+            var genesisAddress = simulator.CurrentValidatorAddresses.FirstOrDefault();
             Assert.IsTrue(address == genesisAddress);
             Assert.IsTrue(address.Text == genesisAddress.Text);
-            Assert.IsTrue(address.ToByteArray().SequenceEqual(genesisAddress.ToByteArray()));*/
+            Assert.IsTrue(address.ToByteArray().SequenceEqual(genesisAddress.ToByteArray()));
         }
 
         [TestMethod]
