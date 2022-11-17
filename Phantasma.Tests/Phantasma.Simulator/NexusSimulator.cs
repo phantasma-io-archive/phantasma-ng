@@ -166,6 +166,30 @@ namespace Phantasma.Simulator
             */
         }
 
+        public void GetFundsInTheFuture(PhantasmaKeys target)
+        {
+            TimeSkipYears(1);
+
+            BeginBlock();
+            foreach (var validator in _validators)
+            {
+                if (validator.Address == target.Address)
+                {
+                    continue;
+                }
+
+                GenerateCustomTransaction(validator, ProofOfWork.None, () =>
+                    ScriptUtils.BeginScript()
+                        .AllowGas(validator.Address, Address.Null, MinimumFee, DefaultGasLimit)
+                        .CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), validator.Address, validator.Address)
+                        .SpendGas(validator.Address)
+                        .EndScript());
+            }
+            EndBlock();
+            
+            TransferOwnerAssetsToAddress(target.Address);
+        }
+
         public void TransferOwnerAssetsToAddress(Address target)
         {
             var rootChain = Nexus.RootChain;
@@ -182,6 +206,12 @@ namespace Phantasma.Simulator
                 if (balance > 0)
                 {
                     GenerateTransfer(validator, target, rootChain, DomainSettings.StakingTokenSymbol, balance);
+                }
+                
+                var balanceKCAL = rootChain.GetTokenBalance(Nexus.RootStorage, DomainSettings.StakingTokenSymbol, validator.Address);
+                if (balanceKCAL > 0)
+                {
+                    GenerateTransfer(validator, target, rootChain, DomainSettings.FuelTokenSymbol, balanceKCAL - UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals));
                 }
             }
             EndBlock();
@@ -1144,9 +1174,11 @@ namespace Phantasma.Simulator
 
             BeginBlock();
             var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
-                    SpendGas(_currentValidator.Address).EndScript());
+                ScriptUtils.BeginScript()
+                    .AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
+                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address)
+                    .SpendGas(_currentValidator.Address)
+                    .EndScript());
             EndBlock();
 
             var txCost = Nexus.RootChain.GetTransactionFee(tx);
@@ -1158,9 +1190,11 @@ namespace Phantasma.Simulator
 
             BeginBlock();
             var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
-                    SpendGas(_currentValidator.Address).EndScript());
+                ScriptUtils.BeginScript()
+                    .AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
+                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address)
+                    .SpendGas(_currentValidator.Address)
+                    .EndScript());
             EndBlock();
 
             var txCost = Nexus.RootChain.GetTransactionFee(tx);
@@ -1170,12 +1204,14 @@ namespace Phantasma.Simulator
         {
             CurrentTime = CurrentTime.AddYears(years);
             DateTime.SpecifyKind(CurrentTime, DateTimeKind.Utc);
-
+            
             BeginBlock();
-            var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
-                    SpendGas(_currentValidator.Address).EndScript());
+            var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.Minimal, () =>
+                ScriptUtils.BeginScript()
+                    .AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
+                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address)
+                    .SpendGas(_currentValidator.Address)
+                    .EndScript());
             EndBlock();
 
             var txCost = Nexus.RootChain.GetTransactionFee(tx);
@@ -1214,8 +1250,9 @@ namespace Phantasma.Simulator
             BeginBlock();
             var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
-                    SpendGas(_currentValidator.Address).EndScript());
+                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address)
+                    .SpendGas(_currentValidator.Address)
+                    .EndScript());
             
             var blocks = EndBlock();
             if (block != null)

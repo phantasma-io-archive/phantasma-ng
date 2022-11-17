@@ -1044,7 +1044,7 @@ namespace Phantasma.LegacyTests
 
             var feeValue = nexus.RootChain.GetTransactionFee(hash);
             var feeAmount = UnitConversion.ToDecimal(feeValue, DomainSettings.FuelTokenDecimals);
-            Assert.IsTrue(feeAmount >= 0.0009m);
+            Assert.IsTrue(feeAmount >= 0.0009m, $"{feeAmount} >= 0.0009m");
 
             var token = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
             var finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUserB.Address);
@@ -1585,10 +1585,8 @@ namespace Phantasma.LegacyTests
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1);
             simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1);
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.EndBlock();
-            });
+            simulator.EndBlock();
+            
         }
     }
 
