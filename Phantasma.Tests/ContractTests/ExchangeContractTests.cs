@@ -449,25 +449,25 @@ public class ExchangeContractTests
         var seller = new ExchangeUser(baseSymbol, quoteSymbol, core);
 
         // Give Users tokens
-        seller.FundUser(soul: 5000m, kcal: 5000m);
+        seller.FundUser(soul: 500, kcal: 100);
 
         // Get Initial Balance
         var initialBalance = seller.GetBalance(baseSymbol);
 
         // Verify my Funds
-        Assert.IsTrue(initialBalance == UnitConversion.ToBigInteger(5000m, GetDecimals(baseSymbol)));
+        Assert.IsTrue(initialBalance == UnitConversion.ToBigInteger(500, GetDecimals(baseSymbol)));
 
         // Create OTC Offer
-        var txValue = seller.OpenOTCOrder(baseSymbol, quoteSymbol, 10m, 20m);
+        var txValue = seller.OpenOTCOrder(baseSymbol, quoteSymbol, 1m, 2m);
 
         // Test if the seller lost money.
         var finalBalance = seller.GetBalance(baseSymbol);
 
-        Assert.IsFalse(initialBalance == finalBalance);
+        Assert.IsFalse(initialBalance == finalBalance, $"{initialBalance} == {finalBalance}");
 
         // Test if lost the quantity used
-        var subtractSpendToken = initialBalance - UnitConversion.ToBigInteger(20m, GetDecimals(baseSymbol));
-        Assert.IsTrue(subtractSpendToken == finalBalance);
+        var subtractSpendToken = initialBalance - UnitConversion.ToBigInteger(2m, GetDecimals(baseSymbol));
+        Assert.IsTrue(subtractSpendToken == finalBalance, $"{subtractSpendToken} == {finalBalance}");
     }
 
     [TestMethod]
@@ -516,8 +516,8 @@ public class ExchangeContractTests
         var seller = new ExchangeUser(baseSymbol, quoteSymbol, core);
 
         // Give Users tokens
-        buyer.FundUser(soul: 5000m, kcal: 5000m);
-        seller.FundUser(soul: 5000m, kcal: 5000m);
+        buyer.FundUser(soul: 500, kcal: 50);
+        seller.FundUser(soul: 500, kcal: 50);
 
         // Get Initial Balance
         var initialBuyer_B = buyer.GetBalance(baseSymbol);
@@ -526,7 +526,7 @@ public class ExchangeContractTests
         var initialSeller_Q = seller.GetBalance(quoteSymbol);
 
         // Create Order
-        var sellerTXFees = seller.OpenOTCOrder(baseSymbol, quoteSymbol, 5m, 10m);
+        var sellerTXFees = seller.OpenOTCOrder(baseSymbol, quoteSymbol, 5, 10);
 
         // Test if Seller lost balance
         var finalSeller_B = seller.GetBalance(baseSymbol);
@@ -569,13 +569,13 @@ public class ExchangeContractTests
         var seller = new ExchangeUser(baseSymbol, quoteSymbol, core);
 
         // Give Users tokens
-        seller.FundUser(soul: 5000m, kcal: 5000m);
+        seller.FundUser(soul: 500, kcal: 50);
 
         // Get Initial Balance
         var initialBalance = seller.GetBalance(baseSymbol);
 
         // Create OTC Offer
-        seller.OpenOTCOrder(baseSymbol, quoteSymbol, 10m, 50m);
+        seller.OpenOTCOrder(baseSymbol, quoteSymbol, 1m, 5m);
 
         // Test if the seller lost money.
         var finalBalance = seller.GetBalance(baseSymbol);
@@ -583,7 +583,7 @@ public class ExchangeContractTests
         Assert.IsFalse(initialBalance == finalBalance);
 
         // Test if lost the quantity used
-        Assert.IsTrue((initialBalance - UnitConversion.ToBigInteger(50m, GetDecimals(baseSymbol))) == finalBalance);
+        Assert.IsTrue((initialBalance - UnitConversion.ToBigInteger(5m, GetDecimals(baseSymbol))) == finalBalance);
 
         // Cancel Order
         // Get Order UID
@@ -1159,9 +1159,11 @@ public class ExchangeContractTests
             // Create OTC Order
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(user.Address, Address.Null, 1, 9999)
-                    .CallContract("exchange", "OpenOTCOrder", user.Address, baseSymbol, quoteSymbol, amountBigint, priceBigint).
-                    SpendGas(user.Address).EndScript());
+                ScriptUtils.BeginScript()
+                    .AllowGas(user.Address, Address.Null, 1, 9999)
+                    .CallContract(NativeContractKind.Exchange, nameof(OpenOTCOrder), user.Address, baseSymbol, quoteSymbol, amountBigint, priceBigint)
+                    .SpendGas(user.Address)
+                    .EndScript());
             simulator.EndBlock();
 
             // Get Tx Cost

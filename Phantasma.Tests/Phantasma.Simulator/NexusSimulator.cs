@@ -50,6 +50,8 @@ namespace Phantasma.Simulator
 
         public IEnumerable<Address> CurrentValidatorAddresses => _validators.Select(x => x.Address);
 
+        public static BigInteger DefaultGasLimit = 999999;
+
         private Chain bankChain;
 
         private static readonly string[] accountNames = {
@@ -222,7 +224,7 @@ namespace Phantasma.Simulator
 
             /*
             BeginBlock();
-            GenerateCustomTransaction(_owner, 0, () => new ScriptBuilder().AllowGas(_owner.Address, Address.Null, MinimumFee, 9999).
+            GenerateCustomTransaction(_owner, 0, () => new ScriptBuilder().AllowGas(_owner.Address, Address.Null, MinimumFee, DefaultGasLimit).
                 CallInterop("Nexus.CreatePlatform", _owner.Address, neoPlatform, neoText, neoAddress, "GAS").
                 CallInterop("Nexus.CreatePlatform", _owner.Address, ethPlatform, ethText, ethAddress, "ETH").
                 CallInterop("Nexus.CreatePlatform", _owner.Address, bscPlatform, bscText, bscAddress, "BNB").
@@ -235,7 +237,7 @@ namespace Phantasma.Simulator
 
             GenerateCustomTransaction(_owner, ProofOfWork.None, () =>
             {
-                return new ScriptBuilder().AllowGas(_owner.Address, Address.Null, MinimumFee, 99999).
+                return new ScriptBuilder().AllowGas(_owner.Address, Address.Null, MinimumFee, DefaultGasLimit).
                 CallInterop("Nexus.CreateOrganization", _owner.Address, orgID, "Phantom Force", orgScript).
                 CallInterop("Organization.AddMember", _owner.Address, orgID, _owner.Address).
                 TransferTokens(DomainSettings.StakingTokenSymbol, _owner.Address, orgAddress, orgFunding).
@@ -256,7 +258,7 @@ namespace Phantasma.Simulator
             BeginBlock();
             GenerateCustomTransaction(_owner, ProofOfWork.None, () =>
             {
-                return new ScriptBuilder().AllowGas(_owner.Address, Address.Null, MinimumFee, 99999).
+                return new ScriptBuilder().AllowGas(_owner.Address, Address.Null, MinimumFee, DefaultGasLimit).
                 CallContract(NativeContractKind.Sale, nameof(SaleContract.CreateSale), _owner.Address, "Mankini sale", SaleFlags.None, (Timestamp)(this.CurrentTime + TimeSpan.FromHours(5)), (Timestamp)(this.CurrentTime + TimeSpan.FromDays(5)), "MKNI", DomainSettings.StakingTokenSymbol, 7, 0, 1000, 1, 100).
                 SpendGas(_owner.Address).
                 EndScript();
@@ -268,7 +270,7 @@ namespace Phantasma.Simulator
             //BeginBlock();
             //GenerateCustomTransaction(_owner, ProofOfWork.Minimal, () =>
             //{
-            //    return new ScriptBuilder().AllowGas(_owner.Address, Address.Null, MinimumFee, 99999).
+            //    return new ScriptBuilder().AllowGas(_owner.Address, Address.Null, MinimumFee, DefaultGasLimit).
             //    CallInterop("Nexus.SetTokenPlatformHash", "SOUL", ethPlatform, Hash.FromUnpaddedHex("53d5bdb2c8797218f8a0e11e997c4ab84f0b40ce")). // eth ropsten testnet hash
             //    CallInterop("Nexus.SetTokenPlatformHash", "KCAL", ethPlatform, Hash.FromUnpaddedHex("67B132A32E7A3c4Ba7dEbedeFf6290351483008f")). // eth ropsten testnet hash
             //    SpendGas(_owner.Address).
@@ -629,7 +631,7 @@ namespace Phantasma.Simulator
 
             var sb = ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, MinimumFee, 9999);
+                AllowGas(owner.Address, Address.Null, MinimumFee, DefaultGasLimit);
 
             if (version >= 4)
             {
@@ -704,7 +706,7 @@ namespace Phantasma.Simulator
 
             var script = ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, MinimumFee, 9999).
+                AllowGas(owner.Address, Address.Null, MinimumFee, DefaultGasLimit).
                 MintTokens(symbol, owner.Address, destination, amount).
                 SpendGas(owner.Address).
                 EndScript();
@@ -733,7 +735,7 @@ namespace Phantasma.Simulator
 
             var sb = ScriptUtils.
                 BeginScript().
-                AllowGas(source.Address, Address.Null, MinimumFee, 9999);
+                AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit);
 
             if (targetAddress != source.Address)
             {
@@ -765,7 +767,7 @@ namespace Phantasma.Simulator
         public Transaction GenerateAccountRegistration(PhantasmaKeys source, string name)
         {
             var sourceChain = this.Nexus.RootChain;
-            var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, 9999).CallContract(NativeContractKind.Account, nameof(AccountContract.RegisterName), source.Address, name).SpendGas(source.Address).EndScript();
+            var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit).CallContract(NativeContractKind.Account, nameof(AccountContract.RegisterName), source.Address, name).SpendGas(source.Address).EndScript();
             var tx = MakeTransaction(source, ProofOfWork.Minimal, sourceChain as Chain, script);
 
             pendingNames.Add(source.Address);
@@ -777,7 +779,7 @@ namespace Phantasma.Simulator
             Throw.IfNull(parentchain, nameof(parentchain));
 
             var script = ScriptUtils.BeginScript().
-                AllowGas(source.Address, Address.Null, MinimumFee, 9999).
+                AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit).
                 CallInterop("Nexus.CreateChain", source.Address, organization, name, parentchain).
                 SpendGas(source.Address).EndScript();
 
@@ -821,7 +823,7 @@ namespace Phantasma.Simulator
             }
 
             var script = ScriptUtils.BeginScript().
-                AllowGas(source.Address, Address.Null, MinimumFee, 9999).
+                AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit).
                 TransferTokens(tokenSymbol, source.Address, dest, amount).
                 SpendGas(source.Address).
                 EndScript();
@@ -834,7 +836,7 @@ namespace Phantasma.Simulator
         {
             var script = ScriptUtils.BeginScript().
                 CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapTokens), source.Address, fromSymbol, toSymbol, amount).
-                AllowGas(source.Address, Address.Null, MinimumFee, 9999).
+                AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit).
                 SpendGas(source.Address).
                 EndScript();
             var tx = MakeTransaction(source, ProofOfWork.None, chain, script);
@@ -843,14 +845,14 @@ namespace Phantasma.Simulator
 
         public Transaction GenerateNftTransfer(PhantasmaKeys source, Address dest, IChain chain, string tokenSymbol, BigInteger tokenId)
         {
-            var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, 9999).CallInterop("Runtime.TransferToken", source.Address, dest, tokenSymbol, tokenId).SpendGas(source.Address).EndScript();
+            var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit).CallInterop("Runtime.TransferToken", source.Address, dest, tokenSymbol, tokenId).SpendGas(source.Address).EndScript();
             var tx = MakeTransaction(source, ProofOfWork.None, chain, script);
             return tx;
         }
 
         public Transaction GenerateNftBurn(PhantasmaKeys source, IChain chain, string tokenSymbol, BigInteger tokenId)
         {
-            var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, 9999).CallInterop("Runtime.BurnToken", source.Address, tokenSymbol, tokenId).SpendGas(source.Address).EndScript();
+            var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit).CallInterop("Runtime.BurnToken", source.Address, tokenSymbol, tokenId).SpendGas(source.Address).EndScript();
             var tx = MakeTransaction(source, ProofOfWork.None, chain, script);
             return tx;
         }
@@ -858,7 +860,7 @@ namespace Phantasma.Simulator
         public Transaction GenerateNftSale(PhantasmaKeys source, IChain chain, string tokenSymbol, BigInteger tokenId, BigInteger price)
         {
             Timestamp endDate = this.CurrentTime + TimeSpan.FromDays(5);
-            var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, 9999).CallContract(NativeContractKind.Market, nameof(MarketContract.SellToken), source.Address, tokenSymbol, DomainSettings.FuelTokenSymbol, tokenId, price, endDate).SpendGas(source.Address).EndScript();
+            var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit).CallContract(NativeContractKind.Market, nameof(MarketContract.SellToken), source.Address, tokenSymbol, DomainSettings.FuelTokenSymbol, tokenId, price, endDate).SpendGas(source.Address).EndScript();
             var tx = MakeTransaction(source, ProofOfWork.None, chain, script);
             return tx;
         }
@@ -868,7 +870,7 @@ namespace Phantasma.Simulator
             var chain = Nexus.RootChain;
             var script = ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, MinimumFee, 9999).
+                AllowGas(owner.Address, Address.Null, MinimumFee, DefaultGasLimit).
                 CallInterop("Runtime.MintToken", owner.Address, destination, tokenSymbol, rom, ram, seriesID).  
                 SpendGas(owner.Address).
                 EndScript();
@@ -882,7 +884,7 @@ namespace Phantasma.Simulator
             var chain = Nexus.RootChain;
             var script = ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, MinimumFee, 9999).
+                AllowGas(owner.Address, Address.Null, MinimumFee, DefaultGasLimit).
                 CallInterop("Runtime.InfuseToken", owner.Address, tokenSymbol, tokenID, infuseSymbol, value).
                 SpendGas(owner.Address).
                 EndScript();
@@ -894,7 +896,7 @@ namespace Phantasma.Simulator
         public Transaction GenerateSetTokenMetadata(PhantasmaKeys source, string tokenSymbol, string key, string value)
         {
             var chain = Nexus.RootChain;
-            var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, 9999).CallInterop("Runtime.SetMetadata", source.Address, tokenSymbol, key, value).SpendGas(source.Address).EndScript();
+            var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit).CallInterop("Runtime.SetMetadata", source.Address, tokenSymbol, key, value).SpendGas(source.Address).EndScript();
             var tx = MakeTransaction(source, ProofOfWork.None, chain as Chain, script);
 
             return tx;
@@ -927,7 +929,7 @@ namespace Phantasma.Simulator
                 var prevTxCount = transactions.Count;
 
                 var sourceChain = Nexus.RootChain;
-                var fee = 9999;
+                var fee = DefaultGasLimit;
 
                 string tokenSymbol;
 
@@ -1142,7 +1144,7 @@ namespace Phantasma.Simulator
 
             BeginBlock();
             var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, 9999)
+                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
                     SpendGas(_currentValidator.Address).EndScript());
             EndBlock();
@@ -1156,7 +1158,7 @@ namespace Phantasma.Simulator
 
             BeginBlock();
             var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, 9999)
+                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
                     SpendGas(_currentValidator.Address).EndScript());
             EndBlock();
@@ -1171,7 +1173,7 @@ namespace Phantasma.Simulator
 
             BeginBlock();
             var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, 9999)
+                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
                     SpendGas(_currentValidator.Address).EndScript());
             EndBlock();
@@ -1186,7 +1188,7 @@ namespace Phantasma.Simulator
 
             BeginBlock();
             var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, 9999)
+                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
                     SpendGas(_currentValidator.Address).EndScript());
             EndBlock();
@@ -1211,7 +1213,7 @@ namespace Phantasma.Simulator
 
             BeginBlock();
             var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, 9999)
+                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
                     SpendGas(_currentValidator.Address).EndScript());
             
