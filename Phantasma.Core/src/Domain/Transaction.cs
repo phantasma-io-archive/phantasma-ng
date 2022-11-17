@@ -135,7 +135,10 @@ namespace Phantasma.Core.Domain
 
         public void Sign(IKeyPair keypair, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
         {
-            Throw.If(keypair == null, "invalid keypair");
+            if (keypair == null)
+            {
+                throw new ChainException("Cannot sign with a null keypair");
+            }
 
             var msg = this.ToByteArray(false);
 
