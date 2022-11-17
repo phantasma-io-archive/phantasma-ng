@@ -80,7 +80,7 @@ namespace Phantasma.Business.Blockchain
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
         }
 
-        public IEnumerable<Transaction> BeginBlock(string proposerAddress, BigInteger height, BigInteger minimumFee, IEnumerable<Address> availableValidators)
+        public IEnumerable<Transaction> BeginBlock(string proposerAddress, BigInteger height, BigInteger minimumFee, Timestamp timestamp, IEnumerable<Address> availableValidators)
         {
             // should never happen
             if (this.CurrentBlock != null)
@@ -118,7 +118,7 @@ namespace Phantasma.Business.Blockchain
 
             this.CurrentBlock = new Block(height
                 , this.Address
-                , Timestamp.Now
+                , timestamp
                 , isFirstBlock ? Hash.Null : lastBlock.Hash
                 , protocol
                 , validatorAddress

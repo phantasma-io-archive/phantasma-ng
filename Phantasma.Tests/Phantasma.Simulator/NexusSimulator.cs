@@ -393,7 +393,7 @@ namespace Phantasma.Simulator
 
                             var proposerAddress = _currentValidator.Address.TendermintAddress;
 
-                            var pendingTxs = chain.BeginBlock(proposerAddress, chain.Height + 1, MinimumFee, CurrentValidatorAddresses).ToList();
+                            var pendingTxs = chain.BeginBlock(proposerAddress, chain.Height + 1, MinimumFee, this.CurrentTime, CurrentValidatorAddresses).ToList();
                             pendingTxs.AddRange(transactions);
 
                             foreach (var tx in pendingTxs)
