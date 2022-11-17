@@ -1344,7 +1344,7 @@ public class Nexus : INexus
         foreach (var validator in _initialValidators)
         {
             sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, validator, validatorInitialBalance);
-            sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(1000, DomainSettings.FuelTokenDecimals));
+            sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(10000, DomainSettings.FuelTokenDecimals));
 
             // requires staking token to be created previously
             sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), validator, StakeContract.DefaultMasterThreshold);

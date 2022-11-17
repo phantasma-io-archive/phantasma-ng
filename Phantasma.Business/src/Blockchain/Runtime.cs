@@ -1327,6 +1327,10 @@ namespace Phantasma.Business.Blockchain
             var fuelCost = GetGovernanceValue(DomainSettings.FuelPerTokenDeployTag);
             // governance value is in usd fiat, here convert from fiat to fuel amount
             fuelCost = this.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
+
+            var fuelBalance = this.GetBalance(DomainSettings.FuelTokenSymbol, owner);
+            Expect(fuelBalance >= fuelCost, $"{UnitConversion.ToDecimal(fuelCost, DomainSettings.FuelTokenDecimals)} {DomainSettings.FuelTokenSymbol} required to create a token but {owner} has only {UnitConversion.ToDecimal(fuelBalance, DomainSettings.FuelTokenDecimals)} {DomainSettings.FuelTokenSymbol}");
+
             // burn the "cost" tokens
             BurnTokens(DomainSettings.FuelTokenSymbol, owner, fuelCost);
 

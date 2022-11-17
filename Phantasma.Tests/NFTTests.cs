@@ -33,6 +33,7 @@ public class NFTTests
         simulator.BeginBlock();
         simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
         Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
@@ -49,6 +50,7 @@ public class NFTTests
         simulator.BeginBlock();
         simulator.MintNonFungibleToken(owner, testUser.Address, symbol, tokenROM, tokenRAM, 0);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         // obtain tokenID
         ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
@@ -99,6 +101,7 @@ public class NFTTests
         simulator.BeginBlock();
         simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Burnable, null, null, null, (uint)seriesID);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         var series = nexus.GetTokenSeries(nexus.RootStorage, symbol, seriesID);
 
@@ -109,6 +112,7 @@ public class NFTTests
         simulator.GenerateTransfer(owner, testUser.Address, chain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.FuelTokenDecimals));
         simulator.GenerateTransfer(owner, testUser.Address, chain, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals));
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
         Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
@@ -125,6 +129,7 @@ public class NFTTests
         simulator.BeginBlock();
         simulator.MintNonFungibleToken(owner, testUser.Address, symbol, tokenROM, tokenRAM, seriesID);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         // obtain tokenID
         ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
@@ -155,6 +160,7 @@ public class NFTTests
         simulator.BeginBlock();
         simulator.InfuseNonFungibleToken(testUser, symbol, tokenId, infuseSymbol, infuseAmount);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         nft = nexus.ReadNFT(nexus.RootStorage, symbol, tokenId);
         Assert.IsTrue(nft.Infusion.Length == 1); // should have something infused now
@@ -171,6 +177,7 @@ public class NFTTests
         simulator.BeginBlock();
         simulator.GenerateNftBurn(testUser, chain, symbol, tokenId);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         //verify the user no longer has the token
         ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
@@ -208,11 +215,13 @@ public class NFTTests
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, sender.Address, chain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.FuelTokenDecimals));
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         // Create the token CoolToken as an NFT
         simulator.BeginBlock();
         simulator.GenerateToken(owner, symbol, nftName, 0, 0, TokenFlags.Transferable);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
         Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
@@ -229,6 +238,7 @@ public class NFTTests
         simulator.BeginBlock();
         simulator.MintNonFungibleToken(owner, sender.Address, symbol, tokenROM, tokenRAM, 0);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         // obtain tokenID
         ownedTokenList = ownerships.Get(chain.Storage, sender.Address);
@@ -253,6 +263,7 @@ public class NFTTests
         simulator.BeginBlock();
         var txA = simulator.GenerateNftTransfer(sender, receiver.Address, chain, symbol, tokenId);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         // verify nft presence on the receiver post-transfer
         ownedTokenList = ownerships.Get(chain.Storage, receiver.Address);
@@ -283,6 +294,7 @@ public class NFTTests
         simulator.BeginBlock();
         simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         var tokenAddress = TokenUtils.GetContractAddress(symbol);
         var storageStakeAmount = UnitConversion.ToBigInteger(100000, DomainSettings.StakingTokenDecimals);
@@ -298,7 +310,7 @@ public class NFTTests
                 SpendGas(owner.Address).
                 EndScript());
         simulator.EndBlock();
-
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
 
@@ -321,6 +333,7 @@ public class NFTTests
             simulator.MintNonFungibleToken(owner, testUser.Address, symbol, tokenROM, tokenRAM, 0);
         }
         var block = simulator.EndBlock().First();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         Assert.IsTrue(block.TransactionCount == nftCount);
 
@@ -363,6 +376,7 @@ public class NFTTests
         simulator.GenerateTransfer(owner, sender.Address, sourceChain, DomainSettings.FuelTokenSymbol, fullAmount);
         simulator.GenerateChain(owner, DomainSettings.ValidatorsOrganizationName, "main", "test");
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         var targetChain = nexus.GetChainByName("test");
 
@@ -370,6 +384,7 @@ public class NFTTests
         simulator.BeginBlock();
         simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
         Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
@@ -386,6 +401,7 @@ public class NFTTests
         simulator.BeginBlock();
         simulator.MintNonFungibleToken(owner, sender.Address, symbol, tokenROM, tokenRAM, 0);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         // obtain tokenID
         ownedTokenList = ownerships.Get(sourceChain.Storage, sender.Address);
@@ -412,6 +428,7 @@ public class NFTTests
         simulator.BeginBlock();
         var txA = simulator.GenerateSideChainSend(sender, symbol, sourceChain, receiver.Address, targetChain, tokenId, extraFee);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         var blockAHash = nexus.RootChain.GetLastBlockHash();
         var blockA = nexus.RootChain.GetBlockByHash(blockAHash);
