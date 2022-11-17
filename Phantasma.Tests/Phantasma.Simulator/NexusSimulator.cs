@@ -67,7 +67,7 @@ namespace Phantasma.Simulator
         public TimeSpan blockTimeSkip = TimeSpan.FromSeconds(2);
         public int MinimumFee => DomainSettings.DefaultMinimumGasFee;
 
-        public NexusSimulator(PhantasmaKeys owner, int seed = 1234, Nexus nexus = null) : this(new PhantasmaKeys[] {owner}, seed, nexus)
+        public NexusSimulator(PhantasmaKeys owner, int seed = 1234, Nexus nexus = null) : this(new PhantasmaKeys[] { owner }, seed, nexus)
         {
         }
 
@@ -84,7 +84,7 @@ namespace Phantasma.Simulator
 
             this.Nexus = nexus;
 
-            CurrentTime = new DateTime(2018, 8, 26, 0, 0, 0, DateTimeKind.Utc);
+            CurrentTime = Timestamp.Now; // (Timestamp) new DateTime(2018, 8, 26, 0, 0, 0, DateTimeKind.Utc)
 
             nexus.SetInitialValidators(CurrentValidatorAddresses);
 
@@ -432,6 +432,13 @@ namespace Phantasma.Simulator
 
                             foreach (var tx in pendingTxs)
                             {
+                                var check = chain.CheckTx(tx);
+
+                                if (check.Item1 != CodeType.Ok)
+                                {
+                                    throw new ChainException("Transaction rejected: "+ check.Item2);
+                                }
+
                                 var result = chain.DeliverTx(tx);
 
                                 if (result.State != ExecutionState.Halt)
