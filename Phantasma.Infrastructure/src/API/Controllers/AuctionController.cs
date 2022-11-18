@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -27,7 +28,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                 throw new APIException("Market not available");
             }
 
-            IEnumerable<MarketAuction> entries = (MarketAuction[])chain.InvokeContract(chain.Storage, "market", "GetAuctions").ToObject();
+            IEnumerable<MarketAuction> entries = (MarketAuction[])chain.InvokeContractAtTimestamp(chain.Storage, Timestamp.Now, "market", "GetAuctions").ToObject();
 
             if (!string.IsNullOrEmpty(symbol))
             {
@@ -66,7 +67,7 @@ namespace Phantasma.Infrastructure.API.Controllers
 
             var paginatedResult = new PaginatedResult();
 
-            IEnumerable<MarketAuction> entries = (MarketAuction[])chain.InvokeContract(chain.Storage, "market", "GetAuctions").ToObject();
+            IEnumerable<MarketAuction> entries = (MarketAuction[])chain.InvokeContractAtTimestamp(chain.Storage, Timestamp.Now, "market", "GetAuctions").ToObject();
 
             if (!string.IsNullOrEmpty(symbol))
             {
@@ -131,13 +132,13 @@ namespace Phantasma.Infrastructure.API.Controllers
 
             var nft = nexus.ReadNFT(nexus.RootStorage, symbol, ID);
 
-            var forSale = chain.InvokeContract(chain.Storage, "market", "HasAuction", symbol, ID).AsBool();
+            var forSale = chain.InvokeContractAtTimestamp(chain.Storage, Timestamp.Now, "market", "HasAuction", symbol, ID).AsBool();
             if (!forSale)
             {
                 throw new APIException("Token not for sale");
             }
 
-            var auction = (MarketAuction)chain.InvokeContract(chain.Storage, "market", "GetAuction", symbol, ID).ToObject();
+            var auction = (MarketAuction)chain.InvokeContractAtTimestamp(chain.Storage, Timestamp.Now, "market", "GetAuction", symbol, ID).ToObject();
 
             return new AuctionResult()
             {

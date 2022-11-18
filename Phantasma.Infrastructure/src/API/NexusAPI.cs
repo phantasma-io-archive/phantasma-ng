@@ -13,6 +13,7 @@ using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 using Tendermint.RPC;
 
@@ -490,12 +491,12 @@ public static class NexusAPI
 
         var storage = new StorageResult();
 
-        storage.used = (uint)Nexus.RootChain.InvokeContract(Nexus.RootChain.Storage, "storage", nameof(StorageContract.GetUsedSpace), address).AsNumber();
-        storage.available = (uint)Nexus.RootChain.InvokeContract(Nexus.RootChain.Storage, "storage", nameof(StorageContract.GetAvailableSpace), address).AsNumber();
+        storage.used = (uint)Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetUsedSpace), address).AsNumber();
+        storage.available = (uint)Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetAvailableSpace), address).AsNumber();
 
         if (storage.used > 0)
         {
-            var files = (Hash[])Nexus.RootChain.InvokeContract(Nexus.RootChain.Storage, "storage", nameof(StorageContract.GetFiles), address).ToObject();
+            var files = (Hash[])Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetFiles), address).ToObject();
 
             Hash avatarHash = Hash.Null;
             storage.archives = files.Select(x => {
@@ -539,14 +540,14 @@ public static class NexusAPI
 
         var result = new AccountResult();
         result.address = address.Text;
-        result.name = Nexus.RootChain.GetNameFromAddress(Nexus.RootStorage, address);
+        result.name = Nexus.RootChain.GetNameFromAddress(Nexus.RootStorage, address, Timestamp.Now);
 
-        var stake = Nexus.GetStakeFromAddress(Nexus.RootStorage, address);
+        var stake = Nexus.GetStakeFromAddress(Nexus.RootStorage, address, Timestamp.Now);
 
         if (stake > 0)
         {
-            var unclaimed = Nexus.GetUnclaimedFuelFromAddress(Nexus.RootStorage, address);
-            var time = Nexus.GetStakeTimestampOfAddress(Nexus.RootStorage, address);
+            var unclaimed = Nexus.GetUnclaimedFuelFromAddress(Nexus.RootStorage, address, Timestamp.Now);
+            var time = Nexus.GetStakeTimestampOfAddress(Nexus.RootStorage, address, Timestamp.Now);
             result.stakes = new StakeResult() { amount = stake.ToString(), time = time.Value, unclaimed = unclaimed.ToString() };
         }
         else
@@ -560,7 +561,7 @@ public static class NexusAPI
         result.stake = result.stakes.amount;
         result.unclaimed = result.stakes.unclaimed;
 
-        var validator = Nexus.GetValidatorType(address);
+        var validator = Nexus.GetValidatorType(address, Timestamp.Now);
 
         var balanceList = new List<BalanceResult>();
         var symbols = Nexus.GetTokens(Nexus.RootStorage);

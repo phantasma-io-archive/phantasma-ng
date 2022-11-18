@@ -515,7 +515,7 @@ namespace Phantasma.Node.Interop
 
             var nexus = NexusAPI.GetNexus();
 
-            var hash = (Hash)nexus.RootChain.InvokeContract(nexus.RootStorage, "interop", nameof(InteropContract.GetSettlement), sourcePlatform, sourceHash).ToObject();
+            var hash = (Hash)nexus.RootChain.InvokeContractAtTimestamp(nexus.RootStorage, Timestamp.Now, "interop", nameof(InteropContract.GetSettlement), sourcePlatform, sourceHash).ToObject();
             if (hash != Hash.Null && !settlements.ContainsKey<Hash>(sourceHash))
             {
                 // This modification should be locked when GetSettleHash() is called from SettleSwap(),

@@ -27,9 +27,6 @@ public interface IChain
     BigInteger[] GetOwnedTokens(StorageContext storage, string tokenSymbol, Address address);
     VMObject InvokeContractAtTimestamp(StorageContext storage, Timestamp time, NativeContractKind nativeContract, string methodName, params object[] args);
     VMObject InvokeContractAtTimestamp(StorageContext storage, Timestamp time, string contractName, string methodName, params object[] args);
-    VMObject InvokeContract(StorageContext storage, NativeContractKind nativeContract, string methodName, params object[] args);
-    VMObject InvokeContract(StorageContext storage, string contractName, string methodName, params object[] args);
-    VMObject InvokeScript(StorageContext storage, byte[] script);
     VMObject InvokeScript(StorageContext storage, byte[] script, Timestamp time);
     BigInteger GenerateUID(StorageContext storage);
     BigInteger GetBlockReward(Block block);
@@ -62,6 +59,6 @@ public interface IChain
     bool StopTask(StorageContext storage, BigInteger taskID);
     IChainTask GetTask(StorageContext storage, BigInteger taskID);
     void CloseBlock(Block block, StorageChangeSetContext storage);
-    Address LookUpName(StorageContext storage, string name);
-    string GetNameFromAddress(StorageContext storage, Address address);
+    Address LookUpName(StorageContext storage, string name, Timestamp timestamp);
+    string GetNameFromAddress(StorageContext storage, Address address, Timestamp timestamp);
 }
