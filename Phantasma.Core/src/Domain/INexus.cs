@@ -44,6 +44,7 @@ public interface INexus
     OracleFeed GetFeedInfo(StorageContext storage, string name);
     IToken CreateToken(StorageContext storage, string symbol, string name, Address owner, BigInteger maxSupply, int decimals, TokenFlags flags, byte[] script, ContractInterface abi = null);
     bool TokenExists(StorageContext storage, string symbol);
+    bool IsSystemToken(string symbol);
     IToken GetTokenInfo(StorageContext storage, string symbol);
     IToken GetTokenInfo(StorageContext storage, Address contractAddress);
     void MintToken(IRuntime Runtime, IToken token, Address source, Address destination, string sourceChain, BigInteger tokenID);

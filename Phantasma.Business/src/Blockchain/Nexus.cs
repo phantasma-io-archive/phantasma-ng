@@ -579,6 +579,14 @@ public class Nexus : INexus
         var tokenList = this.GetSystemList(TokenTag, storage);
         tokenList.Add(symbol);
 
+        // we need to flush every chain ABI cache otherwise calls to the new token methods wont work
+        var chainNames = GetChains(RootStorage);
+        foreach (var chainName in chainNames)
+        {
+            var chain = GetChainByName(chainName) as Chain;
+            chain.FlushExtCalls();
+        }
+
         return tokenInfo;
     }
 
@@ -598,6 +606,16 @@ public class Nexus : INexus
     {
         var key = GetTokenInfoKey(symbol);
         return storage.Has(key);
+    }
+
+    public bool IsSystemToken(string symbol)
+    {
+        if (DomainSettings.SystemTokens.Contains(symbol, StringComparer.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public IToken GetTokenInfo(StorageContext storage, string symbol)
@@ -632,7 +650,7 @@ public class Nexus : INexus
         var balances = new BalanceSheet(token);
         Runtime.Expect(balances.Add(Runtime.Storage, destination, amount), "balance add failed");
 
-        if (!Runtime.IsSystemToken(token))
+        if (!Runtime.IsSystemToken(token.Symbol))
         {
             // for non system tokens, the onMint trigger is mandatory
             var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
@@ -667,7 +685,7 @@ public class Nexus : INexus
         var ownerships = new OwnershipSheet(token.Symbol);
         Runtime.Expect(ownerships.Add(Runtime.Storage, destination, tokenID), "ownership add failed");
 
-        if (!Runtime.IsSystemToken(token))
+        if (!Runtime.IsSystemToken(token.Symbol))
         {
             // for non system tokens, the onMint trigger is mandatory
             var tokenTrigger = isSettlement ? TokenTrigger.OnReceive : TokenTrigger.OnMint;
@@ -1344,7 +1362,7 @@ public class Nexus : INexus
         foreach (var validator in _initialValidators)
         {
             sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, validator, validatorInitialBalance);
-            sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(1000, DomainSettings.FuelTokenDecimals));
+            sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, validator, UnitConversion.ToBigInteger(10000, DomainSettings.FuelTokenDecimals));
 
             // requires staking token to be created previously
             sb.CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), validator, StakeContract.DefaultMasterThreshold);

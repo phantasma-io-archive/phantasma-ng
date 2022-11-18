@@ -1004,13 +1004,12 @@ namespace Phantasma.Business.Blockchain
                     throw new VMException(vm, $"Minting system token {symbol} not allowed");
                 }
             }
-
-            var tokenContextName = symbol.ToLower();
-            var tokenContext = vm.FindContext(tokenContextName);
-
-            if (hasGenesis)
+            else
             {
-                if (tokenContext.Name != vm.CurrentContext.Name)
+                var tokenContext = vm.FindContext(symbol);
+
+                // TODO review this
+                if (tokenContext.Name != vm.CurrentContext.Name && vm.NexusName == DomainSettings.NexusMainnet) 
                 {
                     throw new VMException(vm, $"Minting token {symbol} not allowed from this context");
                 }
@@ -1086,10 +1085,10 @@ namespace Phantasma.Business.Blockchain
                 throw new VMException(vm, $"Minting system token {symbol} not allowed");
             }
 
-            var tokenContextName = symbol.ToLower();
-            var tokenContext = vm.FindContext(tokenContextName);
+            var tokenContext = vm.FindContext(symbol);
 
-            if (tokenContext.Name != vm.CurrentContext.Name)
+            // TODO review this
+            if (tokenContext.Name != vm.CurrentContext.Name && vm.NexusName == DomainSettings.NexusMainnet)
             {
                 throw new VMException(vm, $"Minting token {symbol} not allowed from this context");
             }
@@ -1120,10 +1119,10 @@ namespace Phantasma.Business.Blockchain
             var symbol = vm.PopString("symbol");
             var tokenID = vm.PopNumber("token ID");
 
-            var tokenContextName = symbol.ToLower();
-            var tokenContext = vm.FindContext(tokenContextName);
+            var tokenContext = vm.FindContext(symbol);
 
-            if (tokenContext.Name != vm.CurrentContext.Name)
+            // TODO review this
+            if (tokenContext.Name != vm.CurrentContext.Name && vm.NexusName == DomainSettings.NexusMainnet)
             {
                 throw new VMException(vm, $"Burning token {symbol} not allowed from this context");
             }

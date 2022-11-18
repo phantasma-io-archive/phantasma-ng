@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -135,8 +136,11 @@ namespace Phantasma.Business.Blockchain
                 {
                     var senderAddress = this.CurrentBlock.Validator;
 
+                    // NOTE inflation is a expensive transaction so it requires a larger gas limit compared to other transactions
+                    var requiredGasLimit = Transaction.DefaultGasLimit * 4;
+
                     var script = new ScriptBuilder()
-                        .AllowGas(senderAddress, Address.Null, minimumFee, Transaction.DefaultGasLimit)
+                        .AllowGas(senderAddress, Address.Null, minimumFee, requiredGasLimit)
                         .CallContract(NativeContractKind.Gas, nameof(GasContract.ApplyInflation), this.CurrentBlock.Validator)
                         .SpendGas(senderAddress)
                         .EndScript();
@@ -216,13 +220,21 @@ namespace Phantasma.Business.Blockchain
                     return (type, "Gas fee too low");
                 }
 
-                var maxGas = gasPrice * gasLimit;
+                var minGasRequired = gasPrice * gasLimit;
                 var balance = GetTokenBalance(this.Storage, DomainSettings.FuelTokenSymbol, from);
-                if (balance < maxGas)
+                if (balance < minGasRequired)
                 {
                     var type = CodeType.MissingFuel;
                     Log.Information("check tx error {MissingFuel} {Hash}", type, tx.Hash);
-                    return (type, "Missing fuel");
+
+                    if (balance == 0)
+                    {
+                        return (type, $"Missing fuel, {from} has 0 {DomainSettings.FuelTokenSymbol}");
+                    }
+                    else
+                    {
+                        return (type, $"Missing fuel, {from} has {UnitConversion.ToDecimal(balance, DomainSettings.FuelTokenDecimals)} {DomainSettings.FuelTokenSymbol} expected at least {UnitConversion.ToDecimal(minGasRequired, DomainSettings.FuelTokenDecimals)} {DomainSettings.FuelTokenSymbol}");
+                    }
                 }
             }
 
@@ -242,6 +254,12 @@ namespace Phantasma.Business.Blockchain
             return (CodeType.Ok, "");
         }
 
+        internal void FlushExtCalls()
+        {
+            // make it null here to force next txs received to rebuild it
+            _methodTableForGasExtraction = null;
+        }
+
         private Dictionary<string, int> GenerateMethodTable()
         {
             var table = DisasmUtils.GetDefaultDisasmTable();
@@ -259,6 +277,18 @@ namespace Phantasma.Business.Blockchain
                 table.AddContractToTable(contract);
             }
 
+            var tokens = this.Nexus.GetTokens(Nexus.RootStorage);
+            foreach (var symbol in tokens)
+            {
+                if (Nexus.IsSystemToken(symbol))
+                {
+                    continue;
+                }
+
+                var token = Nexus.GetTokenInfo(Nexus.RootStorage, symbol);
+                table.AddTokenToTable(token);
+            }
+
             return table;
         }
 
@@ -273,6 +303,10 @@ namespace Phantasma.Business.Blockchain
         {
             // TODO return block events
             // TODO validator update
+
+            // TODO currently the managing of the ABI cache is broken so we have to call this at end of the block
+            ((Chain)Nexus.RootChain).FlushExtCalls();
+
             return new List<T>();
         }
 
@@ -284,6 +318,11 @@ namespace Phantasma.Business.Blockchain
 
             try
             {
+                if (CurrentTransactions.Any(x => x.Hash == tx.Hash))
+                {
+                    throw new ChainException("Duplicated transaction hash");
+                }
+
                 CurrentTransactions.Add(tx);
                 var txIndex = CurrentTransactions.Count - 1;
                 var oracle = Nexus.GetOracleReader();
@@ -769,8 +808,7 @@ namespace Phantasma.Business.Blockchain
             var contractList = new StorageList(GetContractListKey(), storage);
             contractList.Add<Address>(contractAddress);
 
-            // make it null here to force next txs received to rebuild it
-            _methodTableForGasExtraction = null;
+            FlushExtCalls();
 
             return true;
         }
@@ -846,8 +884,7 @@ namespace Phantasma.Business.Blockchain
             var abiBytes = abi.ToByteArray();
             storage.Put(abiKey, abiBytes);
 
-            // make it null here to force next txs received to rebuild it
-            _methodTableForGasExtraction = null;
+            FlushExtCalls();
         }
 
         public void KillContract(StorageContext storage, string name)

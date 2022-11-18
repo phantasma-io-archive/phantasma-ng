@@ -447,20 +447,8 @@ namespace Phantasma.Business.Blockchain
 
         public bool IsSystemToken(string symbol)
         {
-            var info = GetToken(symbol);
-            return IsSystemToken(info);
+            return Nexus.IsSystemToken(symbol);
         }
-
-        public bool IsSystemToken(IToken token)
-        {
-            if (DomainSettings.SystemTokens.Contains(token.Symbol, StringComparer.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
 
         public bool IsMintingAddress(Address address, string symbol)
         {
@@ -1327,6 +1315,10 @@ namespace Phantasma.Business.Blockchain
             var fuelCost = GetGovernanceValue(DomainSettings.FuelPerTokenDeployTag);
             // governance value is in usd fiat, here convert from fiat to fuel amount
             fuelCost = this.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
+
+            var fuelBalance = this.GetBalance(DomainSettings.FuelTokenSymbol, owner);
+            Expect(fuelBalance >= fuelCost, $"{UnitConversion.ToDecimal(fuelCost, DomainSettings.FuelTokenDecimals)} {DomainSettings.FuelTokenSymbol} required to create a token but {owner} has only {UnitConversion.ToDecimal(fuelBalance, DomainSettings.FuelTokenDecimals)} {DomainSettings.FuelTokenSymbol}");
+
             // burn the "cost" tokens
             BurnTokens(DomainSettings.FuelTokenSymbol, owner, fuelCost);
 
