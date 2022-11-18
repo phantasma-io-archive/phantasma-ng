@@ -1,5 +1,6 @@
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -11,7 +12,7 @@ namespace Phantasma.Infrastructure.API.Controllers
         {
             var nexus = NexusAPI.GetNexus();
 
-            var validators = nexus.GetValidators().
+            var validators = nexus.GetValidators(Timestamp.Now).
                 Where(x => !x.address.IsNull).
                 Select(x => new ValidatorResult() { address = x.address.ToString(), type = x.type.ToString() });
 

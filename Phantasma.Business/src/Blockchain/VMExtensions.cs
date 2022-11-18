@@ -86,7 +86,7 @@ namespace Phantasma.Business.Blockchain
                         {
                             return Address.FromText(text);
                         }
-                        return vm.Chain.LookUpName(vm.Storage, text);
+                        return vm.Chain.LookUpName(vm.Storage, text, vm.Time);
                     }
 
                 case VMType.Bytes:

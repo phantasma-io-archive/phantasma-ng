@@ -101,12 +101,12 @@ public class SaleContractTest
 
                 expectedAmount += saleRate * DomainExtensions.ConvertBaseToQuote(null, purchaseAmount, UnitConversion.GetUnitValue(decimals), baseToken, quoteToken);
 
-                resultObj = nexus.RootChain.InvokeContract(nexus.RootStorage, NativeContractKind.Sale, nameof(SaleContract.GetSoldAmount), saleHash);
+                resultObj = simulator.InvokeContract(NativeContractKind.Sale, nameof(SaleContract.GetSoldAmount), saleHash);
                 var raisedAmount = resultObj.AsNumber();
 
                 Assert.IsTrue(raisedAmount == expectedAmount);
 
-                resultObj = nexus.RootChain.InvokeContract(nexus.RootStorage, NativeContractKind.Sale, nameof(SaleContract.GetPurchasedAmount), saleHash, saleBuyer.Address);
+                resultObj = simulator.InvokeContract(NativeContractKind.Sale, nameof(SaleContract.GetPurchasedAmount), saleHash, saleBuyer.Address);
                 var purchasedAmount = resultObj.AsNumber();
 
                 Assert.IsTrue(purchasedAmount == expectedAmount);
@@ -133,7 +133,7 @@ public class SaleContractTest
 
                 expectedAmount += saleRate * DomainExtensions.ConvertBaseToQuote(null, otherPurchaseAmount, UnitConversion.GetUnitValue(decimals), baseToken, quoteToken);
 
-                resultObj = nexus.RootChain.InvokeContract(nexus.RootStorage, NativeContractKind.Sale, nameof(SaleContract.GetSoldAmount), saleHash);
+                resultObj = simulator.InvokeContract(NativeContractKind.Sale, nameof(SaleContract.GetSoldAmount), saleHash);
                 var raisedAmount = resultObj.AsNumber();
 
                 Assert.IsTrue(raisedAmount == expectedAmount);
@@ -141,7 +141,7 @@ public class SaleContractTest
 
             simulator.TimeSkipDays(4);
 
-            resultObj = nexus.RootChain.InvokeContract(nexus.RootStorage, NativeContractKind.Sale, nameof(SaleContract.GetSoldAmount), saleHash);
+            resultObj = simulator.InvokeContract(NativeContractKind.Sale, nameof(SaleContract.GetSoldAmount), saleHash);
             var totalSoldAmount = resultObj.AsNumber();
 
             simulator.BeginBlock();

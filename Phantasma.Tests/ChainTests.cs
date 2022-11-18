@@ -100,10 +100,10 @@ namespace Phantasma.LegacyTests
             /*var children = nexus.GetChildChainsByName(nexus.RootStorage, rootChain.Name);
             Assert.IsTrue(children.Any());*/
 
-            Assert.IsTrue(nexus.IsPrimaryValidator(owner.Address));
+            Assert.IsTrue(nexus.IsPrimaryValidator(owner.Address, simulator.CurrentTime));
 
             var randomKey = PhantasmaKeys.Generate();
-            Assert.IsFalse(nexus.IsPrimaryValidator(randomKey.Address));
+            Assert.IsFalse(nexus.IsPrimaryValidator(randomKey.Address, simulator.CurrentTime));
 
             /*var txCount = nexus.GetTotalTransactionCount();
             Assert.IsTrue(txCount > 0);*/
@@ -1477,9 +1477,8 @@ namespace Phantasma.LegacyTests
             // skip 3 months to reach next inflation date
             simulator.TimeSkipDays(90);
 
-            Block block = null;
             // we need to generate at least one block more to trigger inflation tx
-            simulator.TimeSkipDays(1, false, x => block = x);
+            Block block = simulator.TimeSkipDays(1);
 
             var inflation = false;
             foreach(var tx in block.TransactionHashes)

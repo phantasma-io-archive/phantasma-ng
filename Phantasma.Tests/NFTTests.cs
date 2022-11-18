@@ -62,7 +62,7 @@ public class NFTTests
 
         // check used storage
         var tokenAddress = TokenUtils.GetContractAddress(symbol);
-        var usedStorage = (int)nexus.RootChain.InvokeContract(nexus.RootChain.Storage, "storage", nameof(StorageContract.GetUsedSpace), tokenAddress).AsNumber();
+        var usedStorage = (int)simulator.InvokeContract("storage", nameof(StorageContract.GetUsedSpace), tokenAddress).AsNumber();
         var minExpectedSize = tokenROM.Length + tokenRAM.Length;
         Assert.IsTrue(usedStorage >= minExpectedSize);
 
@@ -76,7 +76,7 @@ public class NFTTests
         Assert.IsTrue(currentSupply == 1, "why supply did not increase?");
 
         var testScript = new ScriptBuilder().CallNFT(symbol, 0, "getName", tokenID).EndScript();
-        var temp = simulator.Nexus.RootChain.InvokeScript(simulator.Nexus.RootStorage, testScript);
+        var temp = simulator.InvokeScript(testScript);
         var testResult = temp.AsString();
         Assert.IsTrue(testResult == "CoolToken");
     }

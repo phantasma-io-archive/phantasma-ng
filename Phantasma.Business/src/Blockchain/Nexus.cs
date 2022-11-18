@@ -13,9 +13,9 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 using Serilog;
+using Timestamp = Phantasma.Core.Types.Timestamp;
 
 namespace Phantasma.Business.Blockchain;
 
@@ -215,7 +215,7 @@ public class Nexus : INexus
     }
 
     #region NAME SERVICE
-    public Address LookUpName(StorageContext storage, string name)
+    public Address LookUpName(StorageContext storage, string name, Timestamp timestamp)
     {
         if (!ValidationUtils.IsValidIdentifier(name))
         {
@@ -235,19 +235,19 @@ public class Nexus : INexus
         }
 
         var chain = RootChain;
-        return chain.InvokeContract(storage, NativeContractKind.Account, nameof(AccountContract.LookUpName), name).AsAddress();
+        return chain.InvokeContractAtTimestamp(storage, timestamp, NativeContractKind.Account, nameof(AccountContract.LookUpName), name).AsAddress();
     }
 
-    public byte[] LookUpAddressScript(StorageContext storage, Address address)
+    public byte[] LookUpAddressScript(StorageContext storage, Address address, Timestamp timestamp)
     {
         var chain = RootChain;
-        return chain.InvokeContract(storage, NativeContractKind.Account, nameof(AccountContract.LookUpScript), address).AsByteArray();
+        return chain.InvokeContractAtTimestamp(storage, timestamp, NativeContractKind.Account, nameof(AccountContract.LookUpScript), address).AsByteArray();
     }
 
-    public bool HasAddressScript(StorageContext storage, Address address)
+    public bool HasAddressScript(StorageContext storage, Address address, Timestamp timestamp)
     {
         var chain = RootChain;
-        return chain.InvokeContract(storage, NativeContractKind.Account, nameof(AccountContract.HasScript), address).AsBool();
+        return chain.InvokeContractAtTimestamp(storage, timestamp, NativeContractKind.Account, nameof(AccountContract.HasScript), address).AsBool();
     }
     #endregion
 
@@ -910,7 +910,7 @@ public class Nexus : INexus
 
         if (destination.IsSystem)
         {
-            var destName = Runtime.Chain.GetNameFromAddress(Runtime.Storage, destination);
+            var destName = Runtime.Chain.GetNameFromAddress(Runtime.Storage, destination, Runtime.Time);
             Runtime.Expect(destName != ValidationUtils.ANONYMOUS_NAME, "anonymous system address as destination");
         }
 
@@ -1634,15 +1634,15 @@ public class Nexus : INexus
         throw new NotImplementedException();
     }
 
-    public ValidatorEntry[] GetValidators()
+    public ValidatorEntry[] GetValidators(Timestamp timestamp)
     {
-        var validators = (ValidatorEntry[])RootChain.InvokeContract(this.RootStorage, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToObject();
+        var validators = (ValidatorEntry[])RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToObject();
         return validators;
     }
 
-    public int GetPrimaryValidatorCount()
+    public int GetPrimaryValidatorCount(Timestamp timestamp)
     {
-        var count = RootChain.InvokeContract(this.RootStorage, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
+        var count = RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
         if (count < 1)
         {
             return 1;
@@ -1650,19 +1650,19 @@ public class Nexus : INexus
         return (int)count;
     }
 
-    public int GetSecondaryValidatorCount()
+    public int GetSecondaryValidatorCount(Timestamp timestamp)
     {
-        var count = RootChain.InvokeContract(this.RootStorage, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
+        var count = RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
         return (int)count;
     }
 
-    public ValidatorType GetValidatorType(Address address)
+    public ValidatorType GetValidatorType(Address address, Timestamp timestamp)
     {
-        var result = RootChain.InvokeContract(this.RootStorage, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorType), address).AsEnum<ValidatorType>();
+        var result = RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorType), address).AsEnum<ValidatorType>();
         return result;
     }
 
-    public bool IsPrimaryValidator(Address address)
+    public bool IsPrimaryValidator(Address address, Timestamp timestamp)
     {
         if (address.IsNull)
         {
@@ -1674,54 +1674,54 @@ public class Nexus : INexus
             return _initialValidators.Contains(address);
         }
 
-        var result = GetValidatorType(address);
+        var result = GetValidatorType(address, timestamp);
         return result == ValidatorType.Primary;
     }
 
-    public bool IsSecondaryValidator(Address address)
+    public bool IsSecondaryValidator(Address address, Timestamp timestamp)
     {
-        var result = GetValidatorType(address);
+        var result = GetValidatorType(address, timestamp);
         return result == ValidatorType.Secondary;
     }
 
     // this returns true for both active and waiting
-    public bool IsKnownValidator(Address address)
+    public bool IsKnownValidator(Address address, Timestamp timestamp)
     {
-        var result = GetValidatorType(address);
+        var result = GetValidatorType(address, timestamp);
         return result != ValidatorType.Invalid;
     }
 
-    public BigInteger GetStakeFromAddress(StorageContext storage, Address address)
+    public BigInteger GetStakeFromAddress(StorageContext storage, Address address, Timestamp timestamp)
     {
-        var result = RootChain.InvokeContract(storage, NativeContractKind.Stake, nameof(StakeContract.GetStake), address).AsNumber();
+        var result = RootChain.InvokeContractAtTimestamp(storage, timestamp, NativeContractKind.Stake, nameof(StakeContract.GetStake), address).AsNumber();
         return result;
     }
 
-    public BigInteger GetUnclaimedFuelFromAddress(StorageContext storage, Address address)
+    public BigInteger GetUnclaimedFuelFromAddress(StorageContext storage, Address address, Timestamp timestamp)
     {
-        var result = RootChain.InvokeContract(storage, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), address).AsNumber();
+        var result = RootChain.InvokeContractAtTimestamp(storage, timestamp, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), address).AsNumber();
         return result;
     }
 
-    public Timestamp GetStakeTimestampOfAddress(StorageContext storage, Address address)
+    public Timestamp GetStakeTimestampOfAddress(StorageContext storage, Address address, Timestamp timestamp)
     {
-        var result = RootChain.InvokeContract(storage, NativeContractKind.Stake, nameof(StakeContract.GetStakeTimestamp), address).AsTimestamp();
+        var result = RootChain.InvokeContractAtTimestamp(storage, timestamp, NativeContractKind.Stake, nameof(StakeContract.GetStakeTimestamp), address).AsTimestamp();
         return result;
     }
 
-    public bool IsStakeMaster(StorageContext storage, Address address)
+    public bool IsStakeMaster(StorageContext storage, Address address, Timestamp timestamp)
     {
-        var stake = GetStakeFromAddress(storage, address);
+        var stake = GetStakeFromAddress(storage, address, timestamp);
         if (stake <= 0)
         {
             return false;
         }
 
-        var masterThresold = RootChain.InvokeContract(storage, NativeContractKind.Stake, nameof(StakeContract.GetMasterThreshold)).AsNumber();
+        var masterThresold = RootChain.InvokeContractAtTimestamp(storage, timestamp, NativeContractKind.Stake, nameof(StakeContract.GetMasterThreshold)).AsNumber();
         return stake >= masterThresold;
     }
 
-    public int GetIndexOfValidator(Address address)
+    public int GetIndexOfValidator(Address address, Timestamp timestamp)
     {
         if (!address.IsUser)
         {
@@ -1733,11 +1733,11 @@ public class Nexus : INexus
             return -1;
         }
 
-        var result = (int)RootChain.InvokeContract(this.RootStorage, NativeContractKind.Validator, nameof(ValidatorContract.GetIndexOfValidator), address).AsNumber();
+        var result = (int)RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetIndexOfValidator), address).AsNumber();
         return result;
     }
 
-    public ValidatorEntry GetValidatorByIndex(int index)
+    public ValidatorEntry GetValidatorByIndex(int index, Timestamp timestamp)
     {
         if (RootChain == null)
         {
@@ -1751,7 +1751,7 @@ public class Nexus : INexus
 
         Throw.If(index < 0, "invalid validator index");
 
-        var result = (ValidatorEntry)RootChain.InvokeContract(this.RootStorage, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorByIndex), (BigInteger)index).ToObject();
+        var result = (ValidatorEntry)RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorByIndex), (BigInteger)index).ToObject();
         return result;
     }
     #endregion
@@ -1912,12 +1912,12 @@ public class Nexus : INexus
     #endregion
 
     #region CHANNELS
-    public BigInteger GetRelayBalance(Address address)
+    public BigInteger GetRelayBalance(Address address, Timestamp timestamp)
     {
         var chain = RootChain;
         try
         {
-            var result = chain.InvokeContract(this.RootStorage, "relay", "GetBalance", address).AsNumber();
+            var result = chain.InvokeContractAtTimestamp(this.RootStorage, timestamp, "relay", "GetBalance", address).AsNumber();
             return result;
         }
         catch

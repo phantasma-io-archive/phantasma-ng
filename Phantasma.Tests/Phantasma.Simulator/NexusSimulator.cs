@@ -18,6 +18,7 @@ using Phantasma.Infrastructure.Pay.Chains;
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Akka.Util;
+using Phantasma.Core.Storage.Context;
 
 namespace Phantasma.Simulator
 {
@@ -343,7 +344,7 @@ namespace Phantasma.Simulator
             var readyNames = new List<Address>();
             foreach (var address in pendingNames)
             {
-                var currentName = Nexus.RootChain.GetNameFromAddress(Nexus.RootStorage, address);
+                var currentName = Nexus.RootChain.GetNameFromAddress(Nexus.RootStorage, address, CurrentTime);
                 if (currentName != ValidationUtils.ANONYMOUS_NAME)
                 {
                     readyNames.Add(address);
@@ -432,7 +433,7 @@ namespace Phantasma.Simulator
 
                             foreach (var tx in pendingTxs)
                             {
-                                var check = chain.CheckTx(tx);
+                                var check = chain.CheckTx(tx, CurrentTime);
 
                                 if (check.Item1 != CodeType.Ok)
                                 {
@@ -455,6 +456,8 @@ namespace Phantasma.Simulator
                             var commit = chain.Commit();
 
                             //block.Sign(this.blockValidator);
+
+                            System.Diagnostics.Debug.WriteLine(block.Timestamp);
 
                             blocks.Add(block);
 
@@ -1107,10 +1110,10 @@ namespace Phantasma.Simulator
                                         break;
                                 }
 
-                                var currentName = Nexus.RootChain.GetNameFromAddress(Nexus.RootStorage, source.Address);
+                                var currentName = Nexus.RootChain.GetNameFromAddress(Nexus.RootStorage, source.Address, CurrentTime);
                                 if (currentName == ValidationUtils.ANONYMOUS_NAME)
                                 {
-                                    var lookup = Nexus.LookUpName(Nexus.RootStorage, randomName);
+                                    var lookup = Nexus.LookUpName(Nexus.RootStorage, randomName, CurrentTime);
                                     if (lookup.IsNull)
                                     {
                                         Log($"Rnd.GenerateAccount: {source.Address} => {randomName}");
@@ -1174,70 +1177,38 @@ namespace Phantasma.Simulator
                 CancelBlock();
             }
         }
-        public void TimeSkipMinutes(int minutes)
+        public Block TimeSkipMinutes(int minutes)
         {
             CurrentTime = CurrentTime.AddMinutes(minutes);
             DateTime.SpecifyKind(CurrentTime, DateTimeKind.Utc);
 
-            BeginBlock();
-            var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript()
-                    .AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address)
-                    .SpendGas(_currentValidator.Address)
-                    .EndScript());
-            EndBlock();
-
-            var txCost = Nexus.RootChain.GetTransactionFee(tx);
+            return ApplyTimeSkip();
         }
-        public void TimeSkipHours(int hours)
+        public Block TimeSkipHours(int hours)
         {
             CurrentTime = CurrentTime.AddHours(hours);
             DateTime.SpecifyKind(CurrentTime, DateTimeKind.Utc);
 
-            BeginBlock();
-            var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript()
-                    .AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address)
-                    .SpendGas(_currentValidator.Address)
-                    .EndScript());
-            EndBlock();
-
-            var txCost = Nexus.RootChain.GetTransactionFee(tx);
+            return ApplyTimeSkip();
         }
 
-        public void TimeSkipYears(int years)
+        public Block TimeSkipYears(int years)
         {
             CurrentTime = CurrentTime.AddYears(years);
             DateTime.SpecifyKind(CurrentTime, DateTimeKind.Utc);
-            
-            BeginBlock();
-            var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.Minimal, () =>
-                ScriptUtils.BeginScript()
-                    .AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address)
-                    .SpendGas(_currentValidator.Address)
-                    .EndScript());
-            EndBlock();
 
-            var txCost = Nexus.RootChain.GetTransactionFee(tx);
+            return ApplyTimeSkip();
         }
 
-        public void TimeSkipToDate(DateTime date)
+        public Block TimeSkipToDate(DateTime date)
         {
             CurrentTime = date;
             DateTime.SpecifyKind(CurrentTime, DateTimeKind.Utc);
 
-            BeginBlock();
-            var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address).
-                    SpendGas(_currentValidator.Address).EndScript());
-            EndBlock();
+            return ApplyTimeSkip();
         }
 
-        public void TimeSkipDays(double days, bool roundUp = false, Action<Block> block = null)
+        public Block TimeSkipDays(double days, bool roundUp = false)
         {
             CurrentTime = CurrentTime.AddDays(days);
 
@@ -1246,14 +1217,19 @@ namespace Phantasma.Simulator
                 CurrentTime = CurrentTime.AddDays(1);
                 CurrentTime = new DateTime(CurrentTime.Year, CurrentTime.Month, CurrentTime.Day, 0, 0, 0, DateTimeKind.Utc);
 
-                var timestamp = (Timestamp) CurrentTime;
-                var datetime = (DateTime) timestamp;
+                var timestamp = (Timestamp)CurrentTime;
+                var datetime = (DateTime)timestamp;
                 if (datetime.Hour == 23)
                     datetime = datetime.AddHours(2);
-                
-                CurrentTime = new DateTime(datetime.Year, datetime.Month, datetime.Day, datetime.Hour, 0 , 0, DateTimeKind.Utc);   //to set the time of day component to 0
+
+                CurrentTime = new DateTime(datetime.Year, datetime.Month, datetime.Day, datetime.Hour, 0, 0, DateTimeKind.Utc);   //to set the time of day component to 0
             }
 
+            return ApplyTimeSkip();
+        }
+
+        private Block ApplyTimeSkip() 
+        { 
             BeginBlock();
             var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
@@ -1262,13 +1238,11 @@ namespace Phantasma.Simulator
                     .EndScript());
             
             var blocks = EndBlock();
-            if (block != null)
-            {
-                block.Invoke(blocks.First());
-            }
+
 
             var txCost = Nexus.RootChain.GetTransactionFee(tx);
-            
+
+            return blocks.First();
         }
 
         public bool LastBlockWasSuccessful()
@@ -1296,6 +1270,21 @@ namespace Phantasma.Simulator
             }
 
             return true;
+        }
+
+        public VMObject InvokeContract(NativeContractKind nativeContract, string methodName, params object[] args)
+        {
+            return this.Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootStorage, CurrentTime, nativeContract, methodName, args);
+        }
+
+        public VMObject InvokeContract(string contractName, string methodName, params object[] args)
+        {
+            return this.Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootStorage, CurrentTime, contractName, methodName, args);
+        }
+
+        public VMObject InvokeScript(string[] script)
+        {
+            return this.Nexus.RootChain.InvokeScript(Nexus.RootStorage, CurrentTime, script);
         }
 
     }

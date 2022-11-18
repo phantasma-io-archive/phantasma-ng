@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -14,7 +15,7 @@ namespace Phantasma.Infrastructure.API.Controllers
         {
             var nexus = NexusAPI.GetNexus();
 
-            var temp = nexus.RootChain.InvokeContract(nexus.RootChain.Storage, "ranking", nameof(RankingContract.GetRows), name).ToObject();
+            var temp = nexus.RootChain.InvokeContractAtTimestamp(nexus.RootChain.Storage, Timestamp.Now, "ranking", nameof(RankingContract.GetRows), name).ToObject();
 
             try
             {
