@@ -74,7 +74,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             if (_lastInflationDate == 0)
             {
-                _lastInflationDate = Runtime.Time;
+                _lastInflationDate = Runtime.GetGenesisTime();
             }
 
             Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName, $"must be entry context {Runtime.PreviousContext.Name}");

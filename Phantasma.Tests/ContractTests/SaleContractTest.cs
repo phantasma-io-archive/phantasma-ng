@@ -112,15 +112,14 @@ public class SaleContractTest
                 Assert.IsTrue(purchasedAmount == expectedAmount);
             }
 
-            Assert.ThrowsException<ChainException>(() =>
-           {
-               simulator.BeginBlock();
-               simulator.GenerateCustomTransaction(saleBuyer, ProofOfWork.None, () =>
-                   ScriptUtils.BeginScript().AllowGas(saleBuyer.Address, Address.Null, simulator.MinimumFee, 9999)
-                       .CallContract(NativeContractKind.Sale, nameof(SaleContract.Purchase), saleBuyer.Address, saleHash, "SOUL", purchaseAmount).
-                       SpendGas(saleBuyer.Address).EndScript());
-               simulator.EndBlock().First();
-           });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(saleBuyer, ProofOfWork.None, () =>
+                ScriptUtils.BeginScript().AllowGas(saleBuyer.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Sale, nameof(SaleContract.Purchase), saleBuyer.Address, saleHash, "SOUL", purchaseAmount).
+                    SpendGas(saleBuyer.Address).EndScript());
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             var otherPurchaseAmount = UnitConversion.ToBigInteger(150, DomainSettings.StakingTokenDecimals);
 

@@ -69,6 +69,12 @@ namespace Phantasma.Business.VM.Utils
         public static Dictionary<string, int> GetDefaultDisasmTable()
         {
             var table = new Dictionary<string, int>();
+
+            table["ABI()"] = 1;
+            table["Address()"] = 1;
+            table["Hash()"] = 1;
+            table["Timestamp()"] = 1;
+
             table["Runtime.Log"] = 1;
             table["Runtime.Notify"] = 3;
             table["Runtime.IsWitness"] = 1;
@@ -84,6 +90,7 @@ namespace Phantasma.Business.VM.Utils
             table["Runtime.InfuseToken"] = 5;
             table["Runtime.DeployContract"] = 4;
             table["Runtime.UpgradeContract"] = 4;
+            table["Runtime.KillContract"] = 2;
 
             table["Nexus.CreateToken"] = 3;
             table["Nexus.CreateTokenSeries"] = 7;
@@ -93,6 +100,10 @@ namespace Phantasma.Business.VM.Utils
             table["Nexus.GetGovernanceValue"] = 1;
 
             table["Organization.AddMember"] = 3;
+
+            table["Oracle.Read"] = 1;
+            table["Oracle.Price"] = 1;
+            table["Oracle.Quote"] = 3;
 
             var nativeContracts = Enum.GetValues<NativeContractKind>();
             foreach (var kind in nativeContracts)
@@ -117,6 +128,17 @@ namespace Phantasma.Business.VM.Utils
             foreach (var method in abi.Methods)
             {
                 var key = $"{contract.Name}.{method.name}";
+                table[key] = method.parameters.Length;
+            }
+        }
+
+        public static void AddTokenToTable(this Dictionary<string, int> table, IToken token)
+        {
+            var abi = token.ABI;
+
+            foreach (var method in abi.Methods)
+            {
+                var key = $"{token.Symbol}.{method.name}";
                 table[key] = method.parameters.Length;
             }
         }

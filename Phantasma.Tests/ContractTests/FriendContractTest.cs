@@ -24,7 +24,6 @@ public class FriendContractTest
     }
     
         [TestMethod]
-        [Ignore]
         public void TestFriendsContract()
         {
             var owner = PhantasmaKeys.Generate();
@@ -167,7 +166,6 @@ public class FriendContractTest
         }
 
         [TestMethod]
-        [Ignore]
         public void TestFriendArray()
         {
             var owner = PhantasmaKeys.Generate();
