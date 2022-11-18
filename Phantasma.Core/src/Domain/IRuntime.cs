@@ -135,6 +135,9 @@ namespace Phantasma.Core.Domain
 
         public TriggerResult InvokeTrigger(bool allowThrow, byte[] script, string contextName, ContractInterface abi, string triggerName, params object[] args);
 
+        public VMObject InvokeContractAtTimestamp(NativeContractKind nativeContract, string methodName, params object[] args);
+        public VMObject InvokeContractAtTimestamp(string contractName, string methodName, params object[] args);
+
         public bool IsWitness(Address address);
         public BigInteger GetBalance(string symbol, Address address);
         public BigInteger[] GetOwnerships(string symbol, Address address);

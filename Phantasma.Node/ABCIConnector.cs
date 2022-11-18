@@ -94,7 +94,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             if (request.Type == CheckTxType.New)
             {
                 var chain = _nexus.RootChain as Chain;
-                (CodeType code, string message) = chain.CheckTx(request.Tx);
+
+                var txString = request.Tx.ToStringUtf8();
+                var tx = Transaction.Unserialize(Base16.Decode(txString));
+                
+                (CodeType code, string message) = chain.CheckTx(tx, Timestamp.Now);
 
                 var response = new ResponseCheckTx();
                 response.Code = 0;

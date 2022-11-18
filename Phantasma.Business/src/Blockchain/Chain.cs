@@ -164,11 +164,11 @@ namespace Phantasma.Business.Blockchain
             return systemTransactions;
         }
 
-        public (CodeType, string) CheckTx(Transaction tx)
+        public (CodeType, string) CheckTx(Transaction tx, Timestamp timestamp)
         {
             Log.Information("check tx {Hash}", tx.Hash);
 
-            if (tx.Expiration < Timestamp.Now)
+            if (tx.Expiration < timestamp)
             {
                 var type = CodeType.Expired;
                 Log.Information("check tx error {Expired} {Hash}", type, tx.Hash);
@@ -292,13 +292,6 @@ namespace Phantasma.Business.Blockchain
             return table;
         }
 
-        public (CodeType, string) CheckTx(ByteString serializedTx)
-        {
-            var txString = serializedTx.ToStringUtf8();
-            var tx = Transaction.Unserialize(Base16.Decode(txString));
-
-            return CheckTx(tx);
-        }
         public IEnumerable<T> EndBlock<T>() where T : class
         {
             // TODO return block events
@@ -613,16 +606,6 @@ namespace Phantasma.Business.Blockchain
             return InvokeContractAtTimestamp(storage, time, nativeContract.GetContractName(), methodName, args);
         }
 
-        public VMObject InvokeContract(StorageContext storage, NativeContractKind nativeContract, string methodName, params object[] args)
-        {
-            return InvokeContract(storage, nativeContract.GetContractName(), methodName, args);
-        }
-
-        public VMObject InvokeContract(StorageContext storage, string contractName, string methodName, params object[] args)
-        {
-            return InvokeContractAtTimestamp(storage, Timestamp.Now, contractName, methodName, args);
-        }
-
         public VMObject InvokeContractAtTimestamp(StorageContext storage, Timestamp time, string contractName, string methodName, params object[] args)
         {
             var script = ScriptUtils.BeginScript().CallContract(contractName, methodName, args).EndScript();
@@ -635,11 +618,6 @@ namespace Phantasma.Business.Blockchain
             }
 
             return result;
-        }
-
-        public VMObject InvokeScript(StorageContext storage, byte[] script)
-        {
-            return InvokeScript(storage, script, Timestamp.Now);
         }
 
         public VMObject InvokeScript(StorageContext storage, byte[] script, Timestamp time)
@@ -1346,9 +1324,9 @@ namespace Phantasma.Business.Blockchain
 
             if (Nexus.HasGenesis())
             {
-                var validators = Nexus.GetValidators();
+                var validators = Nexus.GetValidators(block.Timestamp);
 
-                var totalValidators = Nexus.GetPrimaryValidatorCount();
+                var totalValidators = Nexus.GetPrimaryValidatorCount(block.Timestamp);
 
                 for (int i = 0; i < totalValidators; i++)
                 {
@@ -1394,17 +1372,17 @@ namespace Phantasma.Business.Blockchain
         }
 #endregion
 
-        public Address LookUpName(StorageContext storage, string name)
+        public Address LookUpName(StorageContext storage, string name, Timestamp timestamp)
         {
             if (IsContractDeployed(storage, name))
             {
                 return SmartContract.GetAddressFromContractName(name);
             }
 
-            return this.Nexus.LookUpName(storage, name);
+            return this.Nexus.LookUpName(storage, name, timestamp);
         }
 
-        public string GetNameFromAddress(StorageContext storage, Address address)
+        public string GetNameFromAddress(StorageContext storage, Address address, Timestamp timestamp)
         {
             if (address.IsNull)
             {
@@ -1441,7 +1419,7 @@ namespace Phantasma.Business.Blockchain
                 }
             }
 
-            return Nexus.RootChain.InvokeContract(storage, NativeContractKind.Account, nameof(AccountContract.LookUpAddress), address).AsString();
+            return Nexus.RootChain.InvokeContractAtTimestamp(storage, timestamp, NativeContractKind.Account, nameof(AccountContract.LookUpAddress), address).AsString();
         }
 
     }

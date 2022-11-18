@@ -1089,25 +1089,25 @@ namespace Phantasma.Business.Blockchain
         public Address LookUpName(string name)
         {
             ExpectNameLength(name, nameof(name));
-            return Chain.LookUpName(RootStorage, name);
+            return Chain.LookUpName(RootStorage, name, Time);
         }
 
         public bool HasAddressScript(Address from)
         {
             ExpectAddressSize(from, nameof(from));
-            return Nexus.HasAddressScript(RootStorage, from);
+            return Nexus.HasAddressScript(RootStorage, from, Time);
         }
 
         public byte[] GetAddressScript(Address from)
         {
             ExpectAddressSize(from, nameof(from));
-            return Nexus.LookUpAddressScript(RootStorage, from);
+            return Nexus.LookUpAddressScript(RootStorage, from, Time);
         }
 
         public string GetAddressName(Address from)
         {
             ExpectAddressSize(from, nameof(from));
-            return Chain.GetNameFromAddress(RootStorage, from);
+            return Chain.GetNameFromAddress(RootStorage, from, Time);
         }
 
         public Event[] GetTransactionEvents(Hash transactionHash)
@@ -1128,52 +1128,52 @@ namespace Phantasma.Business.Blockchain
 
         public ValidatorEntry GetValidatorByIndex(int index)
         {
-            return Nexus.GetValidatorByIndex(index);
+            return Nexus.GetValidatorByIndex(index, Time);
         }
 
         public ValidatorEntry[] GetValidators()
         {
-            return Nexus.GetValidators();
+            return Nexus.GetValidators(Time);
         }
 
         public bool IsPrimaryValidator(Address address)
         {
             ExpectAddressSize(address, nameof(address));
-            return Nexus.IsPrimaryValidator(address);
+            return Nexus.IsPrimaryValidator(address, Time);
         }
 
         public bool IsSecondaryValidator(Address address)
         {
             ExpectAddressSize(address, nameof(address));
-            return Nexus.IsSecondaryValidator(address);
+            return Nexus.IsSecondaryValidator(address, Time);
         }
 
         public int GetPrimaryValidatorCount()
         {
-            return Nexus.GetPrimaryValidatorCount();
+            return Nexus.GetPrimaryValidatorCount(Time);
         }
 
         public int GetSecondaryValidatorCount()
         {
-            return Nexus.GetSecondaryValidatorCount();
+            return Nexus.GetSecondaryValidatorCount(Time);
         }
 
         public bool IsKnownValidator(Address address)
         {
             ExpectAddressSize(address, nameof(address));
-            return Nexus.IsKnownValidator(address);
+            return Nexus.IsKnownValidator(address, Time);
         }
 
         public bool IsStakeMaster(Address address)
         {
             ExpectAddressSize(address, nameof(address));
-            return Nexus.IsStakeMaster(RootStorage, address);
+            return Nexus.IsStakeMaster(RootStorage, address, Time);
         }
 
         public BigInteger GetStake(Address address)
         {
             ExpectAddressSize(address, nameof(address));
-            return Nexus.GetStakeFromAddress(RootStorage, address);
+            return Nexus.GetStakeFromAddress(RootStorage, address, Time);
         }
 
         public BigInteger GenerateUID()
@@ -2357,6 +2357,16 @@ namespace Phantasma.Business.Blockchain
         {
             var rootChain = GetRootChain();
             return Chain.Address == rootChain.Address;
+        }
+
+        public VMObject InvokeContractAtTimestamp(NativeContractKind nativeContract, string methodName, params object[] args)
+        {
+            return Chain.InvokeContractAtTimestamp(Storage, Time, nativeContract, methodName, args);
+        }
+
+        public VMObject InvokeContractAtTimestamp(string contractName, string methodName, params object[] args)
+        {
+            return Chain.InvokeContractAtTimestamp(Storage, Time, contractName, methodName, args);
         }
 
         public string NexusName => Nexus.Name;

@@ -205,7 +205,7 @@ public class FriendContractTest
             simulator.EndBlock();
 
             var scriptA = GetScriptForFriends(testUserA.Address);
-            var resultA = nexus.RootChain.InvokeScript(nexus.RootStorage, scriptA);
+            var resultA = simulator.InvokeScript(scriptA);
             Assert.IsTrue(resultA != null);
 
             var tempA = resultA.ToArray<FriendTestStruct>();

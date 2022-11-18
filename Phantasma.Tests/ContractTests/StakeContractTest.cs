@@ -1135,7 +1135,8 @@ public class StakeContractTest
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), testUserA.Address, accountBalance)
                     .SpendGas(testUserA.Address)
                     .EndScript());
-            simulator.EndBlock();
+            var stakeBlock = simulator.EndBlock().FirstOrDefault();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.IsMaster), testUserA.Address).AsBool();
             Assert.IsTrue(isMaster);
@@ -1145,11 +1146,37 @@ public class StakeContractTest
 
             var stakeTokenBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserA.Address);
             var rewardTokenBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, rewardToken, testUserA.Address);
-            simulator.TimeSkipDays(90, false);
 
             simulator.TimeSkipDays(90, false);
+            var inflationBlock = simulator.TimeSkipDays(90, false);
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
-            rewardTokenBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, rewardToken, testUserA.Address);
+        var inflationHappened = false;
+        Assert.IsTrue( inflationBlock.TransactionHashes.Length == 2);
+
+        foreach (var hash in inflationBlock.TransactionHashes)
+        {
+            var events = inflationBlock.GetEventsForTransaction(hash);
+
+            foreach (var evt in events)
+            if (evt.Kind == EventKind.Inflation)
+            {
+                inflationHappened = true;
+                break;
+            }
+        }
+
+        Assert.IsTrue(inflationHappened);
+
+        var genesisBlock = simulator.Nexus.GetGenesisBlock();
+        var genesisDiff = (DateTime)inflationBlock.Timestamp - (DateTime)genesisBlock.Timestamp;
+        Assert.IsTrue(genesisDiff.TotalDays >= 90);
+
+        var stakeDiff = (DateTime)inflationBlock.Timestamp - (DateTime)stakeBlock.Timestamp;
+        Assert.IsTrue(stakeDiff.TotalDays >= 90);
+
+        rewardTokenBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, rewardToken, testUserA.Address);
+            Assert.IsTrue(rewardTokenBalance == 1);
 
             var unclaimedAmountBefore = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUserA.Address).AsNumber();
 
