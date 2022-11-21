@@ -952,7 +952,7 @@ public class InteropTests : IDisposable
 
             chainMoq.Setup( c => c.GetLastActivityOfAddress(It.IsAny<Address>())).Returns(new Timestamp(1601092859));
 
-            chainMoq.Setup( c => c.GetNameFromAddress(It.IsAny<StorageContext>(), It.IsAny<Address>())
+            chainMoq.Setup( c => c.GetNameFromAddress(It.IsAny<StorageContext>(), It.IsAny<Address>(), It.IsAny<Timestamp>())
                     ).Returns( (StorageContext context, Address address) => 
                         {
                             return address.ToString();

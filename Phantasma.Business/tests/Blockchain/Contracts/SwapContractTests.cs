@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
@@ -11,109 +11,34 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Infrastructure.RocksDB;
-using Shouldly;
-using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
-public class AccountContractTests : IDisposable
+public class SwapContractTests : IDisposable
 {
-    private PhantasmaKeys Validator { get; set; }
-    private PhantasmaKeys TokenOwner { get; set; }
-    private PhantasmaKeys User1 { get; set; }
-    private PhantasmaKeys User2 { get; set; }
 
-    private string PartitionPath { get; set; }
-    private IToken FungibleToken { get; set; }
-    private IToken NonFungibleToken { get; set; }
-    private IToken NonTransferableToken { get; set; }
-    private IChain Chain { get; set; }
-    private Dictionary<string, BigInteger> Mints { get; set; }
-
-
-    [Fact]
-    public void invoke_RegisterName_success()
-    {
-        var runtime = CreateRuntime_MockedChain();
-
-        runtime.CallNativeContext(NativeContractKind.Account, "registerName", User1.Address, "somename1");
-
-        var count = 0;
-        foreach (var evt in runtime.Events)
-        {
-            count++;
-            evt.Kind.ShouldBe(EventKind.AddressRegister);
-            evt.Address.ShouldBe(User1.Address);
-            var name = evt.GetContent<string>();
-            name.ShouldBe("somename1");
-        }
-        count.ShouldBe(1);
-    }
-
-    [Fact]
-    public void invoke_LookupAddress_success()
-    {
-        var runtime = CreateRuntime_MockedChain();
-
-        runtime.CallNativeContext(NativeContractKind.Account, "registerName", User1.Address, "somename1");
-        var result = runtime.CallNativeContext(NativeContractKind.Account, "lookupAddress", User1.Address);
-
-        result.AsString().ShouldBe("somename1");
-    }
-
-    [Fact]
-    public void invoke_LookupName_success()
-    {
-        var runtime = CreateRuntime_MockedChain();
-
-        runtime.CallNativeContext(NativeContractKind.Account, "registerName", User1.Address, "somename1");
-        var result = runtime.CallNativeContext(NativeContractKind.Account, "lookupName", "somename1");
-
-        result.AsAddress().ShouldBe(User1.Address);
-    }
-
-    [Fact]
-    public void invoke_UnregisterName_success()
-    {
-        var runtime = CreateRuntime_MockedChain();
-
-        runtime.CallNativeContext(NativeContractKind.Account, "registerName", User1.Address, "somename1");
-        runtime.CallNativeContext(NativeContractKind.Account, "unregisterName", User1.Address);
-
-        var count = 0;
-        foreach (var evt in runtime.Events)
-        {
-            count++;
-
-            switch(evt.Kind)
-            {
-                case EventKind.AddressRegister:
-                    evt.Kind.ShouldBe(EventKind.AddressRegister);
-                    evt.Address.ShouldBe(User1.Address);
-                    var name = evt.GetContent<string>();
-                    name.ShouldBe("somename1");
-                    break;
-
-                case EventKind.AddressUnregister:
-                    evt.Kind.ShouldBe(EventKind.AddressUnregister);
-                    evt.Address.ShouldBe(User1.Address);
-                    name = evt.GetContent<string>();
-                    name.ShouldBe("somename1");
-                    break;
-
-                default:
-                    throw new NotImplementedException("Unexpected event");
-            }
-        }
-        count.ShouldBe(2);
-    }
-
-    private IRuntime CreateRuntime_MockedChain()
+    #region Mocking
+    protected PhantasmaKeys Validator { get; set; }
+    protected PhantasmaKeys TokenOwner { get; set; }
+    protected PhantasmaKeys User1 { get; set; }
+    protected PhantasmaKeys User2 { get; set; }
+    protected string PartitionPath { get; set; }
+    protected IToken FungibleToken { get; set; }
+    protected IToken NonFungibleToken { get; set; }
+    protected IToken NonTransferableToken { get; set; }
+    protected IChain Chain { get; set; }
+    protected Dictionary<string, BigInteger> Mints { get; set; }
+     /*
+    protected IRuntime CreateRuntime_MockedChain()
     {
         var tx = new Transaction(
                 "mainnet",
                 DomainSettings.RootChainName,
                 new byte[1] { 0 },
+                User1.Address,
+                User1.Address,
+                10000,
+                999,
                 Timestamp.Now + TimeSpan.FromDays(300),
                 "UnitTest");
 
@@ -124,7 +49,7 @@ public class AccountContractTests : IDisposable
         return CreateRuntime(false, FungibleToken, null, tx, true, false);
     }
 
-    private IRuntime CreateRuntime_Default(bool delayPayment = false, Transaction tx = null, bool tokenExists = true)
+    protected IRuntime CreateRuntime_Default(bool delayPayment = false, Transaction tx = null, bool tokenExists = true)
     {
         if (tx == null)
         {
@@ -132,6 +57,10 @@ public class AccountContractTests : IDisposable
                 "mainnet",
                 DomainSettings.RootChainName,
                 new byte[1] { 0 },
+                User1.Address,
+                User1.Address,
+                10000,
+                999,
                 Timestamp.Now + TimeSpan.FromDays(300),
                 "UnitTest");
 
@@ -143,7 +72,7 @@ public class AccountContractTests : IDisposable
         return CreateRuntime(delayPayment, FungibleToken, null, tx, false, tokenExists);
     }
 
-    private IRuntime CreateRuntime(
+    protected IRuntime CreateRuntime(
             bool delayPayment,
             IToken token,
             ExecutionContext context = null,
@@ -178,11 +107,12 @@ public class AccountContractTests : IDisposable
                         this.Mints.Add(token.Symbol, amount);
                     });
 
-        nexusMoq.Setup( n => n.HasGenesis()).Returns(true);
+        nexusMoq.Setup( n => n.HasGenesis).Returns(true);
+        nexusMoq.Setup( n => n.MaxGas).Returns(100000);
 
         nexusMoq.Setup( n => n.GetStakeFromAddress(
                     It.IsAny<StorageContext>(),
-                    It.IsAny<Address>(), It.IsAny<Timestamp>()))
+                    It.IsAny<Address>()))
             .Returns(UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals));
 
         nexusMoq.Setup( n => n.GetTokenInfo(
@@ -252,7 +182,7 @@ public class AccountContractTests : IDisposable
 
             chainMoq.Setup( c => c.GenerateUID(It.IsAny<StorageContext>())).Returns(1200);
 
-            chainMoq.Setup( c => c.GetNameFromAddress(It.IsAny<StorageContext>(), It.IsAny<Address>(), It.IsAny<Timestamp>())
+            chainMoq.Setup( c => c.GetNameFromAddress(It.IsAny<StorageContext>(), It.IsAny<Address>())
                     ).Returns( (StorageContext context, Address address) => 
                         {
                             return address.ToString();
@@ -286,9 +216,9 @@ public class AccountContractTests : IDisposable
         runtime.SwitchContext(runtime.EntryContext, 0);
 
         return runtime;
-    }
-
-    public AccountContractTests()
+    }*/
+    
+    public SwapContractTests()
     {
         this.Mints = new ();
         this.TokenOwner = PhantasmaKeys.Generate();
@@ -324,4 +254,5 @@ public class AccountContractTests : IDisposable
 
         this.Mints.Clear();
     }
+    #endregion
 }
