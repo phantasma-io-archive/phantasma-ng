@@ -492,7 +492,22 @@ public static class NexusAPI
         var storage = new StorageResult();
 
         storage.used = (uint)Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetUsedSpace), address).AsNumber();
-        storage.available = (uint)Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetAvailableSpace), address).AsNumber();
+
+        var available = Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetAvailableSpace), address).AsNumber();
+
+        if (available < 0)
+        {
+            storage.available = 0;
+        }
+        else
+        if (available > uint.MaxValue)
+        {
+            storage.available = uint.MaxValue;
+        }
+        else
+        {
+            storage.available = (uint)available;
+        }
 
         if (storage.used > 0)
         {
