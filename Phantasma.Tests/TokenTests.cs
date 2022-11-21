@@ -131,15 +131,15 @@ public class TokenTests
 
         var token = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, symbol);
         var balance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, owner.Address);
-        Assert.IsTrue(balance == 990);
+        Assert.IsTrue(balance == 990, $"{balance} == 990");
 
         simulator.BeginBlock();
-        simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, symbol, 10);
+        simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, symbol, -10);
         simulator.EndBlock();
         Assert.IsFalse(simulator.LastBlockWasSuccessful());
 
         balance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, owner.Address);
-        Assert.IsTrue(balance == 1000);
+        Assert.IsTrue(balance+10 == 1000, $"{balance} == 1000");
     }
 
     [TestMethod]

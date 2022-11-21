@@ -169,16 +169,12 @@ namespace Phantasma.Simulator
 
         public void GetFundsInTheFuture(PhantasmaKeys target)
         {
-            TimeSkipYears(1);
+            for(int i = 0; i < 40; i++)
+                TimeSkipDays(90);
 
             BeginBlock();
             foreach (var validator in _validators)
             {
-                if (validator.Address == target.Address)
-                {
-                    continue;
-                }
-
                 GenerateCustomTransaction(validator, ProofOfWork.None, () =>
                     ScriptUtils.BeginScript()
                         .AllowGas(validator.Address, Address.Null, MinimumFee, DefaultGasLimit)
@@ -186,8 +182,8 @@ namespace Phantasma.Simulator
                         .SpendGas(validator.Address)
                         .EndScript());
             }
-            EndBlock();
-            
+            var block = EndBlock();
+
             TransferOwnerAssetsToAddress(target.Address);
         }
 
@@ -212,7 +208,7 @@ namespace Phantasma.Simulator
                 var balanceKCAL = rootChain.GetTokenBalance(Nexus.RootStorage, DomainSettings.StakingTokenSymbol, validator.Address);
                 if (balanceKCAL > 0)
                 {
-                    GenerateTransfer(validator, target, rootChain, DomainSettings.FuelTokenSymbol, balanceKCAL - UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals));
+                    GenerateTransfer(validator, target, rootChain, DomainSettings.FuelTokenSymbol, balanceKCAL - UnitConversion.ToBigInteger(5, DomainSettings.FuelTokenDecimals));
                 }
             }
             EndBlock();
@@ -1232,7 +1228,8 @@ namespace Phantasma.Simulator
         { 
             BeginBlock();
             var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
+                ScriptUtils.BeginScript()
+                    .AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address)
                     .SpendGas(_currentValidator.Address)
                     .EndScript());
@@ -1282,9 +1279,9 @@ namespace Phantasma.Simulator
             return this.Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootStorage, CurrentTime, contractName, methodName, args);
         }
 
-        public VMObject InvokeScript(string[] script)
+        public VMObject InvokeScript(byte[] script)
         {
-            return this.Nexus.RootChain.InvokeScript(Nexus.RootStorage, CurrentTime, script);
+            return this.Nexus.RootChain.InvokeScript(Nexus.RootStorage, script, CurrentTime);
         }
 
     }
