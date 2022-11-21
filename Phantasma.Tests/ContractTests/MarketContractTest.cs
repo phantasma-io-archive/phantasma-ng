@@ -56,7 +56,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -79,7 +79,7 @@ namespace Phantasma.LegacyTests.ContractTests
             );
             simulator.EndBlock();
 
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             simulator.BeginBlock();
@@ -93,7 +93,7 @@ namespace Phantasma.LegacyTests.ContractTests
             );
             simulator.EndBlock();
 
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
@@ -145,7 +145,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -179,7 +179,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid before auction starts (should fail)
@@ -228,7 +228,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
@@ -288,7 +288,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -338,7 +338,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid before auction starts (should fail)
@@ -475,7 +475,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // check if auction is still there post extension
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount + 1, "auction ids should not be empty at this point");
 
             // move time post end date
@@ -494,7 +494,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
@@ -554,7 +554,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -604,7 +604,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // move time post auction end date
@@ -623,7 +623,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft is back to the original owner
@@ -676,7 +676,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -715,7 +715,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid below reserve price (should fail)
@@ -803,7 +803,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
@@ -864,7 +864,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -899,7 +899,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid before auction starts (should fail)
@@ -963,7 +963,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
@@ -1020,7 +1020,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -1055,7 +1055,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // edit auction price with wrong symbol (should fail)
@@ -1116,7 +1116,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
@@ -1173,7 +1173,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -1206,7 +1206,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // move half way through sale
@@ -1243,7 +1243,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was not moved
@@ -1303,7 +1303,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -1344,7 +1344,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid before auction starts (should fail)
@@ -1408,7 +1408,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
@@ -1474,7 +1474,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -1515,7 +1515,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract("market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid before auction starts (should fail)
@@ -1579,7 +1579,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved

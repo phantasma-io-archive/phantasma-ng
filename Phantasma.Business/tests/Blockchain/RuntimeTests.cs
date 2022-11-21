@@ -249,7 +249,7 @@ public class RuntimeTests
 
                         });
 
-            chainMoq.Setup( c => c.GetNameFromAddress(It.IsAny<StorageContext>(), It.IsAny<Address>())
+            chainMoq.Setup( c => c.GetNameFromAddress(It.IsAny<StorageContext>(), It.IsAny<Address>(), It.IsAny<Timestamp>())
                     ).Returns( (StorageContext context, Address address) => 
                         {
                             return address.ToString();

@@ -230,7 +230,7 @@ public class AccountContracTest
             var tx = simulator.MintTokens(target, target.Address, symbol, 1000);
             simulator.EndBlock();
 
-            var accountScript = simulator.Nexus.LookUpAddressScript(simulator.Nexus.RootStorage, target.Address);
+            var accountScript = simulator.Nexus.LookUpAddressScript(simulator.Nexus.RootStorage, target.Address, simulator.CurrentTime);
             Assert.IsTrue(accountScript != null && accountScript.Length > 0);
 
             var token = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, symbol);
@@ -329,10 +329,10 @@ public class AccountContracTest
             Assert.IsFalse(registerName(testUser, targetName + "!"));
             Assert.IsTrue(registerName(testUser, targetName));
 
-            var currentName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, testUser.Address);
+            var currentName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, testUser.Address, simulator.CurrentTime);
             Assert.IsTrue(currentName == targetName);
 
-            var someAddress = nexus.LookUpName(nexus.RootStorage, targetName);
+            var someAddress = nexus.LookUpName(nexus.RootStorage, targetName, simulator.CurrentTime);
             Assert.IsTrue(someAddress == testUser.Address);
 
             Assert.IsFalse(registerName(testUser, "other"));
@@ -391,10 +391,10 @@ public class AccountContracTest
             }
 
 
-            var currentName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, testUser.Address);
+            var currentName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, testUser.Address, simulator.CurrentTime);
             Assert.IsTrue(currentName == targetName);
 
-            var someAddress = nexus.LookUpName(nexus.RootStorage, targetName);
+            var someAddress = nexus.LookUpName(nexus.RootStorage, targetName, simulator.CurrentTime);
             Assert.IsTrue(someAddress == testUser.Address);
 
             var migratedUser = PhantasmaKeys.Generate();
@@ -410,10 +410,10 @@ public class AccountContracTest
             });
             simulator.EndBlock().FirstOrDefault();
 
-            currentName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, testUser.Address);
+            currentName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, testUser.Address, simulator.CurrentTime);
             Assert.IsFalse(currentName == targetName);
 
-            var newName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, migratedUser.Address);
+            var newName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, migratedUser.Address, simulator.CurrentTime);
             Assert.IsTrue(newName == targetName);
         }
 }
