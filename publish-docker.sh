@@ -39,4 +39,7 @@ docker build --platform=linux/x86_64 -t phantasma-devnet -f DOCKER/Dockerfile .
 #rm -rf "$TESTNET_ROOT"/node2/publish
 #rm -rf "$TESTNET_ROOT"/node3/publish
 
-docker tag phantasma-devnet:latest phantasmaio/phantasma-devnet:$LAST_COMMIT
+docker tag phantasma-devnet:latest phantasmachain/phantasma-devnet:$LAST_COMMIT
+
+# Publish Container
+docker push phantasmachain/phantasma-devnet:$LAST_COMMIT

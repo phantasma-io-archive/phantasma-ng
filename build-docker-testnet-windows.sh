@@ -34,4 +34,4 @@ cp -r "$TESTNET_ROOT"/node3/config_testnet_node3.json "$TESTNET_ROOT"/node3/publ
 
 docker build --platform=linux/x86_64 -t phantasma-devnet -f DOCKER/DockerfileTestnet .
 
-docker tag phantasma-devnet:latest phantasmaio/phantasma-devnet:$LAST_COMMIT
+docker tag phantasma-devnet:latest phantasmachain/phantasma-devnet:$LAST_COMMIT

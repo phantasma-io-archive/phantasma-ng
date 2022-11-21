@@ -22,10 +22,10 @@ mkdir -p "$TESTNET_ROOT"/node1/publish/
 mkdir -p "$TESTNET_ROOT"/node2/publish/
 mkdir -p "$TESTNET_ROOT"/node3/publish/
 
-cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node0/publish
-cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node1/publish
-cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node2/publish
-cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node3/publish
+cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node0/
+cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node1/
+cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node2/
+cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node3/
 
 cp -R "$TESTNET_ROOT"/node0/config_testnet_node0.json "$TESTNET_ROOT"/node0/publish/config.json
 cp -R "$TESTNET_ROOT"/node1/config_testnet_node1.json "$TESTNET_ROOT"/node1/publish/config.json
@@ -34,4 +34,4 @@ cp -R "$TESTNET_ROOT"/node3/config_testnet_node3.json "$TESTNET_ROOT"/node3/publ
 
 docker build --platform=linux/x86_64 -t phantasma-devnet -f DOCKER/DockerfileTestnet .
 
-docker tag phantasma-devnet:latest phantasmaio/phantasma-devnet:$LAST_COMMIT
+docker tag phantasma-devnet:latest phantasmachain/phantasma-devnet:LAST_COMMIT
