@@ -286,7 +286,7 @@ public class StakeContractTest
             //simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, BaseKCALBalance);
             simulator.EndBlock();
 
-            simulator.TimeSkipToDate(DateTime.UtcNow);
+            simulator.TimeSkipDays(1);
 
             //-----------
             //Perform a valid Stake & Claim call
@@ -1184,7 +1184,7 @@ public class StakeContractTest
             Assert.IsTrue(stakeDiff.TotalDays >= 90);
 
             rewardTokenBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, rewardToken, testUserA.Address);
-            Assert.IsTrue(rewardTokenBalance == 1);
+            Assert.IsTrue(rewardTokenBalance == 1, $"{rewardTokenBalance} == 1");
 
             var unclaimedAmountBefore = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUserA.Address).AsNumber();
 

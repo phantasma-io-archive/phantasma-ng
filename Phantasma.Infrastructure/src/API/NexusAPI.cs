@@ -58,6 +58,10 @@ public static class NexusAPI
         {
             throw new Exception("Nexus not available locally");
         }
+        
+        
+        if (!Nexus.HasGenesis()) throw new APIException("Nexus genesis is not setuped.");
+
     }
     public static void RequireTokenSwapper()
     {
