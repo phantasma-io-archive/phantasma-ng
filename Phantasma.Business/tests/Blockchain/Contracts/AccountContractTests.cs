@@ -253,7 +253,7 @@ public class AccountContractTests : IDisposable
             chainMoq.Setup( c => c.GenerateUID(It.IsAny<StorageContext>())).Returns(1200);
 
             chainMoq.Setup( c => c.GetNameFromAddress(It.IsAny<StorageContext>(), It.IsAny<Address>(), It.IsAny<Timestamp>())
-                    ).Returns( (StorageContext context, Address address) => 
+                    ).Returns( (StorageContext context, Address address, Timestamp time) => 
                         {
                             return address.ToString();
                         });
@@ -279,7 +279,7 @@ public class AccountContractTests : IDisposable
 
         if (context is not null)
         {
-            runtime.RegisterContext(token.Symbol.ToLower(), context);
+            runtime.RegisterContext(token.Symbol, context);
             runtime.SetCurrentContext(context);
         }
 

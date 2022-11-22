@@ -1036,16 +1036,15 @@ namespace Phantasma.Business.Blockchain
             var target = vm.PopAddress();
             var symbol = vm.PopString("symbol");
 
-            var tokenContextName = symbol.ToLower();
-            var tokenContext = vm.FindContext(tokenContextName);
+            
+            if (!vm.IsSystemToken(symbol))
+            {
+                var tokenContext = vm.FindContext(symbol);
 
-            if (tokenContext == null)
-            {
-                throw new VMException(vm, $"Burning token {symbol} not found in context.");
-            }
-            else if (tokenContext.Name != vm.CurrentContext.Name)
-            {
-                throw new VMException(vm, $"Burning token {symbol} not allowed from this context");
+                if (tokenContext.Name != vm.CurrentContext.Name) 
+                {
+                    throw new VMException(vm, $"Burning token {symbol} not allowed from this context");
+                }
             }
 
             var amount = vm.PopNumber("amount");

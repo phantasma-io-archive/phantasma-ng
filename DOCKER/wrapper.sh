@@ -1,9 +1,15 @@
 #!/bin/bash
 # reset all nodes 
-TMHOME=/app/testnet/node0 testnet/tendermint unsafe-reset-all
-TMHOME=/app/testnet/node1 testnet/tendermint unsafe-reset-all
-TMHOME=/app/testnet/node2 testnet/tendermint unsafe-reset-all
-TMHOME=/app/testnet/node3 testnet/tendermint unsafe-reset-all
+DIR="/app/testnet/node0/data/"
+if [ -d "$DIR" ]; then
+  # Take action if $DIR exists. #
+  echo "Tendermint run..."
+else
+  TMHOME=/app/testnet/node0 bin/tendermint unsafe-reset-all
+  TMHOME=/app/testnet/node1 bin/tendermint unsafe-reset-all
+  TMHOME=/app/testnet/node2 bin/tendermint unsafe-reset-all
+  TMHOME=/app/testnet/node3 bin/tendermint unsafe-reset-all
+fi
 
 #remove screen
 screen -wipe

@@ -316,14 +316,12 @@ public class AccountContracTest
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript().
                     AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
-                    CallContract(NativeContractKind.Stake, "Stake", testUser.Address, stakeAmount).
+                    CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), testUser.Address, stakeAmount).
                     SpendGas(testUser.Address).
                     EndScript());
             simulator.EndBlock();
 
             var targetName = "hello";
-            Assert.IsTrue(targetName == targetName.ToLower());
-
             Assert.IsFalse(registerName(testUser, targetName.Substring(3)));
             Assert.IsFalse(registerName(testUser, targetName.ToUpper()));
             Assert.IsFalse(registerName(testUser, targetName + "!"));
@@ -376,7 +374,6 @@ public class AccountContracTest
             simulator.EndBlock();
 
             var targetName = "hello";
-            Assert.IsTrue(targetName == targetName.ToLower());
 
             simulator.BeginBlock();
             var tx = simulator.GenerateAccountRegistration(testUser, targetName);
