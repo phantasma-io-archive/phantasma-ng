@@ -4,6 +4,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -38,6 +40,8 @@ namespace Phantasma.Infrastructure.API.Controllers
             try
             {
                 // TODO implement something faster and more elegant
+                NexusAPI.RequireNexus();
+                //if (!NexusAPI.Nexus.HasGenesis()) throw new APIException("Nexus genesis is not setuped.");
 
                 var controllers = Assembly.GetExecutingAssembly().GetTypes()
                     .Where(type => typeof(BaseControllerV1).IsAssignableFrom(type));
@@ -113,12 +117,13 @@ namespace Phantasma.Infrastructure.API.Controllers
                     }
                 }
             }
-            catch (APIException)
+            catch (APIException apiException)
             {
                 throw;
             }
             catch (Exception e)
             {
+                Log.Error($"RPC Call error -> {e.StackTrace}");
                 throw new APIException($"RPC call exception for {req}: {e.Message}");
             }
 

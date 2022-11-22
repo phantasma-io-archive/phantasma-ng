@@ -41,6 +41,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         _nexus = nexus;
         _rpc = new NodeRpcClient(tendermintEndpoint);
         _nexus.RootChain.ValidatorKeys = _owner;
+        Log.Information("ABCI Connector - Set node Info");
+
     }
 
     public override Task<ResponseBeginBlock> BeginBlock(RequestBeginBlock request, ServerCallContext context)
@@ -89,6 +91,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     public override Task<ResponseCheckTx> CheckTx(RequestCheckTx request, ServerCallContext context)
     {
         // TODO checktx 
+        Log.Information($"ABCI Connector - Check TX");
+
         try
         {
             if (request.Type == CheckTxType.New)
@@ -120,6 +124,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     
     public override Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - Deliver Tx");
+
         var chain = _nexus.RootChain as Chain;
 
         var txString = request.Tx.ToStringUtf8();
@@ -200,6 +206,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     
     public override Task<ResponseCommit> Commit(RequestCommit request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - Commit");
+
         var chain = _nexus.RootChain as Chain;
         var data = chain.Commit();
         var response = new ResponseCommit();
@@ -226,6 +234,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     {
         Hash lastBlockHash;
         Block lastBlock = null;
+        Log.Information($"ABCI Connector - Info");
+
         try 
         {
             lastBlockHash = _nexus.RootChain.GetLastBlockHash();
@@ -249,6 +259,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     public override Task<ResponseInitChain> InitChain(RequestInitChain request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - Init Chain");
+
         var response = new ResponseInitChain();
         var timestamp = new Timestamp((uint) request.Time.Seconds);
 
@@ -280,26 +292,36 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     public override Task<ResponseQuery> Query(RequestQuery request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - Query");
+
         return Task.FromResult( new ResponseQuery());
     }
 
     public override Task<ResponseListSnapshots> ListSnapshots(RequestListSnapshots request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - ListSnapshots");
+
         return Task.FromResult( new ResponseListSnapshots());
     }
 
     public override Task<ResponseOfferSnapshot> OfferSnapshot(RequestOfferSnapshot request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - OfferSnapshot");
+
         return Task.FromResult( new ResponseOfferSnapshot());
     }
 
     public override Task<ResponseLoadSnapshotChunk> LoadSnapshotChunk(RequestLoadSnapshotChunk request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - LoadSnapshotChunk");
+
         return Task.FromResult( new ResponseLoadSnapshotChunk());
     }
 
     public override Task<ResponseApplySnapshotChunk> ApplySnapshotChunk(RequestApplySnapshotChunk request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - ApplySnapshotChunk");
+
         return Task.FromResult( new ResponseApplySnapshotChunk());
     }
 }

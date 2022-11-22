@@ -1039,7 +1039,11 @@ namespace Phantasma.Business.Blockchain
             var tokenContextName = symbol.ToLower();
             var tokenContext = vm.FindContext(tokenContextName);
 
-            if (tokenContext.Name != vm.CurrentContext.Name)
+            if (tokenContext == null)
+            {
+                throw new VMException(vm, $"Burning token {symbol} not found in context.");
+            }
+            else if (tokenContext.Name != vm.CurrentContext.Name)
             {
                 throw new VMException(vm, $"Burning token {symbol} not allowed from this context");
             }

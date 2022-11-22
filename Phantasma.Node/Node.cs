@@ -89,6 +89,7 @@ namespace Phantasma.Node
 
             if (!SetupNexus())
             {
+                Log.Information("Stopping node...");
                 this.OnStop();
                 return;
             }
