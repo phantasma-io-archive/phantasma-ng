@@ -4,6 +4,11 @@ rm -rf testnet/node1/publish/Storage
 rm -rf testnet/node2/publish/Storage
 rm -rf testnet/node3/publish/Storage
 
+rm -rf testnet/node0/publish/Dumps
+rm -rf testnet/node1/publish/Dumps
+rm -rf testnet/node2/publish/Dumps
+rm -rf testnet/node3/publish/Dumps
+
 rm -rf testnet/node0/data/
 rm -rf testnet/node1/data/
 rm -rf testnet/node2/data/

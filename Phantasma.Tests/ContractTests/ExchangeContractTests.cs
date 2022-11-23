@@ -747,7 +747,7 @@ public class ExchangeContractTests
         var poolOwner = new ExchangeUser(soul.Symbol, kcal.Symbol, core);
 
         
-        core.InitPools();
+        core.InitFunds();
         core.Migrate();
 
         // Check pools
@@ -773,6 +773,8 @@ public class ExchangeContractTests
 
 
     [TestMethod]
+    [TestCategory("DEX")]
+
     public void CreatePool()
     {
         CoreClass core = new CoreClass();
@@ -780,67 +782,55 @@ public class ExchangeContractTests
         // Setup symbols
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
-
-        core.Migrate();
         
-        // Create users
-        var poolOwner = new ExchangeUser(baseSymbol, quoteSymbol, core);
-        
-        // Give Users tokens
-        poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
-        poolOwner.Fund(neo.Symbol, poolAmount4);
-        poolOwner.Fund(gas.Symbol, poolAmount5);
-
-        // KCAL / VIRTUAL
-
         string symbol0 = "SOUL";
         string symbol1 = "COOL";
         BigInteger myPoolAmount0 = UnitConversion.ToBigInteger(10000, 8);
         BigInteger myPoolAmount1 = UnitConversion.ToBigInteger(100000, 8);
 
+        core.InitFunds();
+        core.Migrate();
+
+        // Create users
+        var poolOwner = new ExchangeUser(baseSymbol, quoteSymbol, core);
+        
+        // Create Token
+        CoreClass.ExchangeTokenInfo cool = new CoreClass.ExchangeTokenInfo("COOL", "Phantasma Cool", UnitConversion.ToBigInteger(10000000, 8), 8, flags );
+        poolOwner.CreateToken(cool);
+
+        // Give Users tokens
+        poolOwner.FundUser(soul: 50000, kcal: 100);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
+        poolOwner.Fund(bnb.Symbol, poolAmount3);
+        poolOwner.Fund(neo.Symbol, poolAmount4);
+        poolOwner.Fund(gas.Symbol, poolAmount5);
+        poolOwner.Fund(cool.Symbol, myPoolAmount1);
+
         double am0 = (double)myPoolAmount0;
         double am1 = (double)myPoolAmount1;
         BigInteger totalLiquidity = (BigInteger)Math.Sqrt(am0 * am0 / 3);
 
-        // Setup a test user 
-        byte[] tokenScript = null;
-        
-        //simulator.BeginBlock();
-        //simulator.GenerateToken(owner, symbol2, "Mankini Token", UnitConversion.ToBigInteger(communitySupply, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite);
-        //simulator.MintTokens(owner, owner.Address, symbol2, communitySupply);
-        //simulator.EndBlock();
-        
-        /*
-         * simulator.BeginBlock();
-            simulator.GenerateToken(owner, symbol1, "Cool Token", myPoolAmount1 * 10, 8,  TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite | TokenFlags.Divisible, tokenScript);
-            simulator.MintTokens(owner, owner.Address, eth.Symbol, poolAmount1 * 10);
-            simulator.MintTokens(owner, owner.Address, symbol0, myPoolAmount0 * 10);
-            simulator.MintTokens(owner, owner.Address, symbol1, myPoolAmount1 * 10);
-            simulator.EndBlock();
-         */
-
         // Get Tokens Info
         //token0
-        var token0 = core.nexus.GetTokenInfo(core.nexus.RootStorage, symbol0);
-        var token0Address = core.nexus.GetTokenContract(core.nexus.RootStorage, symbol0);
-        Assert.IsTrue(token0.Symbol == symbol0);
+        var token0 = core.nexus.GetTokenInfo(core.nexus.RootStorage, soul.Symbol);
+        var token0Address = core.nexus.GetTokenContract(core.nexus.RootStorage, soul.Symbol);
+        Assert.IsTrue(token0.Symbol == soul.Symbol);
 
         // token1
-        var token1 = core.nexus.GetTokenInfo(core.nexus.RootStorage, symbol1);
-        var token1Address = core.nexus.GetTokenContract(core.nexus.RootStorage, symbol1);
-        Assert.IsTrue(token1.Symbol == symbol1);
+        var token1 = core.nexus.GetTokenInfo(core.nexus.RootStorage, cool.Symbol);
+        var token1Address = core.nexus.GetTokenContract(core.nexus.RootStorage, cool.Symbol);
+        Assert.IsTrue(token1.Symbol == cool.Symbol);
         Assert.IsTrue(token1.Flags.HasFlag(TokenFlags.Transferable), "Not swappable.");
 
         // Create a Pool
-        poolOwner.CreatePool(symbol0, myPoolAmount0, symbol1, 0);
+        poolOwner.CreatePool(soul.Symbol, myPoolAmount0, cool.Symbol, 0);
 
-        var pool = poolOwner.GetPool(symbol0, symbol1);
+        var pool = poolOwner.GetPool(soul.Symbol, cool.Symbol);
 
-        Assert.IsTrue(pool.Symbol0 == symbol0, "Symbol0 doesn't check");
+        Assert.IsTrue(pool.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
         Assert.IsTrue(pool.Amount0 == myPoolAmount0, $"Amount0 doesn't check {pool.Amount0}");
-        Assert.IsTrue(pool.Symbol1 == symbol1, "Symbol1 doesn't check");
-        Assert.IsTrue(pool.Amount1 == myPoolAmount0 / 3, $"Amount1 doesn't check {pool.Amount1}");
+        Assert.IsTrue(pool.Symbol1 == cool.Symbol, "Symbol1 doesn't check");
+        Assert.IsTrue(pool.Amount1 == myPoolAmount1, $"Amount1 doesn't check {pool.Amount1}");
         Assert.IsTrue(pool.TotalLiquidity == totalLiquidity, "Liquidity doesn't check"); 
         Assert.IsTrue(pool.Symbol0Address == token0Address.Address.Text);
         Assert.IsTrue(pool.Symbol1Address == token1Address.Address.Text);
@@ -858,16 +848,19 @@ public class ExchangeContractTests
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
 
+        core.InitFunds();
         core.Migrate();
         
         // Create users
         var poolOwner = new ExchangeUser(baseSymbol, quoteSymbol, core);
         
         // Give Users tokens
-        poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
+        poolOwner.FundUser(soul: 50000, kcal: 100);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
+        poolOwner.Fund(bnb.Symbol, poolAmount3);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
+
 
         BigInteger totalLiquidity = (BigInteger)Math.Sqrt((long)(poolAmount1 * virtualPoolAmount1));
 
@@ -907,6 +900,7 @@ public class ExchangeContractTests
     }
 
     [TestMethod]
+    [TestCategory("DEX")]
     // TODO: Get the pool initial values and calculate the target rate with those values insted of the static ones.
     public void AddLiquidityToPool()
     {
@@ -916,7 +910,7 @@ public class ExchangeContractTests
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
 
-        core.InitPools();
+        core.InitFunds();
         core.Migrate();
         
         // Create users
@@ -1710,6 +1704,7 @@ public class ExchangeContractTests
     }
 
     [TestMethod]
+    [TestCategory("DEX")]
     public void GetClaimFees()
     {
         CoreClass core = new CoreClass();
@@ -1785,7 +1780,6 @@ public class ExchangeContractTests
     }
 
     [TestMethod]
-    [Ignore]
     public void CosmicSwap()
     {
         CoreClass core = new CoreClass();
@@ -1808,20 +1802,6 @@ public class ExchangeContractTests
 
         var fuelAmount = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
         var transferAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
-
-        var symbol = "COOL";
-
-        /*simulator.BeginBlock();
-        simulator.GenerateToken(owner, symbol, "CoolToken", 1000000, 0, TokenFlags.Burnable | TokenFlags.Transferable | TokenFlags.Fungible | TokenFlags.Finite);
-        simulator.MintTokens(owner, testUserA.Address, symbol, 100000);
-        simulator.EndBlock();
-
-        simulator.BeginBlock();
-        simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
-        var blockA = simulator.EndBlock().FirstOrDefault();
-
-        Assert.IsTrue(blockA != null);
-        Assert.IsFalse(blockA.OracleData.Any());*/
 
         var originalBalance = poolOwner.GetBalance( DomainSettings.FuelTokenSymbol );
 
@@ -2029,7 +2009,7 @@ public class ExchangeContractTests
         public CoreClass(bool Pools) : base()
         {
             if (Pools)
-                InitPools();
+                InitFunds();
         }
 
         private void InitExchange()
@@ -2093,7 +2073,7 @@ public class ExchangeContractTests
             simulator.EndBlock();
         }
         
-        public void InitPools()
+        public void InitFunds()
         {
 
             
@@ -2894,6 +2874,13 @@ public class ExchangeContractTests
         public void FundBaseToken(BigInteger quantity, bool fundFuel = false) => FundUser(true, quantity, fundFuel);
         public void FundQuoteToken(BigInteger quantity, bool fundFuel = false) => FundUser(false, quantity, fundFuel);
 
+        public void CreateToken(CoreClass.ExchangeTokenInfo token)
+        {
+            simulator.BeginBlock();
+            simulator.GenerateToken(core.owner, token.Symbol, token.Name, token.MaxSupply, token.Decimals, flags);
+            simulator.MintTokens(core.owner, core.owner.Address, token.Symbol, token.MaxSupply);
+            simulator.EndBlock();
+        }
 
         //transfers the given quantity of a specified token to this user, plus some fuel to pay for transactions
         private void FundUser(bool fundBase, BigInteger quantity, bool fundFuel = false)
