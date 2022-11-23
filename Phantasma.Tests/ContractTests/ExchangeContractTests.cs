@@ -2068,7 +2068,7 @@ public class ExchangeContractTests
         public void Migrate()
         {
             DeployLPToken();
-            
+            return;
             // Migrate Call Old Way
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(owner, ProofOfWork.Minimal, () =>
