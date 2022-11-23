@@ -83,6 +83,9 @@ public class AccountContracTest
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain as Chain, "KCAL", UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals));
             simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain as Chain, "SOUL", UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals));
+            simulator.EndBlock();
+
+            simulator.BeginBlock();
             simulator.GenerateCustomTransaction(target, ProofOfWork.None,
                 () => ScriptUtils.BeginScript()
                         .AllowGas(target.Address, Address.Null, 1, TestGasLimit)
