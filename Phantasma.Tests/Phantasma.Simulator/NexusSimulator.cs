@@ -65,7 +65,7 @@ namespace Phantasma.Simulator
             "whiz", "wolf", "wrath", "zero", "zigzag", "zion"
         };
 
-        public TimeSpan blockTimeSkip = TimeSpan.FromSeconds(2);
+        public TimeSpan blockTimeSkip = TimeSpan.FromSeconds(10);
         public int MinimumFee => DomainSettings.DefaultMinimumGasFee;
 
         public NexusSimulator(PhantasmaKeys owner, int seed = 1234, Nexus nexus = null) : this(new PhantasmaKeys[] { owner }, seed, nexus)
