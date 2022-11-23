@@ -198,7 +198,9 @@ namespace Phantasma.Business.Blockchain
                     _methodTableForGasExtraction = GenerateMethodTable();
                 }
 
-                if (!GasExtensions.ExtractGasDetails(tx.Script, out from, out target, out gasPrice, out gasLimit, _methodTableForGasExtraction))
+                var methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction);
+
+                if (!GasExtensions.ExtractGasDetailsFromMethods(methods, out from, out target, out gasPrice, out gasLimit, _methodTableForGasExtraction))
                 {
                     var type = CodeType.NoUserAddress;
                     Log.Information("check tx error {type} {Hash}", type, tx.Hash);
@@ -212,28 +214,33 @@ namespace Phantasma.Business.Blockchain
                     return (type, "AllowGas call not found in transaction script");
                 }*/
 
-                var minFee = Nexus.GetGovernanceValue(Nexus.RootStorage, GovernanceContract.GasMinimumFeeTag);
-                if (gasPrice < minFee)
-                {
-                    var type = CodeType.GasFeeTooLow;
-                    Log.Information("check tx error {type} {Hash}", type, tx.Hash);
-                    return (type, "Gas fee too low");
-                }
+                var whitelisted = methods.Any(m => m.ContractName == NativeContractKind.Swap.GetContractName() && m.MethodName == nameof(SwapContract.SwapFee));
 
-                var minGasRequired = gasPrice * gasLimit;
-                var balance = GetTokenBalance(this.Storage, DomainSettings.FuelTokenSymbol, from);
-                if (balance < minGasRequired)
+                if (!whitelisted)
                 {
-                    var type = CodeType.MissingFuel;
-                    Log.Information("check tx error {MissingFuel} {Hash}", type, tx.Hash);
-
-                    if (balance == 0)
+                    var minFee = Nexus.GetGovernanceValue(Nexus.RootStorage, GovernanceContract.GasMinimumFeeTag);
+                    if (gasPrice < minFee)
                     {
-                        return (type, $"Missing fuel, {from} has 0 {DomainSettings.FuelTokenSymbol}");
+                        var type = CodeType.GasFeeTooLow;
+                        Log.Information("check tx error {type} {Hash}", type, tx.Hash);
+                        return (type, "Gas fee too low");
                     }
-                    else
+
+                    var minGasRequired = gasPrice * gasLimit;
+                    var balance = GetTokenBalance(this.Storage, DomainSettings.FuelTokenSymbol, from);
+                    if (balance < minGasRequired)
                     {
-                        return (type, $"Missing fuel, {from} has {UnitConversion.ToDecimal(balance, DomainSettings.FuelTokenDecimals)} {DomainSettings.FuelTokenSymbol} expected at least {UnitConversion.ToDecimal(minGasRequired, DomainSettings.FuelTokenDecimals)} {DomainSettings.FuelTokenSymbol}");
+                        var type = CodeType.MissingFuel;
+                        Log.Information("check tx error {MissingFuel} {Hash}", type, tx.Hash);
+
+                        if (balance == 0)
+                        {
+                            return (type, $"Missing fuel, {from} has 0 {DomainSettings.FuelTokenSymbol}");
+                        }
+                        else
+                        {
+                            return (type, $"Missing fuel, {from} has {UnitConversion.ToDecimal(balance, DomainSettings.FuelTokenDecimals)} {DomainSettings.FuelTokenSymbol} expected at least {UnitConversion.ToDecimal(minGasRequired, DomainSettings.FuelTokenDecimals)} {DomainSettings.FuelTokenSymbol}");
+                        }
                     }
                 }
             }

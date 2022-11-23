@@ -11,9 +11,14 @@ namespace Phantasma.Business.Blockchain
 {
     public static class GasExtensions
     {
-        public static bool ExtractGasDetails(byte[] script, out Address from, out Address target, out BigInteger gasPrice, out BigInteger gasLimit, Dictionary<string, int> methodArgumentCountTable = null)
+        public static bool ExtractGasDetailsFromScript(byte[] script, out Address from, out Address target, out BigInteger gasPrice, out BigInteger gasLimit, Dictionary<string, int> methodArgumentCountTable = null)
         {
             var methods = DisasmUtils.ExtractMethodCalls(script, methodArgumentCountTable);
+            return ExtractGasDetailsFromMethods(methods, out from, out target, out gasPrice, out gasLimit, methodArgumentCountTable);
+        }
+
+        public static bool ExtractGasDetailsFromMethods(IEnumerable<DisasmMethodCall> methods, out Address from, out Address target, out BigInteger gasPrice, out BigInteger gasLimit, Dictionary<string, int> methodArgumentCountTable = null)
+        {
             var allowGas = methods.FirstOrDefault(x => x.ContractName.Equals("gas") && x.MethodName.Equals(nameof(GasContract.AllowGas)));
 
             if (allowGas == null || allowGas.Arguments.Length != 4)
