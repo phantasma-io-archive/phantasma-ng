@@ -42,4 +42,4 @@ docker build --platform=linux/x86_64 -t phantasma-devnet -f DOCKER/Dockerfile .
 docker tag phantasma-devnet:latest phantasmachain/phantasma-devnet:$LAST_COMMIT
 
 # Publish Container
-docker push phantasmachain/phantasma-devnet:$LAST_COMMIT
+docker push phantasmachain/phantasma-devnet

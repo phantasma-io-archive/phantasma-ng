@@ -5,7 +5,7 @@ WORKDIR /app
 # Copy everything
 COPY DOCKER/wrapper.sh /app/wrapper.sh
 COPY DOCKER/testnet /app/testnet
-COPY DOCKER/bin /app/testnet
+COPY DOCKER/bin /app/bin
 
 RUN apt-get update; apt-get install -y libc6-dev libsnappy-dev libicu-dev screen bash vim net-tools ca-certificates openssl libssl-dev librocksdb-dev
 

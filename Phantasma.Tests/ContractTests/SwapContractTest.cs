@@ -66,6 +66,109 @@ public class SwapContractTest
         Assert.IsTrue(currentKcalBalance > startingKcalBalance);
     }
     
+    [TestMethod]
+    public void CosmicSwap()
+    {
+        var owner = PhantasmaKeys.Generate();
+
+        var simulator = new NexusSimulator(owner);
+        var nexus = simulator.Nexus;
+
+        var testUser = PhantasmaKeys.Generate();
+
+        var soulAmount = UnitConversion.ToBigInteger(1000, 8);
+        var soulUserAmount = UnitConversion.ToBigInteger(10, 8);
+        var kcalAmount = UnitConversion.ToBigInteger(1000, 10);
+
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 9999)
+                .CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.StakingTokenSymbol, soulAmount)
+                .CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.FuelTokenSymbol, kcalAmount)
+                .SpendGas(owner.Address)
+                .EndScript());
+        simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, soulUserAmount);
+        simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
+        var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
+        var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
+
+        var startingSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
+        var startingKcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+
+        BigInteger swapAmount = UnitConversion.ToBigInteger(2, 8);
+        
+        // Should Pass
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapFee), testUser.Address, DomainSettings.StakingTokenSymbol, swapAmount)
+                .AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                .SpendGas(testUser.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
+        var currentSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
+        var currentKcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+
+        Assert.IsTrue(currentSoulBalance < startingSoulBalance, $"{currentSoulBalance} < {startingSoulBalance}");
+        Assert.IsTrue(currentKcalBalance > startingKcalBalance);
+    }
+
+    [TestMethod]
+    public void CosmicSwapFail()
+    {
+        var owner = PhantasmaKeys.Generate();
+
+        var simulator = new NexusSimulator(owner);
+        var nexus = simulator.Nexus;
+
+        var testUser = PhantasmaKeys.Generate();
+
+        var soulAmount = UnitConversion.ToBigInteger(1000, 8);
+        var soulUserAmount = UnitConversion.ToBigInteger(10, 8);
+        var kcalAmount = UnitConversion.ToBigInteger(1000, 10);
+
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 9999)
+                .CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.StakingTokenSymbol, soulAmount)
+                .CallContract(NativeContractKind.Swap, nameof(SwapContract.DepositTokens), owner.Address, DomainSettings.FuelTokenSymbol, kcalAmount)
+                .SpendGas(owner.Address)
+                .EndScript());
+        simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, soulUserAmount);
+        simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
+        var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
+        var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
+
+        var startingSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
+        var startingKcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+
+        BigInteger swapAmount = UnitConversion.ToBigInteger(2, 8);
+        
+        // Should fail -> Order of scripts
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
+                .CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapFee), testUser.Address, DomainSettings.StakingTokenSymbol, swapAmount)
+                .SpendGas(testUser.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        
+        var currentSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
+        var currentKcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+
+        Assert.IsFalse(currentSoulBalance < startingSoulBalance, $"{currentSoulBalance} < {startingSoulBalance}");
+        Assert.IsFalse(currentKcalBalance > startingKcalBalance, $"{currentKcalBalance} > {startingKcalBalance}");
+    }
     
     
     /*
