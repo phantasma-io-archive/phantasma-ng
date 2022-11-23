@@ -1,7 +1,7 @@
 @echo off
 
 REM Set debug_mode to true if you want to run your own instance of node0 inside Visual Studio
-set DEBUG_MODE=true
+set DEBUG_MODE=false
 set TOTAL_NODES=4
 set CODE_PATH=..\Phantasma.Node
 set DOCKER_PATH=..\DOCKER\testnet
@@ -67,8 +67,9 @@ REM Init tendermint
 echo Resetting Tendermint instance #%NODE_INDEX%
 SET TMHOME=%NODE_ROOT%
 copy "%~dp0\tendermint.exe" %NODE_ROOT% /y > NUL
-%NODE_ROOT%\tendermint.exe unsafe-reset-all
 
+REM reset tendermint blocks if no data exists yet
+If not Exist "%NODE_ROOT%\data" (%NODE_ROOT%\tendermint.exe unsafe-reset-all)
 
 echo Launching tendermint instance #%NODE_INDEX%
 start "Tendermint %NODE_INDEX%" cmd /K  "SET TMHOME=%NODE_ROOT%& cd %NODE_ROOT%& tendermint.exe node"

@@ -275,7 +275,7 @@ public static class NexusAPI
 
         Address from, target;
         BigInteger gasPrice, gasLimit;
-        GasExtensions.ExtractGasDetails(tx.Script, out from, out target, out gasPrice, out gasLimit);
+        GasExtensions.ExtractGasDetailsFromScript(tx.Script, out from, out target, out gasPrice, out gasLimit);
 
         var result = new TransactionResult
         {

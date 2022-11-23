@@ -216,7 +216,7 @@ namespace Phantasma.Business.Blockchain
             Address from, target;
             BigInteger gasPrice, gasLimit;
 
-            if (!GasExtensions.ExtractGasDetails(this.EntryScript, out from, out target, out gasPrice, out gasLimit))
+            if (!GasExtensions.ExtractGasDetailsFromScript(this.EntryScript, out from, out target, out gasPrice, out gasLimit))
             {
                 return false;
             }
