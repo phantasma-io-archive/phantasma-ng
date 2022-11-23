@@ -143,7 +143,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 return;
             }
 
-            var amountInOtherSymbol = Runtime.CallNativeContext(NativeContractKind.Exchange, nameof(ExchangeContract.GetRate), feeSymbol, fromSymbol, feeAmount).AsNumber();
+            var amountInOtherSymbol = GetRate(feeSymbol, fromSymbol, feeAmount);
 
             var token = Runtime.GetToken(fromSymbol);
             BigInteger minAmount;
