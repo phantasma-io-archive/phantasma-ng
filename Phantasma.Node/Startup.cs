@@ -157,6 +157,7 @@ public class Startup
         app.UseWaitForStartupActionsBeforeServingRequests();
         app.UseSerilogRequestLogging();
         app.UseCors();
+        //app.UseExceptionHandler();
         app.UseMiddleware<ErrorLoggingMiddleware>();
         app.UseMiddleware<PerformanceMiddleware>();
         app.UseMiddleware<CacheMiddleware>();
