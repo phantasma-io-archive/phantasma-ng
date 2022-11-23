@@ -27,6 +27,13 @@ namespace Phantasma.Business.Blockchain
                    nameof(ExchangeContract.SwapFee),
                    nameof(ExchangeContract.SwapReverse)
                }
+            },
+            { 
+                NativeContractKind.Stake.GetContractName(),
+                new List<string>()
+                {
+                    nameof(StakeContract.Claim)
+                }
             }
         };
         

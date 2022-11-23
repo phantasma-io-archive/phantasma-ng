@@ -679,10 +679,10 @@ public class ExchangeContractTests
     static string poolSymbol5 = "GAS";
     static BigInteger poolAmount5 = UnitConversion.ToBigInteger(600, 8);
     
-    static TokenFlags flags = TokenFlags.Transferable | TokenFlags.Fungible | TokenFlags.Finite | TokenFlags.Divisible;
+    public static TokenFlags flags = TokenFlags.Transferable | TokenFlags.Fungible | TokenFlags.Finite | TokenFlags.Divisible;
 
-    static CoreClass.ExchangeTokenInfo soul = new CoreClass.ExchangeTokenInfo("SOUL", "Phantasma SOUL", poolAmount0*100, 8, flags );
-    static CoreClass.ExchangeTokenInfo kcal = new CoreClass.ExchangeTokenInfo("KCAL", "Phantasma KCAL", poolAmount1*100, 10, flags );
+     static CoreClass.ExchangeTokenInfo soul = new CoreClass.ExchangeTokenInfo("SOUL", "Phantasma SOUL", poolAmount0*100, 8, flags );
+     static CoreClass.ExchangeTokenInfo kcal = new CoreClass.ExchangeTokenInfo("KCAL", "Phantasma KCAL", poolAmount1*100, 10, flags );
     static CoreClass.ExchangeTokenInfo eth = new CoreClass.ExchangeTokenInfo("PETH", "Phantasma ETH", poolAmount2*100, 18, flags );
     static CoreClass.ExchangeTokenInfo bnb = new CoreClass.ExchangeTokenInfo("PBNB", "Phantasma BNB", poolAmount3*100, 18, flags );
     static CoreClass.ExchangeTokenInfo neo = new CoreClass.ExchangeTokenInfo("PNEO", "Phantasma NEO", poolAmount4*100, 1, flags );
@@ -692,7 +692,7 @@ public class ExchangeContractTests
     static string virtualPoolSymbol = "COOL";
     static BigInteger virtualPoolAmount1 = UnitConversion.ToBigInteger(10000000, 10);
     
-    private static Address SwapAddress = SmartContract.GetAddressForNative(NativeContractKind.Exchange);
+    private static Address ExchangeAddress = SmartContract.GetAddressForNative(NativeContractKind.Exchange);
     
     private void SetupNormalPool()
     {
@@ -708,7 +708,7 @@ public class ExchangeContractTests
         poolOwner.CreatePool(soul.Symbol, poolAmount0, eth.Symbol, poolAmount1);
 
         // SOUL / ETH
-        poolOwner.CreatePool(soul.Symbol, poolAmount0, poolSymbol2, poolAmount2);
+        poolOwner.CreatePool(soul.Symbol, poolAmount0, eth.Symbol, poolAmount2);
 
         // SOUL / NEO
         poolOwner.CreatePool(soul.Symbol, poolAmount0, neo.Symbol, poolAmount4);
@@ -830,7 +830,7 @@ public class ExchangeContractTests
         Assert.IsTrue(pool.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
         Assert.IsTrue(pool.Amount0 == myPoolAmount0, $"Amount0 doesn't check {pool.Amount0}");
         Assert.IsTrue(pool.Symbol1 == cool.Symbol, "Symbol1 doesn't check");
-        Assert.IsTrue(pool.Amount1 == myPoolAmount1, $"Amount1 doesn't check {pool.Amount1}");
+        Assert.IsTrue(pool.Amount1 == myPoolAmount0/3, $"Amount1 doesn't check {pool.Amount1}");
         Assert.IsTrue(pool.TotalLiquidity == totalLiquidity, "Liquidity doesn't check"); 
         Assert.IsTrue(pool.Symbol0Address == token0Address.Address.Text);
         Assert.IsTrue(pool.Symbol1Address == token1Address.Address.Text);
@@ -928,11 +928,8 @@ public class ExchangeContractTests
 
         var amount0 = poolAmount0 / 10;
         var amount1 = poolAmount2 / 10;
-        var am0 = UnitConversion.ToDecimal(UnitConversion.ConvertDecimals(pool.Amount0, 8, 8),8);
-        var am1 = UnitConversion.ToDecimal(UnitConversion.ConvertDecimals(pool.Amount1,18, 8), 8);
-        var poolRatio = am0 / am1;
-        var poolRatioD = UnitConversion.ToBigInteger(poolRatio, DomainSettings.FiatTokenDecimals);
-        var amountCalculated = UnitConversion.ConvertDecimals((amount0 / poolRatioD), DomainSettings.FiatTokenDecimals, 18);
+        var poolRatio = UnitConversion.ConvertDecimals(pool.Amount0, soul.Decimals, DomainSettings.FiatTokenDecimals) / UnitConversion.ConvertDecimals(pool.Amount1, eth.Decimals, DomainSettings.FiatTokenDecimals);
+        var amountCalculated = UnitConversion.ConvertDecimals((amount0 / poolRatio), DomainSettings.FiatTokenDecimals, eth.Decimals);
 
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(soul.Symbol, amount0, eth.Symbol, 0);
@@ -965,7 +962,7 @@ public class ExchangeContractTests
         
         // Give Users tokens
         poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
 
@@ -1005,37 +1002,32 @@ public class ExchangeContractTests
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
 
+        core.InitFunds();
         core.Migrate();
         
         // Create users
         var poolOwner = new ExchangeUser(baseSymbol, quoteSymbol, core);
         
         // Give Users tokens
-        poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
+        poolOwner.FundUser(soul: 50000, kcal: 100);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
 
         // Get Initial Pool State the Liquidity
         var pool = poolOwner.GetPool(soul.Symbol, eth.Symbol);
 
-        BigInteger poolRatio = UnitConversion.ConvertDecimals(pool.Amount0, 8, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount1, 10, DomainSettings.FiatTokenDecimals);
+        BigInteger poolRatio = UnitConversion.ConvertDecimals(pool.Amount0, soul.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount1, eth.Decimals, DomainSettings.FiatTokenDecimals);
         var amount0 = poolAmount0 / 2;
-        var amount1 = UnitConversion.ConvertDecimals((amount0 * 100 / poolRatio ), DomainSettings.FiatTokenDecimals, 10);
+        var amount1 = UnitConversion.ConvertDecimals((amount0 * 100 / poolRatio ), DomainSettings.FiatTokenDecimals, eth.Decimals);
         Console.WriteLine($"ratio:{poolRatio} | amount0:{amount0} | amount1:{amount1}");
-        Console.WriteLine($"BeforeTouchingPool: {pool.Amount0} {pool.Symbol0} | {pool.Amount1} {pool.Symbol1} | PoolRatio:{UnitConversion.ConvertDecimals(pool.Amount0, 8, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount1, 10, DomainSettings.FiatTokenDecimals)}\n");
+        Console.WriteLine($"BeforeTouchingPool: {pool.Amount0} {pool.Symbol0} | {pool.Amount1} {pool.Symbol1} | PoolRatio:{UnitConversion.ConvertDecimals(pool.Amount0, soul.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount1, eth.Decimals, DomainSettings.FiatTokenDecimals)}\n");
 
         BigInteger totalAm0 = pool.Amount0;
         BigInteger totalAm1 = pool.Amount1;
         //poolRatio = UnitConversion.ConvertDecimals(pool.Amount1, 10, DomainSettings.FiatTokenDecimals) / UnitConversion.ConvertDecimals(pool.Amount0, 8, DomainSettings.FiatTokenDecimals);
         BigInteger totalLiquidity = pool.TotalLiquidity;
-
-        // setup Tokens for the user
-        /*simulator.BeginBlock();
-        simulator.MintTokens(owner, testUserA.Address, soul.Symbol, virtualPoolAmount1);
-        simulator.MintTokens(owner, testUserA.Address, eth.Symbol, virtualPoolAmount1);
-        simulator.EndBlock();*/
-
+        
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(soul.Symbol, poolAmount0, eth.Symbol, poolAmount1);
         
@@ -1044,7 +1036,7 @@ public class ExchangeContractTests
         totalAm0 += poolAmount0;
         
         var poolBefore = poolOwner.GetPool(soul.Symbol, eth.Symbol);
-        Console.WriteLine($"AfterAdd: {poolBefore.Amount0} {poolBefore.Symbol0} | {poolBefore.Amount1} {poolBefore.Symbol1} | PoolRatio:{UnitConversion.ConvertDecimals(poolBefore.Amount0, 8, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(poolBefore.Amount1, 10, DomainSettings.FiatTokenDecimals)}\n");
+        Console.WriteLine($"AfterAdd: {poolBefore.Amount0} {poolBefore.Symbol0} | {poolBefore.Amount1} {poolBefore.Symbol1} | PoolRatio:{UnitConversion.ConvertDecimals(poolBefore.Amount0, soul.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(poolBefore.Amount1, eth.Decimals, DomainSettings.FiatTokenDecimals)}\n");
 
         var nftRAMBefore = poolOwner.GetPoolRAM(soul.Symbol, eth.Symbol);
 
@@ -1054,7 +1046,7 @@ public class ExchangeContractTests
         // Get Pool
         var poolAfter = poolOwner.GetPool(soul.Symbol, eth.Symbol);
 
-        Console.WriteLine($"AfterRemove: {poolAfter.Amount0} {poolAfter.Symbol0} | {poolAfter.Amount1} {poolAfter.Symbol1} | PoolRatio:{UnitConversion.ConvertDecimals(poolAfter.Amount0, 8, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(poolAfter.Amount1, 10, DomainSettings.FiatTokenDecimals)}\n");
+        Console.WriteLine($"AfterRemove: {poolAfter.Amount0} {poolAfter.Symbol0} | {poolAfter.Amount1} {poolAfter.Symbol1} | PoolRatio:{UnitConversion.ConvertDecimals(poolAfter.Amount0, soul.Decimals, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(poolAfter.Amount1, eth.Decimals, DomainSettings.FiatTokenDecimals)}\n");
         BigInteger newLP = ((nftRAMBefore.Amount0 - amount0) * (totalLiquidity - nftRAMBefore.Liquidity)) / (totalAm0 - nftRAMBefore.Amount0);
         var lpRemoved = ((nftRAMBefore.Amount0 - amount0) * (totalLiquidity- nftRAMBefore.Liquidity)) / (totalAm0- nftRAMBefore.Amount0);
         totalLiquidity = totalLiquidity - nftRAMBefore.Liquidity + newLP;
@@ -1092,8 +1084,8 @@ public class ExchangeContractTests
         Assert.IsTrue(_pool_amount0 == poolAfter.Amount0, $"Pool Amount0 not calculated properly | {_pool_amount0} != {poolAfter.Amount0}");
         Assert.IsTrue(_pool_amount1 == poolAfter.Amount1, $"Pool Amount1 not calculated properly | {_pool_amount1} != {poolAfter.Amount1}");
         Assert.IsTrue(_pool_liquidity == poolAfter.TotalLiquidity, $"Pool TotalLiquidity not calculated properly | {_pool_liquidity} != {poolAfter.TotalLiquidity}");
-        Assert.IsTrue(_amount0 + UnitConversion.ToBigInteger(0.00000001m, 8) >= nftRAMAfter.Amount0, $"Amount0 not calculated properly | {_amount0+ UnitConversion.ToBigInteger(0.00000001m, 8) } != {nftRAMAfter.Amount0}");
-        Assert.IsTrue(_amount1 + UnitConversion.ToBigInteger(0.000000001m, 10) >= nftRAMAfter.Amount1, $"Amount1 not calculated properly | {_amount1+ UnitConversion.ToBigInteger(0.000000001m, 10)} != {nftRAMAfter.Amount1}");
+        Assert.IsTrue(_amount0 + UnitConversion.ToBigInteger(0.00000001m, soul.Decimals) >= nftRAMAfter.Amount0, $"Amount0 not calculated properly | {_amount0+ UnitConversion.ToBigInteger(0.00000001m, soul.Decimals) } != {nftRAMAfter.Amount0}");
+        Assert.IsTrue(_amount1 + UnitConversion.ToBigInteger(0.000000001m, eth.Decimals) >= nftRAMAfter.Amount1, $"Amount1 not calculated properly | {_amount1+ UnitConversion.ToBigInteger(0.000000001m, eth.Decimals)} != {nftRAMAfter.Amount1}");
 
         // Get Liquidity by amount
         var liquidityAm0 = nftRAMAfter.Amount0 * totalLiquidity / poolAfter.Amount0;
@@ -1117,14 +1109,16 @@ public class ExchangeContractTests
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
 
+        core.InitFunds();
         core.Migrate();
         
         // Create users
         var poolOwner = new ExchangeUser(baseSymbol, quoteSymbol, core);
         
         // Give Users tokens
-        poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
+
+        poolOwner.FundUser(soul: 50000, kcal: 100);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
         
@@ -1132,26 +1126,17 @@ public class ExchangeContractTests
         // Get Initial Pool State the Liquidity
         var pool = poolOwner.GetPool(soul.Symbol, eth.Symbol);
 
-        BigInteger poolRatio = UnitConversion.ConvertDecimals(pool.Amount0, 8, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount1, 10, DomainSettings.FiatTokenDecimals);
+        BigInteger poolRatio = UnitConversion.ConvertDecimals(pool.Amount0, 8, DomainSettings.FiatTokenDecimals) * 100 / UnitConversion.ConvertDecimals(pool.Amount1, 18, DomainSettings.FiatTokenDecimals);
         var amount0 = poolAmount0 / 2;
-        var amount1 = UnitConversion.ConvertDecimals((amount0 * 100 / poolRatio), DomainSettings.FiatTokenDecimals, 10);
+        var amount1 = UnitConversion.ConvertDecimals((amount0 * 100  / poolRatio), DomainSettings.FiatTokenDecimals, 18);
 
         BigInteger totalAm0 = pool.Amount0;
         BigInteger totalAm1 = pool.Amount1;
         BigInteger totalLiquidity = pool.TotalLiquidity;
 
-        // Setup a test user 
-        var testUserA = PhantasmaKeys.Generate();
-
-        // setup Tokens for the user
-        /*simulator.BeginBlock();
-        simulator.MintTokens(owner, testUserA.Address, soul.Symbol, virtualPoolAmount1);
-        simulator.MintTokens(owner, testUserA.Address, eth.Symbol, virtualPoolAmount1);
-        simulator.EndBlock();*/
-
-
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(soul.Symbol, amount0, eth.Symbol, 0);
+        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
 
         var lpAdded = (amount0 * totalLiquidity) / totalAm0;
         totalLiquidity += lpAdded;
@@ -1169,6 +1154,7 @@ public class ExchangeContractTests
     }
 
     [TestMethod]
+    [Ignore]
     public void RemoveLiquidityToVirtualPool()
     {
         CoreClass core = new CoreClass();
@@ -1184,7 +1170,7 @@ public class ExchangeContractTests
         
         // Give Users tokens
         poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
 
@@ -1193,15 +1179,6 @@ public class ExchangeContractTests
         BigInteger totalAm0 = poolAmount1;
         BigInteger totalAm1 = virtualPoolAmount1;
         BigInteger totalLiquidity = (BigInteger)Math.Sqrt((long)(totalAm0 * totalAm1));
-
-
-        /*
-        simulator.BeginBlock();
-        simulator.GenerateToken(owner, virtualPoolSymbol, virtualPoolSymbol, virtualPoolAmount1 * 100, 0, TokenFlags.Burnable | TokenFlags.Transferable | TokenFlags.Fungible | TokenFlags.Finite);
-        simulator.MintTokens(owner, testUserA.Address, soul.Symbol, virtualPoolAmount1);
-        simulator.MintTokens(owner, testUserA.Address, eth.Symbol, virtualPoolAmount1);
-        simulator.MintTokens(owner, testUserA.Address, virtualPoolSymbol, virtualPoolAmount1);
-        simulator.EndBlock();*/
 
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(eth.Symbol, poolAmount1, virtualPoolSymbol, virtualPoolAmount1);
@@ -1298,6 +1275,7 @@ public class ExchangeContractTests
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
 
+        core.InitFunds();
         core.Migrate();
         
         // Create users
@@ -1305,7 +1283,7 @@ public class ExchangeContractTests
         
         // Give Users tokens
         poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
         
@@ -1328,6 +1306,7 @@ public class ExchangeContractTests
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
 
+        core.InitFunds();
         core.Migrate();
         
         // Create users
@@ -1335,62 +1314,40 @@ public class ExchangeContractTests
         var poolOwner2 = new ExchangeUser(baseSymbol, quoteSymbol, core);
         
         // Give Users tokens
-        poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
+        poolOwner.FundUser(soul: 5000, kcal: 100);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
 
+        poolOwner2.FundUser(soul: 5000, kcal: 100);
+
         BigInteger swapValue = UnitConversion.ToBigInteger(100, 8);
-
-        /*simulator.BeginBlock();
-        simulator.MintTokens(owner, testUserA.Address, soul.Symbol, poolAmount0 * 10);
-        simulator.MintTokens(owner, testUserA.Address, eth.Symbol, virtualPoolAmount1);
-        simulator.MintTokens(owner, testUserA.Address, poolSymbol2, poolAmount2 * 2);
-        simulator.MintTokens(owner, testUserA.Address, neo.Symbol, poolAmount4 * 2);
-        simulator.MintTokens(owner, testUserB.Address, soul.Symbol, virtualPoolAmount1);
-        simulator.MintTokens(owner, testUserB.Address, eth.Symbol, poolAmount1);
-        simulator.EndBlock();*/
-
         
-        
-        var beforeTXBalanceKCAL = poolOwner2.GetBalance(eth.Symbol);
-
-        // Add Liquidity to the pool SOUL / KCAL
-        /*simulator.BeginBlock();
-        var tx = simulator.GenerateCustomTransaction(testUserA, ProofOfWork.Minimal, () =>
-                ScriptUtils
-                .BeginScript()
-                .AllowGas(testUserA.Address, Address.Null, 1, 9999)
-                .CallContract("swap", "AddLiquidity", testUserA.Address, soul.Symbol, poolAmount0, eth.Symbol, poolAmount1)
-                .SpendGas(testUserA.Address)
-                .EndScript()
-            );
-        var block = simulator.EndBlock().First();*/
+        var beforeTXBalanceKCAL = poolOwner2.GetBalance(kcal.Symbol);
 
         // Get Rate
-        var rate = poolOwner2.GetRate(soul.Symbol, poolSymbol2, swapValue);
+        var rate = poolOwner2.GetRate(soul.Symbol, eth.Symbol, swapValue);
 
-        Console.WriteLine($"{swapValue} {soul.Symbol} for {rate} {poolSymbol2}");
+        Console.WriteLine($"{swapValue} {soul.Symbol} for {rate} {eth.Symbol}");
 
         // Make Swap SOUL / ETH
-        poolOwner2.SwapTokens(eth.Symbol, poolSymbol2, swapValue);
-        var afterTXBalanceKCAL = poolOwner2.GetBalance(eth.Symbol);
+        var txFees = poolOwner2.SwapTokens(soul.Symbol, eth.Symbol, swapValue);
+        var afterTXBalanceKCAL = poolOwner2.GetBalance(kcal.Symbol);
         var kcalfee = beforeTXBalanceKCAL - afterTXBalanceKCAL;
         Console.WriteLine($"KCAL Fee: {kcalfee}");
 
         // Check trade
-        var originalBalance = poolOwner2.GetBalance(poolSymbol2);
+        var originalBalance = poolOwner2.GetBalance(eth.Symbol);
         Assert.IsTrue(rate == originalBalance, $"{rate} != {originalBalance}");
 
         // Make Swap SOUL / KCAL
-        rate = poolOwner2.GetRate(soul.Symbol, eth.Symbol, swapValue);
+        rate = poolOwner2.GetRate(soul.Symbol, kcal.Symbol, swapValue);
 
-        Console.WriteLine($"{swapValue} {soul.Symbol} for {rate} {eth.Symbol}");
+        Console.WriteLine($"{swapValue} {soul.Symbol} for {rate} {kcal.Symbol}");
+        
+        txFees += poolOwner2.SwapTokens(soul.Symbol, kcal.Symbol, swapValue);
 
-
-        poolOwner2.SwapTokens(soul.Symbol, eth.Symbol, swapValue);
-
-        originalBalance = poolOwner2.GetBalance(eth.Symbol);
+        originalBalance = poolOwner2.GetBalance(kcal.Symbol);
 
         Assert.IsTrue(rate == originalBalance-afterTXBalanceKCAL+kcalfee, $"{rate} != {originalBalance-afterTXBalanceKCAL+kcalfee}");
     }
@@ -1404,6 +1361,7 @@ public class ExchangeContractTests
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
 
+        core.InitFunds();
         core.Migrate();
         
         // Create users
@@ -1411,60 +1369,55 @@ public class ExchangeContractTests
         var poolOwner2 = new ExchangeUser(baseSymbol, quoteSymbol, core);
         
         // Give Users tokens
-        poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
+        poolOwner.FundUser(soul: 50000, kcal: 100);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
+        
+        poolOwner2.FundUser(soul: 50000, kcal: 1200);
+        poolOwner2.Fund(eth.Symbol, poolAmount2);
 
-        BigInteger swapValueKCAL = UnitConversion.ToBigInteger(1000, 10);
-        BigInteger swapValueETH = UnitConversion.ToBigInteger(1, 18);
-
-        /*simulator.BeginBlock();
-        simulator.MintTokens(owner, testUserA.Address, soul.Symbol, poolAmount0 * 10);
-        simulator.MintTokens(owner, testUserA.Address, eth.Symbol, virtualPoolAmount1);
-        simulator.MintTokens(owner, testUserA.Address, poolSymbol2, poolAmount2 * 2);
-        simulator.MintTokens(owner, testUserA.Address, neo.Symbol, poolAmount4 * 2);
-        simulator.MintTokens(owner, testUserB.Address, soul.Symbol, poolAmount0);
-        simulator.MintTokens(owner, testUserB.Address, eth.Symbol, poolAmount1);
-        simulator.MintTokens(owner, testUserB.Address, poolSymbol2, poolAmount2 * 2);
-        simulator.EndBlock();*/
+        
+        BigInteger swapValueKCAL = UnitConversion.ToBigInteger(1000, kcal.Decimals);
+        BigInteger swapValueETH = UnitConversion.ToBigInteger(1, eth.Decimals);
 
         var beforeTXBalanceSOUL = poolOwner2.GetBalance(soul.Symbol);
-        var beforeTXBalanceKCAL = poolOwner2.GetBalance(eth.Symbol);
-        var beforeTXBalanceETH = poolOwner2.GetBalance(poolSymbol2);
+        var beforeTXBalanceKCAL = poolOwner2.GetBalance(kcal.Symbol);
+        var beforeTXBalanceETH = poolOwner2.GetBalance(eth.Symbol);
 
         // Add Liquidity to the pool SOUL / KCAL
-        poolOwner.AddLiquidity(soul.Symbol, poolAmount0, eth.Symbol, poolAmount1);
+        poolOwner.AddLiquidity(soul.Symbol, poolAmount0, kcal.Symbol, poolAmount1);
 
         // SOUL / ETH
 
         // Get Rate
-        var rate = poolOwner2.GetRate(poolSymbol2, soul.Symbol, swapValueETH);
+        var rate = poolOwner2.GetRate(eth.Symbol, soul.Symbol, swapValueETH);
 
-        Console.WriteLine($"{UnitConversion.ToDecimal(swapValueETH, 18)} {poolSymbol2} for {UnitConversion.ToDecimal(rate, 8)} {soul.Symbol}");
+        Console.WriteLine($"{UnitConversion.ToDecimal(swapValueETH, eth.Decimals)} {eth.Symbol} for {UnitConversion.ToDecimal(rate, soul.Decimals)} {soul.Symbol}");
         // Make Swap SOUL / ETH
-        poolOwner2.SwapTokens(poolSymbol2, soul.Symbol, swapValueETH);
+        poolOwner2.SwapTokens(eth.Symbol, soul.Symbol, swapValueETH);
+        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
         
-        var afterTXBalanceKCAL = poolOwner2.GetBalance(eth.Symbol);
+        var afterTXBalanceKCAL = poolOwner2.GetBalance(kcal.Symbol);
         var kcalfee = beforeTXBalanceKCAL - afterTXBalanceKCAL;
-        Console.WriteLine($"KCAL Fee: {UnitConversion.ToDecimal(kcalfee, 10)}");
+        Console.WriteLine($"KCAL Fee: {UnitConversion.ToDecimal(kcalfee, kcal.Decimals)}");
 
         // Check trade
         var afterTXBalanceSOUL = poolOwner2.GetBalance(soul.Symbol);
-        var afterTXBalanceETH = poolOwner2.GetBalance(poolSymbol2);
+        var afterTXBalanceETH = poolOwner2.GetBalance(eth.Symbol);
 
         Assert.IsTrue(beforeTXBalanceSOUL + rate == afterTXBalanceSOUL, $"{beforeTXBalanceSOUL+rate} != {afterTXBalanceSOUL}");
         Assert.IsTrue(beforeTXBalanceETH - swapValueETH == afterTXBalanceETH, $"{beforeTXBalanceETH - swapValueETH} != {afterTXBalanceETH}");
 
         // Make Swap SOUL / KCAL
-        rate = poolOwner2.GetRate(eth.Symbol, soul.Symbol, swapValueKCAL);
+        rate = poolOwner2.GetRate(kcal.Symbol, soul.Symbol, swapValueKCAL);
 
-        Console.WriteLine($"{UnitConversion.ToDecimal(swapValueKCAL, 10)} {eth.Symbol} for {UnitConversion.ToDecimal(rate, 8)} {soul.Symbol}");
+        Console.WriteLine($"{UnitConversion.ToDecimal(swapValueKCAL, kcal.Decimals)} {kcal.Symbol} for {UnitConversion.ToDecimal(rate, soul.Decimals)} {soul.Symbol}");
 
-        poolOwner2.SwapTokens(eth.Symbol, soul.Symbol, swapValueKCAL);
+        poolOwner2.SwapTokens(kcal.Symbol, soul.Symbol, swapValueKCAL);
 
         var afterTXBalanceSOULEND = poolOwner2.GetBalance(soul.Symbol);
-        var afterTXBalanceKCALEND = poolOwner2.GetBalance(eth.Symbol);
+        var afterTXBalanceKCALEND = poolOwner2.GetBalance(kcal.Symbol);
 
         Assert.IsTrue(afterTXBalanceSOUL + rate == afterTXBalanceSOULEND, $"{rate} != {afterTXBalanceSOULEND}");
         Assert.IsTrue(afterTXBalanceKCALEND == afterTXBalanceKCAL - kcalfee - swapValueKCAL, $"{afterTXBalanceKCALEND} != {afterTXBalanceKCAL - kcalfee - swapValueKCAL}");
@@ -1480,6 +1433,7 @@ public class ExchangeContractTests
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
 
+        core.InitFunds();
         core.Migrate();
         
         // Create users
@@ -1487,37 +1441,29 @@ public class ExchangeContractTests
         var poolOwner2 = new ExchangeUser(baseSymbol, quoteSymbol, core);
         
         // Give Users tokens
-        poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
+        poolOwner.FundUser(soul: 50000, kcal: 100);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
         
+        poolOwner2.FundUser(soul: 50000, kcal: 1200);
         
-        BigInteger swapValueKCAL = UnitConversion.ToBigInteger(1000, 10);
-        BigInteger swapValueETH = UnitConversion.ToBigInteger(1, 18);
+        BigInteger swapValueKCAL = UnitConversion.ToBigInteger(1000, kcal.Decimals);
+        BigInteger swapValueETH = UnitConversion.ToBigInteger(1, eth.Decimals);
 
-        /*simulator.BeginBlock();
-        simulator.MintTokens(owner, testUserA.Address, soul.Symbol, poolAmount0 * 10);
-        simulator.MintTokens(owner, testUserA.Address, eth.Symbol, virtualPoolAmount1);
-        simulator.MintTokens(owner, testUserA.Address, poolSymbol2, poolAmount2 * 2);
-        simulator.MintTokens(owner, testUserA.Address, neo.Symbol, poolAmount4 * 2);
-        simulator.MintTokens(owner, testUserB.Address, soul.Symbol, poolAmount0);
-        simulator.MintTokens(owner, testUserB.Address, eth.Symbol, poolAmount1);
-        simulator.MintTokens(owner, testUserB.Address, poolSymbol2, poolAmount2 * 2);
-        simulator.EndBlock();*/
-
-        var beforeTXBalanceKCAL = poolOwner2.GetBalance(eth.Symbol);
-        var beforeTXBalanceETH = poolOwner2.GetBalance( poolSymbol2 );
+        var beforeTXBalanceKCAL = poolOwner2.GetBalance( kcal.Symbol);
+        var beforeTXBalanceETH = poolOwner2.GetBalance( eth.Symbol );
 
         // Get Rate
-        var rate = poolOwner.GetRate(eth.Symbol, poolSymbol2, swapValueKCAL);
+        var rate = poolOwner2.GetRate(kcal.Symbol, eth.Symbol, swapValueKCAL);
 
-        Console.WriteLine($"{UnitConversion.ToDecimal(swapValueKCAL, 10)} {eth.Symbol} for {UnitConversion.ToDecimal(rate, 18)} {poolSymbol2}");
-        // Make Swap SOUL / ETH
-        poolOwner2.SwapTokens(eth.Symbol, poolSymbol2, swapValueKCAL);
+        Console.WriteLine($"{UnitConversion.ToDecimal(swapValueKCAL, kcal.Decimals)} {eth.Symbol} for {UnitConversion.ToDecimal(rate, eth.Decimals)} {eth.Symbol}");
+        // Make Swap KCAL / ETH
+        poolOwner2.SwapTokens(kcal.Symbol, eth.Symbol, swapValueKCAL);
+        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
         
-        var afterTXBalanceKCAL =  poolOwner.GetBalance(eth.Symbol);
-        var afterTXBalanceETH =  poolOwner.GetBalance(poolSymbol2);
+        var afterTXBalanceKCAL =  poolOwner2.GetBalance(kcal.Symbol);
+        var afterTXBalanceETH =  poolOwner2.GetBalance(eth.Symbol);
         var kcalfee = beforeTXBalanceKCAL - afterTXBalanceKCAL - swapValueKCAL;
 
 
@@ -1535,6 +1481,7 @@ public class ExchangeContractTests
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
 
+        core.InitFunds();
         core.Migrate();
         
         // Create users
@@ -1542,61 +1489,54 @@ public class ExchangeContractTests
         var poolOwner2 = new ExchangeUser(baseSymbol, quoteSymbol, core);
         
         // Give Users tokens
-        poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
+        poolOwner.FundUser(soul: 50000, kcal: 100);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
         
+        poolOwner2.FundUser(soul: 50000, kcal: 0.1m);
+        poolOwner2.Fund(eth.Symbol, poolAmount2);
 
         var initialKcal = 1000000;
 
-        BigInteger swapValueSOUL = UnitConversion.ToBigInteger(1, 8);
-        BigInteger swapValueKCAL = UnitConversion.ToBigInteger(1, 10);
-        BigInteger swapFee = UnitConversion.ConvertDecimals(swapValueSOUL, 8, 8);
-
-        /*simulator.BeginBlock();
-        simulator.MintTokens(owner, testUserA.Address, soul.Symbol, poolAmount0 );
-        simulator.MintTokens(owner, testUserA.Address, eth.Symbol, virtualPoolAmount1);
-        simulator.MintTokens(owner, testUserA.Address, poolSymbol2, poolAmount2 * 2);
-        simulator.MintTokens(owner, testUserA.Address, neo.Symbol, poolAmount4 * 2);
-        simulator.MintTokens(owner, testUserB.Address, soul.Symbol, poolAmount0);
-        simulator.MintTokens(owner, testUserB.Address, eth.Symbol, initialKcal);
-        simulator.EndBlock();*/
-
+        BigInteger swapValueSOUL = UnitConversion.ToBigInteger(1, soul.Decimals);
+        BigInteger swapValueKCAL = UnitConversion.ToBigInteger(1, kcal.Decimals);
+        BigInteger swapFee = UnitConversion.ConvertDecimals(swapValueSOUL, soul.Decimals, DomainSettings.FiatTokenDecimals);
+        
         // Get Balances before starting trades
         var beforeTXBalanceSOUL = poolOwner2.GetBalance( soul.Symbol );
-        var beforeTXBalanceKCAL = poolOwner2.GetBalance( eth.Symbol );
+        var beforeTXBalanceKCAL = poolOwner2.GetBalance( kcal.Symbol );
         var kcalToSwap = swapValueSOUL;
-        kcalToSwap -= UnitConversion.ConvertDecimals(beforeTXBalanceKCAL, DomainSettings.FuelTokenDecimals, 8);
+        kcalToSwap -= UnitConversion.ConvertDecimals(beforeTXBalanceKCAL, DomainSettings.FuelTokenDecimals, DomainSettings.FiatTokenDecimals);
 
         // Kcal to trade for
-        Console.WriteLine($"Soul amount: {kcalToSwap} | {beforeTXBalanceKCAL} | {swapValueSOUL} - { UnitConversion.ConvertDecimals(beforeTXBalanceKCAL, DomainSettings.FuelTokenDecimals, 8)} = {kcalToSwap}");
+        Console.WriteLine($"Soul amount: {kcalToSwap} | {beforeTXBalanceKCAL} | {swapValueSOUL} - { UnitConversion.ConvertDecimals(beforeTXBalanceKCAL, DomainSettings.FuelTokenDecimals, DomainSettings.FiatTokenDecimals)} = {kcalToSwap}");
 
         // Get Pool
         var pool = poolOwner.GetPool(eth.Symbol, soul.Symbol);
 
         var rateByPool = pool.Amount0 * (1 - 97 / 100) * kcalToSwap / (pool.Amount1 + (1 - 97 / 100) * kcalToSwap);
-        rateByPool = UnitConversion.ConvertDecimals(rateByPool, 10, 8);
+        rateByPool = UnitConversion.ConvertDecimals(rateByPool, kcal.Decimals, 8);
 
         // Get Rate
-        var rate = poolOwner2.GetRate(soul.Symbol, eth.Symbol, kcalToSwap);
+        var rate = poolOwner2.GetRate(soul.Symbol, kcal.Symbol, kcalToSwap);
 
-        Console.WriteLine($"{UnitConversion.ToDecimal(kcalToSwap, 8)} {soul.Symbol} for {UnitConversion.ToDecimal(rate, 10)} {eth.Symbol} | Swap ->  {UnitConversion.ToDecimal(rateByPool, 10)}");
+        Console.WriteLine($"{UnitConversion.ToDecimal(kcalToSwap, DomainSettings.FiatTokenDecimals)} {soul.Symbol} for {UnitConversion.ToDecimal(rate, kcal.Decimals)} {kcal.Symbol} | Swap ->  {UnitConversion.ToDecimal(rateByPool, kcal.Decimals)}");
 
         // Make Swap SOUL / KCAL (SwapFee)
         poolOwner2.SwapFee(soul.Symbol, swapValueSOUL);
-        
+        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
 
         // Get the balances
         var afterTXBalanceSOUL = poolOwner2.GetBalance( soul.Symbol );
-        var afterTXBalanceKCAL = poolOwner2.GetBalance( eth.Symbol );
+        var afterTXBalanceKCAL = poolOwner2.GetBalance( kcal.Symbol );
 
         var kcalfee = afterTXBalanceKCAL - beforeTXBalanceKCAL - rate;
-        Console.WriteLine($"Fee:{UnitConversion.ToDecimal(kcalfee, 10)}");
+        Console.WriteLine($"Fee:{UnitConversion.ToDecimal(kcalfee, kcal.Decimals)}");
 
         Console.WriteLine($"{beforeTXBalanceSOUL} != {afterTXBalanceSOUL} | {afterTXBalanceKCAL}");
 
-        Assert.IsTrue(afterTXBalanceSOUL == beforeTXBalanceSOUL-(kcalToSwap + UnitConversion.ConvertDecimals(500, 10, 8)), $"SOUL {afterTXBalanceSOUL} != {beforeTXBalanceSOUL-(kcalToSwap + UnitConversion.ConvertDecimals(500, 10, 8))}");
+        Assert.IsTrue(afterTXBalanceSOUL == beforeTXBalanceSOUL-(kcalToSwap + UnitConversion.ConvertDecimals(500,  kcal.Decimals, DomainSettings.FiatTokenDecimals)), $"SOUL {afterTXBalanceSOUL} != {beforeTXBalanceSOUL-(kcalToSwap + UnitConversion.ConvertDecimals(500, kcal.Decimals, DomainSettings.FiatTokenDecimals))}");
         Assert.IsTrue(beforeTXBalanceKCAL + kcalfee + rate == afterTXBalanceKCAL, $"KCAL {beforeTXBalanceKCAL + kcalfee + rate} != {afterTXBalanceKCAL}");
     }
 
@@ -1609,6 +1549,7 @@ public class ExchangeContractTests
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
 
+        core.InitFunds();
         core.Migrate();
         
         // Create users
@@ -1616,30 +1557,32 @@ public class ExchangeContractTests
         var poolOwner2 = new ExchangeUser(baseSymbol, quoteSymbol, core);
         
         // Give Users tokens
-        poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
+        poolOwner.FundUser(soul: 55000, kcal: 16000);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
         
+        poolOwner2.FundUser(soul: 50000, kcal: 10000);
 
-        var testUserA = PhantasmaKeys.Generate();
 
-        int swapValue = 1000;
-
-        /*simulator.BeginBlock();
-        simulator.MintTokens(owner, testUserA.Address, soul.Symbol, virtualPoolAmount1);
-        simulator.MintTokens(owner, testUserA.Address, eth.Symbol, virtualPoolAmount1);
-        simulator.EndBlock();*/
+        BigInteger swapValue = UnitConversion.ToBigInteger(10, soul.Decimals);
 
         // Add Liquidity to the pool
-        poolOwner.AddLiquidity(soul.Symbol, poolAmount0, eth.Symbol, poolAmount1);
+        poolOwner.AddLiquidity(soul.Symbol, UnitConversion.ToBigInteger(1000, soul.Decimals), kcal.Symbol, 0);
+        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
 
         // Get Rate
-        //UnitConversion.ConvertDecimals(swapValue, 0, 10)
-        var unclaimed = poolOwner.GetUnclaimedFees(soul.Symbol, eth.Symbol);
+        var unclaimed = poolOwner.GetUnclaimedFees(soul.Symbol, kcal.Symbol);
 
         Assert.IsTrue(unclaimed == 0, "Unclaimed Failed");
         
+        // Make a swap and check the fees
+        poolOwner2.SwapTokens(soul.Symbol, kcal.Symbol, swapValue);
+        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+
+        var unclaimedFees = poolOwner.GetUnclaimedFees(soul.Symbol, kcal.Symbol);
+
+        Assert.IsTrue(unclaimedFees > 0, $"{unclaimedFees} > 0");
         // TODO: Add more tests (Swap on the pool and check the fees)
     }
 
@@ -1653,6 +1596,7 @@ public class ExchangeContractTests
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
 
+        core.InitFunds();
         core.Migrate();
         
         // Create users
@@ -1660,22 +1604,19 @@ public class ExchangeContractTests
         var poolOwner2 = new ExchangeUser(baseSymbol, quoteSymbol, core);
         
         // Give Users tokens
-        poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
+        poolOwner.FundUser(soul: 50000, kcal: 100);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
         
-        var swapValueSOUL = UnitConversion.ToBigInteger(10, 8);
+        poolOwner2.FundUser(soul: 50000, kcal: 100);
+        poolOwner2.Fund(eth.Symbol, poolAmount2);
 
-        /*simulator.BeginBlock();
-        simulator.MintTokens(owner, testUserA.Address, soul.Symbol, poolAmount0 * 2);
-        simulator.MintTokens(owner, testUserA.Address, eth.Symbol, poolAmount1 * 2);
-        simulator.MintTokens(owner, testUserB.Address, soul.Symbol, poolAmount0);
-        simulator.MintTokens(owner, testUserB.Address, eth.Symbol, poolAmount1);
-        simulator.EndBlock();*/
+        
+        var swapValueSOUL = UnitConversion.ToBigInteger(10, soul.Decimals);
 
         // Add Liquidity to the pool
-        poolOwner.AddLiquidity(soul.Symbol, poolAmount0, eth.Symbol, poolAmount1);
+        poolOwner.AddLiquidity(soul.Symbol, poolAmount0, eth.Symbol,  0);
 
         // Get Pool
         var pool = poolOwner.GetPool(soul.Symbol, eth.Symbol);
@@ -1686,17 +1627,19 @@ public class ExchangeContractTests
         // Make a Swap
         var rate = poolOwner.GetRate(soul.Symbol, eth.Symbol, swapValueSOUL);
 
-        Console.WriteLine($"{UnitConversion.ToDecimal(swapValueSOUL, 8)} {soul.Symbol} for {UnitConversion.ToDecimal(rate, 10)} {eth.Symbol}");
+        Console.WriteLine($"{UnitConversion.ToDecimal(swapValueSOUL, soul.Decimals)} {soul.Symbol} for {UnitConversion.ToDecimal(rate, eth.Decimals)} {eth.Symbol}");
         
         // Make Swap SOUL / ETH
         poolOwner2.SwapTokens(soul.Symbol, eth.Symbol, swapValueSOUL);
 
         // Get Rate
         var unclaimed = poolOwner.GetUnclaimedFees(soul.Symbol, eth.Symbol);
-        
         BigInteger UserPercent = 75;
-        BigInteger totalFees = rate * 3 / 100;
+        BigInteger GovernancePercent = 25;
+
+        BigInteger totalFees = swapValueSOUL * 3 /100;
         BigInteger feeForUsers = totalFees * 100 / UserPercent;
+        BigInteger feeForOwner = totalFees * 100 / GovernancePercent;
         BigInteger feeAmount = nftRAMBefore.Liquidity * 1000000000000 / pool.TotalLiquidity;
         var calculatedFees = feeForUsers * feeAmount / 1000000000000;
 
@@ -1713,6 +1656,7 @@ public class ExchangeContractTests
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
 
+        core.InitFunds();
         core.Migrate();
         
         // Create users
@@ -1720,59 +1664,63 @@ public class ExchangeContractTests
         var poolOwner2 = new ExchangeUser(baseSymbol, quoteSymbol, core);
         
         // Give Users tokens
-        poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
+        poolOwner.FundUser(soul: 50000, kcal: 100000);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
 
-        var swapValueSOUL = UnitConversion.ToBigInteger(10, 8);
+        poolOwner2.FundUser(soul: 50000, kcal: 100);
+        poolOwner2.Fund(eth.Symbol, poolAmount2);
 
-        /*simulator.BeginBlock();
-        simulator.MintTokens(owner, testUserA.Address, soul.Symbol, poolAmount0 * 2);
-        simulator.MintTokens(owner, testUserA.Address, eth.Symbol, poolAmount1 * 3);
-        simulator.MintTokens(owner, testUserB.Address, soul.Symbol, poolAmount0);
-        simulator.MintTokens(owner, testUserB.Address, eth.Symbol, poolAmount1);
-        simulator.EndBlock();*/
+
+        
+        var swapValueSOUL = UnitConversion.ToBigInteger(10, soul.Decimals);
 
         // Add Liquidity to the pool
-        poolOwner.AddLiquidity(soul.Symbol, poolAmount0, eth.Symbol, 10);
+        poolOwner.AddLiquidity(soul.Symbol, UnitConversion.ToBigInteger(10000, soul.Decimals), kcal.Symbol, 0);
+        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
 
         // Get Pool
-        var pool = poolOwner.GetPool(soul.Symbol, eth.Symbol);
+        var pool = poolOwner.GetPool(soul.Symbol, kcal.Symbol);
 
         // Get RAM
-        var nftRAMBefore = poolOwner.GetPoolRAM(soul.Symbol, eth.Symbol);
+        var nftRAMBefore = poolOwner.GetPoolRAM(soul.Symbol, kcal.Symbol);
 
         // Make a Swap
-        var rate = poolOwner2.GetRate(soul.Symbol, eth.Symbol, swapValueSOUL);
+        var rate = poolOwner2.GetRate(soul.Symbol, kcal.Symbol, swapValueSOUL);
 
-        Console.WriteLine($"{UnitConversion.ToDecimal(swapValueSOUL, 8)} {soul.Symbol} for {UnitConversion.ToDecimal(rate, 10)} {eth.Symbol}");
+        Console.WriteLine($"{UnitConversion.ToDecimal(swapValueSOUL, 8)} {soul.Symbol} for {UnitConversion.ToDecimal(rate, kcal.Decimals)} {kcal.Symbol}");
         // Make Swap SOUL / ETH
-        poolOwner2.SwapTokens(soul.Symbol, eth.Symbol, swapValueSOUL);
-
+        poolOwner2.SwapTokens(soul.Symbol, kcal.Symbol, swapValueSOUL);
+        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        
         // Get Unclaimed Fees
-        var unclaimed = poolOwner.GetUnclaimedFees(soul.Symbol, eth.Symbol);
+        var unclaimed = poolOwner.GetUnclaimedFees(soul.Symbol, kcal.Symbol);
         BigInteger UserPercent = 75;
-        BigInteger totalFees = rate * 3 / 100;
+        BigInteger GovernancePercent = 25;
+
+        BigInteger totalFees = swapValueSOUL * 3 /100;
         BigInteger feeForUsers = totalFees * 100 / UserPercent;
+        BigInteger feeForOwner = totalFees * 100 / GovernancePercent;
         BigInteger feeAmount = nftRAMBefore.Liquidity * 1000000000000 / pool.TotalLiquidity;
         var calculatedFees = feeForUsers * feeAmount / 1000000000000;
 
-        Console.WriteLine($"{calculatedFees} {eth.Symbol}");
+        Console.WriteLine($"{calculatedFees} {kcal.Symbol}");
         Assert.IsTrue(unclaimed == calculatedFees, $"Unclaimed Failed | {unclaimed} != {calculatedFees}");
 
         // Claim Fees
         // Get User Balance Before Claiming Fees
         var beforeTXBalanceSOUL = poolOwner.GetBalance( soul.Symbol );
-        var beforeTXBalanceKCAL = poolOwner.GetBalance( eth.Symbol );
+        var beforeTXBalanceKCAL = poolOwner.GetBalance( kcal.Symbol );
 
-        poolOwner.ClaimFees(soul.Symbol, eth.Symbol);
+        poolOwner.ClaimFees(soul.Symbol, kcal.Symbol);
+        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
 
         // Get User Balance After Claiming Fees
         var afterTXBalanceSOUL = poolOwner.GetBalance(soul.Symbol);
-        var afterTXBalanceKCAL = poolOwner.GetBalance(eth.Symbol);
+        var afterTXBalanceKCAL = poolOwner.GetBalance(kcal.Symbol);
         
-        var unclaimedAfter = poolOwner.GetUnclaimedFees(soul.Symbol, eth.Symbol);
+        var unclaimedAfter = poolOwner.GetUnclaimedFees(soul.Symbol, kcal.Symbol);
 
         Assert.IsTrue(afterTXBalanceSOUL == beforeTXBalanceSOUL+calculatedFees, $"Soul Claimed Failed | {afterTXBalanceSOUL} != {beforeTXBalanceSOUL}");
         Assert.IsTrue(beforeTXBalanceKCAL != afterTXBalanceKCAL, $"Kcal for TX Failed | {beforeTXBalanceKCAL} != {afterTXBalanceKCAL}");
@@ -1788,44 +1736,37 @@ public class ExchangeContractTests
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
 
+        core.InitFunds();
         core.Migrate();
         
         // Create users
         var poolOwner = new ExchangeUser(baseSymbol, quoteSymbol, core);
-        var poolOwner2 = new ExchangeUser(baseSymbol, quoteSymbol, core);
         
         // Give Users tokens
-        poolOwner.FundUser(soul: 500, kcal: 100);
-        poolOwner.Fund(poolSymbol2, poolAmount2);
-        poolOwner.Fund(neo.Symbol, poolAmount4);
-        poolOwner.Fund(gas.Symbol, poolAmount5);
-
-        var fuelAmount = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
-        var transferAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
+        poolOwner.FundUser(soul: 500, 0);
 
         var originalBalance = poolOwner.GetBalance( DomainSettings.FuelTokenSymbol );
 
-        var swapAmount = UnitConversion.ToBigInteger(0.01m, DomainSettings.StakingTokenDecimals);
+        var swapAmount = UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals);
+
+        var kcalRate = core.simulator.InvokeContract(NativeContractKind.Exchange, nameof(ExchangeContract.GetRate),
+            baseSymbol, quoteSymbol, swapAmount).AsNumber();
+        
         core.simulator.BeginBlock();
-        core.simulator.GenerateSwap(poolOwner.userKeys, core.nexus.RootChain, DomainSettings.StakingTokenSymbol, DomainSettings.FuelTokenSymbol, swapAmount);
-        var blockB = core.simulator.EndBlock().FirstOrDefault();
-
+        var tx = core.simulator.GenerateCustomTransaction(poolOwner.userKeys, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.SwapFee), poolOwner.userKeys.Address, baseSymbol, swapAmount)
+                .AllowGas(poolOwner.userKeys.Address, Address.Null, 1, 999)
+                .SpendGas(poolOwner.userKeys.Address)
+                .EndScript()
+        );
+        //core.simulator.GenerateSwapFee(poolOwner.userKeys, core.nexus.RootChain, DomainSettings.StakingTokenSymbol, swapAmount);
+        core.simulator.EndBlock();
+        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        var txCost = core.simulator.Nexus.RootChain.GetTransactionFee(tx);
+        
         var finalBalance = poolOwner.GetBalance( DomainSettings.FuelTokenSymbol );
-        Assert.IsTrue(finalBalance > originalBalance);
-
-        /*
-        swapAmount = 10;
-        simulator.BeginBlock();
-        simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-        {
-           return ScriptUtils.BeginScript().
-                AllowGas(testUserA.Address, Address.Null, 400, 9999).
-                //CallContract("swap", "SwapFiat", testUserA.Address, symbol, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FiatTokenDecimals)).
-                CallContract("swap", "SwapTokens", testUserA.Address, symbol, DomainSettings.FuelTokenSymbol, new BigInteger(1)).
-                SpendGas(testUserA.Address).
-                EndScript();
-        });
-        simulator.EndBlock();*/
+        Assert.IsTrue(finalBalance >= originalBalance + kcalRate - txCost, $"{finalBalance} > {originalBalance}");
     }
     /*
 
@@ -1977,7 +1918,7 @@ public class ExchangeContractTests
         }
     }
     
-    class CoreClass
+    public class CoreClass
     {
         public struct ExchangeTokenInfo
         {
@@ -2030,9 +1971,7 @@ public class ExchangeContractTests
 
             CreateTokens();
         }
-
         
-
         private void CreateTokens()
         {
             string[] tokenList = { maxDivTokenSymbol, nonDivisibleTokenSymbol };
@@ -2075,8 +2014,6 @@ public class ExchangeContractTests
         
         public void InitFunds()
         {
-
-            
             var tokens = new[] { eth, bnb, neo, gas };
             simulator.BeginBlock();
             foreach (var token in tokens)
@@ -2087,24 +2024,24 @@ public class ExchangeContractTests
             simulator.EndBlock();
             
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, SwapAddress, nexus.RootChain, "SOUL", poolAmount0*2);
-            simulator.GenerateTransfer(owner, SwapAddress, nexus.RootChain, "KCAL", poolAmount1*2);
-            simulator.GenerateTransfer(owner, SwapAddress, nexus.RootChain, eth.Symbol, poolAmount2);
-            simulator.GenerateTransfer(owner, SwapAddress, nexus.RootChain, bnb.Symbol, poolAmount3);
-            simulator.GenerateTransfer(owner, SwapAddress, nexus.RootChain, neo.Symbol, poolAmount4);
-            simulator.GenerateTransfer(owner, SwapAddress, nexus.RootChain, gas.Symbol, poolAmount5);
+            simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, soul.Symbol, poolAmount0*2);
+            simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, kcal.Symbol, poolAmount1*2);
+            simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, eth.Symbol, poolAmount2);
+            simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, bnb.Symbol, poolAmount3);
+            simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, neo.Symbol, poolAmount4);
+            simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, gas.Symbol, poolAmount5);
             simulator.EndBlock();
 
 
             /*simulator.MintTokens(owner, owner.Address, soul.Symbol, poolAmount0 * 100);
             simulator.MintTokens(owner, owner.Address, eth.Symbol, poolAmount1 * 100);
-            simulator.MintTokens(owner, owner.Address, poolSymbol2, poolAmount2 * 100);
+            simulator.MintTokens(owner, owner.Address, eth.Symbol, poolAmount2 * 100);
             simulator.MintTokens(owner, owner.Address, neo.Symbol, poolAmount4 * 100);
             simulator.MintTokens(owner, owner.Address, gas.Symbol, poolAmount5 * 100);
             simulator.MintTokens(owner, SwapAddress, soul.Symbol, poolAmount0);*/
             //Migrate();
         }
-
+        
         public void DeployLPToken()
         {
             var PathToFile = Path.GetFullPath("./../../../../Phantasma.Business/src/Blockchain/Contracts/");
@@ -2703,7 +2640,6 @@ public class ExchangeContractTests
         #region DEX
         public BigInteger AddLiquidity(string baseSymbol, BigInteger amount0, string pairSymbol, BigInteger amount1)
         {
-            
             // Add Liquidity to the pool
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.Minimal, () =>
@@ -2830,7 +2766,7 @@ public class ExchangeContractTests
         public BigInteger GetUnclaimedFees(string symbol0, string symbol1)
         {
             var script = new ScriptBuilder()
-                .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.GetUnclaimedFees), user.Address, symbol1, symbol1)
+                .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.GetUnclaimedFees), user.Address, symbol0, symbol1)
                 .EndScript();
             var result = nexus.RootChain.InvokeScript(nexus.RootStorage, script, simulator.CurrentTime);
             var unclaimed = (BigInteger)result.AsNumber();
@@ -2866,8 +2802,9 @@ public class ExchangeContractTests
             var chain = simulator.Nexus.RootChain as Chain;
 
             simulator.BeginBlock();
-            var txA = simulator.GenerateTransfer(core.owner, user.Address, chain, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(soul, DomainSettings.StakingTokenDecimals));
-            var txB = simulator.GenerateTransfer(core.owner, user.Address, chain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(kcal, DomainSettings.FuelTokenDecimals));
+            simulator.GenerateTransfer(core.owner, user.Address, chain, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(soul, DomainSettings.StakingTokenDecimals));
+            if (kcal != 0)
+                simulator.GenerateTransfer(core.owner, user.Address, chain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(kcal, DomainSettings.FuelTokenDecimals));
             simulator.EndBlock();
         }
         

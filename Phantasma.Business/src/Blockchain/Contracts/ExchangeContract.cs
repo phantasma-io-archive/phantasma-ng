@@ -1168,7 +1168,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             {
                 var amountInOtherSymbol = GetRate(feeSymbol, fromSymbol, feeAmount);
                 var amountIKCAL = GetRate(fromSymbol, feeSymbol, feeAmount);
-                //Console.WriteLine($"AmountOther: {amountInOtherSymbol} | feeAmount:{feeAmount} | feeBalance:{feeBalance} | amountOfKcal: {amountIKCAL}" );
+                Console.WriteLine($"AmountOther: {amountInOtherSymbol} | feeAmount:{feeAmount} | feeBalance:{feeBalance} | amountOfKcal: {amountIKCAL}" );
 
                 if (amountInOtherSymbol < minAmount)
                 {
@@ -1280,7 +1280,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 if (toInfo.Decimals == 0)
                     tokenAmount = (int) tokenAmount;
                 canBeTraded = ValidateTrade(tokenAmount, amount, pool, false);
-                canBeTraded = false;
+                //canBeTraded = false;
                 //power = (BigInteger)Math.Pow((long)(pool.Amount1 + amount), 2);
                 //rateForSwap =  pool.Amount0 * pool.Amount1 * 10000000000 / power;
             }
@@ -1298,10 +1298,10 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             switch (symbol)
             {
-                case "PETH": return 1000;
-                case "PBNB": return 300;
-                case "PNEO": return 50;
-                case "PGAS": return 5;
+                case "PETH": return UnitConversion.ToBigInteger(1000, DomainSettings.FiatTokenDecimals);
+                case "PBNB": return UnitConversion.ToBigInteger(300, DomainSettings.FiatTokenDecimals);
+                case "PNEO": return UnitConversion.ToBigInteger(50, DomainSettings.FiatTokenDecimals);
+                case "PGAS": return UnitConversion.ToBigInteger(5, DomainSettings.FiatTokenDecimals);
                 //case "COOL": return 3;
                 default: return 0;
             }
@@ -1385,7 +1385,8 @@ namespace Phantasma.Business.Blockchain.Contracts
 
                 amount = UnitConversion.ConvertDecimals(tokens[symbol], tokenInfo.Decimals, DomainSettings.FiatTokenDecimals);
                 tokenPrice = GetTokenQuote(symbol);
-                //tokenPrice = Runtime.GetTokenQuote(symbol, DomainSettings.FiatTokenSymbol, UnitConversion.ToBigInteger(1, tokenInfo.Decimals));
+                if (tokenPrice == 0)
+                    tokenPrice = Runtime.GetTokenQuote(symbol, DomainSettings.FiatTokenSymbol, UnitConversion.ToBigInteger(1, tokenInfo.Decimals));
 
                 //Console.WriteLine($"{symbol} price {tokenPrice}$  .{tokenInfo.Decimals}  { amount}x{tokenPrice} :{ amount * tokenPrice} -> {UnitConversion.ToDecimal(tokenPrice, DomainSettings.FiatTokenDecimals)}");
                 tokensPrice[symbol] = tokenPrice;
@@ -1461,7 +1462,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         internal int UserPercent = 75;
         internal int GovernancePercent = 25;
         internal StorageMap _pools;
-        internal StorageMap _lp_tokens;
+        internal StorageMap _lp_tokens; // <string, BigInteger>
         internal StorageMap _lp_holders; // <string, storage_list<Address>> |-> string : $"symbol0_symbol1" |-> Address[] : key to the list 
         internal StorageMap _trading_volume; // <string, stoage_map<uint,TradingVolume>> |-> string : $"symbol0_symbol1" |-> TradingVolume[] : key to the list 
 
