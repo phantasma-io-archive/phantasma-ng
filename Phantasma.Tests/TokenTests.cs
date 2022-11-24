@@ -218,7 +218,7 @@ public class TokenTests
         var script = AssemblerUtils.BuildScript(scriptString, null, out var debugInfo, out var labels);
 
         simulator.BeginBlock();
-        simulator.GenerateToken(owner, symbol, $"{symbol}Token", 1000000000, 3, flags, script, labels);
+        simulator.GenerateToken(owner, symbol, $"{symbol}Token", 1000000000, 3, flags);
         simulator.EndBlock();
         Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
@@ -232,7 +232,7 @@ public class TokenTests
         Assert.IsTrue(balance == 1000);
 
         var events = simulator.Nexus.FindBlockByTransaction(tx).GetEventsForTransaction(tx.Hash);
-        Assert.IsTrue(events.Count(x => x.Kind == EventKind.Custom) == 1);
+        Assert.IsTrue(events.Count(x => x.Kind == EventKind.Custom) == 1, $"{events.Count(x => x.Kind == EventKind.Custom)} == 1");
 
         var eventData = events.First(x => x.Kind == EventKind.Custom).Data;
         var eventMessage = (VMObject)Serialization.Unserialize(eventData, typeof(VMObject));

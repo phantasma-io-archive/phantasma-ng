@@ -9,6 +9,7 @@ using Phantasma.Core.Domain;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Numerics;
 
 namespace Phantasma.LegacyTests.ContractTests
 {
@@ -56,7 +57,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -73,13 +74,13 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract("market", "SellToken", testUser.Address, token.Symbol, DomainSettings.FuelTokenSymbol, tokenID, price, endDate).
+                  CallContract(NativeContractKind.Market, "SellToken", testUser.Address, token.Symbol, DomainSettings.FuelTokenSymbol, tokenID, price, endDate).
                   SpendGas(testUser.Address).
                   EndScript()
             );
             simulator.EndBlock();
 
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             simulator.BeginBlock();
@@ -87,13 +88,13 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(owner.Address, Address.Null, 1, 9999).
-                  CallContract("market", "BuyToken", owner.Address, token.Symbol, auctions[previousAuctionCount].TokenID).
+                  CallContract(NativeContractKind.Market, "BuyToken", owner.Address, token.Symbol, auctions[previousAuctionCount].TokenID).
                   SpendGas(owner.Address).
                   EndScript()
             );
             simulator.EndBlock();
 
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
@@ -145,7 +146,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -172,48 +173,45 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract("market", "ListToken", testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
                   SpendGas(testUser.Address).
                   EndScript()
             );
             simulator.EndBlock();
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
-            // make one bid before auction starts (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, endPrice, buyingFee, Address.Null).
-                    SpendGas(owner.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(owner.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, endPrice, buyingFee, Address.Null).
+                SpendGas(owner.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // move time half way through auction
             simulator.TimeSkipDays(2);
 
             // make one self bid (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(testUser.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", testUser.Address, token.Symbol, tokenID, price + 1000, buyingFee, Address.Null).
-                    SpendGas(testUser.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(testUser.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), testUser.Address, token.Symbol, tokenID, price + 1000, buyingFee, Address.Null).
+                SpendGas(testUser.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // make one bid
             simulator.BeginBlock();
@@ -221,14 +219,16 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                 BeginScript().
                 AllowGas(owner.Address, Address.Null, 1, 9999).
-                CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, 0, buyingFee, Address.Null).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, 0, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
@@ -288,7 +288,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -311,19 +311,17 @@ namespace Phantasma.LegacyTests.ContractTests
             var balanceOwnerBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenToSell, owner.Address);
 
             // list token with a fee but no fee address (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(testUser.Address, Address.Null, 1, 9999).
-                    CallContract("market", "ListToken", testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, 2, Address.Null).
-                    SpendGas(testUser.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(testUser.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, 2, Address.Null).
+                SpendGas(testUser.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
 
             // list token as Classic auction
             simulator.BeginBlock();
@@ -331,48 +329,46 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract("market", "ListToken", testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
                   SpendGas(testUser.Address).
                   EndScript()
             );
             simulator.EndBlock();
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid before auction starts (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, endPrice, buyingFee, Address.Null).
-                    SpendGas(owner.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(owner.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, endPrice, buyingFee, Address.Null).
+                SpendGas(owner.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // move time post start date
             simulator.TimeSkipDays(2);
 
             // make one bid lower (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, price - 100, buyingFee, Address.Null).
-                    SpendGas(owner.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(owner.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, price - 100, buyingFee, Address.Null).
+                SpendGas(owner.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // make one bid
             simulator.BeginBlock();
@@ -380,11 +376,13 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(owner.Address, Address.Null, 1, 9999).
-                  CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, bidPrice, buyingFee, Address.Null).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice, buyingFee, Address.Null).
                   SpendGas(owner.Address).
                   EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // make one more bid from same address
             simulator.BeginBlock();
@@ -392,60 +390,59 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                 BeginScript().
                 AllowGas(owner.Address, Address.Null, 1, 9999).
-                CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, bidPrice + 100, buyingFee, Address.Null).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice + 100, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // cancel auction after it received bids (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                    simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.
-                        BeginScript().
-                        AllowGas(testUser.Address, Address.Null, 1, 9999).
-                        CallContract("market", "CancelSale", token.Symbol, tokenID).
-                        SpendGas(testUser.Address).
-                        EndScript()
-                    );
-                simulator.EndBlock();
-            });
-
-            // make one bid lower (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(testUser2, ProofOfWork.None, () =>
+            simulator.BeginBlock();
+                simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
                 ScriptUtils.
                     BeginScript().
-                    AllowGas(testUser2.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", testUser2.Address, token.Symbol, tokenID, bidPrice - 100, buyingFee, Address.Null).
-                    SpendGas(testUser2.Address).
+                    AllowGas(testUser.Address, Address.Null, 1, 9999).
+                    CallContract(NativeContractKind.Market, nameof(MarketContract.CancelSale), token.Symbol, tokenID).
+                    SpendGas(testUser.Address).
                     EndScript()
                 );
-                simulator.EndBlock();
-            });
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
+
+            // make one bid lower (should fail)
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(testUser2, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(testUser2.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), testUser2.Address, token.Symbol, tokenID, bidPrice - 100, buyingFee, Address.Null).
+                SpendGas(testUser2.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // move time 5 minutes before end of auction
             simulator.TimeSkipHours(23);
             simulator.TimeSkipMinutes(55);
 
             // make one bid < 1% more (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(testUser2, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(testUser2.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", testUser2.Address, token.Symbol, tokenID, bidPrice + 101, buyingFee, Address.Null).
-                    SpendGas(testUser2.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(testUser2, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(testUser2.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), testUser2.Address, token.Symbol, tokenID, bidPrice + 101, buyingFee, Address.Null).
+                SpendGas(testUser2.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // make one bid which will trigger extend time
             simulator.BeginBlock();
@@ -453,11 +450,13 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                 BeginScript().
                 AllowGas(testUser2.Address, Address.Null, 1, 9999).
-                CallContract("market", "BidToken", testUser2.Address, token.Symbol, tokenID, bidPrice + 200, buyingFee, Address.Null).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), testUser2.Address, token.Symbol, tokenID, bidPrice + 200, buyingFee, Address.Null).
                 SpendGas(testUser2.Address).
                 EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // move time 45 minutes to check if time was properly extended
             simulator.TimeSkipMinutes(45);
@@ -468,14 +467,16 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                 BeginScript().
                 AllowGas(owner.Address, Address.Null, 1, 9999).
-                CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, bidPrice + 300, buyingFee, Address.Null).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice + 300, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // check if auction is still there post extension
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount + 1, "auction ids should not be empty at this point");
 
             // move time post end date
@@ -487,14 +488,16 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                 BeginScript().
                 AllowGas(owner.Address, Address.Null, 1, 9999).
-                CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, 0, buyingFee, Address.Null).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, 0, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
@@ -554,7 +557,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -577,19 +580,18 @@ namespace Phantasma.LegacyTests.ContractTests
             var balanceOwnerBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenToSell, owner.Address);
 
             // list token with a negative price (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(testUser.Address, Address.Null, 1, 9999).
-                    CallContract("market", "ListToken", testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, -3000, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
-                    SpendGas(testUser.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(testUser.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, -3000, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
+                SpendGas(testUser.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // list token as Classic auction
             simulator.BeginBlock();
@@ -597,14 +599,16 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract("market", "ListToken", testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
                   SpendGas(testUser.Address).
                   EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // move time post auction end date
@@ -616,14 +620,16 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                 BeginScript().
                 AllowGas(owner.Address, Address.Null, 1, 9999).
-                CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, 0, buyingFee, Address.Null).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, 0, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft is back to the original owner
@@ -676,7 +682,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -708,30 +714,31 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract("market", "ListToken", testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
                   SpendGas(testUser.Address).
                   EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid below reserve price (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, endPrice, buyingFee, Address.Null).
-                    SpendGas(owner.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(owner.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, endPrice, buyingFee, Address.Null).
+                SpendGas(owner.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // make one bid above reserve price
             simulator.BeginBlock();
@@ -739,26 +746,26 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(owner.Address, Address.Null, 1, 9999).
-                  CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, bidPrice, buyingFee, Address.Null).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice, buyingFee, Address.Null).
                   SpendGas(owner.Address).
                   EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // make one bid lower (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, bidPrice - 100, buyingFee, Address.Null).
-                    SpendGas(owner.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(owner.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice - 100, buyingFee, Address.Null).
+                SpendGas(owner.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
 
             // make one other address outbids previous one
             simulator.BeginBlock();
@@ -766,11 +773,13 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                 BeginScript().
                 AllowGas(testUser2.Address, Address.Null, 1, 9999).
-                CallContract("market", "BidToken", testUser2.Address, token.Symbol, tokenID, bidPrice2, buyingFee, Address.Null).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), testUser2.Address, token.Symbol, tokenID, bidPrice2, buyingFee, Address.Null).
                 SpendGas(testUser2.Address).
                 EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // move time between bids
             simulator.TimeSkipHours(2);
@@ -781,11 +790,13 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                 BeginScript().
                 AllowGas(owner.Address, Address.Null, 1, 9999).
-                CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, bidPrice3, buyingFee, Address.Null).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice3, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // move time post end date
             simulator.TimeSkipDays(2);
@@ -796,14 +807,16 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(owner.Address, Address.Null, 1, 9999).
-                  CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, 0, buyingFee, Address.Null).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, 0, buyingFee, Address.Null).
                   SpendGas(owner.Address).
                   EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
@@ -864,7 +877,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -892,63 +905,60 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract("market", "ListToken", testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
                   SpendGas(testUser.Address).
                   EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid before auction starts (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, endPrice, buyingFee, Address.Null).
-                    SpendGas(owner.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(owner.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, endPrice, buyingFee, Address.Null).
+                SpendGas(owner.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
 
             // move time post start date
             simulator.TimeSkipDays(2);
 
             // make one bid lower (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, price - 100, buyingFee, Address.Null).
-                    SpendGas(owner.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(owner.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, price - 100, buyingFee, Address.Null).
+                SpendGas(owner.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // make one higher (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, bidPrice + 100, buyingFee, Address.Null).
-                    SpendGas(owner.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(owner.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice + 100, buyingFee, Address.Null).
+                SpendGas(owner.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
 
             // make one bid - also claims it
             simulator.BeginBlock();
@@ -956,14 +966,16 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(owner.Address, Address.Null, 1, 9999).
-                  CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, price, buyingFee, Address.Null).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, price, buyingFee, Address.Null).
                   SpendGas(owner.Address).
                   EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
@@ -1020,7 +1032,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -1048,30 +1060,30 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract("market", "ListToken", testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
                   SpendGas(testUser.Address).
                   EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // edit auction price with wrong symbol (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                    simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                    ScriptUtils.
-                        BeginScript().
-                        AllowGas(testUser.Address, Address.Null, 1, 9999).
-                        CallContract("market", "EditAuction", testUser.Address, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenSymbol, tokenID, 2500, endPrice, startDate, endDate, extensionPeriod).
-                        SpendGas(testUser.Address).
-                        EndScript()
-                    );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+                simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                ScriptUtils.
+                    BeginScript().
+                    AllowGas(testUser.Address, Address.Null, 1, 9999).
+                    CallContract(NativeContractKind.Market, nameof(MarketContract.EditAuction), testUser.Address, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenSymbol, tokenID, 2500, endPrice, startDate, endDate, extensionPeriod).
+                    SpendGas(testUser.Address).
+                    EndScript()
+                );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
 
             // edit auction price with correct symbol
             simulator.BeginBlock();
@@ -1079,26 +1091,27 @@ namespace Phantasma.LegacyTests.ContractTests
                 ScriptUtils.
                     BeginScript().
                     AllowGas(testUser.Address, Address.Null, 1, 9999).
-                    CallContract("market", "EditAuction", testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, 2500, 0, Timestamp.Null, Timestamp.Null, 0).
+                    CallContract(NativeContractKind.Market, nameof(MarketContract.EditAuction), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, 2500, 0, Timestamp.Null, Timestamp.Null, 0).
                     SpendGas(testUser.Address).
                     EndScript()
                 );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // edit auction price with incorrect end date (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
             simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
                 ScriptUtils.
                     BeginScript().
                     AllowGas(testUser.Address, Address.Null, 1, 9999).
-                    CallContract("market", "EditAuction", testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, 0, 0, startDate, endDateWrong, 0).
+                    CallContract(NativeContractKind.Market, nameof(MarketContract.EditAuction), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, 0, 0, startDate, endDateWrong, 0).
                     SpendGas(testUser.Address).
                     EndScript()
                 );
             simulator.EndBlock();
-            });
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // move time post start date
             simulator.TimeSkipDays(2);
@@ -1109,14 +1122,16 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(owner.Address, Address.Null, 1, 9999).
-                  CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, 2500, buyingFee, Address.Null).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, 2500, buyingFee, Address.Null).
                   SpendGas(owner.Address).
                   EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
@@ -1173,7 +1188,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -1199,33 +1214,32 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract("market", "ListToken", testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
                   SpendGas(testUser.Address).
                   EndScript()
             );
             simulator.EndBlock();
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // move half way through sale
             simulator.TimeSkipDays(1);
 
             // cancel auction from wrong owner (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                    simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                    ScriptUtils.
-                        BeginScript().
-                        AllowGas(owner.Address, Address.Null, 1, 9999).
-                        CallContract("market", "CancelSale", token.Symbol, tokenID).
-                        SpendGas(owner.Address).
-                        EndScript()
-                    );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+                ScriptUtils.
+                    BeginScript().
+                    AllowGas(owner.Address, Address.Null, 1, 9999).
+                    CallContract(NativeContractKind.Market, nameof(MarketContract.CancelSale), token.Symbol, tokenID).
+                    SpendGas(owner.Address).
+                    EndScript()
+                );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // move past end date
             simulator.TimeSkipDays(2);
@@ -1236,14 +1250,16 @@ namespace Phantasma.LegacyTests.ContractTests
                 ScriptUtils.
                     BeginScript().
                     AllowGas(testUser.Address, Address.Null, 1, 9999).
-                    CallContract("market", "CancelSale", token.Symbol, tokenID).
+                    CallContract(NativeContractKind.Market, nameof(MarketContract.CancelSale), token.Symbol, tokenID).
                     SpendGas(testUser.Address).
                     EndScript()
                 );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was not moved
@@ -1303,7 +1319,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -1337,63 +1353,62 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract("market", "ListToken", testUser.Address, token.Symbol, tokenTicker, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, listingFeeAddress).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, tokenTicker, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, listingFeeAddress).
                   SpendGas(testUser.Address).
                   EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid before auction starts (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, endPrice, buyingFee, buyingFeeAddress).
-                    SpendGas(owner.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(owner.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, endPrice, buyingFee, buyingFeeAddress).
+                SpendGas(owner.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // move time post start date
             simulator.TimeSkipDays(2);
 
             // make one bid lower (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, price - 100, buyingFee, buyingFeeAddress).
-                    SpendGas(owner.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(owner.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, price - 100, buyingFee, buyingFeeAddress).
+                SpendGas(owner.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // make one higher (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, bidPrice + 100, buyingFee, buyingFeeAddress).
-                    SpendGas(owner.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(owner.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice + 100, buyingFee, buyingFeeAddress).
+                SpendGas(owner.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // make one bid - also claims it
             simulator.BeginBlock();
@@ -1401,14 +1416,16 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(owner.Address, Address.Null, 1, 9999).
-                  CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, price, buyingFee, buyingFeeAddress).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, price, buyingFee, buyingFeeAddress).
                   SpendGas(owner.Address).
                   EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
@@ -1474,7 +1491,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
-            var auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
@@ -1508,63 +1525,60 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract("market", "ListToken", testUser.Address, token.Symbol, tokenTicker, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, listingFeeAddress).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, tokenTicker, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, listingFeeAddress).
                   SpendGas(testUser.Address).
                   EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // verify auction is here
-            auctions = (MarketAuction[])simulator.InvokeContract("market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract(NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid before auction starts (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, endPrice, buyingFee, buyingFeeAddress).
-                    SpendGas(owner.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(owner.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, endPrice, buyingFee, buyingFeeAddress).
+                SpendGas(owner.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
 
             // move time post start date
             simulator.TimeSkipDays(2);
 
             // make one bid lower (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, price - 100, buyingFee, buyingFeeAddress).
-                    SpendGas(owner.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(owner.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, price - 100, buyingFee, buyingFeeAddress).
+                SpendGas(owner.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // make one higher (should fail)
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.
-                    BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, bidPrice + 100, buyingFee, buyingFeeAddress).
-                    SpendGas(owner.Address).
-                    EndScript()
-                );
-                simulator.EndBlock();
-            });
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.
+                BeginScript().
+                AllowGas(owner.Address, Address.Null, 1, 9999).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice + 100, buyingFee, buyingFeeAddress).
+                SpendGas(owner.Address).
+                EndScript()
+            );
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
 
             // make one bid - also claims it
             simulator.BeginBlock();
@@ -1572,14 +1586,16 @@ namespace Phantasma.LegacyTests.ContractTests
             ScriptUtils.
                   BeginScript().
                   AllowGas(owner.Address, Address.Null, 1, 9999).
-                  CallContract("market", "BidToken", owner.Address, token.Symbol, tokenID, price, buyingFee, buyingFeeAddress).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, price, buyingFee, buyingFeeAddress).
                   SpendGas(owner.Address).
                   EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
 
             // verify auctions empty
-            auctions = (MarketAuction[])simulator.InvokeContract( "market", "GetAuctions").ToObject();
+            auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved

@@ -367,69 +367,7 @@ namespace Phantasma.LegacyTests
             Assert.IsTrue(finalBalance == transferAmount);
         }
 
-        [TestMethod]
-        public void CosmicSwap()
-        {
-            var owner = PhantasmaKeys.Generate();
-
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-
-            var testUserA = PhantasmaKeys.Generate();
-
-            var fuelAmount = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
-            var transferAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
-
-            var symbol = "COOL";
-
-            simulator.BeginBlock();
-            simulator.GenerateToken(owner, symbol, "CoolToken", 1000000, 0, TokenFlags.Burnable | TokenFlags.Transferable | TokenFlags.Fungible | TokenFlags.Finite);
-            simulator.MintTokens(owner, testUserA.Address, symbol, 100000);
-            simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
-
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
-            var blockA = simulator.EndBlock().FirstOrDefault();
-
-            Assert.IsTrue(blockA != null);
-            Assert.IsFalse(blockA.OracleData.Any());
-
-            var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
-            var originalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUserA.Address);
-
-            var swapAmount = UnitConversion.ToBigInteger(0.01m, DomainSettings.StakingTokenDecimals);
-            simulator.BeginBlock();
-            simulator.GenerateSwap(testUserA, nexus.RootChain, DomainSettings.StakingTokenSymbol, DomainSettings.FuelTokenSymbol, swapAmount);
-            var blockB = simulator.EndBlock().FirstOrDefault();
-
-            Assert.IsTrue(blockB != null);
-            Assert.IsTrue(blockB.OracleData.Any());
-
-            var bytes = blockB.ToByteArray(true);
-            var otherBlock = Block.Unserialize(bytes);
-            Assert.IsTrue(otherBlock.Hash == blockB.Hash);
-
-            var finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUserA.Address);
-            Assert.IsTrue(finalBalance > originalBalance);
-
-            /*
-            swapAmount = 10;
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-            {
-               return ScriptUtils.BeginScript().
-                    AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
-                    //CallContract("swap", "SwapFiat", testUserA.Address, symbol, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FiatTokenDecimals)).
-                    CallContract("swap", "SwapTokens", testUserA.Address, symbol, DomainSettings.FuelTokenSymbol, new BigInteger(1)).
-                    SpendGas(testUserA.Address).
-                    EndScript();
-            });
-            simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
-            */
-        }
-
+        
         /*
         [TestMethod]
         public void ChainSwapIn()
@@ -569,8 +507,8 @@ namespace Phantasma.LegacyTests
         }
 
 
-        [Ignore]
         [TestMethod]
+        [Ignore]
         public void SideChainTransferDifferentAccounts()
         {
             var owner = PhantasmaKeys.Generate();
@@ -1056,8 +994,10 @@ namespace Phantasma.LegacyTests
         public void ValidatorSwitch()
         {
             var owner = PhantasmaKeys.Generate();
+            var owner2 = PhantasmaKeys.Generate();
+            var owner3 = PhantasmaKeys.Generate();
 
-            var simulator = new NexusSimulator(owner);
+            var simulator = new NexusSimulator(new []{owner, owner2, owner3});
             var nexus = simulator.Nexus;
 
             simulator.blockTimeSkip = TimeSpan.FromSeconds(5);
@@ -1074,10 +1014,11 @@ namespace Phantasma.LegacyTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript().
                     AllowGas(owner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
-                    CallContract(NativeContractKind.Governance, "SetValue", ValidatorContract.ValidatorSlotsDefault, new BigInteger(5)).
+                    CallContract(NativeContractKind.Governance, nameof(GovernanceContract.SetValue), owner.Address, ValidatorContract.ValidatorSlotsTag, 5).
                     SpendGas(owner.Address).
                     EndScript());
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // make second validator candidate stake enough to become a stake master
             simulator.BeginBlock();
@@ -1094,10 +1035,11 @@ namespace Phantasma.LegacyTests
             var tx = simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript().
                     AllowGas(owner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
-                    CallContract(NativeContractKind.Validator, "SetValidator", secondValidator.Address, 1, ValidatorType.Primary).
+                    CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), secondValidator.Address, 1, ValidatorType.Primary).
                     SpendGas(owner.Address).
                     EndScript());
             var block = simulator.EndBlock().First();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // verify that we suceed adding a new validator
             var events = block.GetEventsForTransaction(tx.Hash).ToArray();

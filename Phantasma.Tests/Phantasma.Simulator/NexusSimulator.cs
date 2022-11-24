@@ -868,6 +868,18 @@ namespace Phantasma.Simulator
             return tx;
         }
 
+        public Transaction GenerateSwapFee(PhantasmaKeys source, IChain chain, string fromSymbol, BigInteger amount)
+        {
+            var tx = GenerateCustomTransaction(source, ProofOfWork.None, () => 
+                ScriptUtils.BeginScript()
+                .CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapFee), source.Address, fromSymbol, amount)
+                .AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit)
+                .SpendGas(source.Address)
+                .EndScript());
+            //var tx = MakeTransaction(source, ProofOfWork.None, chain, script);
+            return tx;
+        }
+        
         public Transaction GenerateSwap(PhantasmaKeys source, IChain chain, string fromSymbol, string toSymbol, BigInteger amount)
         {
             var script = ScriptUtils.BeginScript().

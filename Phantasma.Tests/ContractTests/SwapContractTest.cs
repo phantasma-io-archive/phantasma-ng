@@ -160,7 +160,10 @@ public class SwapContractTest
                 .CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapFee), testUser.Address, DomainSettings.StakingTokenSymbol, swapAmount)
                 .SpendGas(testUser.Address)
                 .EndScript());
-        simulator.EndBlock();
+        Assert.ThrowsException<ChainException>(() =>
+        {
+            return simulator.EndBlock();
+        });
         Assert.IsTrue(simulator.LastBlockWasSuccessful());
         
         var currentSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
