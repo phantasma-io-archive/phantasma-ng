@@ -262,7 +262,7 @@ namespace Phantasma.Node.Oracles
                     break;
 
                 default:
-                    throw new OracleException("Uknown oracle platform: " + platformName);
+                    throw new OracleException("Unkown oracle platform: " + platformName);
             }
 
             if (interopTuple.Item1.Hash != Hash.Null)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
@@ -123,7 +124,8 @@ namespace Phantasma.Business.Blockchain
                 , isFirstBlock ? Hash.Null : lastBlock.Hash
                 , protocol
                 , validatorAddress
-                , new byte[0]);
+                , new byte[0]
+            );
 
             // create new storage context
             this.CurrentChangeSet = new StorageChangeSetContext(this.Storage);
@@ -255,7 +257,7 @@ namespace Phantasma.Business.Blockchain
 
             //if (!VerifyBlockBeforeAdd(this.CurrentBlock))
             //{
-            //    throw new BlockGenerationException($"block verification failed, would have overflown, hash:{block.Hash}");
+            //    throw new BlockGenerationException($"block verification failed, would have overflown, hash:{this.CurrentBlock.Hash}");
             //}
 
             Log.Information("check tx Successful {Hash}", tx.Hash);
@@ -302,12 +304,18 @@ namespace Phantasma.Business.Blockchain
 
         public IEnumerable<T> EndBlock<T>() where T : class
         {
-            // TODO return block events
-            // TODO validator update
-
             // TODO currently the managing of the ABI cache is broken so we have to call this at end of the block
             ((Chain)Nexus.RootChain).FlushExtCalls();
-
+            
+            // TODO return block events
+            if (typeof(T) == typeof(Block))
+            {
+                this.CurrentBlock.AddOraclesEntries(Nexus.GetOracleReader().Entries);
+                //var blocks = new List<Block>() { CurrentBlock };
+                //return (List<T>) Convert.ChangeType(blocks, typeof(List<T>));
+            }
+            
+            // TODO validator update
             return new List<T>();
         }
 
@@ -403,28 +411,19 @@ namespace Phantasma.Business.Blockchain
 
         private bool VerifyBlockBeforeAdd(Block block)
         {
-            if (block.TransactionCount > DomainSettings.MaxTxPerBlock)
+            if (block.TransactionCount >= DomainSettings.MaxTxPerBlock)
             {
                 return false;
             }
 
-            if (block.OracleData.Count() > DomainSettings.MaxOracleEntriesPerBlock)
+            if (block.OracleData.Count() >= DomainSettings.MaxOracleEntriesPerBlock)
             {
                 return false;
             }
 
-            if (block.Events.Count() > DomainSettings.MaxEventsPerBlock)
+            if (block.Events.Count() >= DomainSettings.MaxEventsPerBlock)
             {
                 return false;
-            }
-
-            foreach (var txHash in block.TransactionHashes)
-            {
-                var evts = block.GetEventsForTransaction(txHash);
-                if (evts.Count() > DomainSettings.MaxEventsPerTx)
-                {
-                    return false;
-                }
             }
 
             return true;
