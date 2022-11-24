@@ -27,7 +27,6 @@ namespace Phantasma.LegacyTests
 
             nexus.CreatePlatform(nexus.RootStorage, "", wallet.Address, "neo", "GAS");
 
-            //for (var i = 0; i < 65536; i++)
             for (var i = 0; i < 100; i++)
             {
                 var url = DomainExtensions.GetOracleBlockURL("neo", "neoEmpty", new BigInteger(i));
@@ -55,18 +54,34 @@ namespace Phantasma.LegacyTests
             nexus.CreatePlatform(nexus.RootStorage, "", wallet.Address, "neo", "GAS");
 
             simulator.BeginBlock();
-            //for (var i = 0; i < 65536; i++)
-            for (var i = 0; i < 100; i++)
+
+            var totalOracleCalls = 5;
+
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             {
-                var url = DomainExtensions.GetOracleBlockURL("neo", "neo", new BigInteger(i));
-                var iBlock = nexus.GetOracleReader().Read<InteropBlock>(DateTime.Now, url);
-                Assert.IsTrue(iBlock != null);
-            }
-            simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain as Chain, "SOUL", 100);
+                var sb = new ScriptBuilder();
+
+                sb.AllowGas(owner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit);
+
+                for (var i = 1; i <= totalOracleCalls; i++)
+                {
+                    var url = DomainExtensions.GetOracleBlockURL("neo", "neo", new BigInteger(i));
+                    sb.CallInterop("Oracle.Read", url);
+                }
+
+                sb.TransferBalance("SOUL", owner.Address, wallet.Address);
+
+                sb.SpendGas(owner.Address);
+
+                return sb.EndScript();
+            });
+
+            //simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain as Chain, "SOUL", 100);
             var block = simulator.EndBlock().First();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
             
             Console.WriteLine("block oracle data: " + block.OracleData.Count());
-            Assert.IsTrue(block.OracleData.Count() == 100);
+            Assert.IsTrue(block.OracleData.Count() == totalOracleCalls);
         }
 
         [TestMethod]
@@ -77,18 +92,38 @@ namespace Phantasma.LegacyTests
 
             var simulator = new NexusSimulator(owner);
             var nexus = simulator.Nexus;
-            
+
             nexus.CreatePlatform(nexus.RootStorage, "", wallet.Address, "neo", "GAS");
 
             simulator.BeginBlock();
-            for (int i = 0; i < DomainSettings.MaxOracleEntriesPerBlock + 1; i++)
+
+            var totalOracleCalls = 50;
+
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             {
-                var url = DomainExtensions.GetOracleBlockURL("neo", "neo", new BigInteger(i));
-                var iBlock = nexus.GetOracleReader().Read<InteropBlock>(DateTime.Now, url);
-            }
-            simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain as Chain, "SOUL", 100);
-            simulator.EndBlock().First();
+                var sb = new ScriptBuilder();
+
+                sb.AllowGas(owner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit);
+
+                for (var i = 1; i <= totalOracleCalls; i++)
+                {
+                    var url = DomainExtensions.GetOracleBlockURL("neo", "neo", new BigInteger(i));
+                    sb.CallInterop("Oracle.Read", url);
+                }
+
+                sb.TransferBalance("SOUL", owner.Address, wallet.Address);
+
+                sb.SpendGas(owner.Address);
+
+                return sb.EndScript();
+            });
+
+            //simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain as Chain, "SOUL", 100);
+            var block = simulator.EndBlock().First();
             Assert.IsFalse(simulator.LastBlockWasSuccessful());
+
+            Console.WriteLine("block oracle data: " + block.OracleData.Count());
+            Assert.IsTrue(block.OracleData.Count() < totalOracleCalls);
         }
 
 

@@ -416,6 +416,8 @@ namespace Phantasma.Business.Blockchain
                 return false;
             }
 
+            /* THOSE DONT WORK because the block is still empty!
+            
             if (block.OracleData.Count() >= DomainSettings.MaxOracleEntriesPerBlock)
             {
                 return false;
@@ -424,7 +426,7 @@ namespace Phantasma.Business.Blockchain
             if (block.Events.Count() >= DomainSettings.MaxEventsPerBlock)
             {
                 return false;
-            }
+            }*/
 
             return true;
         }

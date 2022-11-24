@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Xml.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.CodeGen.Assembler;
@@ -152,6 +153,9 @@ public class TokenTests
         var owner = PhantasmaKeys.Generate();
         var target = PhantasmaKeys.Generate();
         var symbol = "TEST";
+        var decimals = 10;
+        var totalSupply = 1000000000;
+        var name = $"{symbol}Token";
         var flags = TokenFlags.Transferable | TokenFlags.Finite | TokenFlags.Fungible | TokenFlags.Divisible;
 
         var simulator = new NexusSimulator(owner);
@@ -162,43 +166,40 @@ public class TokenTests
 
         scriptString = new string[]
         {
-            $"alias r1, $triggerSend",
-            $"alias r2, $triggerReceive",
-            $"alias r3, $triggerBurn",
-            $"alias r4, $triggerMint",
-            $"alias r5, $currentTrigger",
-            $"alias r6, $comparisonResult",
+                    $"alias r3, $result",
+                    $"alias r4, $owner",
 
-            $@"load $triggerSend, ""{TokenTrigger.OnSend}""",
-            $@"load $triggerReceive, ""{TokenTrigger.OnReceive}""",
-            $@"load $triggerBurn, ""{TokenTrigger.OnBurn}""",
-            $@"load $triggerMint, ""{TokenTrigger.OnMint}""",
-            $"pop $currentTrigger",
+                    $"@getOwner: nop",
+                    $"load $owner 0x{addressStr}",
+                    "push $owner",
+                    $"jmp @end",
 
-            //$"equal $triggerSend, $currentTrigger, $comparisonResult",
-            //$"jmpif $comparisonResult, @sendHandler",
+                    $"@getSymbol: nop",
+                    $"load r0 \""+symbol+"\"",
+                    "push r0",
+                    $"jmp @end",
+           
+                    $"@getName: nop",
+                    $"load r0 \""+name+"\"",
+                    "push r0",
+                    $"jmp @end",
 
-            //$"equal $triggerReceive, $currentTrigger, $comparisonResult",
-            //$"jmpif $comparisonResult, @receiveHandler",
+                    $"@getMaxSupply: nop",
+                    $"load r0 "+totalSupply+"",
+                    "push r0",
+                    $"jmp @end",
 
-            //$"equal $triggerBurn, $currentTrigger, $comparisonResult",
-            //$"jmpif $comparisonResult, @burnHandler",
+                    $"@getDecimals: nop",
+                    $"load r0 "+decimals+"",
+                    "push r0",
+                    $"jmp @end",
 
-            //$"equal $triggerMint, $currentTrigger, $comparisonResult",
-            //$"jmpif $comparisonResult, @OnMint",
+                    $"@getTokenFlags: nop",
+                    $"load r0 "+(int)flags+"",
+                    "push r0",
+                    $"jmp @end",
 
-            $"jmp @return",
-
-            $"@sendHandler: load r7 \"test send handler exception\"",
-            $"throw r7",
-
-            $"@receiveHandler: load r7 \"test received handler exception\"",
-            $"throw r7",
-
-            $"@burnHandler: load r7 \"test burn handler exception\"",
-            $"throw r7",
-
-            $"@OnMint: load r11 0x{addressStr}",
+            $"@{TokenTrigger.OnMint}: load r11 0x{addressStr}",
             $"push r11",
             $@"extcall ""Address()""",
             $"pop r11",
@@ -213,12 +214,13 @@ public class TokenTests
             "ret",
 
             $"@return: ret",
+                    $"@end: ret"
         };
 
         var script = AssemblerUtils.BuildScript(scriptString, null, out var debugInfo, out var labels);
 
         simulator.BeginBlock();
-        simulator.GenerateToken(owner, symbol, $"{symbol}Token", 1000000000, 3, flags);
+        simulator.GenerateToken(owner, symbol, name, totalSupply, decimals, flags, script, labels);
         simulator.EndBlock();
         Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
@@ -227,12 +229,12 @@ public class TokenTests
         simulator.EndBlock();
         Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
+        var events = simulator.Nexus.FindBlockByTransaction(tx).GetEventsForTransaction(tx.Hash);
+        Assert.IsTrue(events.Count(x => x.Kind == EventKind.Custom) == 1, $"{events.Count(x => x.Kind == EventKind.Custom)} == 1");
+
         var token = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, symbol);
         var balance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, owner.Address);
         Assert.IsTrue(balance == 1000);
-
-        var events = simulator.Nexus.FindBlockByTransaction(tx).GetEventsForTransaction(tx.Hash);
-        Assert.IsTrue(events.Count(x => x.Kind == EventKind.Custom) == 1, $"{events.Count(x => x.Kind == EventKind.Custom)} == 1");
 
         var eventData = events.First(x => x.Kind == EventKind.Custom).Data;
         var eventMessage = (VMObject)Serialization.Unserialize(eventData, typeof(VMObject));
