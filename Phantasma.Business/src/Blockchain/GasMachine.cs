@@ -72,8 +72,19 @@ namespace Phantasma.Business.Blockchain
                         break;
 
                     case "Organization":
-                    case "Oracle":
                         gasCost = 200;
+                        break;
+
+                    case "Oracle":
+                        int multiplier = 1;
+
+                        var runtime = this as RuntimeVM;
+                        if (runtime != null)
+                        {
+                            multiplier = runtime.Oracle.GetMultiplier();
+                        }
+
+                        gasCost = BigInteger.Pow(200, multiplier);
                         break;
 
                     case "Account":
