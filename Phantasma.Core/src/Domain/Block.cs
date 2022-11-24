@@ -98,6 +98,13 @@ namespace Phantasma.Core.Domain
             this._dirty = true;
         }
 
+        public void AddOraclesEntries(IEnumerable<OracleEntry> oracleEntries)
+        {
+            _oracleData.AddRange(oracleEntries);
+            this._dirty = true;
+
+        }
+
         public void AddTransactionHash(Hash hash)
         {
             _transactionHashes.Add(hash);

@@ -971,11 +971,13 @@ namespace Phantasma.LegacyTests
             simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
             simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // Send from user A to user B
             simulator.BeginBlock();
             simulator.GenerateTransfer(testUserA, testUserB.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
             var block = simulator.EndBlock().FirstOrDefault();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             Assert.IsTrue(block != null);
 

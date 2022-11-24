@@ -457,6 +457,130 @@ public class NFTTests
     [TestMethod]
     public void NftInfuse()
     {
-        Assert.IsTrue(false, "not implemented");
+        //TODO: Implement
+        var owner = PhantasmaKeys.Generate();
+
+        var simulator = new NexusSimulator(owner);
+        var nexus = simulator.Nexus;
+
+        var chain = nexus.RootChain;
+        
+        simulator.GetFundsInTheFuture(owner);
+
+        var symbol = "COOL";
+        var symbol2 = "NCOL";
+
+        var testUser = PhantasmaKeys.Generate();
+
+        // Create the token CoolToken as an NFT
+        simulator.BeginBlock();
+        simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable | TokenFlags.Burnable);
+        simulator.GenerateTransfer(owner, testUser.Address, chain, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(100, DomainSettings.StakingTokenDecimals));
+        simulator.GenerateTransfer(owner, testUser.Address, chain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals));
+        simulator.GenerateToken(owner, symbol2, "CoolToken-Item", 0, 0, TokenFlags.Transferable);
+        simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        
+
+        var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
+        Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
+
+        // verify nft presence on the user pre-mint
+        var ownerships = new OwnershipSheet(symbol);
+        var ownershipsNCOL = new OwnershipSheet(symbol2);
+        var ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+        var ownedTokenListNCOL = ownershipsNCOL.Get(chain.Storage, testUser.Address);
+        Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
+
+        var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
+        var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
+
+        var tokenROM2 = new byte[] { 0x2, 0x3, 0x6, 0x7 };
+        var tokenRAM2 = new byte[] { 0x2, 0x5, 0x7, 0x6 };
+        
+        // Mint a new CoolToken to test address
+        simulator.BeginBlock();
+        simulator.MintNonFungibleToken(owner, testUser.Address, symbol, tokenROM, tokenRAM, 0);
+        simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+
+        // obtain tokenID
+        ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+        Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+
+        // verify nft presence on the user post-mint
+        ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+        Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+
+        // check used storage
+        var tokenAddress = TokenUtils.GetContractAddress(symbol);
+        var usedStorage = (int)simulator.InvokeContract("storage", nameof(StorageContract.GetUsedSpace), tokenAddress).AsNumber();
+        var minExpectedSize = tokenROM.Length + tokenRAM.Length;
+        Assert.IsTrue(usedStorage >= minExpectedSize);
+
+        //verify that the present nft is the same we actually tried to create
+        var tokenID = ownedTokenList.First();
+        var nft = nexus.ReadNFT(nexus.RootStorage, symbol, tokenID);
+        Assert.IsTrue(nft.ROM.SequenceEqual(tokenROM) && nft.RAM.SequenceEqual(tokenRAM),
+            "And why is this NFT different than expected? Not the same data");
+
+        var currentSupply = chain.GetTokenSupply(chain.Storage, symbol);
+        Assert.IsTrue(currentSupply == 1, "why supply did not increase?");
+
+        var testScript = new ScriptBuilder().CallNFT(symbol, 0, "getName", tokenID).EndScript();
+        var temp = simulator.InvokeScript(testScript);
+        var testResult = temp.AsString();
+        Assert.IsTrue(testResult == "CoolToken");
+        
+        // Infuse the NFT with an Tokens
+        simulator.BeginBlock();
+        simulator.InfuseNonFungibleToken(testUser, symbol, tokenID, "SOUL", UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals));
+        simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        
+        // Verify NFT
+        ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+        Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+        
+        var nftInfused = nexus.ReadNFT(nexus.RootStorage, symbol, tokenID);
+        Assert.IsTrue(nftInfused.Infusion.Length == 1, "nftInfused.Infusion.Length != 1");
+        
+        
+        Assert.IsTrue(nftInfused.Infusion[0].Symbol == DomainSettings.StakingTokenSymbol);
+        Assert.IsTrue(nftInfused.Infusion[0].Value == UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals));
+        
+        // Infuse the NFT with an NFT
+        
+        // Mint a new NCOL to test address
+        simulator.BeginBlock();
+        simulator.MintNonFungibleToken(owner, testUser.Address, symbol2, tokenROM2, tokenRAM2, 0);
+        simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        
+        // Verify NFT is minted
+        ownedTokenListNCOL = ownershipsNCOL.Get(chain.Storage, testUser.Address);
+        Assert.IsTrue(ownedTokenListNCOL.Count() == 1, "How does the sender not have one now?");
+        
+        var tokenIDAfter = ownedTokenListNCOL.First();
+        var nftCreated = nexus.ReadNFT(nexus.RootStorage, symbol2, tokenIDAfter);
+        Assert.IsTrue(nftCreated.ROM.SequenceEqual(tokenROM2) && nftCreated.RAM.SequenceEqual(tokenRAM2),
+            "And why is this NFT different than expected? Not the same data");
+        Assert.IsTrue(tokenIDAfter != tokenID);
+        
+        
+        // Infuse NFT
+        simulator.BeginBlock();
+        simulator.InfuseNonFungibleToken(testUser, symbol, tokenID, symbol2, tokenIDAfter);
+        simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        
+        // Verify Infusion
+        var nftInfusedAfter = nexus.ReadNFT(nexus.RootStorage, symbol, tokenID);
+        Assert.IsTrue(nftInfusedAfter.Infusion.Length == 2, "nftInfused.Infusion.Length != 2");
+
+        Assert.IsTrue(nftInfusedAfter.Infusion[0].Symbol == DomainSettings.StakingTokenSymbol);
+        Assert.IsTrue(nftInfusedAfter.Infusion[0].Value == UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals));
+        Assert.IsTrue(nftInfusedAfter.Infusion[1].Symbol == symbol2);
+        Assert.IsTrue(nftInfusedAfter.Infusion[1].Value == tokenIDAfter);
     }
 }

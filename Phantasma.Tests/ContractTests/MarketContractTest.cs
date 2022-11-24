@@ -1455,8 +1455,11 @@ namespace Phantasma.LegacyTests.ContractTests
             var nexus = simulator.Nexus;
 
             var chain = nexus.RootChain;
+            simulator.GetFundsInTheFuture(owner);
 
             var symbol = "COOL";
+            var tokenTicker = "MKNI";
+
 
             var testUser = PhantasmaKeys.Generate();
             var buyingFeeUser = PhantasmaKeys.Generate();
@@ -1466,7 +1469,9 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
             simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, "MKNI", 10000);
+            simulator.GenerateToken(owner, tokenTicker, "MKNI", 10000000, 0, TokenFlags.Transferable | TokenFlags.Fungible);
+            simulator.MintTokens(owner, owner.Address, tokenTicker, 10000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, tokenTicker, 10000);
             simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
@@ -1512,7 +1517,6 @@ namespace Phantasma.LegacyTests.ContractTests
             Timestamp endDate = simulator.CurrentTime + TimeSpan.FromDays(3);
 
             // verify balance before
-            var tokenTicker = "MKNI";
             var tokenToSell = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, tokenTicker);
             var balanceOwnerBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, owner.Address);
             var balanceSellerBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, testUser.Address);
