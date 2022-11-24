@@ -17,6 +17,7 @@ public interface IOracleReader
     InteropTransaction ReadTransaction(string platform, string chain, Hash hash);
     void Clear();
     void MergeTxData();
+    int GetMultiplier();
 }
 
 public static class OracleExtensions
