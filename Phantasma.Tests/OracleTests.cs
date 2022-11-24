@@ -9,6 +9,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Domain;
 using Phantasma.Business.VM.Utils;
+using Phantasma.Node.Oracles;
 
 namespace Phantasma.LegacyTests
 {
@@ -23,6 +24,8 @@ namespace Phantasma.LegacyTests
 
             var simulator = new NexusSimulator(owner);
             var nexus = simulator.Nexus;
+
+            nexus.CreatePlatform(nexus.RootStorage, "", wallet.Address, "neo", "GAS");
 
             //for (var i = 0; i < 65536; i++)
             for (var i = 0; i < 100; i++)
@@ -48,18 +51,20 @@ namespace Phantasma.LegacyTests
 
             var simulator = new NexusSimulator(owner);
             var nexus = simulator.Nexus;
+            
+            nexus.CreatePlatform(nexus.RootStorage, "", wallet.Address, "neo", "GAS");
 
+            simulator.BeginBlock();
             //for (var i = 0; i < 65536; i++)
             for (var i = 0; i < 100; i++)
             {
                 var url = DomainExtensions.GetOracleBlockURL("neo", "neo", new BigInteger(i));
                 var iBlock = nexus.GetOracleReader().Read<InteropBlock>(DateTime.Now, url);
+                Assert.IsTrue(iBlock != null);
             }
-
-            simulator.BeginBlock();
             simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain as Chain, "SOUL", 100);
             var block = simulator.EndBlock().First();
-
+            
             Console.WriteLine("block oracle data: " + block.OracleData.Count());
             Assert.IsTrue(block.OracleData.Count() == 100);
         }
@@ -72,19 +77,18 @@ namespace Phantasma.LegacyTests
 
             var simulator = new NexusSimulator(owner);
             var nexus = simulator.Nexus;
+            
+            nexus.CreatePlatform(nexus.RootStorage, "", wallet.Address, "neo", "GAS");
 
+            simulator.BeginBlock();
             for (int i = 0; i < DomainSettings.MaxOracleEntriesPerBlock + 1; i++)
             {
                 var url = DomainExtensions.GetOracleBlockURL("neo", "neo", new BigInteger(i));
                 var iBlock = nexus.GetOracleReader().Read<InteropBlock>(DateTime.Now, url);
             }
-
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.BeginBlock();
-                simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain as Chain, "SOUL", 100);
-                simulator.EndBlock().First();
-            });
+            simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain as Chain, "SOUL", 100);
+            simulator.EndBlock().First();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
         }
 
 
