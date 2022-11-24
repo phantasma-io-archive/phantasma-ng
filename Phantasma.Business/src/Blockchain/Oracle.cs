@@ -436,7 +436,7 @@ namespace Phantasma.Business.Blockchain
         // returns how many pending oracle Calls are there for current transaction
         public int GetMultiplier()
         {
-            return _txEntries.Count();
+            return 1 + _txEntries.Count();
         }
     }
 }
