@@ -84,7 +84,7 @@ namespace Phantasma.Business.Blockchain
                             multiplier = runtime.Oracle.GetMultiplier();
                         }
 
-                        gasCost = BigInteger.Pow(200, multiplier);
+                        gasCost = BigInteger.Pow(2, multiplier) * 100;
                         break;
 
                     case "Account":

@@ -236,11 +236,13 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         Block lastBlock = null;
         Log.Information($"ABCI Connector - Info");
 
+        uint version = 0;
+
         try 
         {
             lastBlockHash = _nexus.RootChain.GetLastBlockHash();
             lastBlock = _nexus.RootChain.GetBlockByHash(lastBlockHash);
-            var version = _nexus.GetProtocolVersion(_nexus.RootStorage);
+            version = _nexus.GetProtocolVersion(_nexus.RootStorage);
         }
         catch (Exception e)
         {
@@ -251,7 +253,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         {
             AppVersion = 0,
             LastBlockHeight = (lastBlock != null) ? (long)lastBlock.Height : 0,
-            Version = "0.0.2",
+            Version = "0.2." + version,
         };
 
         return Task.FromResult(response);
