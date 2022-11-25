@@ -451,12 +451,14 @@ namespace Phantasma.LegacyTests
             var testUser = PhantasmaKeys.Generate();
 
             var potAddress = SmartContract.GetAddressForNative(NativeContractKind.Swap);
+            
+            
 
             // 0 - just send some assets to the 
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals));
             simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals));
-            simulator.MintTokens(owner, potAddress, "GAS", UnitConversion.ToBigInteger(1, 8));
+            //simulator.MintTokens(owner, potAddress, "GAS", UnitConversion.ToBigInteger(1, 8));
             simulator.EndBlock();
             Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
@@ -487,6 +489,7 @@ namespace Phantasma.LegacyTests
             var simulator = new NexusSimulator(owner);
             var nexus = simulator.Nexus;
 
+            nexus.CreatePlatform(nexus.RootStorage, "", Address.Null, "neo", "gas");
             Assert.IsTrue(nexus.PlatformExists(nexus.RootStorage, "neo"));
             Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, "NEO"));
 

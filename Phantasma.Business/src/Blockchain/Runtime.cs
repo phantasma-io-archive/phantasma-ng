@@ -536,7 +536,7 @@ namespace Phantasma.Business.Blockchain
 
             var value = Oracle.ReadPrice(this.Time, symbol);
 
-            Expect(value > 0, "token price not available for " + symbol);
+            Expect(value >= 0, "token price not available for " + symbol);
 
             return value;
         }
