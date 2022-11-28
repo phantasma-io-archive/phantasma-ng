@@ -1,12 +1,14 @@
 using System;
 using System.Numerics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Types;
 using Phantasma.Simulator;
 
 namespace Phantasma.LegacyTests.ContractTests;
@@ -23,219 +25,258 @@ public class FriendContractTest
         return UnitConversion.ConvertDecimals(stakeAmount, DomainSettings.StakingTokenDecimals, DomainSettings.FuelTokenDecimals) / _currentEnergyRatioDivisor;
     }
     
-        [TestMethod]
-        public void TestFriendsContract()
+    Address sysAddress;
+    PhantasmaKeys user;
+    PhantasmaKeys owner;
+    Nexus nexus;
+    NexusSimulator simulator;
+    int amountRequested;
+    int gas;
+    BigInteger initialAmount;
+    BigInteger initialFuel;
+    BigInteger startBalance;
+    StakeReward reward;
+
+    [TestInitialize]
+    public void Initialize()
+    {
+        sysAddress = SmartContract.GetAddressForNative(NativeContractKind.Friends);
+        user = PhantasmaKeys.Generate();
+        owner = PhantasmaKeys.Generate();
+        amountRequested = 100000000;
+        gas = 99999;
+        initialAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
+        initialFuel = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
+        reward = new StakeReward(user.Address, Timestamp.Now);
+        InitializeSimulator();
+
+        startBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol, user.Address);
+    }
+        
+    protected void InitializeSimulator()
+    {
+        simulator = new NexusSimulator(owner);
+        nexus = simulator.Nexus;
+        nexus.SetOracleReader(new OracleSimulator(nexus));
+        SetInitialBalance(user.Address);
+    }
+
+    protected void SetInitialBalance(Address address)
+    {
+        simulator.BeginBlock();
+        simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
+        simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.StakingTokenSymbol, initialAmount);
+        simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+    }
+    
+    [TestMethod]
+    public void TestFriendsContract()
+    {
+        var stakeAmount = MinimumValidStake;
+        double realStakeAmount = ((double)stakeAmount) * Math.Pow(10, -DomainSettings.StakingTokenDecimals);
+        double realExpectedUnclaimedAmount = ((double)(StakeToFuel(stakeAmount, DefaultEnergyRatioDivisor))) * Math.Pow(10, -DomainSettings.FuelTokenDecimals);
+
+        var fuelToken = DomainSettings.FuelTokenSymbol;
+        var stakingToken = DomainSettings.StakingTokenSymbol;
+
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), user.Address, stakeAmount)
+                .SpendGas(user.Address)
+                .EndScript());
+        simulator.EndBlock();
+
+        var unclaimedAmount = simulator.InvokeContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), user.Address).AsNumber();
+        double realUnclaimedAmount = ((double)unclaimedAmount) * Math.Pow(10, -DomainSettings.FuelTokenDecimals);
+
+        Assert.IsTrue(realUnclaimedAmount == realExpectedUnclaimedAmount);
+
+        BigInteger actualEnergyRatio = (BigInteger)(realStakeAmount / realUnclaimedAmount);
+        Assert.IsTrue(actualEnergyRatio == DefaultEnergyRatioDivisor);
+    }
+
+    private struct FriendTestStruct
+    {
+        public string name;
+        public Address address;
+    }
+
+    private byte[] GetScriptForFriends(Address target)
+    {
+        var fuelToken = DomainSettings.FuelTokenSymbol;
+        var stakingToken = DomainSettings.StakingTokenSymbol;
+
+        //Let A be an address
+        var testUserA = PhantasmaKeys.Generate();
+        var testUserB = PhantasmaKeys.Generate();
+        var testUserC = PhantasmaKeys.Generate();
+
+        simulator.BeginBlock();
+        simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, fuelToken, initialFuel);
+        simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, stakingToken, 100000000);
+        simulator.GenerateTransfer(owner, testUserB.Address, nexus.RootChain, fuelToken, initialFuel);
+        simulator.GenerateTransfer(owner, testUserB.Address, nexus.RootChain, stakingToken, 100000000);
+        simulator.GenerateTransfer(owner, testUserC.Address, nexus.RootChain, fuelToken, initialFuel);
+        simulator.GenerateTransfer(owner, testUserC.Address, nexus.RootChain, stakingToken, 100000000);
+        simulator.EndBlock();
+
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Friends, nameof(FriendsContract.AddFriend), testUserA.Address, testUserB.Address)
+                .SpendGas(testUserA.Address)
+                .EndScript());
+        simulator.EndBlock();
+
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Friends, nameof(FriendsContract.AddFriend), testUserA.Address, testUserC.Address)
+                .SpendGas(testUserA.Address)
+                .EndScript());
+        simulator.EndBlock();
+
+        var scriptString = new string[]
         {
-            var owner = PhantasmaKeys.Generate();
+            "load r0 \"friends\"",
+            "ctx r0 r1",
 
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
+            $"load r0 0x{Base16.Encode(target.ToByteArray())}",
+            "push r0",
+            "extcall \"Address()\"",
 
-            var testUser = PhantasmaKeys.Generate();
-            var stakeAmount = MinimumValidStake;
-            double realStakeAmount = ((double)stakeAmount) * Math.Pow(10, -DomainSettings.StakingTokenDecimals);
-            double realExpectedUnclaimedAmount = ((double)(StakeToFuel(stakeAmount, DefaultEnergyRatioDivisor))) * Math.Pow(10, -DomainSettings.FuelTokenDecimals);
+            "load r0 \"GetFriends\"",
+            "push r0",
+            "switch r1",
 
-            var fuelToken = DomainSettings.FuelTokenSymbol;
-            var stakingToken = DomainSettings.StakingTokenSymbol;
+            "alias r4 $friends",
+            "alias r5 $address",
+            "alias r6 $name",
+            "alias r7 $i",
+            "alias r8 $count",
+            "alias r9 $loopflag",
+            "alias r10 $friendname",
+            "alias r11 $friendnamelist",
 
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, fuelToken, 100000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, stakingToken, stakeAmount);
-            simulator.EndBlock();
+            "pop r0",
+            "cast r0 $friends #Struct",
+            "count $friends $count",
 
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 9999)
-                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, stakeAmount).
-                    SpendGas(testUser.Address).EndScript());
-            simulator.EndBlock();
+            "load $i 0",
+            "@loop: ",
+            "lt $i $count $loopflag",
+            "jmpnot $loopflag @finish",
 
-            var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetUnclaimed", testUser.Address).AsNumber();
-            double realUnclaimedAmount = ((double)unclaimedAmount) * Math.Pow(10, -DomainSettings.FuelTokenDecimals);
+            "get $friends $address $i",
+            "push $address",
+            "call @lookup",
+            "pop $name",
 
-            Assert.IsTrue(realUnclaimedAmount == realExpectedUnclaimedAmount);
+            "load r0 \"name\"",
+            "load r1 \"address\"",
+            "put $name $friendname[r0]",
+            "put $address $friendname[r1]",
 
-            BigInteger actualEnergyRatio = (BigInteger)(realStakeAmount / realUnclaimedAmount);
-            Assert.IsTrue(actualEnergyRatio == DefaultEnergyRatioDivisor);
-        }
+            "put $friendname $friendnamelist $i",
 
-        private struct FriendTestStruct
-        {
-            public string name;
-            public Address address;
-        }
+            "inc $i",
+            "jmp @loop",
+            "@finish: push $friendnamelist",
+            "ret",
 
-        private byte[] GetScriptForFriends(Address target)
-        {
-            var owner = PhantasmaKeys.Generate();
+            "@lookup: load r0 \"account\"",
+            "ctx r0 r1",
+            "load r0 \"LookUpAddress\"",
+            "push r0",
+            "switch r1",
+            "ret"
+        };
 
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
+        var script = AssemblerUtils.BuildScript(scriptString);
 
-            var fuelToken = DomainSettings.FuelTokenSymbol;
-            var stakingToken = DomainSettings.StakingTokenSymbol;
+        return script;
+    }
 
-            //Let A be an address
-            var testUserA = PhantasmaKeys.Generate();
-            var testUserB = PhantasmaKeys.Generate();
-            var testUserC = PhantasmaKeys.Generate();
+    [TestMethod]
+    public void TestFriendArray()
+    {
+        var owner = PhantasmaKeys.Generate();
 
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, fuelToken, 100000000);
-            simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, stakingToken, 100000000);
-            simulator.GenerateTransfer(owner, testUserB.Address, nexus.RootChain, fuelToken, 100000000);
-            simulator.GenerateTransfer(owner, testUserB.Address, nexus.RootChain, stakingToken, 100000000);
-            simulator.GenerateTransfer(owner, testUserC.Address, nexus.RootChain, fuelToken, 100000000);
-            simulator.GenerateTransfer(owner, testUserC.Address, nexus.RootChain, stakingToken, 100000000);
-            simulator.EndBlock();
+        var simulator = new NexusSimulator(owner);
+        var nexus = simulator.Nexus;
 
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
-                    .CallContract("friends", "AddFriend", testUserA.Address, testUserB.Address).
-                    SpendGas(testUserA.Address).EndScript());
-            simulator.EndBlock();
+        var fuelToken = DomainSettings.FuelTokenSymbol;
+        var stakingToken = DomainSettings.StakingTokenSymbol;
 
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
-                    .CallContract("friends", "AddFriend", testUserA.Address, testUserC.Address).
-                    SpendGas(testUserA.Address).EndScript());
-            simulator.EndBlock();
+        //Let A be an address
+        var testUserA = PhantasmaKeys.Generate();
+        var testUserB = PhantasmaKeys.Generate();
+        var testUserC = PhantasmaKeys.Generate();
 
-            var scriptString = new string[]
-            {
-                "load r0 \"friends\"",
-                "ctx r0 r1",
+        simulator.BeginBlock();
+        simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, fuelToken, initialFuel);
+        simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, stakingToken, 100000000);
+        simulator.GenerateTransfer(owner, testUserB.Address, nexus.RootChain, fuelToken, initialFuel);
+        simulator.GenerateTransfer(owner, testUserB.Address, nexus.RootChain, stakingToken, 100000000);
+        simulator.GenerateTransfer(owner, testUserC.Address, nexus.RootChain, fuelToken, initialFuel);
+        simulator.GenerateTransfer(owner, testUserC.Address, nexus.RootChain, stakingToken, 100000000);
+        simulator.EndBlock();
 
-                $"load r0 0x{Base16.Encode(target.ToByteArray())}",
-                "push r0",
-                "extcall \"Address()\"",
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Friends, nameof(FriendsContract.AddFriend), testUserA.Address, testUserB.Address)
+                .SpendGas(testUserA.Address)
+                .EndScript());
+        simulator.EndBlock();
 
-                "load r0 \"GetFriends\"",
-                "push r0",
-                "switch r1",
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Friends, nameof(FriendsContract.AddFriend), testUserA.Address, testUserC.Address)
+                .SpendGas(testUserA.Address)
+                .EndScript());
+        simulator.EndBlock();
 
-                "alias r4 $friends",
-                "alias r5 $address",
-                "alias r6 $name",
-                "alias r7 $i",
-                "alias r8 $count",
-                "alias r9 $loopflag",
-                "alias r10 $friendname",
-                "alias r11 $friendnamelist",
+        var scriptA = GetScriptForFriends(testUserA.Address);
+        var resultA = simulator.InvokeScript(scriptA);
+        Assert.IsTrue(resultA != null);
 
-                "pop r0",
-                "cast r0 $friends #Struct",
-                "count $friends $count",
+        var tempA = resultA.ToArray<FriendTestStruct>();
+        Assert.IsTrue(tempA.Length == 2);
+        Assert.IsTrue(tempA[0].address == testUserB.Address);
+        Assert.IsTrue(tempA[1].address == testUserC.Address);
 
-                "load $i 0",
-                "@loop: ",
-                "lt $i $count $loopflag",
-                "jmpnot $loopflag @finish",
+        /*
+        // we also test that the API can handle complex return types
+        var api = new NexusAPI(nexus);
+        var apiResult = (ScriptResult)api.InvokeRawScript("main", Base16.Encode(scriptA));
 
-                "get $friends $address $i",
-                "push $address",
-                "call @lookup",
-                "pop $name",
+        // NOTE objBytes will contain a serialized VMObject
+        var objBytes = Base16.Decode(apiResult.results[0]);
+        var resultB = Serialization.Unserialize<VMObject>(objBytes);
 
-                "load r0 \"name\"",
-                "load r1 \"address\"",
-                "put $name $friendname[r0]",
-                "put $address $friendname[r1]",
+        // finally as last step, convert it to a C# struct
+        var tempB = resultB.ToArray<FriendTestStruct>();
+        Assert.IsTrue(tempB.Length == 2);
+        Assert.IsTrue(tempB[0].address == testUserB.Address);
+        Assert.IsTrue(tempB[1].address == testUserC.Address);
 
-                "put $friendname $friendnamelist $i",
+        // check what happens when no friends available
+        var scriptB = GetScriptForFriends(testUserB.Address);
+        var apiResultB = (ScriptResult)api.InvokeRawScript("main", Base16.Encode(scriptB));
 
-                "inc $i",
-                "jmp @loop",
-                "@finish: push $friendnamelist",
-                "ret",
-
-                "@lookup: load r0 \"account\"",
-                "ctx r0 r1",
-                "load r0 \"LookUpAddress\"",
-                "push r0",
-                "switch r1",
-                "ret"
-            };
-
-            var script = AssemblerUtils.BuildScript(scriptString);
-
-            return script;
-        }
-
-        [TestMethod]
-        public void TestFriendArray()
-        {
-            var owner = PhantasmaKeys.Generate();
-
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-
-            var fuelToken = DomainSettings.FuelTokenSymbol;
-            var stakingToken = DomainSettings.StakingTokenSymbol;
-
-            //Let A be an address
-            var testUserA = PhantasmaKeys.Generate();
-            var testUserB = PhantasmaKeys.Generate();
-            var testUserC = PhantasmaKeys.Generate();
-
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, fuelToken, 100000000);
-            simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, stakingToken, 100000000);
-            simulator.GenerateTransfer(owner, testUserB.Address, nexus.RootChain, fuelToken, 100000000);
-            simulator.GenerateTransfer(owner, testUserB.Address, nexus.RootChain, stakingToken, 100000000);
-            simulator.GenerateTransfer(owner, testUserC.Address, nexus.RootChain, fuelToken, 100000000);
-            simulator.GenerateTransfer(owner, testUserC.Address, nexus.RootChain, stakingToken, 100000000);
-            simulator.EndBlock();
-
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
-                    .CallContract("friends", "AddFriend", testUserA.Address, testUserB.Address).
-                    SpendGas(testUserA.Address).EndScript());
-            simulator.EndBlock();
-
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, 9999)
-                    .CallContract("friends", "AddFriend", testUserA.Address, testUserC.Address).
-                    SpendGas(testUserA.Address).EndScript());
-            simulator.EndBlock();
-
-            var scriptA = GetScriptForFriends(testUserA.Address);
-            var resultA = simulator.InvokeScript(scriptA);
-            Assert.IsTrue(resultA != null);
-
-            var tempA = resultA.ToArray<FriendTestStruct>();
-            Assert.IsTrue(tempA.Length == 2);
-            Assert.IsTrue(tempA[0].address == testUserB.Address);
-            Assert.IsTrue(tempA[1].address == testUserC.Address);
-
-            /*
-            // we also test that the API can handle complex return types
-            var api = new NexusAPI(nexus);
-            var apiResult = (ScriptResult)api.InvokeRawScript("main", Base16.Encode(scriptA));
-
-            // NOTE objBytes will contain a serialized VMObject
-            var objBytes = Base16.Decode(apiResult.results[0]);
-            var resultB = Serialization.Unserialize<VMObject>(objBytes);
-
-            // finally as last step, convert it to a C# struct
-            var tempB = resultB.ToArray<FriendTestStruct>();
-            Assert.IsTrue(tempB.Length == 2);
-            Assert.IsTrue(tempB[0].address == testUserB.Address);
-            Assert.IsTrue(tempB[1].address == testUserC.Address);
-
-            // check what happens when no friends available
-            var scriptB = GetScriptForFriends(testUserB.Address);
-            var apiResultB = (ScriptResult)api.InvokeRawScript("main", Base16.Encode(scriptB));
-
-            // NOTE objBytes will contain a serialized VMObject
-            var objBytesB = Base16.Decode(apiResultB.results[0]);
-            var resultEmpty = Serialization.Unserialize<VMObject>(objBytesB);
-            Assert.IsTrue(resultEmpty != null);*/
-        }
+        // NOTE objBytes will contain a serialized VMObject
+        var objBytesB = Base16.Decode(apiResultB.results[0]);
+        var resultEmpty = Serialization.Unserialize<VMObject>(objBytesB);
+        Assert.IsTrue(resultEmpty != null);*/
+    }
 
 }

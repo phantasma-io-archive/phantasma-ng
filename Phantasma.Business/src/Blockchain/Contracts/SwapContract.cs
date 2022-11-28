@@ -190,8 +190,19 @@ namespace Phantasma.Business.Blockchain.Contracts
         /// <param name="total"></param>
         public void SwapReverse(Address from, string fromSymbol, string toSymbol, BigInteger total)
         {
-            Runtime.CallNativeContext(NativeContractKind.Exchange, nameof(ExchangeContract.SwapReverse), from,
-                fromSymbol, toSymbol, total);
+            var existsLP = Runtime.TokenExists(DomainSettings.LiquidityTokenSymbol);
+            if (existsLP)
+            {
+                Runtime.CallNativeContext(NativeContractKind.Exchange, nameof(ExchangeContract.SwapReverse), from,
+                    fromSymbol, toSymbol, total);
+            }
+            else
+            {
+                var amount = GetRate(toSymbol, fromSymbol, total);
+                Runtime.Expect(amount > 0, $"cannot reverse swap {fromSymbol}");
+                SwapTokens(from, fromSymbol, toSymbol, amount);
+            }
+            
         }
 
         /// <summary>

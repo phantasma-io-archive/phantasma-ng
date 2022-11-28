@@ -766,9 +766,14 @@ public class ExchangeContractTests
         // Setup symbols
         var baseSymbol = DomainSettings.StakingTokenSymbol;
         var quoteSymbol = DomainSettings.FuelTokenSymbol;
-        
+        //GetTokenQuote
+        var soulPrice = UnitConversion.ToDecimal(100, DomainSettings.FiatTokenDecimals);
+        var coolPrice = UnitConversion.ToDecimal(300, DomainSettings.FiatTokenDecimals);
+
+        decimal ratio = decimal.Round(soulPrice  / coolPrice, DomainSettings.MAX_TOKEN_DECIMALS/2, MidpointRounding.AwayFromZero );
+
         BigInteger myPoolAmount0 = UnitConversion.ToBigInteger(10000, 8);
-        BigInteger myPoolAmount1 = UnitConversion.ToBigInteger(100000, 8);
+        BigInteger myPoolAmount1 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(myPoolAmount0, 8) / ratio, 8);
 
         core.InitFunds();
         core.Migrate();
@@ -787,11 +792,11 @@ public class ExchangeContractTests
         poolOwner.Fund(bnb.Symbol, poolAmount3);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
-        poolOwner.Fund(cool.Symbol, myPoolAmount1);
+        poolOwner.Fund(cool.Symbol, myPoolAmount1*2);
 
         double am0 = (double)myPoolAmount0;
         double am1 = (double)myPoolAmount1;
-        BigInteger totalLiquidity = (BigInteger)Math.Sqrt(am0 * am0 / 3);
+        BigInteger totalLiquidity = (BigInteger)Math.Sqrt(am0 * am1);
 
         // Get Tokens Info
         //token0
@@ -814,7 +819,7 @@ public class ExchangeContractTests
         Assert.IsTrue(pool.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
         Assert.IsTrue(pool.Amount0 == myPoolAmount0, $"Amount0 doesn't check {pool.Amount0}");
         Assert.IsTrue(pool.Symbol1 == cool.Symbol, "Symbol1 doesn't check");
-        Assert.IsTrue(pool.Amount1 == myPoolAmount0/3, $"Amount1 doesn't check {pool.Amount1}");
+        Assert.IsTrue(pool.Amount1 == myPoolAmount1, $"Amount1 doesn't check {pool.Amount1} != {myPoolAmount1}");
         Assert.IsTrue(pool.TotalLiquidity == totalLiquidity, "Liquidity doesn't check"); 
         Assert.IsTrue(pool.Symbol0Address == token0Address.Address.Text);
         Assert.IsTrue(pool.Symbol1Address == token1Address.Address.Text);
@@ -850,8 +855,11 @@ public class ExchangeContractTests
         var amount0 = UnitConversion.ToBigInteger(500, kcal.Decimals);
         var amount1 = UnitConversion.ToBigInteger(5000, cool.Decimals);
         
+        var initialAmount0SameDecimals = UnitConversion.ConvertDecimals(amount0, kcal.Decimals, 8);
+        var initialAmount1SameDecimals = UnitConversion.ConvertDecimals(amount1, cool.Decimals, 8);
+        
         var virtualPool = poolOwner.GetPool(kcal.Symbol, cool.Symbol);
-        BigInteger totalLiquidity = (BigInteger)Math.Sqrt((double)(amount0 * amount1));
+        BigInteger totalLiquidity = (BigInteger)Math.Sqrt((double)(initialAmount0SameDecimals * initialAmount1SameDecimals));
 
         // Get Tokens Info
         //token1
@@ -959,11 +967,13 @@ public class ExchangeContractTests
 
         var initialAmount0 = UnitConversion.ToBigInteger(1000, kcal.Decimals);
         var initialAmount1 = UnitConversion.ToBigInteger(5000, cool.Decimals);
+        var initialAmount0SameDecimals = UnitConversion.ConvertDecimals(initialAmount0, kcal.Decimals, 8);
+        var initialAmount1SameDecimals = UnitConversion.ConvertDecimals(initialAmount1, cool.Decimals, 8);
         var amount0 = UnitConversion.ToBigInteger(100, kcal.Decimals);
         var amount1 = UnitConversion.ToBigInteger(500, cool.Decimals);
 
         var pool = poolOwner.GetPool(kcal.Symbol, cool.Symbol);
-        BigInteger totalLiquidity = ExchangeContract.Sqrt(initialAmount0 * initialAmount1);
+        BigInteger totalLiquidity = ExchangeContract.Sqrt(initialAmount0SameDecimals * initialAmount1SameDecimals);
         Assert.IsTrue(totalLiquidity == pool.TotalLiquidity);
 
         // Add Liquidity to the pool
@@ -1148,7 +1158,6 @@ public class ExchangeContractTests
     }
 
     [TestMethod]
-    [Ignore]
     public void RemoveLiquidityToVirtualPool()
     {
         CoreClass core = new CoreClass();
@@ -1175,15 +1184,16 @@ public class ExchangeContractTests
         var pool = poolOwner.GetPool(kcal.Symbol, cool.Symbol);
 
         decimal poolRatio = UnitConversion.ToDecimal(UnitConversion.ConvertDecimals(pool.Amount0, kcal.Decimals, DomainSettings.FiatTokenDecimals), 8) / UnitConversion.ToDecimal(UnitConversion.ConvertDecimals(pool.Amount1, cool.Decimals, DomainSettings.FiatTokenDecimals),8);
-        //if (poolRatio == 0 ) poolRatio = UnitConversion.ToDecimal(UnitConversion.ConvertDecimals(pool.Amount0, kcal.Decimals, DomainSettings.FiatTokenDecimals) / UnitConversion.ConvertDecimals(pool.Amount1, cool.Decimals, DomainSettings.FiatTokenDecimals));
         var amount0 = UnitConversion.ToBigInteger(1000, kcal.Decimals);
-        var amount1 = UnitConversion.ConvertDecimals((amount0  / UnitConversion.ToBigInteger(poolRatio, 8) ), DomainSettings.FiatTokenDecimals, cool.Decimals);
+        var amount1 = UnitConversion.ToBigInteger((UnitConversion.ToDecimal(amount0, 8)  / poolRatio ), cool.Decimals);
         Console.WriteLine($"ratio:{poolRatio} | amount0:{amount0} | amount1:{amount1}");
         Console.WriteLine($"BeforeTouchingPool: {pool.Amount0} {pool.Symbol0} | {pool.Amount1} {pool.Symbol1} | PoolRatio:{UnitConversion.ConvertDecimals(pool.Amount0, kcal.Decimals, DomainSettings.FiatTokenDecimals) / UnitConversion.ConvertDecimals(pool.Amount1, cool.Decimals, DomainSettings.FiatTokenDecimals)}\n");
 
         BigInteger totalAm0 = pool.Amount0;
         BigInteger totalAm1 = pool.Amount1;
-        BigInteger totalLiquidity = (BigInteger)Math.Sqrt((double)(totalAm0 * totalAm1));
+        BigInteger totalAm0SameDecimals = UnitConversion.ConvertDecimals(totalAm0, kcal.Decimals, 8);
+        BigInteger totalAm1SameDecimals = UnitConversion.ConvertDecimals(totalAm1, cool.Decimals, 8);
+        BigInteger totalLiquidity = (BigInteger)Math.Sqrt((double)(totalAm0SameDecimals * totalAm1SameDecimals));
         
         Assert.IsTrue(totalLiquidity == pool.TotalLiquidity);
         
@@ -1200,7 +1210,7 @@ public class ExchangeContractTests
 
         // Remove Liquidity
         var amount0Remove = UnitConversion.ToBigInteger(500, kcal.Decimals);
-        var amount1Remove = UnitConversion.ConvertDecimals((amount0Remove  / UnitConversion.ToBigInteger(poolRatio, 8) ), DomainSettings.FiatTokenDecimals, cool.Decimals);
+        var amount1Remove = UnitConversion.ToBigInteger((UnitConversion.ToDecimal(UnitConversion.ConvertDecimals(amount0Remove, 10, 8), 8)  / poolRatio), cool.Decimals);
 
         poolOwner.RemoveLiquidity(kcal.Symbol, amount0Remove, cool.Symbol, amount1Remove);
         Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
@@ -1269,14 +1279,44 @@ public class ExchangeContractTests
         poolOwner.Fund(cool.Symbol, UnitConversion.ToBigInteger(50000, cool.Decimals));
         
         poolOwner2.FundUser(soul: 50000, kcal: 20000);
+        var balanceBefore = poolOwner2.GetBalance(kcal.Symbol);
+        
+        var poolBefore = poolOwner.GetPool(soul.Symbol, kcal.Symbol);
+        BigInteger poolSameDecimalsAmount0 =  UnitConversion.ConvertDecimals(poolBefore.Amount0, soul.Decimals, DomainSettings.FiatTokenDecimals);
+        BigInteger poolSameDecimalsAmount1 =  UnitConversion.ConvertDecimals(poolBefore.Amount1, kcal.Decimals, DomainSettings.FiatTokenDecimals);
+        decimal poolRatio = decimal.Round(UnitConversion.ToDecimal(poolSameDecimalsAmount0, 8) / UnitConversion.ToDecimal(poolSameDecimalsAmount1,8), DomainSettings.MAX_TOKEN_DECIMALS/2, MidpointRounding.AwayFromZero);
+        BigInteger amount0 = UnitConversion.ToBigInteger(1000, soul.Decimals);
+        BigInteger amount1 = UnitConversion.ToBigInteger((UnitConversion.ToDecimal(amount0, 8)/poolRatio), kcal.Decimals);
+        BigInteger tradeAmount = UnitConversion.ToBigInteger(1000, kcal.Decimals);
+        
+        poolOwner.AddLiquidity(soul.Symbol, amount0, kcal.Symbol, 0);
+        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
 
+        var nftBefore = poolOwner.GetPoolRAM(soul.Symbol, kcal.Symbol);
+        var amount0_lp = nftBefore.Liquidity * poolBefore.Amount0 / (poolBefore.TotalLiquidity);
+        var amount1_lp = nftBefore.Liquidity * poolBefore.Amount1 / (poolBefore.TotalLiquidity);
+        Assert.IsTrue(nftBefore.Amount0 == amount0, $"{UnitConversion.ToDecimal(nftBefore.Amount0, 8)} == {amount0}");
+        Assert.IsTrue(nftBefore.Amount1 == amount1, $"{UnitConversion.ToDecimal(nftBefore.Amount1, 10)} == {UnitConversion.ToDecimal(amount1, 10)}");
+        Assert.IsTrue(nftBefore.Amount0 == amount0_lp, $"{UnitConversion.ToDecimal(nftBefore.Amount0, 8)} == {UnitConversion.ToDecimal(amount0_lp, 8)}");
+        Assert.IsTrue(nftBefore.Amount1 == amount1_lp, $"{UnitConversion.ToDecimal(nftBefore.Amount1, 10)} == {UnitConversion.ToDecimal(amount1_lp, 10)}");
+        
+        var rate = poolOwner2.GetRate(soul.Symbol, kcal.Symbol, tradeAmount);
 
-        BigInteger amount0 = UnitConversion.ToBigInteger(1000, kcal.Decimals);
-        BigInteger amount1 = UnitConversion.ToBigInteger(5000, cool.Decimals);
+        var fees = poolOwner2.SwapTokens(kcal.Symbol, soul.Symbol, tradeAmount);
+        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+
+        var balance = poolOwner2.GetBalance(kcal.Symbol);
+        Assert.IsTrue(balance ==  balanceBefore - fees - tradeAmount );
+
+        var unclaimed = poolOwner.GetUnclaimedFees(soul.Symbol, kcal.Symbol);
+        Assert.IsTrue(unclaimed > 0);
         
-        var poolBefore = poolOwner.GetPool(kcal.Symbol, cool.Symbol);
         
+        // FAIL - Try to remove all that you had before
+        poolOwner.RemoveLiquidity(soul.Symbol, amount0*2, kcal.Symbol, 0);
+        Assert.IsFalse(core.simulator.LastBlockWasSuccessful());
         
+        var nftAfter = poolOwner.GetPoolRAM(soul.Symbol, kcal.Symbol);
     }
 
     
@@ -1522,7 +1562,6 @@ public class ExchangeContractTests
     }
 
     [TestMethod]
-    // TODO: Finish this
     public void SwapFee()
     {
         CoreClass core = new CoreClass();
@@ -1586,7 +1625,7 @@ public class ExchangeContractTests
 
         Console.WriteLine($"{beforeTXBalanceSOUL} != {afterTXBalanceSOUL} | {afterTXBalanceKCAL}");
 
-        Assert.IsTrue(afterTXBalanceSOUL == beforeTXBalanceSOUL-(kcalToSwap + UnitConversion.ConvertDecimals(500,  kcal.Decimals, DomainSettings.FiatTokenDecimals)), $"SOUL {afterTXBalanceSOUL} != {beforeTXBalanceSOUL-(kcalToSwap + UnitConversion.ConvertDecimals(500, kcal.Decimals, DomainSettings.FiatTokenDecimals))}");
+        Assert.IsTrue(afterTXBalanceSOUL == beforeTXBalanceSOUL-(kcalToSwap) /* + UnitConversion.ConvertDecimals(500,  kcal.Decimals, DomainSettings.FiatTokenDecimals))*/, $"SOUL {afterTXBalanceSOUL} != {beforeTXBalanceSOUL-(kcalToSwap + UnitConversion.ConvertDecimals(500, kcal.Decimals, DomainSettings.FiatTokenDecimals))}");
         Assert.IsTrue(beforeTXBalanceKCAL + kcalfee + rate == afterTXBalanceKCAL, $"KCAL {beforeTXBalanceKCAL + kcalfee + rate} != {afterTXBalanceKCAL}");
     }
 
@@ -1810,7 +1849,7 @@ public class ExchangeContractTests
         var tx = core.simulator.GenerateCustomTransaction(poolOwner.userKeys, ProofOfWork.None, () =>
             ScriptUtils.BeginScript()
                 .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.SwapFee), poolOwner.userKeys.Address, baseSymbol, swapAmount)
-                .AllowGas(poolOwner.userKeys.Address, Address.Null, 1, 999)
+                .AllowGas(poolOwner.userKeys.Address, Address.Null, core.simulator.MinimumFee, 999)
                 .SpendGas(poolOwner.userKeys.Address)
                 .EndScript()
         );
@@ -2019,6 +2058,7 @@ public class ExchangeContractTests
             
             var balanceBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol, owner.Address);
             simulator.GetFundsInTheFuture(owner);
+            simulator.GetFundsInTheFuture(owner);
             //simulator.TransferOwnerAssetsToAddress(owner.Address);
             var balanceAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol, owner.Address);
 
@@ -2100,20 +2140,19 @@ public class ExchangeContractTests
             // read the contracts abi
             var abiBytes = File.ReadAllBytes(filePath+".abi");
             Address LPAddress = SmartContract.GetAddressFromContractName("LP");
-
             
             var contractName = "LP";
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(owner, ProofOfWork.Minimal,
                 () => ScriptUtils.BeginScript()
-                    .AllowGas(owner.Address, Address.Null, 1, 10000000)
+                    .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 10000000)
                     .CallInterop("Nexus.CreateToken", owner.Address, contractScript, abiBytes)
                     .SpendGas(owner.Address)
                     .EndScript());
             simulator.GenerateTransfer(owner, LPAddress, nexus.RootChain, soul.Symbol, UnitConversion.ToBigInteger(50, soul.Decimals));
             simulator.GenerateCustomTransaction(owner, ProofOfWork.Minimal,
                 () => ScriptUtils.BeginScript()
-                    .AllowGas(owner.Address, Address.Null, 1, 99999)
+                    .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), LPAddress,  UnitConversion.ToBigInteger(50, soul.Decimals))
                     .SpendGas(owner.Address)
                     .EndScript());
@@ -2130,7 +2169,7 @@ public class ExchangeContractTests
             var tx = simulator.GenerateCustomTransaction(owner, ProofOfWork.Minimal, () =>
                 ScriptUtils
                     .BeginScript()
-                    .AllowGas(owner.Address, Address.Null, 1, 9999)
+                    .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
                     .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.MigrateToV3))
                     .SpendGas(owner.Address)
                     .EndScript());
@@ -2152,7 +2191,7 @@ public class ExchangeContractTests
             var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.Minimal, () =>
                 ScriptUtils
                     .BeginScript()
-                    .AllowGas(user.Address, Address.Null, 1, 9999)
+                    .AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
                     .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.CreatePool), user.Address, symbol0, amount0, symbol1, amount1)
                     .SpendGas(user.Address)
                     .EndScript());
@@ -2193,7 +2232,7 @@ public class ExchangeContractTests
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.Minimal, () =>
                 ScriptUtils.BeginScript()
-                    .AllowGas(user.Address, Address.Null, 1, 9999)
+                    .AllowGas(user.Address, Address.Null, core.simulator.MinimumFee, core.simulator.MinimumGasLimit)
                     .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.OpenLimitOrder), user.Address, user.Address, baseSymbol, quoteSymbol, orderSize, orderPrice, side, IoC)
                     .SpendGas(user.Address)
                     .EndScript());
@@ -2249,7 +2288,7 @@ public class ExchangeContractTests
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.Minimal, () =>
                 ScriptUtils.BeginScript()
-                    .AllowGas(user.Address, Address.Null, 1, 9999)
+                    .AllowGas(user.Address, Address.Null, core.simulator.MinimumFee, core.simulator.MinimumGasLimit)
                     .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.OpenLimitOrder), user.Address, user.Address, baseSymbol, quoteSymbol, orderSizeBigint, orderPriceBigint, side, IoC)
                     .SpendGas(user.Address)
                     .EndScript());
@@ -2494,7 +2533,7 @@ public class ExchangeContractTests
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript()
-                    .AllowGas(user.Address, Address.Null, 1, 9999)
+                    .AllowGas(user.Address, Address.Null, core.simulator.MinimumFee, core.simulator.MinimumGasLimit)
                     .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.OpenMarketOrder), user.Address, user.Address, baseSymbol, quoteSymbol, orderSizeBigint, side)
                     .SpendGas(user.Address)
                     .EndScript());
@@ -2669,7 +2708,7 @@ public class ExchangeContractTests
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript()
-                    .AllowGas(user.Address, Address.Null, 1, 9999)
+                    .AllowGas(user.Address, Address.Null, core.simulator.MinimumFee, core.simulator.MinimumGasLimit)
                     .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.OpenOTCOrder), user.Address, baseSymbol, quoteSymbol, amountBigint, priceBigint)
                     .SpendGas(user.Address)
                     .EndScript());
@@ -2686,7 +2725,7 @@ public class ExchangeContractTests
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript()
-                    .AllowGas(user.Address, Address.Null, 1, 9999)
+                    .AllowGas(user.Address, Address.Null, core.simulator.MinimumFee, core.simulator.MinimumGasLimit)
                     .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.TakeOrder), user.Address, uid)
                     .SpendGas(user.Address)
                     .EndScript());
@@ -2702,7 +2741,7 @@ public class ExchangeContractTests
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript()
-                    .AllowGas(user.Address, Address.Null, 1, 9999)
+                    .AllowGas(user.Address, Address.Null, core.simulator.MinimumFee, core.simulator.MinimumGasLimit)
                     .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.CancelOTCOrder), user.Address, uid)
                     .SpendGas(user.Address)
                     .EndScript());
@@ -2712,7 +2751,7 @@ public class ExchangeContractTests
         // Get OTC Orders
         public ExchangeOrder[] GetOTC()
         {
-            return (ExchangeOrder[])simulator.InvokeContract( NativeContractKind.Exchange, "GetOTC").ToObject();
+            return (ExchangeOrder[])simulator.InvokeContract( NativeContractKind.Exchange, nameof(ExchangeContract.GetOTC)).ToObject();
         }
         #endregion
         
@@ -2724,7 +2763,7 @@ public class ExchangeContractTests
             var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.Minimal, () =>
                 ScriptUtils
                     .BeginScript()
-                    .AllowGas(user.Address, Address.Null, 1, 9999)
+                    .AllowGas(user.Address, Address.Null, core.simulator.MinimumFee, core.simulator.MinimumGasLimit)
                     .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.AddLiquidity), user.Address, baseSymbol, amount0, pairSymbol, amount1)
                     .SpendGas(user.Address)
                     .EndScript()
@@ -2743,7 +2782,7 @@ public class ExchangeContractTests
             var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.Minimal, () =>
                 ScriptUtils
                     .BeginScript()
-                    .AllowGas(user.Address, Address.Null, 1, 9999)
+                    .AllowGas(user.Address, Address.Null, core.simulator.MinimumFee, core.simulator.MinimumGasLimit)
                     .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.RemoveLiquidity), user.Address, symbol0, amount0, symbol1, amount1)
                     .SpendGas(user.Address)
                     .EndScript());
@@ -2777,7 +2816,7 @@ public class ExchangeContractTests
             var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.Minimal, () =>
                 ScriptUtils
                     .BeginScript()
-                    .AllowGas(user.Address, Address.Null, 1, 9999)
+                    .AllowGas(user.Address, Address.Null, core.simulator.MinimumFee, core.simulator.MinimumGasLimit)
                     .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.SwapTokens), user.Address, symbol0, symbol1, amount)
                     .SpendGas(user.Address)
                     .EndScript()
@@ -2791,11 +2830,11 @@ public class ExchangeContractTests
         public BigInteger SwapFee(string symbol0, BigInteger amount)
         {
             simulator.BeginBlock();
-            var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.Minimal, () =>
+            var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
                 ScriptUtils
                     .BeginScript()
-                    .AllowGas(user.Address, Address.Null, 1, 500)
                     .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.SwapFee), user.Address, symbol0, amount)
+                    .AllowGas(user.Address, Address.Null, core.simulator.MinimumFee, 999)
                     .SpendGas(user.Address)
                     .EndScript()
             );
@@ -2811,7 +2850,7 @@ public class ExchangeContractTests
             var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.Minimal, () =>
                 ScriptUtils
                     .BeginScript()
-                    .AllowGas(user.Address, Address.Null, 1, 9999)
+                    .AllowGas(user.Address, Address.Null, core.simulator.MinimumFee, core.simulator.MinimumGasLimit)
                     .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.ClaimFees), user.Address, symbol0, symbol1)
                     .SpendGas(user.Address)
                     .EndScript()

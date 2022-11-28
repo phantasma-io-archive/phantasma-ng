@@ -19,6 +19,9 @@ using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Akka.Util;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Node.Chains.Ethereum;
+using Phantasma.Node.Chains.Neo2;
+using VMType = Phantasma.Core.Domain.VMType;
 
 namespace Phantasma.Simulator
 {
@@ -51,7 +54,7 @@ namespace Phantasma.Simulator
 
         public IEnumerable<Address> CurrentValidatorAddresses => _validators.Select(x => x.Address);
 
-        public static BigInteger DefaultGasLimit = 999999;
+        public static BigInteger DefaultGasLimit = 99999;
 
         private Chain bankChain;
 
@@ -67,6 +70,7 @@ namespace Phantasma.Simulator
 
         public TimeSpan blockTimeSkip = TimeSpan.FromSeconds(10);
         public int MinimumFee => DomainSettings.DefaultMinimumGasFee;
+        public BigInteger MinimumGasLimit => 99999;
 
         public NexusSimulator(PhantasmaKeys owner, int seed = 1234, Nexus nexus = null) : this(new PhantasmaKeys[] { owner }, seed, nexus)
         {
@@ -235,10 +239,11 @@ namespace Phantasma.Simulator
 
             /*
             var neoPlatform = NeoWallet.NeoPlatform;
-            var neoKeys = InteropUtils.GenerateInteropKeys(_owner, Nexus.GetGenesisHash(Nexus.RootStorage), neoPlatform);
+            var neoKeys = InteropUtils.GenerateInteropKeys(owner, Nexus.GetGenesisHash(Nexus.RootStorage), neoPlatform);
             var neoText = NeoKeys.FromWIF(neoKeys.ToWIF()).Address;
             var neoAddress = NeoWallet.EncodeAddress(neoText);
 
+            
             var ethPlatform = EthereumWallet.EthereumPlatform;
             var ethKeys = InteropUtils.GenerateInteropKeys(_owner, Nexus.GetGenesisHash(Nexus.RootStorage), ethPlatform);
             var ethText = EthereumKey.FromWIF(ethKeys.ToWIF()).Address;
@@ -293,6 +298,86 @@ namespace Phantasma.Simulator
             EndBlock();*/
 
 
+            //TODO add SOUL/KCAL on ethereum, removed for now because hash is not fixed yet
+            //BeginBlock();
+            //GenerateCustomTransaction(_owner, ProofOfWork.Minimal, () =>
+            //{
+            //    return new ScriptBuilder().AllowGas(_owner.Address, Address.Null, MinimumFee, DefaultGasLimit).
+            //    CallInterop("Nexus.SetTokenPlatformHash", "SOUL", ethPlatform, Hash.FromUnpaddedHex("53d5bdb2c8797218f8a0e11e997c4ab84f0b40ce")). // eth ropsten testnet hash
+            //    CallInterop("Nexus.SetTokenPlatformHash", "KCAL", ethPlatform, Hash.FromUnpaddedHex("67B132A32E7A3c4Ba7dEbedeFf6290351483008f")). // eth ropsten testnet hash
+            //    SpendGas(_owner.Address).
+            //    EndScript();
+            //});
+            //EndBlock();
+        }
+
+        public void InitPlatforms()
+        {
+            var neoPlatform = NeoWallet.NeoPlatform;
+            var neoKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.RootStorage), neoPlatform);
+            var neoText = NeoKeys.FromWIF(neoKeys.ToWIF()).Address;
+            var neoAddress = NeoWallet.EncodeAddress(neoText);
+
+            var ethPlatform = EthereumWallet.EthereumPlatform;
+            var ethKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.RootStorage), ethPlatform);
+            var ethText = EthereumKey.FromWIF(ethKeys.ToWIF()).Address;
+            var ethAddress = EthereumWallet.EncodeAddress(ethText);
+
+            var bscPlatform = BSCWallet.BSCPlatform;
+            var bscKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.RootStorage), bscPlatform);
+            var bscText = EthereumKey.FromWIF(bscKeys.ToWIF()).Address;
+            var bscAddress = BSCWallet.EncodeAddress(bscText);
+
+            Nexus.CreatePlatform(Nexus.RootStorage, neoText, neoAddress, neoPlatform, "GAS");
+            Nexus.CreatePlatform(Nexus.RootStorage, ethText, ethAddress, ethPlatform, "ETH");
+            Nexus.CreatePlatform(Nexus.RootStorage, bscText, bscAddress, bscPlatform, "BNB");
+
+            
+            /*BeginBlock();
+            GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () => new ScriptBuilder()
+                .AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
+                .CallInterop("Nexus.CreatePlatform", _currentValidator.Address, neoPlatform, neoText, neoAddress, "GAS")
+                .CallInterop("Nexus.CreatePlatform", _currentValidator.Address, ethPlatform, ethText, ethAddress, "ETH")
+                .CallInterop("Nexus.CreatePlatform", _currentValidator.Address, bscPlatform, bscText, bscAddress, "BNB")
+                .SpendGas(_currentValidator.Address)
+                .EndScript());
+
+            var orgFunding = UnitConversion.ToBigInteger(1863626, DomainSettings.StakingTokenDecimals);
+            var orgScript = new byte[0];
+            var orgID = DomainSettings.PhantomForceOrganizationName;
+            var orgAddress = Address.FromHash(orgID);*/
+
+            /*GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
+            {
+                return new ScriptBuilder().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit).
+                CallInterop("Nexus.CreateOrganization", _currentValidator.Address, orgID, "Phantom Force", orgScript).
+                CallInterop("Organization.AddMember", _currentValidator.Address, orgID, _currentValidator.Address).
+                TransferTokens(DomainSettings.StakingTokenSymbol, _currentValidator.Address, orgAddress, orgFunding).
+                CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapFee), orgAddress, DomainSettings.StakingTokenSymbol, 500000).
+                CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), orgAddress, orgFunding - (5000)).
+                SpendGas(_currentValidator.Address).
+                EndScript();
+            });
+            EndBlock();*/
+
+            /*
+            
+            BeginBlock();
+            var communitySupply = 100000;
+            GenerateToken(_currentValidator, "MKNI", "Mankini Token", UnitConversion.ToBigInteger(communitySupply, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite);
+            MintTokens(_currentValidator, _currentValidator.Address, "MKNI", communitySupply);
+            EndBlock();
+
+            BeginBlock();
+            GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
+            {
+                return new ScriptBuilder().AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit).
+                CallContract(NativeContractKind.Sale, nameof(SaleContract.CreateSale), _currentValidator.Address, "Mankini sale", SaleFlags.None, (Timestamp)(this.CurrentTime + TimeSpan.FromHours(5)), (Timestamp)(this.CurrentTime + TimeSpan.FromDays(5)), "MKNI", DomainSettings.StakingTokenSymbol, 7, 0, 1000, 1, 100).
+                SpendGas(_currentValidator.Address).
+                EndScript();
+            });
+            EndBlock();*/
+            
             //TODO add SOUL/KCAL on ethereum, removed for now because hash is not fixed yet
             //BeginBlock();
             //GenerateCustomTransaction(_owner, ProofOfWork.Minimal, () =>

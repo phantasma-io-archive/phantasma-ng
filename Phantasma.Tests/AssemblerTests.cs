@@ -102,7 +102,7 @@ namespace Phantasma.LegacyTests
             var contractName = "test";
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(owner, ProofOfWork.Minimal,
-                () => ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, 1, TestGasLimit)
+                () => ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, simulator.MinimumFee, NexusSimulator.DefaultGasLimit)
                     .CallInterop("Runtime.DeployContract", owner.Address, contractName, script, abiBytes)
                     .SpendGas(owner.Address)
                     .EndScript());
@@ -121,7 +121,7 @@ namespace Phantasma.LegacyTests
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(owner, ProofOfWork.None, (() =>
                 ScriptUtils.BeginScript()
-                    .AllowGas(owner.Address, Address.Null, 1, TestGasLimit)
+                    .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, NexusSimulator.DefaultGasLimit)
                     .EmitRaw(script)
                     .SpendGas(owner.Address)
                     .EndScript()));

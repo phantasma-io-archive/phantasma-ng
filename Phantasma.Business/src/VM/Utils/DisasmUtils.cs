@@ -95,6 +95,7 @@ namespace Phantasma.Business.VM.Utils
             table["Nexus.CreateToken"] = 3;
             table["Nexus.CreateTokenSeries"] = 7;
             table["Nexus.CreateOrganization"] = 4;
+            //table["Nexus.CreatePlatform"] = 4;
             table["Nexus.BeginInit"] = 1;
             table["Nexus.EndInit"] = 1;
             table["Nexus.GetGovernanceValue"] = 1;
