@@ -10,7 +10,8 @@ struct LPTokenContentRAM
     Amount0:number;
     Amount1:number;
     Liquidity:number;
-    ClaimedFees:number;
+    ClaimedFeesSymbol0:number;
+    ClaimedFeesSymbol1:number;
 }
 
 
