@@ -35,7 +35,7 @@ public class AccountContracTest
     [TestInitialize]
     public void Initialize()
     {
-        sysAddress = SmartContract.GetAddressForNative(NativeContractKind.Friends);
+        sysAddress = SmartContract.GetAddressForNative(NativeContractKind.Account);
         user = PhantasmaKeys.Generate();
         owner = PhantasmaKeys.Generate();
         amountRequested = 100000000;

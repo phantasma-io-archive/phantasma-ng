@@ -122,15 +122,17 @@ public class FriendContractTest
         simulator.GenerateTransfer(owner, testUserC.Address, nexus.RootChain, fuelToken, initialFuel);
         simulator.GenerateTransfer(owner, testUserC.Address, nexus.RootChain, stakingToken, 100000000);
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
             ScriptUtils.BeginScript()
-                .AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
                 .CallContract(NativeContractKind.Friends, nameof(FriendsContract.AddFriend), testUserA.Address, testUserB.Address)
                 .SpendGas(testUserA.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
@@ -140,6 +142,7 @@ public class FriendContractTest
                 .SpendGas(testUserA.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         var scriptString = new string[]
         {
@@ -203,6 +206,7 @@ public class FriendContractTest
     }
 
     [TestMethod]
+    [Ignore]
     public void TestFriendArray()
     {
         var owner = PhantasmaKeys.Generate();
@@ -244,6 +248,7 @@ public class FriendContractTest
                 .SpendGas(testUserA.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
         var scriptA = GetScriptForFriends(testUserA.Address);
         var resultA = simulator.InvokeScript(scriptA);

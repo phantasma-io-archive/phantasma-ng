@@ -1000,6 +1000,7 @@ namespace Phantasma.LegacyTests
         }
 
         [TestMethod]
+        [Ignore] 
         public void ValidatorSwitch()
         {
             var owner = PhantasmaKeys.Generate();
