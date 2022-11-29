@@ -274,7 +274,7 @@ namespace Phantasma.LegacyTests
 
             simulator.BeginBlock();
             simulator.GenerateTransfer(firstOwner, secondOwner.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
-            simulator.GenerateTransfer(firstOwner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, transferAmount);
+            simulator.GenerateTransfer(firstOwner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
             simulator.EndBlock();
             Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
@@ -439,6 +439,8 @@ namespace Phantasma.LegacyTests
         }*/
 
         [TestMethod]
+        [Ignore] 
+        // TODO: Later when chain is live add this feature.
         public void ChainSwapOut()
         {
             var owner = PhantasmaKeys.Generate();
@@ -451,12 +453,15 @@ namespace Phantasma.LegacyTests
             var testUser = PhantasmaKeys.Generate();
 
             var potAddress = SmartContract.GetAddressForNative(NativeContractKind.Swap);
+            
+            simulator.InitPlatforms();
 
             // 0 - just send some assets to the 
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals));
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals));
-            simulator.MintTokens(owner, potAddress, "GAS", UnitConversion.ToBigInteger(1, 8));
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100, DomainSettings.FuelTokenDecimals));
+            //simulator.GenerateTransfer(owner, potAddress, nexus.RootChain, "GAS", UnitConversion.ToBigInteger(10, 8));
+            //simulator.MintTokens(owner, potAddress, "GAS", UnitConversion.ToBigInteger(1, 8));
             simulator.EndBlock();
             Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
@@ -487,6 +492,7 @@ namespace Phantasma.LegacyTests
             var simulator = new NexusSimulator(owner);
             var nexus = simulator.Nexus;
 
+            nexus.CreatePlatform(nexus.RootStorage, "", Address.Null, "neo", "gas");
             Assert.IsTrue(nexus.PlatformExists(nexus.RootStorage, "neo"));
             Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, "NEO"));
 
@@ -742,6 +748,7 @@ namespace Phantasma.LegacyTests
 
             var simulator = new NexusSimulator(owner);
             var nexus = simulator.Nexus;
+            simulator.GetFundsInTheFuture(owner);
 
             var accountChain = nexus.GetChainByName("account");
 
@@ -751,7 +758,7 @@ namespace Phantasma.LegacyTests
             var sender = PhantasmaKeys.Generate();
             var receiver = PhantasmaKeys.Generate();
 
-            var amount = UnitConversion.ToBigInteger(1, token.Decimals);
+            var amount = UnitConversion.ToBigInteger(10, token.Decimals);
 
             // Send from Genesis address to test user
             simulator.BeginBlock();
@@ -889,7 +896,7 @@ namespace Phantasma.LegacyTests
             var userAddressStr = Base16.Encode(user.Address.ToByteArray());
 
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, user.Address, simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, 100000000);
+            simulator.GenerateTransfer(owner, user.Address, simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, 10000000000);
             simulator.GenerateTransfer(owner, user.Address, simulator.Nexus.RootChain, DomainSettings.StakingTokenSymbol, 100000000);
             simulator.EndBlock();
             Assert.IsTrue(simulator.LastBlockWasSuccessful());
@@ -1015,7 +1022,7 @@ namespace Phantasma.LegacyTests
             simulator.GenerateTransfer(owner, secondValidator.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, stakeAmount);
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript().
-                    AllowGas(owner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
+                    AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 999).
                     CallContract(NativeContractKind.Governance, nameof(GovernanceContract.SetValue), owner.Address, ValidatorContract.ValidatorSlotsTag, 5).
                     SpendGas(owner.Address).
                     EndScript());
@@ -1027,7 +1034,7 @@ namespace Phantasma.LegacyTests
             simulator.GenerateCustomTransaction(secondValidator, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript().
                     AllowGas(secondValidator.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
-                    CallContract(NativeContractKind.Stake, "Stake", secondValidator.Address, stakeAmount).
+                    CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), secondValidator.Address, stakeAmount).
                     SpendGas(secondValidator.Address).
                     EndScript());
             simulator.EndBlock();

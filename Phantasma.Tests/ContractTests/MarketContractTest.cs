@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
+using System.Numerics;
 using Phantasma.Simulator;
 using Phantasma.Core.Types;
 using Phantasma.Core.Cryptography;
@@ -16,14 +17,54 @@ namespace Phantasma.LegacyTests.ContractTests
     [TestClass]
     public class MarketContractTest
     {
+        string sysAddress;
+        PhantasmaKeys user;
+        PhantasmaKeys owner;
+        Nexus nexus;
+        NexusSimulator simulator;
+        int amountRequested;
+        int gas;
+        BigInteger initialAmount;
+        BigInteger initialFuel;
+        BigInteger startBalance;
+        StakeReward reward;
+
+        [TestInitialize]
+        public void Initialize()
+        {
+            sysAddress = "S3d79FvexQeerRioAY3pGYpNPFx7oJkMV4KazdTHdGDA5iy";
+            user = PhantasmaKeys.Generate();
+            owner = PhantasmaKeys.Generate();
+            amountRequested = 100000000;
+            gas = 99999;
+            initialAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
+            initialFuel = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
+            reward = new StakeReward(user.Address, Timestamp.Now);
+            InitializeSimulator();
+
+            startBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol, user.Address);
+        }
+        
+        protected void InitializeSimulator()
+        {
+            simulator = new NexusSimulator(owner);
+            nexus = simulator.Nexus;
+            nexus.SetOracleReader(new OracleSimulator(nexus));
+            SetInitialBalance(user.Address);
+        }
+
+        protected void SetInitialBalance(Address address)
+        {
+            simulator.BeginBlock();
+            simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
+            simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.StakingTokenSymbol, initialAmount);
+            simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        }
 
         [TestMethod]
         public void TestMarketContractBasic()
         {
-            var owner = PhantasmaKeys.Generate();
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-
             var chain = nexus.RootChain;
 
             var symbol = "COOL";
@@ -32,7 +73,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, initialFuel);
             simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
@@ -73,12 +114,13 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(testUser.Address, Address.Null, 1, 9999).
+                  AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                   CallContract(NativeContractKind.Market, "SellToken", testUser.Address, token.Symbol, DomainSettings.FuelTokenSymbol, tokenID, price, endDate).
                   SpendGas(testUser.Address).
                   EndScript()
             );
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
             Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
@@ -87,7 +129,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(owner.Address, Address.Null, 1, 9999).
+                  AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                   CallContract(NativeContractKind.Market, "BuyToken", owner.Address, token.Symbol, auctions[previousAuctionCount].TokenID).
                   SpendGas(owner.Address).
                   EndScript()
@@ -108,20 +150,12 @@ namespace Phantasma.LegacyTests.ContractTests
         [TestMethod]
         public void TestMarketContractAuctionDutch()
         {
-            var owner = PhantasmaKeys.Generate();
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-
             var chain = nexus.RootChain;
 
             var symbol = "COOL";
 
-            var testUser = PhantasmaKeys.Generate();
-
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
             simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
@@ -130,7 +164,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
-            var ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            var ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
@@ -138,11 +172,11 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // Mint a new CoolToken 
             simulator.BeginBlock();
-            simulator.MintNonFungibleToken(owner, testUser.Address, symbol, tokenROM, tokenRAM, 0);
+            simulator.MintNonFungibleToken(owner, user.Address, symbol, tokenROM, tokenRAM, 0);
             simulator.EndBlock();
 
             // obtain tokenID
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
@@ -150,7 +184,7 @@ namespace Phantasma.LegacyTests.ContractTests
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
@@ -169,12 +203,12 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // list token as dutch auction
             simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
-                  SpendGas(testUser.Address).
+                  AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), user.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
+                  SpendGas(user.Address).
                   EndScript()
             );
             simulator.EndBlock();
@@ -187,7 +221,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, endPrice, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
@@ -201,12 +235,12 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // make one self bid (should fail)
             simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(testUser.Address, Address.Null, 1, 9999).
-                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), testUser.Address, token.Symbol, tokenID, price + 1000, buyingFee, Address.Null).
-                SpendGas(testUser.Address).
+                AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
+                CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), user.Address, token.Symbol, tokenID, price + 1000, buyingFee, Address.Null).
+                SpendGas(user.Address).
                 EndScript()
             );
             simulator.EndBlock();
@@ -218,7 +252,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, 0, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
@@ -232,7 +266,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 0, "How does the seller still have one?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
@@ -260,9 +294,9 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, initialFuel);
             simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, initialFuel);
             simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
             simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
@@ -315,7 +349,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(testUser.Address, Address.Null, 1, 9999).
+                AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, 2, Address.Null).
                 SpendGas(testUser.Address).
                 EndScript()
@@ -328,7 +362,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(testUser.Address, Address.Null, 1, 9999).
+                  AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                   CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
                   SpendGas(testUser.Address).
                   EndScript()
@@ -344,7 +378,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, endPrice, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
@@ -361,7 +395,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, price - 100, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
@@ -375,7 +409,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(owner.Address, Address.Null, 1, 9999).
+                  AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                   CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice, buyingFee, Address.Null).
                   SpendGas(owner.Address).
                   EndScript()
@@ -389,7 +423,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice + 100, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
@@ -403,7 +437,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
                 ScriptUtils.
                     BeginScript().
-                    AllowGas(testUser.Address, Address.Null, 1, 9999).
+                    AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                     CallContract(NativeContractKind.Market, nameof(MarketContract.CancelSale), token.Symbol, tokenID).
                     SpendGas(testUser.Address).
                     EndScript()
@@ -417,7 +451,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(testUser2, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(testUser2.Address, Address.Null, 1, 9999).
+                AllowGas(testUser2.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), testUser2.Address, token.Symbol, tokenID, bidPrice - 100, buyingFee, Address.Null).
                 SpendGas(testUser2.Address).
                 EndScript()
@@ -435,7 +469,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(testUser2, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(testUser2.Address, Address.Null, 1, 9999).
+                AllowGas(testUser2.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), testUser2.Address, token.Symbol, tokenID, bidPrice + 101, buyingFee, Address.Null).
                 SpendGas(testUser2.Address).
                 EndScript()
@@ -449,7 +483,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(testUser2, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(testUser2.Address, Address.Null, 1, 9999).
+                AllowGas(testUser2.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), testUser2.Address, token.Symbol, tokenID, bidPrice + 200, buyingFee, Address.Null).
                 SpendGas(testUser2.Address).
                 EndScript()
@@ -466,7 +500,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice + 300, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
@@ -487,7 +521,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, 0, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
@@ -529,9 +563,9 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, initialFuel);
             simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, initialFuel);
             simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
             simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
@@ -584,7 +618,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(testUser.Address, Address.Null, 1, 9999).
+                AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, -3000, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
                 SpendGas(testUser.Address).
                 EndScript()
@@ -598,7 +632,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(testUser.Address, Address.Null, 1, 9999).
+                  AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                   CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
                   SpendGas(testUser.Address).
                   EndScript()
@@ -619,7 +653,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, 0, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
@@ -640,11 +674,6 @@ namespace Phantasma.LegacyTests.ContractTests
         [TestMethod]
         public void TestMarketContractAuctionReserve()
         {
-            var owner = PhantasmaKeys.Generate();
-
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-
             var chain = nexus.RootChain;
 
             var symbol = "COOL";
@@ -654,9 +683,9 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, initialFuel);
             simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, initialFuel);
             simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
             simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
@@ -713,7 +742,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(testUser.Address, Address.Null, 1, 9999).
+                  AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                   CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
                   SpendGas(testUser.Address).
                   EndScript()
@@ -731,7 +760,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, endPrice, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
@@ -745,7 +774,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(owner.Address, Address.Null, 1, 9999).
+                  AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                   CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice, buyingFee, Address.Null).
                   SpendGas(owner.Address).
                   EndScript()
@@ -759,7 +788,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice - 100, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
@@ -772,7 +801,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(testUser2, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(testUser2.Address, Address.Null, 1, 9999).
+                AllowGas(testUser2.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), testUser2.Address, token.Symbol, tokenID, bidPrice2, buyingFee, Address.Null).
                 SpendGas(testUser2.Address).
                 EndScript()
@@ -789,7 +818,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice3, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
@@ -806,7 +835,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(owner.Address, Address.Null, 1, 9999).
+                  AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                   CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, 0, buyingFee, Address.Null).
                   SpendGas(owner.Address).
                   EndScript()
@@ -838,21 +867,13 @@ namespace Phantasma.LegacyTests.ContractTests
         [TestMethod]
         public void TestMarketContractAuctionFixed()
         {
-            var owner = PhantasmaKeys.Generate();
-
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-
             var chain = nexus.RootChain;
 
             var symbol = "COOL";
 
-            var testUser = PhantasmaKeys.Generate();
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
             simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
@@ -861,7 +882,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
-            var ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            var ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
@@ -869,11 +890,11 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // Mint a new CoolToken 
             simulator.BeginBlock();
-            simulator.MintNonFungibleToken(owner, testUser.Address, symbol, tokenROM, tokenRAM, 0);
+            simulator.MintNonFungibleToken(owner, user.Address, symbol, tokenROM, tokenRAM, 0);
             simulator.EndBlock();
 
             // obtain tokenID
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
@@ -881,7 +902,7 @@ namespace Phantasma.LegacyTests.ContractTests
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
@@ -901,12 +922,12 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // list token as fixed auction
             simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
-                  SpendGas(testUser.Address).
+                  AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), user.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
+                  SpendGas(user.Address).
                   EndScript()
             );
             simulator.EndBlock();
@@ -922,7 +943,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, endPrice, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
@@ -938,7 +959,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, price - 100, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
@@ -952,7 +973,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice + 100, buyingFee, Address.Null).
                 SpendGas(owner.Address).
                 EndScript()
@@ -965,7 +986,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(owner.Address, Address.Null, 1, 9999).
+                  AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                   CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, price, buyingFee, Address.Null).
                   SpendGas(owner.Address).
                   EndScript()
@@ -979,7 +1000,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 0, "How does the seller still have one?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
@@ -993,21 +1014,14 @@ namespace Phantasma.LegacyTests.ContractTests
         [TestMethod]
         public void TestMarketContractAuctionEdit()
         {
-            var owner = PhantasmaKeys.Generate();
-
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-
             var chain = nexus.RootChain;
 
             var symbol = "COOL";
 
-            var testUser = PhantasmaKeys.Generate();
-
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
+            //simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
+            //simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
             simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
@@ -1016,7 +1030,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
-            var ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            var ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
@@ -1024,11 +1038,11 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // Mint a new CoolToken 
             simulator.BeginBlock();
-            simulator.MintNonFungibleToken(owner, testUser.Address, symbol, tokenROM, tokenRAM, 0);
+            simulator.MintNonFungibleToken(owner, user.Address, symbol, tokenROM, tokenRAM, 0);
             simulator.EndBlock();
 
             // obtain tokenID
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
@@ -1036,7 +1050,7 @@ namespace Phantasma.LegacyTests.ContractTests
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
@@ -1056,12 +1070,12 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // list token as fixed auction
             simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
-                  SpendGas(testUser.Address).
+                  AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), user.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
+                  SpendGas(user.Address).
                   EndScript()
             );
             simulator.EndBlock();
@@ -1074,12 +1088,12 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // edit auction price with wrong symbol (should fail)
             simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
                 ScriptUtils.
                     BeginScript().
-                    AllowGas(testUser.Address, Address.Null, 1, 9999).
-                    CallContract(NativeContractKind.Market, nameof(MarketContract.EditAuction), testUser.Address, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenSymbol, tokenID, 2500, endPrice, startDate, endDate, extensionPeriod).
-                    SpendGas(testUser.Address).
+                    AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
+                    CallContract(NativeContractKind.Market, nameof(MarketContract.EditAuction), user.Address, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenSymbol, tokenID, 2500, endPrice, startDate, endDate, extensionPeriod).
+                    SpendGas(user.Address).
                     EndScript()
                 );
             simulator.EndBlock();
@@ -1087,32 +1101,30 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // edit auction price with correct symbol
             simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
                 ScriptUtils.
                     BeginScript().
-                    AllowGas(testUser.Address, Address.Null, 1, 9999).
-                    CallContract(NativeContractKind.Market, nameof(MarketContract.EditAuction), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, 2500, 0, Timestamp.Null, Timestamp.Null, 0).
-                    SpendGas(testUser.Address).
+                    AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
+                    CallContract(NativeContractKind.Market, nameof(MarketContract.EditAuction), user.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, 2500, 0, Timestamp.Null, Timestamp.Null, 0).
+                    SpendGas(user.Address).
                     EndScript()
                 );
             simulator.EndBlock();
             Assert.IsTrue(simulator.LastBlockWasSuccessful());
-
-
+            
             // edit auction price with incorrect end date (should fail)
             simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
                 ScriptUtils.
                     BeginScript().
-                    AllowGas(testUser.Address, Address.Null, 1, 9999).
-                    CallContract(NativeContractKind.Market, nameof(MarketContract.EditAuction), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, 0, 0, startDate, endDateWrong, 0).
-                    SpendGas(testUser.Address).
+                    AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
+                    CallContract(NativeContractKind.Market, nameof(MarketContract.EditAuction), user.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, 0, 0, startDate, endDateWrong, 0).
+                    SpendGas(user.Address).
                     EndScript()
                 );
             simulator.EndBlock();
             Assert.IsFalse(simulator.LastBlockWasSuccessful());
-
-
+            
             // move time post start date
             simulator.TimeSkipDays(2);
 
@@ -1121,7 +1133,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(owner.Address, Address.Null, 1, 9999).
+                  AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                   CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, 2500, buyingFee, Address.Null).
                   SpendGas(owner.Address).
                   EndScript()
@@ -1135,7 +1147,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 0, "How does the seller still have one?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
@@ -1149,21 +1161,16 @@ namespace Phantasma.LegacyTests.ContractTests
         [TestMethod]
         public void TestMarketContractAuctionCancel()
         {
-            var owner = PhantasmaKeys.Generate();
-
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-
             var chain = nexus.RootChain;
 
             var symbol = "COOL";
 
-            var testUser = PhantasmaKeys.Generate();
+            //var testUser = PhantasmaKeys.Generate();
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
+            //simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 10000000000);
+            //simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
             simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
@@ -1172,7 +1179,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
-            var ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            var ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
@@ -1180,11 +1187,11 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // Mint a new CoolToken 
             simulator.BeginBlock();
-            simulator.MintNonFungibleToken(owner, testUser.Address, symbol, tokenROM, tokenRAM, 0);
+            simulator.MintNonFungibleToken(owner, user.Address, symbol, tokenROM, tokenRAM, 0);
             simulator.EndBlock();
 
             // obtain tokenID
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
@@ -1192,7 +1199,7 @@ namespace Phantasma.LegacyTests.ContractTests
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
@@ -1210,12 +1217,12 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // list token as classic auction
             simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
-                  SpendGas(testUser.Address).
+                  AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), user.Address, token.Symbol, DomainSettings.StakingTokenSymbol, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, Address.Null).
+                  SpendGas(user.Address).
                   EndScript()
             );
             simulator.EndBlock();
@@ -1232,7 +1239,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
                 ScriptUtils.
                     BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
+                    AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                     CallContract(NativeContractKind.Market, nameof(MarketContract.CancelSale), token.Symbol, tokenID).
                     SpendGas(owner.Address).
                     EndScript()
@@ -1246,12 +1253,12 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // cancel auction price from current owner
             simulator.BeginBlock();
-                simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+                simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
                 ScriptUtils.
                     BeginScript().
-                    AllowGas(testUser.Address, Address.Null, 1, 9999).
+                    AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                     CallContract(NativeContractKind.Market, nameof(MarketContract.CancelSale), token.Symbol, tokenID).
-                    SpendGas(testUser.Address).
+                    SpendGas(user.Address).
                     EndScript()
                 );
             simulator.EndBlock();
@@ -1263,7 +1270,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was not moved
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the seller still have zero?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
@@ -1278,23 +1285,15 @@ namespace Phantasma.LegacyTests.ContractTests
         [TestMethod]
         public void TestMarketContractAuctionFeesDivisible()
         {
-            var owner = PhantasmaKeys.Generate();
-
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-
             var chain = nexus.RootChain;
 
             var symbol = "COOL";
 
-            var testUser = PhantasmaKeys.Generate();
             var buyingFeeUser = PhantasmaKeys.Generate();
             var listingFeeUser = PhantasmaKeys.Generate();
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
             simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
@@ -1303,7 +1302,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
-            var ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            var ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
@@ -1311,11 +1310,11 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // Mint a new CoolToken 
             simulator.BeginBlock();
-            simulator.MintNonFungibleToken(owner, testUser.Address, symbol, tokenROM, tokenRAM, 0);
+            simulator.MintNonFungibleToken(owner, user.Address, symbol, tokenROM, tokenRAM, 0);
             simulator.EndBlock();
 
             // obtain tokenID
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
@@ -1323,7 +1322,7 @@ namespace Phantasma.LegacyTests.ContractTests
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
@@ -1343,18 +1342,18 @@ namespace Phantasma.LegacyTests.ContractTests
             var tokenTicker = DomainSettings.StakingTokenSymbol;
             var tokenToSell = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, tokenTicker);
             var balanceOwnerBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, owner.Address);
-            var balanceSellerBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, testUser.Address);
+            var balanceSellerBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, user.Address);
             var balanceListFeeBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, listingFeeAddress);
             var balanceBuyFeeBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, buyingFeeAddress);
 
             // list token as fixed auction
             simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, tokenTicker, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, listingFeeAddress).
-                  SpendGas(testUser.Address).
+                  AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), user.Address, token.Symbol, tokenTicker, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, listingFeeAddress).
+                  SpendGas(user.Address).
                   EndScript()
             );
             simulator.EndBlock();
@@ -1370,7 +1369,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, endPrice, buyingFee, buyingFeeAddress).
                 SpendGas(owner.Address).
                 EndScript()
@@ -1387,7 +1386,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, price - 100, buyingFee, buyingFeeAddress).
                 SpendGas(owner.Address).
                 EndScript()
@@ -1401,7 +1400,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice + 100, buyingFee, buyingFeeAddress).
                 SpendGas(owner.Address).
                 EndScript()
@@ -1415,7 +1414,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(owner.Address, Address.Null, 1, 9999).
+                  AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                   CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, price, buyingFee, buyingFeeAddress).
                   SpendGas(owner.Address).
                   EndScript()
@@ -1429,7 +1428,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 0, "How does the seller still have one?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
@@ -1437,7 +1436,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify balance after
             var balanceOwnerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, owner.Address);
-            var balanceSellerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, testUser.Address);
+            var balanceSellerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, user.Address);
             var balanceListFeeAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, listingFeeAddress);
             var balanceBuyFeeAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, buyingFeeAddress);
             Assert.IsTrue(balanceListFeeAfter == balanceListFeeBefore + (listingFee * price / 100), " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
@@ -1449,29 +1448,20 @@ namespace Phantasma.LegacyTests.ContractTests
         [TestMethod]
         public void TestMarketContractAuctionFeesIndivisible()
         {
-            var owner = PhantasmaKeys.Generate();
-
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-
             var chain = nexus.RootChain;
             simulator.GetFundsInTheFuture(owner);
 
             var symbol = "COOL";
             var tokenTicker = "MKNI";
 
-
-            var testUser = PhantasmaKeys.Generate();
             var buyingFeeUser = PhantasmaKeys.Generate();
             var listingFeeUser = PhantasmaKeys.Generate();
 
             // Create the token CoolToken as an NFT
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 1000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
             simulator.GenerateToken(owner, tokenTicker, "MKNI", 10000000, 0, TokenFlags.Transferable | TokenFlags.Fungible);
             simulator.MintTokens(owner, owner.Address, tokenTicker, 10000000);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, tokenTicker, 10000);
+            simulator.GenerateTransfer(owner, user.Address, nexus.RootChain as Chain, tokenTicker, 10000);
             simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
             simulator.EndBlock();
 
@@ -1480,7 +1470,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
-            var ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            var ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
@@ -1488,11 +1478,11 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // Mint a new CoolToken 
             simulator.BeginBlock();
-            simulator.MintNonFungibleToken(owner, testUser.Address, symbol, tokenROM, tokenRAM, 0);
+            simulator.MintNonFungibleToken(owner, user.Address, symbol, tokenROM, tokenRAM, 0);
             simulator.EndBlock();
 
             // obtain tokenID
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
@@ -1500,7 +1490,7 @@ namespace Phantasma.LegacyTests.ContractTests
             var previousAuctionCount = auctions.Length;
 
             // verify nft presence on the user post-mint
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
@@ -1519,18 +1509,18 @@ namespace Phantasma.LegacyTests.ContractTests
             // verify balance before
             var tokenToSell = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, tokenTicker);
             var balanceOwnerBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, owner.Address);
-            var balanceSellerBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, testUser.Address);
+            var balanceSellerBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, user.Address);
             var balanceListFeeBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, listingFeeAddress);
             var balanceBuyFeeBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, buyingFeeAddress);
 
             // list token as fixed auction
             simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(testUser.Address, Address.Null, 1, 9999).
-                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), testUser.Address, token.Symbol, tokenTicker, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, listingFeeAddress).
-                  SpendGas(testUser.Address).
+                  AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
+                  CallContract(NativeContractKind.Market, nameof(MarketContract.ListToken), user.Address, token.Symbol, tokenTicker, tokenID, price, endPrice, startDate, endDate, extensionPeriod, auctionType, listingFee, listingFeeAddress).
+                  SpendGas(user.Address).
                   EndScript()
             );
             simulator.EndBlock();
@@ -1545,7 +1535,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, endPrice, buyingFee, buyingFeeAddress).
                 SpendGas(owner.Address).
                 EndScript()
@@ -1561,7 +1551,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, price - 100, buyingFee, buyingFeeAddress).
                 SpendGas(owner.Address).
                 EndScript()
@@ -1575,7 +1565,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                 BeginScript().
-                AllowGas(owner.Address, Address.Null, 1, 9999).
+                AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                 CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, bidPrice + 100, buyingFee, buyingFeeAddress).
                 SpendGas(owner.Address).
                 EndScript()
@@ -1589,7 +1579,7 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.
                   BeginScript().
-                  AllowGas(owner.Address, Address.Null, 1, 9999).
+                  AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
                   CallContract(NativeContractKind.Market, nameof(MarketContract.BidToken), owner.Address, token.Symbol, tokenID, price, buyingFee, buyingFeeAddress).
                   SpendGas(owner.Address).
                   EndScript()
@@ -1603,7 +1593,7 @@ namespace Phantasma.LegacyTests.ContractTests
             Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
+            ownedTokenList = ownerships.Get(chain.Storage, user.Address);
             Assert.IsTrue(ownedTokenList.Count() == 0, "How does the seller still have one?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
@@ -1611,7 +1601,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify balance after
             var balanceOwnerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, owner.Address);
-            var balanceSellerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, testUser.Address);
+            var balanceSellerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, user.Address);
             var balanceListFeeAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, listingFeeAddress);
             var balanceBuyFeeAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, buyingFeeAddress);
             Assert.IsTrue(balanceListFeeAfter == balanceListFeeBefore + 1, " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
