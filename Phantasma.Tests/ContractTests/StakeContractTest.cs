@@ -391,7 +391,7 @@ public class StakeContractTest
             DomainSettings.StakingTokenSymbol, DomainSettings.FuelTokenSymbol, kcalInitialRate).AsNumber();
 
         simulator.BeginBlock();
-        tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+        tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.Minimal, () =>
             ScriptUtils.BeginScript()
                 .CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapFee), testUser.Address, DomainSettings.StakingTokenSymbol, MinimumValidStake)
                 .AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 999)

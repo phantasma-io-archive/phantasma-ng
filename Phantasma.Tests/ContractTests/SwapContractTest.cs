@@ -109,7 +109,7 @@ public class SwapContractTest
     {
         var testUser = PhantasmaKeys.Generate();
 
-        var soulAmount = UnitConversion.ToBigInteger(1000, 8);
+        var soulAmount = UnitConversion.ToBigInteger(1000, DomainSettings.StakingTokenDecimals);
         var soulUserAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
         var kcalAmount = UnitConversion.ToBigInteger(1000, DomainSettings.FuelTokenDecimals);
 
