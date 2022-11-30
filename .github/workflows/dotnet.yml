@@ -16,6 +16,7 @@ jobs:
   
       - name: Install dependencies
         run: |
+          sudo apt-get install libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev libzstd-dev
           sudo apt-get install libc6-dev libicu-dev libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev libzstd-dev librocksdb-dev
           sudo apt-get install librocksdb-dev
           dotnet tool install --global dotnet-reportgenerator-globaltool
