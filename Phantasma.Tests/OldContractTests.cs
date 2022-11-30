@@ -1,12 +1,11 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
+using Xunit;
+
 using System.Linq;
 using System.Numerics;
 using System.Collections.Generic;
+
 using Phantasma.Simulator;
-using Phantasma.Core.Types;
 using Phantasma.Core.Cryptography;
-using Phantasma.Business.Blockchain;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Business.Blockchain.Contracts;
@@ -16,7 +15,6 @@ using Phantasma.Business.VM;
 
 namespace Phantasma.LegacyTests
 {
-    [TestClass]
     public class OldContractTests
     {
         public static BigInteger MinimumValidStake => UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
@@ -35,16 +33,16 @@ namespace Phantasma.LegacyTests
         }
 
 
-        [TestMethod]
+        [Fact]
         public void CustomEvents()
         {
             var A = CustomEvent.Stuff;
             EventKind evt = DomainExtensions.EncodeCustomEvent(A);
             var B = evt.DecodeCustomEvent<CustomEvent>();
-            Assert.IsTrue(A == B);
+            Assert.True(A == B);
         }
         
-        /*        [TestMethod]
+        /*        [Fact]
                 public void TestProxies()
                 {
                     var owner = PhantasmaKeys.Generate();
@@ -54,7 +52,7 @@ namespace Phantasma.LegacyTests
 
                     var testUser = PhantasmaKeys.Generate();
                     var unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-                    Assert.IsTrue(unclaimedAmount == 0);
+                    Assert.True(unclaimedAmount == 0);
 
                     var accountBalance = MinimumValidStake * 100;
 
@@ -77,10 +75,10 @@ namespace Phantasma.LegacyTests
                     simulator.EndBlock();
 
                     BigInteger stakedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetStake", simulator.CurrentTime, testUser.Address).AsNumber();
-                    Assert.IsTrue(stakedAmount == initialStake);
+                    Assert.True(stakedAmount == initialStake);
 
                     unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-                    Assert.IsTrue(unclaimedAmount == StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor));
+                    Assert.True(unclaimedAmount == StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor));
 
                     //-----------
                     //Add main account as proxy to itself: should fail
@@ -95,7 +93,7 @@ namespace Phantasma.LegacyTests
                     });
 
                     var proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 0);
+                    Assert.True(proxyList.Length == 0);
 
                     //-----------
                     //Add 0% proxy: should fail
@@ -117,7 +115,7 @@ namespace Phantasma.LegacyTests
                     });
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 0);
+                    Assert.True(proxyList.Length == 0);
 
                     var api = new NexusAPI(nexus);
                     var script = ScriptUtils.BeginScript().CallContract(NativeContractKind.Stake, "GetProxies", testUser.Address).EndScript();
@@ -133,8 +131,8 @@ namespace Phantasma.LegacyTests
                     simulator.EndBlock();
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 1);
-                    Assert.IsTrue(proxyList[0].percentage == 90);
+                    Assert.True(proxyList.Length == 1);
+                    Assert.True(proxyList[0].percentage == 90);
 
                     apiResult = api.InvokeRawScript("main", Base16.Encode(script));
 
@@ -146,7 +144,7 @@ namespace Phantasma.LegacyTests
                     simulator.EndBlock();
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 0);
+                    Assert.True(proxyList.Length == 0);
 
                     //-----------
                     //Add and remove 100% proxy: should pass
@@ -158,8 +156,8 @@ namespace Phantasma.LegacyTests
                     simulator.EndBlock();
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 1);
-                    Assert.IsTrue(proxyList[0].percentage == 100);
+                    Assert.True(proxyList.Length == 1);
+                    Assert.True(proxyList[0].percentage == 100);
 
                     simulator.BeginBlock();
                     tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
@@ -169,7 +167,7 @@ namespace Phantasma.LegacyTests
                     simulator.EndBlock();
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 0);
+                    Assert.True(proxyList.Length == 0);
 
                     //-----------
                     //Add 101% proxy: should fail
@@ -184,7 +182,7 @@ namespace Phantasma.LegacyTests
                     });
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 0);
+                    Assert.True(proxyList.Length == 0);
 
                     //-----------
                     //Add 25% proxy A: should pass
@@ -196,8 +194,8 @@ namespace Phantasma.LegacyTests
                     simulator.EndBlock();
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 1);
-                    Assert.IsTrue(proxyList[0].percentage == 25);
+                    Assert.True(proxyList.Length == 1);
+                    Assert.True(proxyList[0].percentage == 25);
 
                     //-----------
                     //Re-add proxy A: should fail
@@ -212,7 +210,7 @@ namespace Phantasma.LegacyTests
                     });
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 1);
+                    Assert.True(proxyList.Length == 1);
 
                     //-----------
                     //Add an 80% proxy: should fail
@@ -233,7 +231,7 @@ namespace Phantasma.LegacyTests
                     });
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 1);
+                    Assert.True(proxyList.Length == 1);
 
                     //-----------
                     //Add 25% proxy B and remove it: should pass
@@ -245,8 +243,8 @@ namespace Phantasma.LegacyTests
                     simulator.EndBlock();
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 2);
-                    Assert.IsTrue(proxyList[0].percentage == 25 && proxyList[1].percentage == 25);
+                    Assert.True(proxyList.Length == 2);
+                    Assert.True(proxyList[0].percentage == 25 && proxyList[1].percentage == 25);
 
                     simulator.BeginBlock();
                     tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
@@ -256,7 +254,7 @@ namespace Phantasma.LegacyTests
                     simulator.EndBlock();
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 1);
+                    Assert.True(proxyList.Length == 1);
 
                     //-----------
                     //Add 75% proxy B and remove it: should pass
@@ -268,8 +266,8 @@ namespace Phantasma.LegacyTests
                     simulator.EndBlock();
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 2);
-                    Assert.IsTrue(proxyList[0].percentage == 25 && proxyList[1].percentage == 75);
+                    Assert.True(proxyList.Length == 2);
+                    Assert.True(proxyList[0].percentage == 25 && proxyList[1].percentage == 75);
 
                     simulator.BeginBlock();
                     tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
@@ -279,7 +277,7 @@ namespace Phantasma.LegacyTests
                     simulator.EndBlock();
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 1);
+                    Assert.True(proxyList.Length == 1);
 
                     //-----------
                     //Try to remove proxy B again: should fail
@@ -294,7 +292,7 @@ namespace Phantasma.LegacyTests
                     });
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 1);
+                    Assert.True(proxyList.Length == 1);
 
                     //-----------
                     //Add 76% proxy B: should fail
@@ -309,7 +307,7 @@ namespace Phantasma.LegacyTests
                     });
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 1);
+                    Assert.True(proxyList.Length == 1);
 
                     //Try to claim from main: should pass
                     unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
@@ -334,16 +332,16 @@ namespace Phantasma.LegacyTests
                     var proxyQuota = proxyAPercentage * unclaimedAmount / 100;
                     var leftover = unclaimedAmount - proxyQuota;
 
-                    Assert.IsTrue(finalMainFuelBalance == (startingMainFuelBalance + leftover - txCost));
-                    Assert.IsTrue(finalProxyFuelBalance == (startingProxyFuelBalance + proxyQuota));
+                    Assert.True(finalMainFuelBalance == (startingMainFuelBalance + leftover - txCost));
+                    Assert.True(finalProxyFuelBalance == (startingProxyFuelBalance + proxyQuota));
 
                     unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-                    Assert.IsTrue(unclaimedAmount == 0);
+                    Assert.True(unclaimedAmount == 0);
 
                     //-----------
                     //Try to claim from main: should fail, less than 24h since last claim
                     unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-                    Assert.IsTrue(unclaimedAmount == 0);
+                    Assert.True(unclaimedAmount == 0);
 
                     var startingFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
 
@@ -358,7 +356,7 @@ namespace Phantasma.LegacyTests
                     });
 
                     var finalFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
-                    Assert.IsTrue(startingFuelBalance == finalFuelBalance);
+                    Assert.True(startingFuelBalance == finalFuelBalance);
 
                     //-----------
                     //Try to claim from proxy A: should fail, less than 24h since last claim
@@ -378,8 +376,8 @@ namespace Phantasma.LegacyTests
                     finalMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
                     finalProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
 
-                    Assert.IsTrue(startingMainFuelBalance == finalMainFuelBalance);
-                    Assert.IsTrue(startingProxyFuelBalance == finalProxyFuelBalance);
+                    Assert.True(startingMainFuelBalance == finalMainFuelBalance);
+                    Assert.True(startingProxyFuelBalance == finalProxyFuelBalance);
 
                     //-----------
                     //Time skip 1 day
@@ -391,7 +389,7 @@ namespace Phantasma.LegacyTests
                     stakedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetStake", simulator.CurrentTime, testUser.Address).AsNumber();
 
                     var expectedUnclaimed = StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor);
-                    Assert.IsTrue(unclaimedAmount == expectedUnclaimed);
+                    Assert.True(unclaimedAmount == expectedUnclaimed);
 
                     startingMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
                     startingProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
@@ -410,14 +408,14 @@ namespace Phantasma.LegacyTests
                     proxyQuota = proxyAPercentage * unclaimedAmount / 100;
                     leftover = unclaimedAmount - proxyQuota;
 
-                    Assert.IsTrue(proxyQuota == proxyAPercentage * desiredFuelClaim / 100);
-                    Assert.IsTrue(desiredFuelClaim == unclaimedAmount);
+                    Assert.True(proxyQuota == proxyAPercentage * desiredFuelClaim / 100);
+                    Assert.True(desiredFuelClaim == unclaimedAmount);
 
-                    Assert.IsTrue(finalMainFuelBalance == (startingMainFuelBalance + leftover));
-                    Assert.IsTrue(finalProxyFuelBalance == (startingProxyFuelBalance + proxyQuota - txCost));
+                    Assert.True(finalMainFuelBalance == (startingMainFuelBalance + leftover));
+                    Assert.True(finalProxyFuelBalance == (startingProxyFuelBalance + proxyQuota - txCost));
 
                     unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-                    Assert.IsTrue(unclaimedAmount == 0);
+                    Assert.True(unclaimedAmount == 0);
 
                     //-----------
                     //Remove proxy A
@@ -485,11 +483,11 @@ namespace Phantasma.LegacyTests
                     finalProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
                     txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
 
-                    Assert.IsTrue(finalMainFuelBalance == (startingMainFuelBalance + unclaimedAmount - txCost));
-                    Assert.IsTrue(finalProxyFuelBalance == startingProxyFuelBalance);
+                    Assert.True(finalMainFuelBalance == (startingMainFuelBalance + unclaimedAmount - txCost));
+                    Assert.True(finalProxyFuelBalance == startingProxyFuelBalance);
 
                     unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-                    Assert.IsTrue(unclaimedAmount == 0);
+                    Assert.True(unclaimedAmount == 0);
 
                     //-----------
                     //Add 25% proxy A: should pass
@@ -501,8 +499,8 @@ namespace Phantasma.LegacyTests
                     simulator.EndBlock();
 
                     proxyList = (EnergyProxy[])simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetProxies", simulator.CurrentTime, testUser.Address).ToObject();
-                    Assert.IsTrue(proxyList.Length == 1);
-                    Assert.IsTrue(proxyList[0].percentage == 25);
+                    Assert.True(proxyList.Length == 1);
+                    Assert.True(proxyList[0].percentage == 25);
 
                     //-----------
                     //Time skip 5 days
@@ -513,7 +511,7 @@ namespace Phantasma.LegacyTests
                     unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
                     stakedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetStake", simulator.CurrentTime, testUser.Address).AsNumber();
 
-                    Assert.IsTrue(unclaimedAmount == days * StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor));
+                    Assert.True(unclaimedAmount == days * StakeToFuel(stakedAmount, DefaultEnergyRatioDivisor));
 
                     startingMainFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
                     startingProxyFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, proxyA.Address);
@@ -532,16 +530,16 @@ namespace Phantasma.LegacyTests
                     proxyQuota = proxyAPercentage * unclaimedAmount / 100;
                     leftover = unclaimedAmount - proxyQuota;
 
-                    Assert.IsTrue(finalMainFuelBalance == (startingMainFuelBalance + leftover - txCost));
-                    Assert.IsTrue(finalProxyFuelBalance == (startingProxyFuelBalance + proxyQuota));
+                    Assert.True(finalMainFuelBalance == (startingMainFuelBalance + leftover - txCost));
+                    Assert.True(finalProxyFuelBalance == (startingProxyFuelBalance + proxyQuota));
 
                     unclaimedAmount = simulator.Nexus.RootChain.InvokeContract(simulator.Nexus.RootStorage, NativeContractKind.Stake, "GetUnclaimed", simulator.CurrentTime, testUser.Address).AsNumber();
-                    Assert.IsTrue(unclaimedAmount == 0);
+                    Assert.True(unclaimedAmount == 0);
                 }*/
         
         
 
-        [TestMethod]
+        [Fact]
         public void MapClearBug()
         {
             var scriptString = new string[]
