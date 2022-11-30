@@ -1,4 +1,3 @@
-/*
 using NSubstitute;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
@@ -249,7 +248,7 @@ public class MarketContractTests : IDisposable
                 this.Validator.Address,
                 Timestamp.Now,
                 tx,
-                new StorageChangeSetContext(new KeyStoreStorage(new DBPartition(this.PartitionPath))),
+                new StorageChangeSetContext(new MemoryStorageContext()),
                 null,
                 ChainTask.Null,
                 delayPayment
@@ -304,4 +303,4 @@ public class MarketContractTests : IDisposable
             Console.WriteLine("Unable to clean test directory");
         }
     }
-}*/
+}

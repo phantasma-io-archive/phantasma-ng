@@ -1,4 +1,4 @@
-/*using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -10,6 +10,7 @@ using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Infrastructure.RocksDB;
@@ -1918,10 +1919,10 @@ public class AssemblerTests
         this.PartitionPath = Path.Combine(Path.GetTempPath(), "PhantasmaUnitTest", $"{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
         Directory.CreateDirectory(this.PartitionPath);
 
-        this.Nexus = new Nexus("unittest", (name) => new DBPartition(PartitionPath + name));
+        this.Nexus = new Nexus("unittest", (name) => new MemoryStore());
         var maxSupply = 10000000;
 
-        var storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage("main"));
+        var storage = (StorageContext)new MemoryStorageContext();
         this.Context = new StorageChangeSetContext(storage);
 
         this.Chain = new Chain((Nexus)this.Nexus, "main");
@@ -1963,4 +1964,3 @@ public class AssemblerTests
         return vm;
     }
 }
-*/

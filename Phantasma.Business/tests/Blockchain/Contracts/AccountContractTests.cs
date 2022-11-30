@@ -1,4 +1,4 @@
-﻿/*using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
@@ -272,7 +272,7 @@ public class AccountContractTests : IDisposable
                 this.Validator.Address,
                 Timestamp.Now,
                 tx,
-                new StorageChangeSetContext(new KeyStoreStorage(new DBPartition(this.PartitionPath))),
+                new StorageChangeSetContext(new MemoryStorageContext()),
                 null,
                 ChainTask.Null,
                 delayPayment
@@ -327,4 +327,3 @@ public class AccountContractTests : IDisposable
         this.Mints.Clear();
     }
 }
-*/

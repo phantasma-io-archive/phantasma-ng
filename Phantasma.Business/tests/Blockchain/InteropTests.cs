@@ -1,4 +1,4 @@
-﻿/*
+﻿
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -345,7 +345,7 @@ public class InteropTests : IDisposable
                 new byte[2] { (byte)Opcode.NOP, (byte)Opcode.RET },
                 new byte[2] { 0, 0}
                 );
-    }
+    }*/
 
     // TODO::
     //[TestMethod]
@@ -560,7 +560,7 @@ public class InteropTests : IDisposable
             evt.Kind.ShouldBe(EventKind.Log);
         }
         count.ShouldBe(1);
-    }
+    }*/
 
     [Fact]
     public void invoke_Runtime_IsMinter_success()
@@ -628,7 +628,7 @@ public class InteropTests : IDisposable
         throw new NotImplementedException("dummy test, need test IsWitness more");
     }
 
-    [Fact]
+    [Fact(Skip = "Ignore for now")]
     public void invoke_Runtime_IsWitness_success()
     {
         var tx = new Transaction(
@@ -839,7 +839,7 @@ public class InteropTests : IDisposable
             bool tokenExists = true)
     {
         var nexusMoq = new Mock<INexus>();
-        var storage = new StorageChangeSetContext(new KeyStoreStorage(new DBPartition(this.PartitionPath)));
+        var storage = new StorageChangeSetContext(new MemoryStorageContext());
 
         nexusMoq.Setup( n => n.GetOrganizationByName(
                     It.IsAny<StorageContext>(),
@@ -1025,4 +1025,4 @@ public class InteropTests : IDisposable
         this.Mints.Clear();
     }
 }
-*/
+
