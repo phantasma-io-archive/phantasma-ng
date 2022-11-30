@@ -1,11 +1,9 @@
-
+using Xunit;
 using System;
 using System.Linq;
 using System.Text;
 using System.Numerics;
 using System.Collections.Generic;
-using System.Transactions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Core.Types;
 using Phantasma.Simulator;
 using Phantasma.Core.Cryptography;
@@ -14,19 +12,16 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Domain;
 using Phantasma.Business.VM.Utils;
-using Phantasma.Business.Blockchain.Contracts;
 using Transaction = Phantasma.Core.Domain.Transaction;
-using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM;
 
 namespace Phantasma.LegacyTests
 {
-    [TestClass]
     public class AssemblerTests
     {
         public const int TestGasLimit = 9999;
         
-        [TestMethod]
+        [Fact]
         public void Alias()
         {
             string[] scriptString;
@@ -46,7 +41,7 @@ namespace Phantasma.LegacyTests
             vm = ExecuteScriptIsolated(scriptString);
 
             var result = vm.Stack.Pop().AsNumber();
-            Assert.IsTrue(result == 5);
+            Assert.True(result == 5);
         }
 
         private bool IsInvalidCast(Exception e)
@@ -56,7 +51,7 @@ namespace Phantasma.LegacyTests
                 || e.Message.StartsWith("logical op unsupported");
         }
 
-        [TestMethod]
+        [Fact]
         public void EventNotify()
         {
             string[] scriptString;
@@ -128,12 +123,12 @@ namespace Phantasma.LegacyTests
             simulator.EndBlock();
 
             var events = simulator.Nexus.FindBlockByTransaction(tx).GetEventsForTransaction(tx.Hash);
-            Assert.IsTrue(events.Count(x => x.Kind == EventKind.Custom) == 1);
+            Assert.True(events.Count(x => x.Kind == EventKind.Custom) == 1);
 
             var eventData = events.First(x => x.Kind == EventKind.Custom).Data;
             var eventMessage = (VMObject)Serialization.Unserialize(eventData, typeof(VMObject));
 
-            Assert.IsTrue(eventMessage.AsString() == message);
+            Assert.True(eventMessage.AsString() == message);
         }
 
 
@@ -141,7 +136,7 @@ namespace Phantasma.LegacyTests
 
         #region RegisterOps
 
-        [TestMethod]
+        [Fact]
         public void Move()
         {
             string[] scriptString;
@@ -175,17 +170,17 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 2);
+                Assert.True(vm.Stack.Count == 2);
 
                 var r1obj = vm.Stack.Pop();
                 var r2obj = vm.Stack.Pop();
 
-                Assert.IsTrue(r1obj.Type == VMType.None);
-                Assert.IsTrue(r2obj.Type == VMType.Object);
+                Assert.True(r1obj.Type == VMType.None);
+                Assert.True(r2obj.Type == VMType.Object);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void Copy()
         {
             string[] scriptString;
@@ -215,11 +210,11 @@ namespace Phantasma.LegacyTests
             var r1struct = vm.Stack.Pop().AsInterop<TestVM.DebugStruct>();
             var r2struct = vm.Stack.Pop().AsInterop<TestVM.DebugStruct>();
 
-            Assert.IsTrue(r1struct.x != r2struct.x);
+            Assert.True(r1struct.x != r2struct.x);
 
         }
 
-        [TestMethod]
+        [Fact]
         public void Load()
         {
             //TODO: test all VMTypes
@@ -245,25 +240,25 @@ namespace Phantasma.LegacyTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            Assert.IsTrue(vm.Stack.Count == 3);
+            Assert.True(vm.Stack.Count == 3);
 
             var str = vm.Stack.Pop().AsString();
-            Assert.IsTrue(str.CompareTo("hello") == 0);
+            Assert.True(str.CompareTo("hello") == 0);
 
             var num = vm.Stack.Pop().AsNumber();
-            Assert.IsTrue(num == new BigInteger(123));
+            Assert.True(num == new BigInteger(123));
 
             var bo = vm.Stack.Pop().AsBool();
-            Assert.IsTrue(bo);
+            Assert.True(bo);
         }
 
-        [TestMethod]
+        [Fact]
         public void Push()
         {
             Load(); //it is effectively the same test
         }
 
-        [TestMethod]
+        [Fact]
         public void Pop()
         {
             //TODO: test all VMTypes
@@ -297,19 +292,19 @@ namespace Phantasma.LegacyTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            Assert.IsTrue(vm.Stack.Count == 3);
+            Assert.True(vm.Stack.Count == 3);
 
             var str = vm.Stack.Pop().AsString();
-            Assert.IsTrue(str.CompareTo("hello") == 0);
+            Assert.True(str.CompareTo("hello") == 0);
 
             var num = vm.Stack.Pop().AsNumber();
-            Assert.IsTrue(num == new BigInteger(123));
+            Assert.True(num == new BigInteger(123));
 
             var bo = vm.Stack.Pop().AsBool();
-            Assert.IsTrue(bo);
+            Assert.True(bo);
         }
 
-        [TestMethod]
+        [Fact]
         public void Swap()
         {
             string[] scriptString;
@@ -327,20 +322,20 @@ namespace Phantasma.LegacyTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            Assert.IsTrue(vm.Stack.Count == 2);
+            Assert.True(vm.Stack.Count == 2);
 
             var str = vm.Stack.Pop().AsString();
-            Assert.IsTrue(str.CompareTo("hello") == 0);
+            Assert.True(str.CompareTo("hello") == 0);
 
             var num = vm.Stack.Pop().AsNumber();
-            Assert.IsTrue(num == new BigInteger(123));
+            Assert.True(num == new BigInteger(123));
         }
 
         #endregion
 
         #region FlowOps
 
-        [TestMethod]
+        [Fact]
         public void Call()
         {
             var initVal = 2;
@@ -360,13 +355,13 @@ namespace Phantasma.LegacyTests
 
             var vm = ExecuteScriptIsolated(scriptString);
 
-            Assert.IsTrue(vm.Stack.Count == 1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsNumber();
-            Assert.IsTrue(result == targetVal);
+            Assert.True(result == targetVal);
         }
 
-        [TestMethod]
+        [Fact]
         public void ExtCall()
         {
             string[] scriptString;
@@ -393,14 +388,14 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void Jmp()
         {
             string[] scriptString;
@@ -428,14 +423,14 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsNumber();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void JmpConditional()
         {
             string[] scriptString;
@@ -469,17 +464,17 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 2);
+                Assert.True(vm.Stack.Count == 2);
 
                 var result = vm.Stack.Pop().AsNumber();
-                Assert.IsTrue(result == target, "Opcode JmpNot isn't working correctly");
+                Assert.True(result == target, "Opcode JmpNot isn't working correctly");
 
                 result = vm.Stack.Pop().AsNumber();
-                Assert.IsTrue(result == target, "Opcode JmpIf isn't working correctly");
+                Assert.True(result == target, "Opcode JmpIf isn't working correctly");
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void Throw()
         {
             string[] scriptString;
@@ -511,12 +506,12 @@ namespace Phantasma.LegacyTests
                 };
 
                 bool result = false;
-                Assert.ThrowsException<VMException>(() =>
+                Assert.Throws<VMException>(() =>
                 {
                     vm = ExecuteScriptIsolated(scriptString);
-                    Assert.IsTrue(vm.Stack.Count == 1);
+                    Assert.True(vm.Stack.Count == 1);
                     result = vm.Stack.Pop().AsBool();
-                    Assert.IsTrue(result == target, "Opcode JmpNot isn't working correctly");
+                    Assert.True(result == target, "Opcode JmpNot isn't working correctly");
                 });
 
 
@@ -528,7 +523,7 @@ namespace Phantasma.LegacyTests
         #endregion
 
         #region LogicalOps
-        [TestMethod]
+        [Fact]
         public void Not()
         {
             var scriptString = new string[]
@@ -541,10 +536,10 @@ namespace Phantasma.LegacyTests
 
             var vm = ExecuteScriptIsolated(scriptString);
 
-            Assert.IsTrue(vm.Stack.Count == 1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            Assert.IsTrue(result == "false");
+            Assert.True(result == "false");
 
             scriptString = new string[]
             {
@@ -560,14 +555,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to NOT a non-bool variable.");
         }
 
-        [TestMethod]
+        [Fact]
         public void And()
         {
             string[] scriptString;
@@ -599,10 +594,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -620,14 +615,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
         }
 
-        [TestMethod]
+        [Fact]
         public void Or()
         {
             string[] scriptString;
@@ -659,10 +654,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -680,14 +675,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to OR a non-bool variable.");
         }
 
-        [TestMethod]
+        [Fact]
         public void Xor()
         {
             string[] scriptString;
@@ -719,10 +714,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -740,15 +735,15 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to XOR a non-bool variable.");
         }
 
-        [TestMethod]
-        public void Equals()
+        [Fact]
+        public void Equal()
         {
             string[] scriptString;
             TestVM vm;
@@ -784,15 +779,15 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
 
                 result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void LessThan()
         {
             string[] scriptString;
@@ -823,10 +818,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -844,14 +839,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
         }
 
-        [TestMethod]
+        [Fact]
         public void GreaterThan()
         {
             string[] scriptString;
@@ -882,10 +877,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -903,14 +898,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
         }
 
-        [TestMethod]
+        [Fact]
         public void LesserThanOrEquals()
         {
             string[] scriptString;
@@ -941,10 +936,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -962,14 +957,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
         }
 
-        [TestMethod]
+        [Fact]
         public void GreaterThanOrEquals()
         {
             string[] scriptString;
@@ -1000,10 +995,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1021,7 +1016,7 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
@@ -1030,7 +1025,7 @@ namespace Phantasma.LegacyTests
         #endregion
 
         #region NumericOps
-        [TestMethod]
+        [Fact]
         public void Increment()
         {
             string[] scriptString;
@@ -1057,10 +1052,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1077,14 +1072,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
         }
 
-        [TestMethod]
+        [Fact]
         public void Decrement()
         {
             string[] scriptString;
@@ -1111,10 +1106,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1131,14 +1126,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
         }
 
-        [TestMethod]
+        [Fact]
         public void Sign()
         {
             string[] scriptString;
@@ -1167,10 +1162,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1187,14 +1182,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
         }
 
-        [TestMethod]
+        [Fact]
         public void Negate()
         {
             string[] scriptString;
@@ -1223,10 +1218,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1243,14 +1238,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
         }
 
-        [TestMethod]
+        [Fact]
         public void Abs()
         {
             string[] scriptString;
@@ -1279,10 +1274,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1299,14 +1294,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
         }
 
-        [TestMethod]
+        [Fact]
         public void Add()
         {
             string[] scriptString;
@@ -1335,10 +1330,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1357,14 +1352,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
         }
 
-        [TestMethod]
+        [Fact]
         public void Sub()
         {
             string[] scriptString;
@@ -1393,10 +1388,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1415,14 +1410,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
         }
 
-        [TestMethod]
+        [Fact]
         public void Mul()
         {
             string[] scriptString;
@@ -1451,10 +1446,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1473,14 +1468,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
         }
 
-        [TestMethod]
+        [Fact]
         public void Div()
         {
             string[] scriptString;
@@ -1509,10 +1504,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1531,14 +1526,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
         }
 
-        [TestMethod]
+        [Fact]
         public void Mod()
         {
             string[] scriptString;
@@ -1567,10 +1562,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1589,14 +1584,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
         }
 
-        [TestMethod]
+        [Fact]
         public void ShiftLeft()
         {
             string[] scriptString;
@@ -1625,10 +1620,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1647,14 +1642,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
         }
 
-        [TestMethod]
+        [Fact]
         public void ShiftRight()
         {
             string[] scriptString;
@@ -1683,10 +1678,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1705,7 +1700,7 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
@@ -1713,7 +1708,7 @@ namespace Phantasma.LegacyTests
         }
 
 
-        [TestMethod]
+        [Fact]
         public void Min()
         {
             string[] scriptString;
@@ -1744,10 +1739,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1765,14 +1760,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
         }
 
-        [TestMethod]
+        [Fact]
         public void Max()
         {
             string[] scriptString;
@@ -1803,10 +1798,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             scriptString = new string[]
@@ -1824,7 +1819,7 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
@@ -1834,7 +1829,7 @@ namespace Phantasma.LegacyTests
 
         #region ContextOps
 
-        [TestMethod]
+        [Fact]
         public void ContextSwitching()
         {
             string[] scriptString;
@@ -1865,13 +1860,13 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 2);
+                Assert.True(vm.Stack.Count == 2);
 
                 var result = vm.Stack.Pop().AsNumber();
-                Assert.IsTrue(result == 42);
+                Assert.True(result == 42);
 
                 result = vm.Stack.Pop().AsNumber();
-                Assert.IsTrue(result == 2);
+                Assert.True(result == 2);
             }
         }
 
@@ -1879,7 +1874,7 @@ namespace Phantasma.LegacyTests
 
         #region Array
 
-        [TestMethod]
+        [Fact]
         public void PutGet()
         {
             string[] scriptString;
@@ -1909,10 +1904,10 @@ namespace Phantasma.LegacyTests
 
                 vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsNumber();
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
         }
 
@@ -1923,7 +1918,7 @@ namespace Phantasma.LegacyTests
             public Address address;
         }
 
-        [TestMethod]
+        [Fact]
         public void StructInterop()
         {
             string[] scriptString;
@@ -1990,18 +1985,18 @@ namespace Phantasma.LegacyTests
                 });
             });
 
-            Assert.IsTrue(vm.Stack.Count == 1);
+            Assert.True(vm.Stack.Count == 1);
 
             var temp = vm.Stack.Pop();
-            Assert.IsTrue(temp != null);
+            Assert.True(temp != null);
 
             var result = temp.ToStruct<TestInteropStruct>();
-            Assert.IsTrue(demoValue.ID == result.ID);
-            Assert.IsTrue(demoValue.name == result.name);
-            Assert.IsTrue(demoValue.address == result.address);
+            Assert.True(demoValue.ID == result.ID);
+            Assert.True(demoValue.name == result.name);
+            Assert.True(demoValue.address == result.address);
         }
 
-        [TestMethod]
+        [Fact]
         public void ArrayInterop()
         {
             TestVM vm;
@@ -2021,19 +2016,19 @@ namespace Phantasma.LegacyTests
 
             vm = ExecuteScriptIsolated(script);
 
-            Assert.IsTrue(vm.Stack.Count == 1);
+            Assert.True(vm.Stack.Count == 1);
 
             var temp = vm.Stack.Pop();
-            Assert.IsTrue(temp != null);
+            Assert.True(temp != null);
 
             var result = temp.ToArray<BigInteger>();
-            Assert.IsTrue(result.Length == demoArray.Length);
+            Assert.True(result.Length == demoArray.Length);
         }
 
         #endregion
 
         #region Data
-        [TestMethod]
+        [Fact]
         public void Cat()
         {
             var args = new List<List<string>>()
@@ -2097,10 +2092,10 @@ namespace Phantasma.LegacyTests
 
                 var vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
-                Assert.IsTrue(result == String.Concat(argsLine[0], argsLine[1]));
+                Assert.True(result == String.Concat(argsLine[0], argsLine[1]));
             }
 
             var scriptString2 = new string[]
@@ -2118,14 +2113,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
 
             throw new Exception("VM did not throw exception when trying to cat a string and a non-string object, and it should");
         }
 
-        [TestMethod]
+        [Fact]
         public void Range()
         {
                 //TODO: missing tests with byte data
@@ -2148,15 +2143,15 @@ namespace Phantasma.LegacyTests
 
             var vm = ExecuteScriptIsolated(scriptString);
 
-            Assert.IsTrue(vm.Stack.Count == 1);
+            Assert.True(vm.Stack.Count == 1);
 
             var resultBytes = vm.Stack.Pop().AsByteArray();
             var result = Encoding.UTF8.GetString(resultBytes);
 
-            Assert.IsTrue(result == target);
+            Assert.True(result == target);
         }
 
-        [TestMethod]
+        [Fact]
         public void Left()
         {
             var args = new List<List<string>>()
@@ -2185,12 +2180,12 @@ namespace Phantasma.LegacyTests
 
                 var vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var resultBytes = vm.Stack.Pop().AsByteArray();
                 var result = Encoding.UTF8.GetString(resultBytes);
                 
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             var scriptString2 = new string[]
@@ -2207,12 +2202,12 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void Right()
         {
             var args = new List<List<string>>()
@@ -2241,12 +2236,12 @@ namespace Phantasma.LegacyTests
 
                 var vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var resultBytes = vm.Stack.Pop().AsByteArray();
                 var result = Encoding.UTF8.GetString(resultBytes);
 
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             var scriptString2 = new string[]
@@ -2263,12 +2258,12 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void Size()
         {
             var args = new List<List<string>>()
@@ -2296,11 +2291,11 @@ namespace Phantasma.LegacyTests
 
                 var vm = ExecuteScriptIsolated(scriptString);
 
-                Assert.IsTrue(vm.Stack.Count == 1);
+                Assert.True(vm.Stack.Count == 1);
 
                 var result = vm.Stack.Pop().AsString();
 
-                Assert.IsTrue(result == target);
+                Assert.True(result == target);
             }
 
             var scriptString2 = new string[]
@@ -2317,14 +2312,14 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                Assert.IsTrue(IsInvalidCast(e));
+                Assert.True(IsInvalidCast(e));
                 return;
             }
         }
         #endregion
 
         #region Disassembler
-        [TestMethod]
+        [Fact]
         public void MethodExtract()
         {
             var methodName = "MyCustomMethod";
@@ -2342,8 +2337,8 @@ namespace Phantasma.LegacyTests
 
             var calls = DisasmUtils.ExtractMethodCalls(script, table);
 
-            Assert.IsTrue(calls.Count() == 1);
-            Assert.IsTrue(calls.First().MethodName == methodName);
+            Assert.True(calls.Count() == 1);
+            Assert.True(calls.First().MethodName == methodName);
         }
         #endregion
 
