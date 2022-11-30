@@ -12,7 +12,7 @@ using Phantasma.Core.Numerics;
 
 using Xunit;
 
-namespace Phantasma.Core.Tests;
+namespace Phantasma.Business.Tests.Blockchain;
 
 [Collection("SerializationTests")]
 public class SerializationTests

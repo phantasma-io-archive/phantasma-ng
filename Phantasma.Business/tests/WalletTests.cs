@@ -5,7 +5,7 @@ using System.Linq;
 using Phantasma.Business.VM.Utils;
 
 using Xunit;
-namespace Phantasma.Core.Tests;
+namespace Phantasma.Business.Tests;
 
 
 public class WalletTests
