@@ -1,15 +1,11 @@
 name: .NET CI
 
 on: [push, pull_request]
-
-permissions:
-  pull-requests: write
   
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
+    permissions: write-all
     steps:
       - uses: actions/checkout@v3
   
@@ -52,3 +48,4 @@ jobs:
         with:
           recreate: true
           path: code-coverage-results.md
+          GITHUB_TOKEN: ${{ env.PR_KEY }}
