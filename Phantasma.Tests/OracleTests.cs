@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+//using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using System;
 using System.Linq;
@@ -13,9 +13,11 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Node.Oracles;
 
+using Shouldly;
+using Xunit;
+
 namespace Phantasma.LegacyTests
 {
-    [TestClass]
     public class OracleTests
     {
         PhantasmaKeys user;
@@ -29,7 +31,6 @@ namespace Phantasma.LegacyTests
         BigInteger startBalance;
         StakeReward reward;
 
-        [TestInitialize]
         public void Initialize()
         {
             user = PhantasmaKeys.Generate();
@@ -58,12 +59,15 @@ namespace Phantasma.LegacyTests
             simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
             simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.StakingTokenSymbol, initialAmount);
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            simulator.LastBlockWasSuccessful().ShouldBeTrue();
+            //Assert.IsTrue(simulator.LastBlockWasSuccessful());
         }
         
-        [TestMethod]
+        [Fact]
         public void OracleTestNoData()
         {
+            Initialize();
+            
             var wallet = PhantasmaKeys.Generate();
 
             nexus.CreatePlatform(nexus.RootStorage, "", wallet.Address, "neo", "GAS");
@@ -78,20 +82,19 @@ namespace Phantasma.LegacyTests
             simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain as Chain, "SOUL", 100);
             var block = simulator.EndBlock().First();
 
-            Assert.IsTrue(block.OracleData.Count() == 0);
+            block.OracleData.Count().ShouldBe(0);
+            //Assert.IsTrue(block.OracleData.Count() == 0);
             Console.WriteLine("block oracle data: " + block.OracleData.Count());
 
         }
 
-        [TestMethod]
+        [Fact]
         public void OracleTestWithData()
         {
-            var owner = PhantasmaKeys.Generate();
+            Initialize();
+
             var wallet = PhantasmaKeys.Generate();
 
-            var simulator = new NexusSimulator(owner);
-            var nexus = simulator.Nexus;
-            
             nexus.CreatePlatform(nexus.RootStorage, "", wallet.Address, "neo", "GAS");
 
             simulator.BeginBlock();
@@ -119,15 +122,19 @@ namespace Phantasma.LegacyTests
 
             //simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain as Chain, "SOUL", 100);
             var block = simulator.EndBlock().First();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            simulator.LastBlockWasSuccessful().ShouldBeTrue();
+            //Assert.IsTrue();
             
             Console.WriteLine("block oracle data: " + block.OracleData.Count());
-            Assert.IsTrue(block.OracleData.Count() == totalOracleCalls);
+            block.OracleData.Count().ShouldBe(totalOracleCalls);
+            //Assert.IsTrue(block.OracleData.Count() == totalOracleCalls);
         }
 
-        [TestMethod]
+        [Fact]
         public void OracleTestWithTooMuchData()
         {
+            Initialize();
+
             var wallet = PhantasmaKeys.Generate();
 
             nexus.CreatePlatform(nexus.RootStorage, "", wallet.Address, "neo", "GAS");
@@ -157,16 +164,20 @@ namespace Phantasma.LegacyTests
 
             //simulator.GenerateTransfer(owner, wallet.Address, nexus.RootChain as Chain, "SOUL", 100);
             var block = simulator.EndBlock().First();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            simulator.LastBlockWasSuccessful().ShouldBeFalse();
+            //Assert.IsFalse(simulator.LastBlockWasSuccessful());
 
             Console.WriteLine("block oracle data: " + block.OracleData.Count());
-            Assert.IsTrue(block.OracleData.Count() < totalOracleCalls);
+            block.OracleData.Count().ShouldBeLessThan(totalOracleCalls);
+            //Assert.IsTrue(block.OracleData.Count() < totalOracleCalls);
         }
 
 
-        [TestMethod]
+        [Fact]
         public void OraclePrice()
         {
+            Initialize();
+            
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None,
                 () => ScriptUtils.BeginScript()
@@ -181,7 +192,8 @@ namespace Phantasma.LegacyTests
                     .SpendGas(owner.Address)
                     .EndScript());
             var block = simulator.EndBlock().First();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            simulator.LastBlockWasSuccessful().ShouldBeTrue();
+            //Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             foreach (var txHash in block.TransactionHashes)
             {
@@ -198,7 +210,8 @@ namespace Phantasma.LegacyTests
                     .SpendGas(owner.Address)
                     .EndScript());
             block = simulator.EndBlock().First();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            simulator.LastBlockWasSuccessful().ShouldBeTrue();
+            //Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             foreach (var txHash in block.TransactionHashes)
             {
@@ -208,9 +221,11 @@ namespace Phantasma.LegacyTests
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void OracleData()
         {
+            Initialize();
+            
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(owner, ProofOfWork.Moderate,
                 () => ScriptUtils.BeginScript()
@@ -247,7 +262,8 @@ namespace Phantasma.LegacyTests
             Console.WriteLine("odata1: " + oData1);
             Console.WriteLine("odata2: " + oData2);
 
-            Assert.IsTrue(oData1 == oData2);
+            oData1.ShouldBe(oData2);
+            //Assert.IsTrue(oData1 == oData2);
         }
 
     }
