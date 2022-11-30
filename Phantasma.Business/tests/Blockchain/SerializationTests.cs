@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
-[Collection("SerializationTests")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class SerializationTests
 {
     [Fact]

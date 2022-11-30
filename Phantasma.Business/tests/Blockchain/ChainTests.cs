@@ -21,7 +21,7 @@ using Phantasma.Infrastructure.Pay.Chains;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
-[Collection("ChainLegacyTests")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class ChainTests
 {
     [Fact]

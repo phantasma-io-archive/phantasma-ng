@@ -14,8 +14,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
-
-[Collection("StakeContractTest")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class StakeContractTest
 {
     public static BigInteger MinimumValidStake => UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);

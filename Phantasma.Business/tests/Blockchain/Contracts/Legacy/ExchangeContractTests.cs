@@ -17,7 +17,7 @@ using Shouldly;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
-[Collection("ExchangeContractTests")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class ExchangeContractTests
 {
     private const string maxDivTokenSymbol = "MADT";        //divisible token with maximum decimal count

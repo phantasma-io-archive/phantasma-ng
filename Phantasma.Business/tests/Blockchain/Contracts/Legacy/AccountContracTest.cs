@@ -18,7 +18,7 @@ using Shouldly;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
-[Collection("AccountLegacyTests")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class AccountContracTest
 {
     Address sysAddress;

@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
-[Collection("OracleTests")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class OracleTests
 {
     PhantasmaKeys user;
