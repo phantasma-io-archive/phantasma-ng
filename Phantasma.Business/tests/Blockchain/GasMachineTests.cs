@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
-[Collection("GasMachineTestsBusiness")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class GasMachineTests
 {
     [Fact]

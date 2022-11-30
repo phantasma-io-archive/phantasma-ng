@@ -1,4 +1,5 @@
-﻿using System;
+﻿/*
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
@@ -16,7 +17,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
-[Collection("InteropTestsBusiness")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class InteropTests : IDisposable
 {
     private PhantasmaKeys Validator { get; set; }
@@ -344,7 +345,7 @@ public class InteropTests : IDisposable
                 new byte[2] { (byte)Opcode.NOP, (byte)Opcode.RET },
                 new byte[2] { 0, 0}
                 );
-    }*/
+    }
 
     // TODO::
     //[TestMethod]
@@ -546,8 +547,8 @@ public class InteropTests : IDisposable
         count.ShouldBe(1);
     }
 
-    /*
-    [Fact]
+    
+    /*[Fact]
     public void invoke_Runtime_Log_success()
     {
         var runtime = CreateRuntime_Default();
@@ -559,7 +560,7 @@ public class InteropTests : IDisposable
             evt.Kind.ShouldBe(EventKind.Log);
         }
         count.ShouldBe(1);
-    }*/
+    }
 
     [Fact]
     public void invoke_Runtime_IsMinter_success()
@@ -1024,3 +1025,4 @@ public class InteropTests : IDisposable
         this.Mints.Clear();
     }
 }
+*/

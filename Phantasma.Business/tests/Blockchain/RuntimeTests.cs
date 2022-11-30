@@ -1,4 +1,4 @@
-﻿using System;
+﻿/*using System;
 using System.IO;
 using System.Numerics;
 using System.Text;
@@ -18,7 +18,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
-[Collection("RuntimeTestsBusiness")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class RuntimeTests
 {
     private string PartitionPath { get; set; }
@@ -137,7 +137,7 @@ public class RuntimeTests
         var state = runtime.Execute();
         // gas cost LOAD -> 5, RET -> 0 == 15000, allowed 10000
         runtime.ExceptionMessage.ShouldBe("VM gas limit exceeded (10000)/(10005)");
-    }*/
+    }
 
     //[Fact]
     public void execute_runtime_fail_gas_limit_exceeded_with_tx()
@@ -316,3 +316,4 @@ public class RuntimeTests
         balances.Add(this.Context, User1.Address, maxSupply);
     }
 }
+*/

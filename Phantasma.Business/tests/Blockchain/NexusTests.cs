@@ -1,4 +1,4 @@
-﻿using System;
+﻿/*using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,7 +18,7 @@ using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
-[Collection("NexusTestsBusiness")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class NexusTests : IDisposable
 {
     public NexusTests()
@@ -969,3 +969,4 @@ public class NexusTests : IDisposable
         return runtimeMoq;
     }
 }
+*/

@@ -15,7 +15,7 @@ using Phantasma.Business.VM.Utils;
 using Transaction = Phantasma.Core.Domain.Transaction;
 using Phantasma.Business.VM;
 
-namespace Phantasma.Business.Tests.VM;
+namespace Phantasma.Business.Tests.VM.Legacy;
 
 [Collection(nameof(SystemTestCollectionDefinition))]
 public class AssemblerTestsLegacy
