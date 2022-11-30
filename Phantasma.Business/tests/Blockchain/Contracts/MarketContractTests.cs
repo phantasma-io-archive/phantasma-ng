@@ -33,6 +33,7 @@ public struct XToken : IToken
     public ContractInterface ABI { get; }
 }
 
+[Collection("MarketContractTestsBusiness")]
 public class MarketContractTests : IDisposable
 {
     private PhantasmaKeys Validator { get; set; }

@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
+﻿using System;
 using System.IO;
 using System.Numerics;
 using System.Collections.Generic;
@@ -8,6 +7,8 @@ using System.Text;
 using Phantasma.Core;
 using Phantasma.Core.Storage;
 using Phantasma.Infrastructure.RocksDB;
+
+using Xunit;
 
 /*
 namespace Phantasma.Tests

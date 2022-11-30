@@ -6,6 +6,7 @@ using System.Text;
 
 namespace Phantasma.LegacyTests
 {
+    [Collection("HashTests")]
     public class HashTests
     {
         [Fact]

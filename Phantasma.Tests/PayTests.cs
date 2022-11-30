@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
 using System.Numerics;
@@ -6,23 +5,24 @@ using Phantasma.Core.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
 using Phantasma.Infrastructure.Pay.Chains;
+using Xunit;
 
 namespace Phantasma.LegacyTests
 {
-    [TestClass]
+    [Collection("PayTests")]
     public class PayTests
     {
-        [TestMethod]
+        [Fact]
         public void TestEthereumWallet()
         {
             var keys = new PhantasmaKeys(Base16.Decode("a95bd75a7b3b1c0a2a14595e8065a95cb06417f6aaedcc3bc45fda52900ab9e8"));
             var wallet = new EthereumWallet(keys);
             var address = wallet.Address;
-            Assert.IsTrue(address.Equals("0xe57a6c074d1db5ed7c98228df71ce5fa35b6bc72", StringComparison.OrdinalIgnoreCase));
+            Assert.True(address.Equals("0xe57a6c074d1db5ed7c98228df71ce5fa35b6bc72", StringComparison.OrdinalIgnoreCase));
         }
 
         /*
-        [TestMethod]
+        [Fact]
         public void TestEOSWallet()
         {
             var wif = "5KA2AqEoo7jqepqeEqK2FjjjgG5nxQN6vfuiSZqgJM79ej6eo4Q";
@@ -34,10 +34,10 @@ namespace Phantasma.LegacyTests
             var keys = new PhantasmaKeys(privateKey);
             var wallet = new EOSWallet(keys);
             var address = wallet.Address;
-            Assert.IsTrue(address.Equals("EOS8dBKtG9fbhC1wi1SscL32iFRsSi4PsZDT2EHJcYXwV5dAMiBcK", StringComparison.OrdinalIgnoreCase));
+            Assert.True(address.Equals("EOS8dBKtG9fbhC1wi1SscL32iFRsSi4PsZDT2EHJcYXwV5dAMiBcK", StringComparison.OrdinalIgnoreCase));
         }*/
 
-        [TestMethod]
+        [Fact]
         public void TestNeoWallet()
         {
             var keys = PhantasmaKeys.FromWIF("L1nuBmNJ2HvLat5xyvpqmHpmXNe6rGGdAzGJgLjDLECaTCVgqjdx");
@@ -45,38 +45,38 @@ namespace Phantasma.LegacyTests
             var address = wallet.Address;
 
             string expectedAddress = "AU2eYJkpZ2nG81RyqnzF5UL2qjdkpPEJqN";
-            Assert.IsTrue(address.Equals(expectedAddress, StringComparison.OrdinalIgnoreCase));
+            Assert.True(address.Equals(expectedAddress, StringComparison.OrdinalIgnoreCase));
 
             var encodedAddress = NeoWallet.EncodeAddress(expectedAddress);
-            Assert.IsTrue(encodedAddress.IsInterop);
+            Assert.True(encodedAddress.IsInterop);
 
             var newAddress = NeoWallet.DecodeAddress(encodedAddress);
-            Assert.IsTrue(newAddress.Equals(expectedAddress, StringComparison.OrdinalIgnoreCase));
+            Assert.True(newAddress.Equals(expectedAddress, StringComparison.OrdinalIgnoreCase));
         }
 
         /*
-        [TestMethod]
+        [Fact]
         public void TestBitcoinWallet()
         {
             var keys = new PhantasmaKeys(Base16.Decode("60cf347dbc59d31c1358c8e5cf5e45b822ab85b79cb32a9f3d98184779a9efc2"));
             var wallet = new BitcoinWallet(keys);
             var address = wallet.Address;
-            Assert.IsTrue(address.Equals("17JsmEygbbEUEpvt4PFtYaTeSqfb9ki1F1", StringComparison.OrdinalIgnoreCase));
+            Assert.True(address.Equals("17JsmEygbbEUEpvt4PFtYaTeSqfb9ki1F1", StringComparison.OrdinalIgnoreCase));
         }*/
 
-        [TestMethod]
+        [Fact]
         public void TestEndian()
         {
             var n = new BigInteger(100000000);
             var bytes = n.ToByteArray();
-            Assert.IsTrue(bytes.Length == 4);
-            Assert.IsTrue(bytes[0] == 00);
-            Assert.IsTrue(bytes[1] == 0xe1);
-            Assert.IsTrue(bytes[2] == 0xf5);
-            Assert.IsTrue(bytes[3] == 05);
+            Assert.True(bytes.Length == 4);
+            Assert.True(bytes[0] == 00);
+            Assert.True(bytes[1] == 0xe1);
+            Assert.True(bytes[2] == 0xf5);
+            Assert.True(bytes[3] == 05);
         }
 
-        [TestMethod]
+        [Fact]
         public void TestDecodeScriptHash()
         {
             var targetAddress = "2N8bXfrWTzqZoV89dosge2JxvE38VnHurqD";

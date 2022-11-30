@@ -20,6 +20,7 @@
     <EmbeddedResource Remove="Publish\**" />
     <None Remove="Publish\**" />
     <None Remove="testnet\bin\tendermint" />
+    <None Include="bin\Debug\net6.0\config_testnet_node0.json" />
   </ItemGroup>
   <ItemGroup>
     <None Update="config.json">

@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM.Utils;
@@ -11,9 +10,11 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Simulator;
 
+using Xunit;
+
 namespace Phantasma.LegacyTests.ContractTests;
 
-[TestClass]
+[Collection("ConsensusContractTest")]
 public class ConsensusContractTest
 {
     static PhantasmaKeys owner = PhantasmaKeys.Generate();
@@ -83,7 +84,7 @@ public class ConsensusContractTest
             var validatorType = simulator.InvokeContract(NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorType),
                     newValidator.Address).AsEnum<ValidatorType>();
 
-            Assert.IsTrue(validatorType !=  ValidatorType.Invalid);
+            Assert.True(validatorType !=  ValidatorType.Invalid);
         }
 
         
@@ -166,8 +167,7 @@ public class ConsensusContractTest
 
     }
 
-    [TestMethod]
-    [Ignore] //TODO
+    [Fact(Skip = "Skip Testvote")]
     public void TestVote()
     {
         //nexus.SetOracleReader(new OracleSimulator(nexus));

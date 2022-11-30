@@ -14,6 +14,7 @@ using Phantasma.Simulator;
 
 namespace Phantasma.LegacyTests;
 
+[Collection("NFTTests")]
 public class NFTTests
 {
     PhantasmaKeys user;

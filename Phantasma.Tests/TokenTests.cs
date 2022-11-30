@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Xml.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.VM.Utils;
@@ -10,12 +9,14 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Simulator;
 
+using Xunit;
+
 namespace Phantasma.LegacyTests;
 
-[TestClass]
+[Collection("TokenTests")]
 public class TokenTests
 {
-    [TestMethod]
+    [Fact]
     public void FuelTokenTransfer()
     {
         var owner = PhantasmaKeys.Generate();
@@ -36,34 +37,34 @@ public class TokenTests
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain as Chain, symbol, amount);
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var oldBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUserA.Address);
 
-        Assert.IsTrue(oldBalance == amount);
+        Assert.True(oldBalance == amount);
 
         // Send from test user A address to test user B
         amount /= 2;
         simulator.BeginBlock();
         var tx = simulator.GenerateTransfer(testUserA, testUserB.Address, nexus.RootChain as Chain, symbol, amount);
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         // verify test user balance
         var transferBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUserB.Address);
-        Assert.IsTrue(transferBalance == amount);
+        Assert.True(transferBalance == amount);
 
         var newBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUserA.Address);
         var gasFee = nexus.RootChain.GetTransactionFee(tx);
 
         var expectedFee = oldBalance - (newBalance + transferBalance);
-        Assert.IsTrue(expectedFee == gasFee);
+        Assert.True(expectedFee == gasFee);
 
         var sum = transferBalance + newBalance + gasFee;
-        Assert.IsTrue(sum == oldBalance);
+        Assert.True(sum == oldBalance);
     }
 
-    [TestMethod]
+    [Fact]
     public void TokenTriggers()
     {
         string[] scriptString;
@@ -128,22 +129,22 @@ public class TokenTests
         var tx = simulator.MintTokens(owner, owner.Address, symbol, 1000);
         simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain as Chain, symbol, 10);
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var token = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, symbol);
         var balance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, owner.Address);
-        Assert.IsTrue(balance == 990, $"{balance} == 990");
+        Assert.True(balance == 990, $"{balance} == 990");
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, symbol, -10);
         simulator.EndBlock();
-        Assert.IsFalse(simulator.LastBlockWasSuccessful());
+        Assert.False(simulator.LastBlockWasSuccessful());
 
         balance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, owner.Address);
-        Assert.IsTrue(balance+10 == 1000, $"{balance} == 1000");
+        Assert.True(balance+10 == 1000, $"{balance} == 1000");
     }
 
-    [TestMethod]
+    [Fact]
     public void TokenTriggersEventPropagation()
     {
         string[] scriptString;
@@ -222,35 +223,35 @@ public class TokenTests
         simulator.BeginBlock();
         simulator.GenerateToken(owner, symbol, name, totalSupply, decimals, flags, script, labels);
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         simulator.BeginBlock();
         var tx = simulator.MintTokens(owner, owner.Address, symbol, 1000);
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var events = simulator.Nexus.FindBlockByTransaction(tx).GetEventsForTransaction(tx.Hash);
-        Assert.IsTrue(events.Count(x => x.Kind == EventKind.Custom) == 1, $"{events.Count(x => x.Kind == EventKind.Custom)} == 1");
+        Assert.True(events.Count(x => x.Kind == EventKind.Custom) == 1, $"{events.Count(x => x.Kind == EventKind.Custom)} == 1");
 
         var token = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, symbol);
         var balance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, owner.Address);
-        Assert.IsTrue(balance == 1000);
+        Assert.True(balance == 1000);
 
         var eventData = events.First(x => x.Kind == EventKind.Custom).Data;
         var eventMessage = (VMObject)Serialization.Unserialize(eventData, typeof(VMObject));
 
-        Assert.IsTrue(eventMessage.AsString() == message);
+        Assert.True(eventMessage.AsString() == message);
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, symbol, 10000);
         simulator.EndBlock();
-        Assert.IsFalse(simulator.LastBlockWasSuccessful());
+        Assert.False(simulator.LastBlockWasSuccessful());
 
         balance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, owner.Address);
-        Assert.IsTrue(balance == 1000);
+        Assert.True(balance == 1000);
     }
 
-    [TestMethod]
+    [Fact]
     public void TransferToAccountName()
     {
         var owner = PhantasmaKeys.Generate();
@@ -272,10 +273,10 @@ public class TokenTests
 
                 if (lastBlock != null)
                 {
-                    Assert.IsTrue(tx != null);
+                    Assert.True(tx != null);
 
                     var evts = lastBlock.GetEventsForTransaction(tx.Hash);
-                    Assert.IsTrue(evts.Any(x => x.Kind == EventKind.AddressRegister));
+                    Assert.True(evts.Any(x => x.Kind == EventKind.AddressRegister));
                 }
             }
             catch (Exception)
@@ -295,7 +296,7 @@ public class TokenTests
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, symbol, amount);
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, amount);
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         // NOTE we split this into blocks, however if you put all txs in a single block it fails
         simulator.BeginBlock();
@@ -305,7 +306,7 @@ public class TokenTests
                 SpendGas(testUser.Address).EndScript());
         simulator.EndBlock();
 
-        Assert.IsTrue(registerName(testUser, targetName));
+        Assert.True(registerName(testUser, targetName));
 
         // Send from Genesis address to test user
         var transferAmount = 1;
@@ -318,11 +319,11 @@ public class TokenTests
                 .TransferTokens(token.Symbol, owner.Address, targetName, transferAmount)
                 .SpendGas(owner.Address).EndScript());
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var finalFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
 
-        Assert.IsTrue(finalFuelBalance - initialFuelBalance == transferAmount);
+        Assert.True(finalFuelBalance - initialFuelBalance == transferAmount);
     }
 
 }

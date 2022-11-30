@@ -18,6 +18,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
+[Collection("RuntimeTestsBusiness")]
 public class RuntimeTests
 {
     private string PartitionPath { get; set; }
