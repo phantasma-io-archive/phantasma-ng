@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Types;
 using Phantasma.Infrastructure.Pay.Chains;
 
 namespace Phantasma.Infrastructure.API.Controllers
@@ -101,7 +102,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                     address = Pay.Chains.BSCWallet.EncodeAddress(account);
                     break;
                 default:
-                    address = nexus.LookUpName(nexus.RootStorage, account);
+                    address = nexus.LookUpName(nexus.RootStorage, account, Timestamp.Now);
                     break;
             }
 
@@ -134,7 +135,7 @@ namespace Phantasma.Infrastructure.API.Controllers
 
             if (extended)
             {
-                var oldSwaps = (InteropHistory[])nexus.RootChain.InvokeContract(nexus.RootChain.Storage, "interop", nameof(InteropContract.GetSwapsForAddress), address).ToObject();
+                var oldSwaps = (InteropHistory[])nexus.RootChain.InvokeContractAtTimestamp(nexus.RootChain.Storage, Timestamp.Now, "interop", nameof(InteropContract.GetSwapsForAddress), address).ToObject();
 
                 swaps = swaps.Concat(oldSwaps.Select(x => new SwapResult()
                 {

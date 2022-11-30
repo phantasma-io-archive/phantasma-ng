@@ -1,11 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
+using Phantasma.Business.Blockchain;
 using Phantasma.Core.Domain;
 
 namespace Phantasma.Business.VM.Utils
 {
-    public struct DisasmMethodCall
+    public class DisasmMethodCall
     {
         public string ContractName;
         public string MethodName;
@@ -48,19 +51,30 @@ namespace Phantasma.Business.VM.Utils
                 var result = new VMObject[argCount];
                 for (int i = 0; i < argCount; i++)
                 {
+                    if (stack.Count == 0)
+                    {
+                        throw new System.Exception($"Cannot disassemble method => method {key} expected {argCount} args, {i} were fetched");
+                    }
+
                     result[i] = stack.Pop();
                 }
                 return result;
             }
             else
             {
-                throw new System.Exception("Cannot disassemble method arguments => " + key);
+                throw new System.Exception("Cannot disassemble method => unknown name: " + key);
             }
         }
 
         public static Dictionary<string, int> GetDefaultDisasmTable()
         {
             var table = new Dictionary<string, int>();
+
+            table["ABI()"] = 1;
+            table["Address()"] = 1;
+            table["Hash()"] = 1;
+            table["Timestamp()"] = 1;
+
             table["Runtime.Log"] = 1;
             table["Runtime.Notify"] = 3;
             table["Runtime.IsWitness"] = 1;
@@ -74,44 +88,60 @@ namespace Phantasma.Business.VM.Utils
             table["Runtime.MintToken"] = 4;
             table["Runtime.BurnToken"] = 3;
             table["Runtime.InfuseToken"] = 5;
+            table["Runtime.DeployContract"] = 4;
+            table["Runtime.UpgradeContract"] = 4;
+            table["Runtime.KillContract"] = 2;
 
-            table["Nexus.CreateToken"] = 7;
+            table["Nexus.CreateToken"] = 3;
+            table["Nexus.CreateTokenSeries"] = 7;
+            table["Nexus.CreateOrganization"] = 4;
+            //table["Nexus.CreatePlatform"] = 4;
+            table["Nexus.BeginInit"] = 1;
+            table["Nexus.EndInit"] = 1;
+            table["Nexus.GetGovernanceValue"] = 1;
 
-            table["gas.AllowGas"] = 4;
-            table["gas.SpendGas"] = 1;
+            table["Organization.AddMember"] = 3;
 
-            table["market.SellToken"] = 6;
-            table["market.BuyToken"] = 3;
-            table["market.CancelSale"] = 2;
-            table["market.EditAuction"] = 9;
-            table["market.ListToken"] = 12;
-            table["market.BidToken"] = 6;
+            table["Oracle.Read"] = 1;
+            table["Oracle.Price"] = 1;
+            table["Oracle.Quote"] = 3;
 
-            table["swap.GetRate"] = 3;
-            table["swap.DepositTokens"] = 3;
-            table["swap.SwapFee"] = 3;
-            table["swap.SwapReverse"] = 4;
-            table["swap.SwapFiat"] = 4;
-            table["swap.SwapTokens"] = 4;
-            table["stake.Migrate"] = 2;
-            table["stake.MasterClaim"] = 1;
-            table["stake.Stake"] = 2;
-            table["stake.Unstake"] = 2;
-            table["stake.Claim"] = 2;
-            table["stake.AddProxy"] = 3;
-            table["stake.RemoveProxy"] = 2;
-            
-            table["account.RegisterName"] = 2;
-            table["account.UnregisterName"] = 1;
-            table["account.RegisterScript"] = 2;
-            
-            table["storage.UploadData"] = 6;
-            table["storage.UploadFile"] = 7;
-            table["storage.DeleteFile"] = 2;
-            table["storage.SetForeignSpace"] = 2;
+            var nativeContracts = Enum.GetValues<NativeContractKind>();
+            foreach (var kind in nativeContracts)
+            {
+                if (kind == NativeContractKind.Unknown)
+                {
+                    continue;
+                }
+
+                var contract = NativeContract.GetNativeContractByKind(kind);
+                table.AddContractToTable(contract);
+            }
 
             // TODO add more here
             return table;
+        }
+
+        public static void AddContractToTable(this Dictionary<string, int> table, IContract contract)
+        {
+            var abi = contract.ABI;
+
+            foreach (var method in abi.Methods)
+            {
+                var key = $"{contract.Name}.{method.name}";
+                table[key] = method.parameters.Length;
+            }
+        }
+
+        public static void AddTokenToTable(this Dictionary<string, int> table, IToken token)
+        {
+            var abi = token.ABI;
+
+            foreach (var method in abi.Methods)
+            {
+                var key = $"{token.Symbol}.{method.name}";
+                table[key] = method.parameters.Length;
+            }
         }
 
         public static IEnumerable<string> ExtractContractNames(Disassembler disassembler)
@@ -171,8 +201,15 @@ namespace Phantasma.Business.VM.Utils
             return ExtractContractNames(disassembler);
         }
 
-        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(Disassembler disassembler, Dictionary<string, int> methodArgumentCountTable)
+        private readonly static Dictionary<string, int> _defaultDisasmTable = GetDefaultDisasmTable();
+
+        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(Disassembler disassembler, Dictionary<string, int> methodArgumentCountTable = null)
         {
+            if (methodArgumentCountTable == null)
+            {
+                methodArgumentCountTable = _defaultDisasmTable;
+            }
+
             var instructions = disassembler.Instructions.ToArray();
             var result = new List<DisasmMethodCall>();
 
@@ -246,7 +283,7 @@ namespace Phantasma.Business.VM.Utils
             return result;
         }
 
-        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(byte[] script, Dictionary<string, int> methodArgumentCountTable)
+        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(byte[] script, Dictionary<string, int> methodArgumentCountTable = null)
         {
             var disassembler = new Disassembler(script);
             return ExtractMethodCalls(disassembler, methodArgumentCountTable);

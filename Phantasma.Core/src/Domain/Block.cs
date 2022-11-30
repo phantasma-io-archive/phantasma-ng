@@ -38,7 +38,7 @@ namespace Phantasma.Core.Domain
         public int TransactionCount => _transactionHashes.Count;
 
         // stores the events for each included transaction
-        private Dictionary<Hash, List<Event>> _eventMap = new Dictionary<Hash, List<Event>>();
+        private Dictionary<Hash, List<Event>> _transactionEvents = new Dictionary<Hash, List<Event>>();
 
         // stores the results of invocations
         private Dictionary<Hash, byte[]> _resultMap = new Dictionary<Hash, byte[]>();
@@ -55,8 +55,8 @@ namespace Phantasma.Core.Domain
 
         public bool IsSigned => Signature != null;
 
-        private List<Event> _events = new List<Event>();
-        public IEnumerable<Event> Events => _events;
+        private List<Event> _blockEvents = new List<Event>();
+        public IEnumerable<Event> Events => _blockEvents;
 
         // required for unserialization
         public Block()
@@ -98,6 +98,13 @@ namespace Phantasma.Core.Domain
             this._dirty = true;
         }
 
+        public void AddOraclesEntries(IEnumerable<OracleEntry> oracleEntries)
+        {
+            _oracleData.AddRange(oracleEntries);
+            this._dirty = true;
+
+        }
+
         public void AddTransactionHash(Hash hash)
         {
             _transactionHashes.Add(hash);
@@ -112,21 +119,21 @@ namespace Phantasma.Core.Domain
 
         public void Notify(Event evt)
         {
-            this._events.Add(evt);
+            this._blockEvents.Add(evt);
         }
 
         public void Notify(Hash hash, Event evt)
         {
             List<Event> list;
 
-            if (_eventMap.ContainsKey(hash))
+            if (_transactionEvents.ContainsKey(hash))
             {
-                list = _eventMap[hash];
+                list = _transactionEvents[hash];
             }
             else
             {
                 list = new List<Event>();
-                _eventMap[hash] = list;
+                _transactionEvents[hash] = list;
             }
 
             list.Add(evt);
@@ -143,9 +150,9 @@ namespace Phantasma.Core.Domain
 
         public Event[] GetEventsForTransaction(Hash hash)
         {
-            if (_eventMap.ContainsKey(hash))
+            if (_transactionEvents.ContainsKey(hash))
             {
-                return _eventMap[hash].ToArray();
+                return _transactionEvents[hash].ToArray();
             }
 
             return new Event[0];
@@ -195,30 +202,15 @@ namespace Phantasma.Core.Domain
             writer.WriteAddress(ChainAddress);
             writer.WriteVarInt(Protocol);
 
-            if (OldMode)
-            {
-                writer.Write((ushort)_transactionHashes.Count);
-            }
-            else
-            {
-                writer.WriteVarInt(_transactionHashes.Count);
-            }
+            writer.WriteVarInt(_transactionHashes.Count);
 
             foreach (var hash in _transactionHashes)
             {
                 writer.WriteHash(hash);
-                var evts = GetEventsForTransaction(hash).ToArray();
+                var txEvents = GetEventsForTransaction(hash).ToArray();
 
-                if (OldMode)
-                {
-                    writer.Write((ushort)evts.Length);
-                }
-                else
-                {
-                    writer.WriteVarInt(evts.Length);
-                }
-
-                foreach (var evt in evts)
+                writer.WriteVarInt(txEvents.Length);
+                foreach (var evt in txEvents)
                 {
                     evt.Serialize(writer);
                 }
@@ -230,19 +222,9 @@ namespace Phantasma.Core.Domain
                     var result = _resultMap[hash];
                     writer.WriteByteArray(result);
                 }
-
-                var state = _stateMap[hash];
-                writer.WriteVarInt((long)state);
             }
 
-            if (OldMode)
-            {
-                writer.Write((ushort)_oracleData.Count);
-            }
-            else
-            {
-                writer.WriteVarInt(_oracleData.Count);
-            }
+            writer.WriteVarInt(_oracleData.Count);
 
             foreach (var entry in _oracleData)
             {
@@ -255,14 +237,23 @@ namespace Phantasma.Core.Domain
                 Payload = new byte[0];
             }
 
-            writer.WriteVarInt(_events.Count);
-            foreach (var evt in _events)
+            writer.WriteVarInt(_blockEvents.Count);
+            foreach (var evt in _blockEvents)
             {
                 evt.Serialize(writer);
             }
 
             writer.WriteAddress(this.Validator);
             writer.WriteByteArray(this.Payload);
+
+            if (Protocol >= DomainSettings.Phantasma30Protocol)
+            {
+                foreach (var hash in _transactionHashes)
+                {
+                    var state = _stateMap[hash];
+                    writer.WriteVarInt((int)state);
+                }
+            }
 
             if (withSignatures)
             {
@@ -299,15 +290,22 @@ namespace Phantasma.Core.Domain
 
         public void SetStateForHash(Hash hash, ExecutionState state)
         {
-            _stateMap[hash] = state;
+            switch (state)
+            {
+                case ExecutionState.Fault:
+                case ExecutionState.Halt:
+                    _stateMap[hash] = state;
+                    break;
+
+                default:
+                    throw new ChainException($"A transaction with state {state} cannot be saved inside a block!");
+            }
         }
 
         public void SerializeData(BinaryWriter writer)
         {
             Serialize(writer, true);
         }
-
-        public static bool OldMode = false;
 
         public void UnserializeData(BinaryReader reader)
         {
@@ -317,25 +315,25 @@ namespace Phantasma.Core.Domain
             this.ChainAddress = reader.ReadAddress();
             this.Protocol = (uint)reader.ReadVarInt();
 
-            var hashCount = OldMode ? reader.ReadUInt16() : (uint)reader.ReadVarInt();
-            var hashes = new List<Hash>();
+            var hashCount = (uint)reader.ReadVarInt();
+            _transactionHashes = new List<Hash>();
 
-            _eventMap.Clear();
+            _transactionEvents.Clear();
             _resultMap.Clear();
             _stateMap.Clear();
             for (int j = 0; j < hashCount; j++)
             {
                 var hash = reader.ReadHash();
-                hashes.Add(hash);
+                _transactionHashes.Add(hash);
 
-                var evtCount = (int)(OldMode ? reader.ReadUInt16() : (uint)reader.ReadVarInt());
-                var evts = new List<Event>(evtCount);
-                for (int i = 0; i < evtCount; i++)
+                var txEvtCount = (int)reader.ReadVarInt();
+                var evts = new List<Event>(txEvtCount);
+                for (int i = 0; i < txEvtCount; i++)
                 {
                     evts.Add(Event.Unserialize(reader));
                 }
 
-                _eventMap[hash] = evts;
+                _transactionEvents[hash] = evts;
 
                 var resultLen = reader.ReadInt16();
                 if (resultLen >= 0)
@@ -349,11 +347,9 @@ namespace Phantasma.Core.Domain
                         _resultMap[hash] = reader.ReadByteArray();
                     }
                 }
-
-                _stateMap[hash] = (ExecutionState)reader.ReadVarInt();
             }
 
-            var oracleCount = OldMode ? reader.ReadUInt16() : (uint)reader.ReadVarInt();
+            var oracleCount = (uint)reader.ReadVarInt();
             _oracleData.Clear();
             while (oracleCount > 0)
             {
@@ -363,33 +359,42 @@ namespace Phantasma.Core.Domain
                 oracleCount--;
             }
 
+            var blockEvtCount = (int)reader.ReadVarInt();
+            _blockEvents = new List<Event>(blockEvtCount);
+            for (int i = 0; i < blockEvtCount; i++)
+            {
+                _blockEvents.Add(Event.Unserialize(reader));
+            }
+
+            Validator = reader.ReadAddress();
+
+            Payload = reader.ReadByteArray();
+
+            if (Protocol >= DomainSettings.Phantasma30Protocol)
+            {
+                foreach (var hash in _transactionHashes)
+                {
+                    _stateMap[hash] = (ExecutionState)reader.ReadVarInt();
+                }
+            }
+            else
+            {
+                // before Phantasma 3.0 only txs with Halt state were added to blocks
+                foreach (var hash in _transactionHashes)
+                {
+                    _stateMap[hash] = ExecutionState.Halt;
+                }
+            }
+
             try
             {
-                var evtCount = (int)reader.ReadVarInt();
-                _events = new List<Event>(evtCount);
-                for (int i = 0; i < evtCount; i++)
-                {
-                    _events.Add(Event.Unserialize(reader));
-                }
-
-                Validator = reader.ReadAddress();
-                Payload = reader.ReadByteArray();
-
                 Signature = reader.ReadSignature();
+
+                var blockEnd = reader.ReadByte();
             }
             catch (Exception e)
             {
-                Payload = null;
-                Validator = Address.Null;
                 Signature = null;
-            }
-
-            var blockEnd = reader.ReadByte();
-
-            _transactionHashes = new List<Hash>();
-            foreach (var hash in hashes)
-            {
-                _transactionHashes.Add(hash);
             }
 
             _dirty = true;
@@ -397,15 +402,15 @@ namespace Phantasma.Core.Domain
 
         internal void CleanUp()
         {
-            if (_eventMap.Count > 0)
+            if (_transactionEvents.Count > 0)
             {
-                _eventMap.Clear();
+                _transactionEvents.Clear();
                 _dirty = true;
             }
 
-            if (_events.Count > 0)
+            if (_blockEvents.Count > 0)
             {
-                _events.Clear();
+                _blockEvents.Clear();
                 _dirty = true;
             }
 

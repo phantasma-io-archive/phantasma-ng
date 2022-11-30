@@ -276,7 +276,7 @@ namespace Phantasma.Node.Interop
 
                 if (this.platforms == null)
                 {
-                    if (!nexus.HasGenesis)
+                    if (!nexus.HasGenesis())
                     {
                         return;
                     }
@@ -515,7 +515,7 @@ namespace Phantasma.Node.Interop
 
             var nexus = NexusAPI.GetNexus();
 
-            var hash = (Hash)nexus.RootChain.InvokeContract(nexus.RootStorage, "interop", nameof(InteropContract.GetSettlement), sourcePlatform, sourceHash).ToObject();
+            var hash = (Hash)nexus.RootChain.InvokeContractAtTimestamp(nexus.RootStorage, Timestamp.Now, "interop", nameof(InteropContract.GetSettlement), sourcePlatform, sourceHash).ToObject();
             if (hash != Hash.Null && !settlements.ContainsKey<Hash>(sourceHash))
             {
                 // This modification should be locked when GetSettleHash() is called from SettleSwap(),
@@ -528,14 +528,14 @@ namespace Phantasma.Node.Interop
         private Hash SettleTransaction(string sourcePlatform, string chain, Hash txHash)
         {
             var script = new ScriptBuilder().
-                AllowGas().
+                AllowGas(SwapKeys.Address, Address.Null, MinimumFee, Transaction.DefaultGasLimit).
                 CallContract("interop", nameof(InteropContract.SettleTransaction), SwapKeys.Address, sourcePlatform, chain, txHash).
-                SpendGas().
+                SpendGas(SwapKeys.Address).
                 EndScript();
 
             var nexus = NexusAPI.GetNexus();
 
-            var tx = new Transaction(nexus.Name, "main", script, SwapKeys.Address, SwapKeys.Address, MinimumFee, 9999, Timestamp.Now + TimeSpan.FromMinutes(5), Node.TxIdentifier);
+            var tx = new Transaction(nexus.Name, "main", script, Timestamp.Now + TimeSpan.FromMinutes(5), Node.TxIdentifier);
             tx.Sign(SwapKeys);
 
             var bytes = tx.ToByteArray(true);

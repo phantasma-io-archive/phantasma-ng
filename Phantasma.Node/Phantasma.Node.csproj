@@ -19,6 +19,7 @@
     <Compile Remove="Publish\**" />
     <EmbeddedResource Remove="Publish\**" />
     <None Remove="Publish\**" />
+    <None Remove="testnet\bin\tendermint" />
   </ItemGroup>
   <ItemGroup>
     <None Update="config.json">
@@ -66,7 +67,7 @@
     <ProjectReference Include="..\Phantasma.Infrastructure\src\Phantasma.Infrastructure.csproj" />
     <ProjectReference Include="..\Phantasma.Business\src\Phantasma.Business.csproj" />
     <ProjectReference Include="..\Phantasma.Core\src\Phantasma.Core.csproj" />
-    <ProjectReference Include="..\Tendermint\Phantasma.Tendermint.csproj" />
-    <ProjectReference Include="..\Tendermint.RPC\Phantasma.Tendermint.RPC.csproj" />
+    <ProjectReference Include="..\Phantasma.Tendermint\Phantasma.Tendermint.csproj" />
+    <ProjectReference Include="..\Phantasma.Tendermint.RPC\Phantasma.Tendermint.RPC.csproj" />
   </ItemGroup>
 </Project>

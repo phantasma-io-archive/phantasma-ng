@@ -53,8 +53,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         private const int oneHour = 3600;
 
 #pragma warning disable 0649
-        internal StorageMap _auctionMap; //<string, MarketAuction>
-        internal StorageMap _auctionIds; //<string, MarketAuction>
+        private StorageMap _auctionMap; //<string, MarketAuction>
+        private StorageMap _auctionIds; //<string, MarketAuction>
 #pragma warning restore 0649
 
         public MarketContract() : base()
@@ -154,7 +154,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Expect(price >= 0, "price has to be >= 0");
 
-            Runtime.Expect(listingFee <= 5, "listingFee has to be <= 5%");
+            Runtime.Expect(listingFee <= 5 && listingFee >= 0, "listingFee has to be <= 5% and >= 0%");
 
             Runtime.Expect(listingFee == 0 || listingFeeAddress != Address.Null, "Fee receiving address cannot be null");
 
@@ -218,9 +218,10 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Expect(price >= 0, "price has to be >= 0");
 
-            Runtime.Expect(buyingFee <= 5, "buyingFee has to be <= 5%");
+            Runtime.Expect(buyingFee <= 5 && buyingFee >= 0, "buyingFee has to be <= 5% and >= 0%");
 
             Runtime.Expect(auction.StartDate < Runtime.Time, "you can not bid on an auction which has not started");
+            
 
             MarketAuction auctionNew;
 
@@ -484,11 +485,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                     // check that we have enough balance first
                     var balance = Runtime.GetBalance(quoteToken.Symbol, from);
 
-                    if (combinedFees > balance)
-                    {
-                        var diff = combinedFees - balance;
-                        throw new BalanceException(quoteToken, from, diff);
-                    }
+                    Runtime.Expect(balance >= combinedFees, "not enough balance to pay the fees");
 
                     Runtime.TransferTokens(auction.QuoteSymbol, from, this.Address, combinedFees);
                 }
@@ -539,7 +536,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         private BigInteger GetFee(string symbol, BigInteger price, BigInteger fee)
         {
-            if (fee == 0) return 0;
+            if (fee <= 0) return 0;
 
             var listFee = price * fee / 100;
             var quoteToken = Runtime.GetToken(symbol);

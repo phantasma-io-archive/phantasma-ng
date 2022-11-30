@@ -147,10 +147,6 @@ public class OrganizationTests : IDisposable
             "mainnet",
             DomainSettings.RootChainName,
             new byte[1] { 0 },
-            User1.Address,
-            User1.Address,
-            10000,
-            999,
             Timestamp.Now + TimeSpan.FromDays(300),
             "UnitTest");
 
@@ -190,10 +186,6 @@ public class OrganizationTests : IDisposable
             "mainnet",
             DomainSettings.RootChainName,
             new byte[1] { 0 },
-            User1.Address,
-            User1.Address,
-            10000,
-            999,
             Timestamp.Now + TimeSpan.FromDays(300),
             "UnitTest");
 
@@ -249,7 +241,13 @@ public class OrganizationTests : IDisposable
         runtimeMoq.Setup( r => r.SubtractAllowance(It.IsAny<Address>(), It.IsAny<string>(), It.IsAny<BigInteger>())).Returns(allowance);
 
         // setup witness 
-        runtimeMoq.Setup( r => r.IsWitness(It.IsAny<Address>())).Returns(isWitness);
+        runtimeMoq.Setup(r => r.IsWitness(It.IsAny<Address>())).Returns(isWitness);
+
+        // setup GetRootChain
+        runtimeMoq.Setup(r => r.GetRootChain()).Returns(this.Chain);
+
+        // setup IsRootChain
+        runtimeMoq.Setup(r => r.IsRootChain()).Returns(true);
 
         // setup Triggers
         runtimeMoq.SetupInvokeTriggerMoq(TriggerResult.Success, TriggerResult.Success);
@@ -291,7 +289,7 @@ public class OrganizationTests : IDisposable
         }
         Directory.CreateDirectory(this.PartitionPath);
 
-        this.Nexus = new Nexus("unittest", 10000, (name) => new DBPartition(PartitionPath + name));
+        this.Nexus = new Nexus("unittest", (name) => new DBPartition(PartitionPath + name));
 
         var storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage("main"));
         this.Context = new StorageChangeSetContext(storage);

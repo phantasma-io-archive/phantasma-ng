@@ -1917,7 +1917,7 @@ public class AssemblerTests
         this.PartitionPath = Path.Combine(Path.GetTempPath(), "PhantasmaUnitTest", $"{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
         Directory.CreateDirectory(this.PartitionPath);
 
-        this.Nexus = new Nexus("unittest", 10000, (name) => new DBPartition(PartitionPath + name));
+        this.Nexus = new Nexus("unittest", (name) => new DBPartition(PartitionPath + name));
         var maxSupply = 10000000;
 
         var storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage("main"));

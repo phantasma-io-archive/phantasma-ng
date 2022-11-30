@@ -79,22 +79,20 @@ namespace Phantasma.Business.Blockchain
                 var native = Contract as NativeContract;
             if (native != null)
             {
-                using (var m = new ProfileMarker("InternalCall"))
-                {
-                    try
-                    {            
-                        native.SetRuntime(runtime);
-                        native.LoadFromStorage(runtime.Storage);
+                try
+                {            
+                    native.SetRuntime(runtime);
+                    native.LoadFromStorage(runtime.Storage);
 
-                        result = InternalCall(native, method, frame, stack);
-                        native.SaveChangesToStorage();
-                     
-                    }
-                    catch (ArgumentException ex)
-                    {
-                        throw new VMException(frame.VM, $"VM nativecall failed: calling method {methodName} with arguments of wrong type, " + ex.ToString());
-                    }
+                    result = InternalCall(native, method, frame, stack);
+                    native.SaveChangesToStorage();
+                 
                 }
+                catch (ArgumentException ex)
+                {
+                    throw new VMException(frame.VM, $"VM nativecall failed: calling method {methodName} with arguments of wrong type, " + ex.ToString());
+                }
+                
             }
             else
             {
@@ -144,8 +142,7 @@ namespace Phantasma.Business.Blockchain
             }
 
             object result;
-            using (var m = new ProfileMarker(method.name))
-                result = contract.CallInternalMethod((RuntimeVM) frame.VM, method.name, args);
+            result = contract.CallInternalMethod((RuntimeVM) frame.VM, method.name, args);
 
             if (method.returnType != VMType.None)
             {

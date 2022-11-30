@@ -97,7 +97,7 @@ namespace Phantasma.Business.Blockchain
                     throw new OracleException("invalid oracle price request");
                 }
 
-                BigInteger val = new BigInteger();
+                BigInteger val;
 
                 if (!Nexus.TokenExists(Nexus.RootStorage, baseSymbol))
                 {
@@ -106,24 +106,8 @@ namespace Phantasma.Business.Blockchain
 
                 if (baseSymbol == DomainSettings.FuelTokenSymbol)
                 {
-
-                    var stakingURL = priceTag + DomainSettings.StakingTokenSymbol;
-                    decimal soulPriceDec = 0;
-                    if (TryGetOracleCache(stakingURL, out byte[] cachedContent))
-                    {
-                        BigInteger soulPriceBi;
-                        soulPriceBi = new BigInteger(cachedContent);
-                        soulPriceDec = UnitConversion.ToDecimal(soulPriceBi, DomainSettings.FiatTokenDecimals);
-                    }
-                    else
-                    {
-                        soulPriceDec = PullPrice(time, DomainSettings.StakingTokenSymbol);
-                        var soulPriceBi = UnitConversion.ToBigInteger(soulPriceDec, DomainSettings.FiatTokenDecimals);
-
-                        CacheOracleData<T>(url, soulPriceBi.ToSignedByteArray() as T);
-
-                    }
-
+                    var soulPriceBi = this.ReadPrice(time, DomainSettings.StakingTokenSymbol);
+                    var soulPriceDec = UnitConversion.ToDecimal(soulPriceBi, DomainSettings.FiatTokenDecimals);
                     val = UnitConversion.ToBigInteger(soulPriceDec/5, DomainSettings.FiatTokenDecimals);
                 }
                 else
@@ -447,6 +431,12 @@ namespace Phantasma.Business.Blockchain
                 _entries.Merge(_txEntries);
                 _txEntries.Clear();
             }
+        }
+
+        // returns how many pending oracle Calls are there for current transaction
+        public int GetMultiplier()
+        {
+            return 1 + _txEntries.Count();
         }
     }
 }

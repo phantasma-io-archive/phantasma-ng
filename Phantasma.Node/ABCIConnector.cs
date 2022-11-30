@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using Google.Protobuf;
@@ -14,6 +15,7 @@ using Serilog;
 using Tendermint;
 using Tendermint.Abci;
 using Tendermint.RPC;
+using Chain = Phantasma.Business.Blockchain.Chain;
 
 namespace Phantasma.Node;
 public class ABCIConnector : ABCIApplication.ABCIApplicationBase
@@ -22,12 +24,13 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     private PhantasmaKeys _owner;
     private NodeRpcClient _rpc;
     private IEnumerable<Address> _initialValidators;
-    private SortedDictionary<int, Transaction>_systemTxs = new SortedDictionary<int, Transaction>();
-    private List<Transaction> _broadcastedTxs = new List<Transaction>();
+    private List<Transaction> _pendingTxs = new List<Transaction>();
+    private BigInteger _minimumFee;
 
     // TODO add logger
-    public ABCIConnector(IEnumerable<Address> initialValidators)
+    public ABCIConnector(IEnumerable<Address> initialValidators, BigInteger minimumFee)
     {
+        _minimumFee = minimumFee;
         _initialValidators = initialValidators;
         Log.Information("ABCI Connector initialized");
     }
@@ -38,6 +41,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         _nexus = nexus;
         _rpc = new NodeRpcClient(tendermintEndpoint);
         _nexus.RootChain.ValidatorKeys = _owner;
+        Log.Information("ABCI Connector - Set node Info");
+
     }
 
     public override Task<ResponseBeginBlock> BeginBlock(RequestBeginBlock request, ServerCallContext context)
@@ -50,17 +55,15 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             Log.Information("proposer {ProposerAddress} current node {CurrentAddress}", proposerAddress, this._owner.Address.TendermintAddress);
             if (proposerAddress.Equals(this._owner.Address.TendermintAddress))
             {
-                foreach (var tx in _systemTxs.OrderBy(x => x.Key))
+                foreach (var tx in _pendingTxs)
                 {
-                    var txString = Base16.Encode(tx.Value.ToByteArray(true));
+                    var txString = Base16.Encode(tx.ToByteArray(true));
                     Log.Information("Broadcast tx {Transaction}", tx);
-                    var cnt = _broadcastedTxs.Count;
                     while (true)
                     {
                         try
                         {
                             _rpc.BroadcastTxSync(txString);
-                            _broadcastedTxs.Add(tx.Value);
                             break;
                         }
                         catch (Exception e)
@@ -71,29 +74,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                     Log.Information("Broadcast tx {Transaction} done", tx);
                 }
             }
-            _systemTxs.Clear();
 
             var chain = _nexus.RootChain as Chain;
 
             IEnumerable<Transaction> systemTransactions;
-            systemTransactions = chain.BeginBlock(request.Header, this._initialValidators); 
-
-            if (proposerAddress.Equals(this._owner.Address.TendermintAddress))
-            {
-                var idx = 0;
-                foreach (var tx in systemTransactions)
-                {
-                    Log.Information("Broadcasting system transaction {Transaction}", tx);
-                    _systemTxs.Add(idx, tx);
-                    var txString = Base16.Encode(tx.ToByteArray(true));
-                    Task.Factory.StartNew(() => _rpc.BroadcastTxSync(txString));
-                    idx++;
-                }
-            }
-            else
-            {
-                _systemTxs.Clear();
-            }
+            systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, Timestamp.Now, this._initialValidators); 
         }
         catch (Exception e)
         {
@@ -106,12 +91,18 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     public override Task<ResponseCheckTx> CheckTx(RequestCheckTx request, ServerCallContext context)
     {
         // TODO checktx 
+        Log.Information($"ABCI Connector - Check TX");
+
         try
         {
             if (request.Type == CheckTxType.New)
             {
                 var chain = _nexus.RootChain as Chain;
-                (CodeType code, string message) = chain.CheckTx(request.Tx);
+
+                var txString = request.Tx.ToStringUtf8();
+                var tx = Transaction.Unserialize(Base16.Decode(txString));
+                
+                (CodeType code, string message) = chain.CheckTx(tx, Timestamp.Now);
 
                 var response = new ResponseCheckTx();
                 response.Code = 0;
@@ -133,8 +124,14 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     
     public override Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - Deliver Tx");
+
         var chain = _nexus.RootChain as Chain;
-        var result = chain.DeliverTx(request.Tx);
+
+        var txString = request.Tx.ToStringUtf8();
+        var newTx = Transaction.Unserialize(Base16.Decode(txString));
+
+        var result = chain.DeliverTx(newTx);
 
         var bytes = Serialization.Serialize(result.Result);
 
@@ -169,13 +166,13 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         }
 
         // check if a system tx was executed, if yes, remove it
-        for (var i = 0; i < _broadcastedTxs.Count; i++)
+        for (var i = 0; i < _pendingTxs.Count; i++)
         {
-            var tx = _broadcastedTxs[i];
+            var tx = _pendingTxs[i];
             if (tx.Hash == result.Hash)
             {
                 Log.Information($"Transaction {tx.Hash} has been executed, remove now");
-                _broadcastedTxs.Remove(tx);
+                _pendingTxs.Remove(tx);
             }
         }
 
@@ -189,7 +186,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         try
         {
             var chain = _nexus.RootChain as Chain;
-            var result = chain.EndBlock();
+            var result = chain.EndBlock<ValidatorUpdate>();
 
             response.ValidatorUpdates.AddRange(result);
 
@@ -209,6 +206,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     
     public override Task<ResponseCommit> Commit(RequestCommit request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - Commit");
+
         var chain = _nexus.RootChain as Chain;
         var data = chain.Commit();
         var response = new ResponseCommit();
@@ -235,11 +234,15 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     {
         Hash lastBlockHash;
         Block lastBlock = null;
+        Log.Information($"ABCI Connector - Info");
+
+        uint version = 0;
+
         try 
         {
             lastBlockHash = _nexus.RootChain.GetLastBlockHash();
             lastBlock = _nexus.RootChain.GetBlockByHash(lastBlockHash);
-            var version = _nexus.GetProtocolVersion(_nexus.RootStorage);
+            version = _nexus.GetProtocolVersion(_nexus.RootStorage);
         }
         catch (Exception e)
         {
@@ -250,7 +253,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         {
             AppVersion = 0,
             LastBlockHeight = (lastBlock != null) ? (long)lastBlock.Height : 0,
-            Version = "0.0.1",
+            Version = "0.2." + version,
         };
 
         return Task.FromResult(response);
@@ -258,20 +261,25 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     public override Task<ResponseInitChain> InitChain(RequestInitChain request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - Init Chain");
+
         var response = new ResponseInitChain();
         var timestamp = new Timestamp((uint) request.Time.Seconds);
 
         try
         {
-            Dictionary<int, Transaction> systemTransactions;
-            systemTransactions = _nexus.CreateGenesisBlock(timestamp, 0, this._owner, this._initialValidators);
+            var signerAddress = _initialValidators.Last().TendermintAddress;
 
-            var idx = 0;
-            foreach (var tx in systemTransactions.OrderByDescending(x => x.Key))
+            _nexus.SetInitialValidators(this._initialValidators);
+
+            if (this._owner.Address.TendermintAddress == signerAddress)
             {
-                Log.Information("Preparing tx {Transaction} for broadcast", tx.Value);
-                _systemTxs.Add(tx.Key, tx.Value);
-                idx++;
+                var tx = _nexus.CreateGenesisTransaction(timestamp, this._owner);
+
+                var txString = Base16.Encode(tx.ToByteArray(true));
+                Task.Factory.StartNew(() => _rpc.BroadcastTxSync(txString));
+
+                Log.Information($"Broadcasting genesis tx {tx} signed by {signerAddress}");
             }
         }
         catch (Exception e)
@@ -286,26 +294,36 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     public override Task<ResponseQuery> Query(RequestQuery request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - Query");
+
         return Task.FromResult( new ResponseQuery());
     }
 
     public override Task<ResponseListSnapshots> ListSnapshots(RequestListSnapshots request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - ListSnapshots");
+
         return Task.FromResult( new ResponseListSnapshots());
     }
 
     public override Task<ResponseOfferSnapshot> OfferSnapshot(RequestOfferSnapshot request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - OfferSnapshot");
+
         return Task.FromResult( new ResponseOfferSnapshot());
     }
 
     public override Task<ResponseLoadSnapshotChunk> LoadSnapshotChunk(RequestLoadSnapshotChunk request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - LoadSnapshotChunk");
+
         return Task.FromResult( new ResponseLoadSnapshotChunk());
     }
 
     public override Task<ResponseApplySnapshotChunk> ApplySnapshotChunk(RequestApplySnapshotChunk request, ServerCallContext context)
     {
+        Log.Information($"ABCI Connector - ApplySnapshotChunk");
+
         return Task.FromResult( new ResponseApplySnapshotChunk());
     }
 }

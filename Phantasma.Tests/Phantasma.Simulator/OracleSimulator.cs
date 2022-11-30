@@ -1,12 +1,12 @@
 ﻿using System.Numerics;
 using System.Collections.Generic;
-using Phantasma.Cryptography;
-using Phantasma.Numerics;
-using Phantasma.Blockchain;
-using Phantasma.Domain;
-using Phantasma.Pay.Chains;
+
 using Phantasma.Core.Types;
-using System;
+using Phantasma.Business.Blockchain;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Infrastructure.Pay.Chains;
 
 namespace Phantasma.Simulator
 {
@@ -149,7 +149,7 @@ namespace Phantasma.Simulator
 
         protected override BigInteger PullFee(Timestamp time, string platform)
         {
-            return Phantasma.Numerics.UnitConversion.ToBigInteger(0.1m, DomainSettings.FiatTokenDecimals);
+            return UnitConversion.ToBigInteger(0.1m, DomainSettings.FiatTokenDecimals);
         }
 
         protected override decimal PullPrice(Timestamp time, string baseSymbol)
@@ -159,14 +159,42 @@ namespace Phantasma.Simulator
             decimal price;                                                                   
             switch (baseSymbol)                                                              
             {                                                                                
-                case "SOUL": price = 100; break;                                             
-                case "KCAL": price = 20; break;                                              
-                case "NEO": price = 2000; break;                                             
-                case "GAS": price = 500; break;                                              
-                case "ETH": price = 40000; break;                                            
-                case "BTC": price = 800000; break;                                           
-                case "COOL": price = 300; break;                                             
-                default: throw new OracleException("Unknown token: "+baseSymbol);            
+                case "SOUL": 
+                    price = 100; 
+                    break;                                             
+                case "KCAL": 
+                    price = 20; 
+                    break;                                              
+                case "NEO": 
+                    price = 2000; 
+                    break;                                             
+                case "GAS": 
+                    price = 500; 
+                    break;                                              
+                case "ETH": 
+                    price = 40000; 
+                    break;                                            
+                case "BTC": 
+                    price = 800000; 
+                    break;       
+                case "COOL": 
+                    price = 300; 
+                    break;   
+                case "PETH": 
+                    price =  10000;
+                    break;
+                case "PBNB": 
+                    price = 3000;
+                    break;
+                case "PNEO": 
+                    price = 500;
+                    break;
+                case "PGAS": 
+                    price = 50;
+                    break;                                       
+                default: 
+                    price = 0;
+                    break;      
             }                                                                                
                                                                                              
             price /= 1000m;                                                                  

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -80,7 +81,7 @@ namespace Phantasma.Infrastructure.API.Controllers
 
             var nexus = NexusAPI.GetNexus();
 
-            var address = nexus.LookUpName(nexus.RootStorage, name);
+            var address = nexus.LookUpName(nexus.RootStorage, name, Timestamp.Now);
             if (address.IsNull)
             {
                 throw new APIException("name not owned");

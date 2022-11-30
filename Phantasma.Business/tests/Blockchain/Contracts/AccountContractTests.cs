@@ -114,10 +114,6 @@ public class AccountContractTests : IDisposable
                 "mainnet",
                 DomainSettings.RootChainName,
                 new byte[1] { 0 },
-                User1.Address,
-                User1.Address,
-                10000,
-                999,
                 Timestamp.Now + TimeSpan.FromDays(300),
                 "UnitTest");
 
@@ -136,10 +132,6 @@ public class AccountContractTests : IDisposable
                 "mainnet",
                 DomainSettings.RootChainName,
                 new byte[1] { 0 },
-                User1.Address,
-                User1.Address,
-                10000,
-                999,
                 Timestamp.Now + TimeSpan.FromDays(300),
                 "UnitTest");
 
@@ -186,12 +178,11 @@ public class AccountContractTests : IDisposable
                         this.Mints.Add(token.Symbol, amount);
                     });
 
-        nexusMoq.Setup( n => n.HasGenesis).Returns(true);
-        nexusMoq.Setup( n => n.MaxGas).Returns(100000);
+        nexusMoq.Setup( n => n.HasGenesis()).Returns(true);
 
         nexusMoq.Setup( n => n.GetStakeFromAddress(
                     It.IsAny<StorageContext>(),
-                    It.IsAny<Address>()))
+                    It.IsAny<Address>(), It.IsAny<Timestamp>()))
             .Returns(UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals));
 
         nexusMoq.Setup( n => n.GetTokenInfo(
@@ -261,8 +252,8 @@ public class AccountContractTests : IDisposable
 
             chainMoq.Setup( c => c.GenerateUID(It.IsAny<StorageContext>())).Returns(1200);
 
-            chainMoq.Setup( c => c.GetNameFromAddress(It.IsAny<StorageContext>(), It.IsAny<Address>())
-                    ).Returns( (StorageContext context, Address address) => 
+            chainMoq.Setup( c => c.GetNameFromAddress(It.IsAny<StorageContext>(), It.IsAny<Address>(), It.IsAny<Timestamp>())
+                    ).Returns( (StorageContext context, Address address, Timestamp time) => 
                         {
                             return address.ToString();
                         });
@@ -288,7 +279,7 @@ public class AccountContractTests : IDisposable
 
         if (context is not null)
         {
-            runtime.RegisterContext(token.Symbol.ToLower(), context);
+            runtime.RegisterContext(token.Symbol, context);
             runtime.SetCurrentContext(context);
         }
 

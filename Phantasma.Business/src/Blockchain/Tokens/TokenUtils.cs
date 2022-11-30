@@ -14,9 +14,6 @@ namespace Phantasma.Business.Blockchain.Tokens
 {
     public static class TokenUtils
     {
-        public const string BurnMethodName = "burn";
-        public const string MintMethodName = "mint";
-
         public static Address GetContractAddress(this IToken token)
         {
             return GetContractAddress(token.Symbol);
@@ -24,7 +21,7 @@ namespace Phantasma.Business.Blockchain.Tokens
 
         public static Address GetContractAddress(string symbol)
         {
-            return SmartContract.GetAddressForName(symbol);
+            return SmartContract.GetAddressFromContractName(symbol);
         }
 
         public static IEnumerable<ContractMethod> GetTriggersForABI(Dictionary<string, int> labels)

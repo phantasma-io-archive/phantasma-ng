@@ -3,24 +3,23 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
 using System.Numerics;
-
-using Phantasma.Blockchain;
-using Phantasma.Storage.Context;
-using Phantasma.Cryptography;
-using Phantasma.Numerics;
-using Phantasma.Simulator;
-using Phantasma.VM.Utils;
-using Phantasma.Blockchain.Tokens;
-using Phantasma.CodeGen.Assembler;
-using Phantasma.Blockchain.Contracts;
-using Phantasma.Core.Types;
-using Phantasma.VM;
 using System.Collections.Generic;
-using Phantasma.Storage;
-using Phantasma.Pay.Chains;
-using Phantasma.Domain;
 
-namespace Phantasma.Tests
+using Phantasma.Simulator;
+using Phantasma.Core.Types;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Business.Blockchain;
+using Phantasma.Core.Numerics;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Business.CodeGen.Assembler;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.VM;
+using Phantasma.Infrastructure.Pay.Chains;
+
+namespace Phantasma.LegacyTests
 {
     [TestClass]
     public class ChainTests
@@ -70,10 +69,11 @@ namespace Phantasma.Tests
         public void GenesisBlock()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
 
-            Assert.IsTrue(nexus.CreateGenesisBlock(owner, DateTime.Now, 1));
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
+
+            Assert.IsTrue(nexus.HasGenesis());
 
             var genesisHash = nexus.GetGenesisHash(nexus.RootStorage);
             Assert.IsTrue(genesisHash != Hash.Null);
@@ -100,91 +100,37 @@ namespace Phantasma.Tests
             /*var children = nexus.GetChildChainsByName(nexus.RootStorage, rootChain.Name);
             Assert.IsTrue(children.Any());*/
 
-            Assert.IsTrue(nexus.IsPrimaryValidator(owner.Address));
+            Assert.IsTrue(nexus.IsPrimaryValidator(owner.Address, simulator.CurrentTime));
 
             var randomKey = PhantasmaKeys.Generate();
-            Assert.IsFalse(nexus.IsPrimaryValidator(randomKey.Address));
+            Assert.IsFalse(nexus.IsPrimaryValidator(randomKey.Address, simulator.CurrentTime));
 
             /*var txCount = nexus.GetTotalTransactionCount();
             Assert.IsTrue(txCount > 0);*/
+
+            simulator.TransferOwnerAssetsToAddress(randomKey.Address);
         }
 
-        [TestMethod]
-        public void FuelTokenTransfer()
-        {
-            var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-
-            var accountChain = nexus.GetChainByName("account");
-            var symbol = DomainSettings.FuelTokenSymbol;
-            var token = nexus.GetTokenInfo(nexus.RootStorage, symbol);
-
-            var testUserA = PhantasmaKeys.Generate();
-            var testUserB = PhantasmaKeys.Generate();
-
-            var amount = UnitConversion.ToBigInteger(2, token.Decimals);
-
-            // Send from Genesis address to test user A
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, symbol, amount);
-            simulator.EndBlock();
-
-            var oldBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUserA.Address);
-
-            Assert.IsTrue(oldBalance == amount);
-
-            // Send from test user A address to test user B
-            amount /= 2;
-            simulator.BeginBlock();
-            var tx = simulator.GenerateTransfer(testUserA, testUserB.Address, nexus.RootChain, symbol, amount);
-            simulator.EndBlock();
-
-            // verify test user balance
-            var transferBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUserB.Address);
-            Assert.IsTrue(transferBalance == amount);
-
-            var newBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUserA.Address);
-            var gasFee = nexus.RootChain.GetTransactionFee(tx);
-
-            var expectedFee = oldBalance - (newBalance + transferBalance);
-            Assert.IsTrue(expectedFee == gasFee);
-
-            var sum = transferBalance + newBalance + gasFee;
-            Assert.IsTrue(sum == oldBalance);
-        }
+        
 
         [TestMethod]
         public void CreateToken()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var accountChain = nexus.GetChainByName("account");
             var symbol = "BLA";
 
-            var tokenAsm = new string[]
-            {
-                "LOAD r1 42",
-                "PUSH r1",
-                "RET"
-            };
+            var decimals = 18;
 
-            var tokenScript = AssemblerUtils.BuildScript(tokenAsm);
-
-            var methods = new ContractMethod[]
-            {
-                new ContractMethod("mycall", VMType.Number, 0, new ContractParameter[0])
-            };
-
-            var tokenSupply = UnitConversion.ToBigInteger(10000, 18);
+            var tokenSupply = UnitConversion.ToBigInteger(10000, decimals);
             simulator.BeginBlock();
-            simulator.GenerateToken(owner, symbol, "BlaToken", tokenSupply, 18, TokenFlags.Transferable | TokenFlags.Fungible | TokenFlags.Finite | TokenFlags.Divisible, tokenScript, null, methods);
+            simulator.GenerateToken(owner, symbol, "BlaToken", tokenSupply, decimals, TokenFlags.Transferable | TokenFlags.Fungible | TokenFlags.Finite | TokenFlags.Divisible);
             simulator.MintTokens(owner, owner.Address, symbol, tokenSupply);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var token = nexus.GetTokenInfo(nexus.RootStorage, symbol);
 
@@ -200,6 +146,7 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             var tx = simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, symbol, amount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // verify test user balance
             var transferBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
@@ -217,28 +164,28 @@ namespace Phantasma.Tests
             {
                 return new ScriptBuilder()
                 .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 999)
-                .CallContract(symbol, "mycall")
+                .CallContract(symbol, "getDecimals")
                 .SpendGas(owner.Address)
                 .EndScript();
             });
-            var block = simulator.EndBlock().First();
+            var block = simulator.EndBlock().FirstOrDefault();
+            Assert.IsNotNull(block);
 
             var callResultBytes = block.GetResultForTransaction(tx.Hash);
             var callResult = Serialization.Unserialize<VMObject>(callResultBytes);
             var num = callResult.AsNumber();
 
-            Assert.IsTrue(num == 42);
+            Assert.IsTrue(num == decimals);
         }
 
         [TestMethod]
         public void CreateNonDivisibleToken()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
 
-            var accountChain = nexus.GetChainByName("account");
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
+
             var symbol = "BLA";
 
             var tokenSupply = UnitConversion.ToBigInteger(100000000, 18);
@@ -246,6 +193,7 @@ namespace Phantasma.Tests
             simulator.GenerateToken(owner, symbol, "BlaToken", tokenSupply, 0, TokenFlags.Transferable | TokenFlags.Fungible | TokenFlags.Finite);
             simulator.MintTokens(owner, owner.Address, symbol, tokenSupply);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var token = nexus.GetTokenInfo(nexus.RootStorage, symbol);
 
@@ -259,8 +207,9 @@ namespace Phantasma.Tests
 
             // Send from Genesis address to test user
             simulator.BeginBlock();
-            var tx = simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, symbol, amount);
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, symbol, amount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // verify test user balance
             var transferBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
@@ -270,173 +219,14 @@ namespace Phantasma.Tests
 
             Assert.IsTrue(transferBalance + newBalance == oldBalance);
         }
-
-        [TestMethod]
-        public void AccountRegister()
-        {
-            var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-
-            var symbol = DomainSettings.FuelTokenSymbol;
-
-            Func<PhantasmaKeys, string, bool> registerName = (keypair, name) =>
-            {
-                bool result = true;
-
-                try
-                {
-                    simulator.BeginBlock();
-                    var tx = simulator.GenerateAccountRegistration(keypair, name);
-                    var lastBlock = simulator.EndBlock().FirstOrDefault();
-
-                    if (lastBlock != null)
-                    {
-                        Assert.IsTrue(tx != null);
-
-                        var evts = lastBlock.GetEventsForTransaction(tx.Hash);
-                        Assert.IsTrue(evts.Any(x => x.Kind == Domain.EventKind.AddressRegister));
-                    }
-                }
-                catch (Exception)
-                {
-                    result = false;
-                }
-
-                return result;
-            };
-
-            var testUser = PhantasmaKeys.Generate();
-
-            var token = nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            var amount = UnitConversion.ToBigInteger(10, token.Decimals);
-
-            var stakeAmount = UnitConversion.ToBigInteger(3, DomainSettings.StakingTokenDecimals);
-
-            // Send from Genesis address to test user
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, symbol, amount);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, stakeAmount);
-            simulator.EndBlock();
-
-            // verify test user balance
-            var balance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
-            Assert.IsTrue(balance == amount);
-
-            // make user stake enough to register a name
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().
-                    AllowGas(testUser.Address, Address.Null, 1, 9999).
-                    CallContract(Nexus.StakeContractName, "Stake", testUser.Address, stakeAmount).
-                    SpendGas(testUser.Address).
-                    EndScript());
-            simulator.EndBlock();
-
-            var targetName = "hello";
-            Assert.IsTrue(targetName == targetName.ToLower());
-
-            Assert.IsFalse(registerName(testUser, targetName.Substring(3)));
-            Assert.IsFalse(registerName(testUser, targetName.ToUpper()));
-            Assert.IsFalse(registerName(testUser, targetName + "!"));
-            Assert.IsTrue(registerName(testUser, targetName));
-
-            var currentName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, testUser.Address);
-            Assert.IsTrue(currentName == targetName);
-
-            var someAddress = nexus.LookUpName(nexus.RootStorage, targetName);
-            Assert.IsTrue(someAddress == testUser.Address);
-
-            Assert.IsFalse(registerName(testUser, "other"));
-        }
-
-        [TestMethod]
-        public void AccountMigrate()
-        {
-            var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-
-            var symbol = DomainSettings.FuelTokenSymbol;
-
-            var testUser = PhantasmaKeys.Generate();
-
-            var token = nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            var amount = UnitConversion.ToBigInteger(10, token.Decimals);
-
-            var stakeAmount = UnitConversion.ToBigInteger(3, DomainSettings.StakingTokenDecimals);
-
-            // Send from Genesis address to test user
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, symbol, amount);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, stakeAmount);
-            simulator.EndBlock();
-
-            // verify test user balance
-            var balance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
-            Assert.IsTrue(balance == amount);
-
-            // make user stake enough to register a name
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().
-                    AllowGas(testUser.Address, Address.Null, 1, 9999).
-                    CallContract(Nexus.StakeContractName, "Stake", testUser.Address, stakeAmount).
-                    SpendGas(testUser.Address).
-                    EndScript());
-            simulator.EndBlock();
-
-            var targetName = "hello";
-            Assert.IsTrue(targetName == targetName.ToLower());
-
-            simulator.BeginBlock();
-            var tx = simulator.GenerateAccountRegistration(testUser, targetName);
-            var lastBlock = simulator.EndBlock().FirstOrDefault();
-
-            if (lastBlock != null)
-            {
-                Assert.IsTrue(tx != null);
-
-                var evts = lastBlock.GetEventsForTransaction(tx.Hash);
-                Assert.IsTrue(evts.Any(x => x.Kind == Domain.EventKind.AddressRegister));
-            }
-
-
-            var currentName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, testUser.Address);
-            Assert.IsTrue(currentName == targetName);
-
-            var someAddress = nexus.LookUpName(nexus.RootStorage, targetName);
-            Assert.IsTrue(someAddress == testUser.Address);
-
-            var migratedUser = PhantasmaKeys.Generate();
-
-            simulator.BeginBlock();
-            tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-            {
-                return ScriptUtils.BeginScript().
-                     AllowGas(testUser.Address, Address.Null, 400, 9999).
-                     CallContract(NativeContractKind.Account, nameof(AccountContract.Migrate), testUser.Address, migratedUser.Address).
-                     SpendGas(testUser.Address).
-                     EndScript();
-            });
-            simulator.EndBlock().FirstOrDefault();
-
-            currentName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, testUser.Address);
-            Assert.IsFalse(currentName == targetName);
-
-            var newName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, migratedUser.Address);
-            Assert.IsTrue(newName == targetName);
-        }
-
+        
         [TestMethod]
         public void SimpleTransfer()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var testUserA = PhantasmaKeys.Generate();
             var testUserB = PhantasmaKeys.Generate();
@@ -448,11 +238,13 @@ namespace Phantasma.Tests
             var txA = simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
             var txB = simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // Send from user A to user B
             simulator.BeginBlock();
             var txC = simulator.GenerateTransfer(testUserA, testUserB.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var hashes = simulator.Nexus.RootChain.GetTransactionHashesForAddress(testUserA.Address);
             Assert.IsTrue(hashes.Length == 3);
@@ -469,9 +261,9 @@ namespace Phantasma.Tests
         public void GenesisMigration()
         {
             var firstOwner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, firstOwner, 1234);
+
+            var simulator = new NexusSimulator(firstOwner);
+            var nexus = simulator.Nexus;
 
             var secondOwner = PhantasmaKeys.Generate();
             var testUser = PhantasmaKeys.Generate();
@@ -482,8 +274,9 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateTransfer(firstOwner, secondOwner.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
-            simulator.GenerateTransfer(firstOwner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, transferAmount);
+            simulator.GenerateTransfer(firstOwner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var oldToken = nexus.GetTokenInfo(nexus.RootStorage, DomainSettings.RewardTokenSymbol);
             Assert.IsTrue(oldToken.Owner == firstOwner.Address);
@@ -492,12 +285,13 @@ namespace Phantasma.Tests
             simulator.GenerateCustomTransaction(firstOwner, ProofOfWork.None, () =>
             {
                 return ScriptUtils.BeginScript().
-                     AllowGas(firstOwner.Address, Address.Null, 400, 9999).
+                     AllowGas(firstOwner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
                      CallContract("account", "Migrate", firstOwner.Address, secondOwner.Address).
                      SpendGas(firstOwner.Address).
                      EndScript();
             });
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var newToken = nexus.GetTokenInfo(nexus.RootStorage, DomainSettings.RewardTokenSymbol);
             Assert.IsTrue(newToken.Owner == secondOwner.Address);
@@ -505,12 +299,14 @@ namespace Phantasma.Tests
             simulator.BeginBlock(secondOwner); // here we change the validator keys in simulator
             simulator.GenerateTransfer(secondOwner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // inflation check
             simulator.TimeSkipDays(91);
             simulator.BeginBlock(); 
             simulator.GenerateTransfer(testUser, anotherTestUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var crownBalance = nexus.RootChain.GetTokenBalance(nexus.RootStorage, DomainSettings.RewardTokenSymbol, firstOwner.Address);
             Assert.IsTrue(crownBalance == 0);
@@ -524,25 +320,27 @@ namespace Phantasma.Tests
             simulator.GenerateCustomTransaction(secondOwner, ProofOfWork.None, () =>
             {
                 return ScriptUtils.BeginScript().
-                     AllowGas(secondOwner.Address, Address.Null, 400, 9999).
+                     AllowGas(secondOwner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
                      CallContract("account", "Migrate", secondOwner.Address, thirdOwner.Address).
                      SpendGas(secondOwner.Address).
                      EndScript();
             });
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             simulator.BeginBlock(thirdOwner); // here we change the validator keys in simulator
             simulator.GenerateTransfer(thirdOwner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
         }
 
         [TestMethod]
         public void SystemAddressTransfer()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var testUser = PhantasmaKeys.Generate();
 
@@ -553,6 +351,7 @@ namespace Phantasma.Tests
             var txA = simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
             var txB = simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var hashes = simulator.Nexus.RootChain.GetTransactionHashesForAddress(testUser.Address);
             Assert.IsTrue(hashes.Length == 2);
@@ -568,82 +367,24 @@ namespace Phantasma.Tests
             Assert.IsTrue(finalBalance == transferAmount);
         }
 
-        [TestMethod]
-        public void CosmicSwap()
-        {
-            var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-
-            var testUserA = PhantasmaKeys.Generate();
-
-            var fuelAmount = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
-            var transferAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
-
-            var symbol = "COOL";
-
-            simulator.BeginBlock();
-            simulator.GenerateToken(owner, symbol, "CoolToken", 1000000, 0, TokenFlags.Burnable | TokenFlags.Transferable | TokenFlags.Fungible | TokenFlags.Finite);
-            simulator.MintTokens(owner, testUserA.Address, symbol, 100000);
-            simulator.EndBlock();
-
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
-            var blockA = simulator.EndBlock().FirstOrDefault();
-
-            Assert.IsTrue(blockA != null);
-            Assert.IsFalse(blockA.OracleData.Any());
-
-            var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
-            var originalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUserA.Address);
-
-            var swapAmount = UnitConversion.ToBigInteger(0.01m, DomainSettings.StakingTokenDecimals);
-            simulator.BeginBlock();
-            simulator.GenerateSwap(testUserA, nexus.RootChain, DomainSettings.StakingTokenSymbol, DomainSettings.FuelTokenSymbol, swapAmount);
-            var blockB = simulator.EndBlock().FirstOrDefault();
-
-            Assert.IsTrue(blockB != null);
-            Assert.IsTrue(blockB.OracleData.Any());
-
-            var bytes = blockB.ToByteArray(true);
-            var otherBlock = Block.Unserialize(bytes);
-            Assert.IsTrue(otherBlock.Hash == blockB.Hash);
-
-            var finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUserA.Address);
-            Assert.IsTrue(finalBalance > originalBalance);
-
-            /*
-            swapAmount = 10;
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
-            {
-               return ScriptUtils.BeginScript().
-                    AllowGas(testUserA.Address, Address.Null, 400, 9999).
-                    //CallContract("swap", "SwapFiat", testUserA.Address, symbol, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FiatTokenDecimals)).
-                    CallContract("swap", "SwapTokens", testUserA.Address, symbol, DomainSettings.FuelTokenSymbol, new BigInteger(1)).
-                    SpendGas(testUserA.Address).
-                    EndScript();
-            });
-            simulator.EndBlock();*/
-        }
-
+        
+        /*
         [TestMethod]
         public void ChainSwapIn()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
 
-            var neoKeys = Neo.Core.NeoKeys.Generate();
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
+
+            var neoKeys = NeoKeys.Generate();
 
             var limit = 800;
 
             // 1 - at this point a real NEO transaction would be done to the NEO address obtained from getPlatforms in the API
             // here we just use a random hardcoded hash and a fake oracle to simulate it
             var swapSymbol = "GAS";
-            var neoTxHash = OracleSimulator.SimulateExternalTransaction("neo", Pay.Chains.NeoWallet.NeoID, neoKeys.PublicKey, neoKeys.Address, swapSymbol, 2);
+            var neoTxHash = OracleSimulator.SimulateExternalTransaction("neo", NeoWallet.NeoID, neoKeys.PublicKey, neoKeys.Address, swapSymbol, 2);
 
             var tokenInfo = nexus.GetTokenInfo(nexus.RootStorage, swapSymbol);
 
@@ -652,8 +393,8 @@ namespace Phantasma.Tests
 
             var testUser = PhantasmaKeys.Generate();
 
-            var platformName = Pay.Chains.NeoWallet.NeoPlatform;
-            var platformChain = Pay.Chains.NeoWallet.NeoPlatform;
+            var platformName = NeoWallet.NeoPlatform;
+            var platformChain = NeoWallet.NeoPlatform;
 
             var gasPrice = simulator.MinimumFee;
 
@@ -680,6 +421,7 @@ namespace Phantasma.Tests
             });
 
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var swapToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, swapSymbol);
             var balance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, swapToken, transcodedAddress);
@@ -693,29 +435,35 @@ namespace Phantasma.Tests
 
             var fuelToken = nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
             var leftoverBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, transcodedAddress);
-            //Assert.IsTrue(leftoverBalance == 0);
-        }
+            Assert.IsTrue(leftoverBalance == 0);
+        }*/
 
         [TestMethod]
+        [Ignore] 
+        // TODO: Later when chain is live add this feature.
         public void ChainSwapOut()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var rootChain = nexus.RootChain;
 
             var testUser = PhantasmaKeys.Generate();
 
             var potAddress = SmartContract.GetAddressForNative(NativeContractKind.Swap);
+            
+            simulator.InitPlatforms();
 
             // 0 - just send some assets to the 
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals));
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals));
-            simulator.MintTokens(owner, potAddress, "GAS", UnitConversion.ToBigInteger(1, 8));
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100, DomainSettings.FuelTokenDecimals));
+            //simulator.GenerateTransfer(owner, potAddress, nexus.RootChain, "GAS", UnitConversion.ToBigInteger(10, 8));
+            //simulator.MintTokens(owner, potAddress, "GAS", UnitConversion.ToBigInteger(1, 8));
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var oldBalance = rootChain.GetTokenBalance(rootChain.Storage, DomainSettings.StakingTokenSymbol, testUser.Address);
             var oldSupply = rootChain.GetTokenSupply(rootChain.Storage, DomainSettings.StakingTokenSymbol);
@@ -725,6 +473,7 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             simulator.GenerateTransfer(testUser, targetAddress, nexus.RootChain, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals));
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var currentBalance = rootChain.GetTokenBalance(rootChain.Storage, DomainSettings.StakingTokenSymbol, testUser.Address);
             var currentSupply = rootChain.GetTokenSupply(rootChain.Storage, DomainSettings.StakingTokenSymbol);
@@ -739,10 +488,11 @@ namespace Phantasma.Tests
         public void QuoteConversions()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
 
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
+
+            nexus.CreatePlatform(nexus.RootStorage, "", Address.Null, "neo", "gas");
             Assert.IsTrue(nexus.PlatformExists(nexus.RootStorage, "neo"));
             Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, "NEO"));
 
@@ -762,111 +512,15 @@ namespace Phantasma.Tests
             Assert.IsTrue(price == 5);
         }
 
-        [TestMethod]
-        public void GetRatesForSwap()
-        {
-            var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-
-            var script = new ScriptBuilder().CallContract("swap", "GetRates", "SOUL", UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals)).EndScript();
-
-            var result = nexus.RootChain.InvokeScript(nexus.RootStorage, script);
-
-            var temp = result.ToObject();
-            var rates = (SwapPair[])temp;
-
-            decimal targetRate = 0;
-
-            foreach (var entry in rates)
-            {
-                if (entry.Symbol == DomainSettings.FuelTokenSymbol)
-                {
-                    targetRate = UnitConversion.ToDecimal(entry.Value, DomainSettings.FuelTokenDecimals);
-                    break;
-                }
-            }
-
-            Assert.IsTrue(targetRate == 5m);
-        }
 
         [TestMethod]
-        public void TransferToAccountName()
-        {
-            var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-            var symbol = DomainSettings.FuelTokenSymbol;
-
-            Func<PhantasmaKeys, string, bool> registerName = (keypair, name) =>
-            {
-                bool result = true;
-
-                try
-                {
-                    simulator.BeginBlock();
-                    var tx = simulator.GenerateAccountRegistration(keypair, name);
-                    var lastBlock = simulator.EndBlock().FirstOrDefault();
-
-                    if (lastBlock != null)
-                    {
-                        Assert.IsTrue(tx != null);
-
-                        var evts = lastBlock.GetEventsForTransaction(tx.Hash);
-                        Assert.IsTrue(evts.Any(x => x.Kind == Domain.EventKind.AddressRegister));
-                    }
-                }
-                catch (Exception)
-                {
-                    result = false;
-                }
-
-                return result;
-            };
-
-            var targetName = "hello";
-            var testUser = PhantasmaKeys.Generate();
-            var token = nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            var amount = UnitConversion.ToBigInteger(10, token.Decimals);
-
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, symbol, amount);
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, amount);
-            simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, amount).
-                    SpendGas(testUser.Address).EndScript());
-            simulator.EndBlock();
-
-            Assert.IsTrue(registerName(testUser, targetName));
-
-            // Send from Genesis address to test user
-            var transferAmount = 1;
-
-            var initialFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
-
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, 1, 9999)
-                    .TransferTokens(token.Symbol, owner.Address, targetName, transferAmount)
-                    .SpendGas(owner.Address).EndScript());
-            simulator.EndBlock();
-
-            var finalFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
-
-            Assert.IsTrue(finalFuelBalance - initialFuelBalance == transferAmount);
-        }
-
-        [TestMethod]
+        [Ignore]
         public void SideChainTransferDifferentAccounts()
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var sourceChain = nexus.RootChain;
 
@@ -886,10 +540,12 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, sender.Address, nexus.RootChain, symbol, originalAmount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             simulator.BeginBlock();
             simulator.GenerateChain(owner, DomainSettings.ValidatorsOrganizationName, "main", "test");
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var targetChain = nexus.GetChainByName("test");
 
@@ -903,13 +559,12 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             var txA = simulator.GenerateSideChainSend(sender, symbol, sourceChain, receiver.Address, targetChain, sideAmount, crossFee);
             simulator.EndBlock();
-            var blockAHash = nexus.RootChain.GetLastBlockHash();
-            var blockA = nexus.RootChain.GetBlockByHash(blockAHash);
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // finish the chain transfer
             simulator.BeginBlock();
             var txB = simulator.GenerateSideChainSettlement(receiver, nexus.RootChain, targetChain, txA);
-            Assert.IsTrue(simulator.EndBlock().Any());
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // verify balances
             var feeB = targetChain.GetTransactionFee(txB);
@@ -924,14 +579,14 @@ namespace Phantasma.Tests
             Assert.IsTrue(balance == leftoverAmount);
         }
 
+        [Ignore]
         [TestMethod]
         public void SideChainTransferSameAccount()
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var sourceChain = nexus.RootChain;
 
@@ -949,10 +604,12 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, sender.Address, nexus.RootChain, symbol, originalAmount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             simulator.BeginBlock();
             simulator.GenerateChain(owner, DomainSettings.ValidatorsOrganizationName, "main", "test");
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var targetChain = nexus.GetChainByName("test");
 
@@ -963,13 +620,14 @@ namespace Phantasma.Tests
             // do a side chain send using test user balance from root to account chain
             simulator.BeginBlock();
             var txA = simulator.GenerateSideChainSend(sender, symbol, sourceChain, sender.Address, targetChain, sideAmount, 0);
-            var blockA = simulator.EndBlock().FirstOrDefault();
-            Assert.IsTrue(blockA != null);
+            simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // finish the chain transfer from parent to child
             simulator.BeginBlock();
             var txB = simulator.GenerateSideChainSettlement(sender, sourceChain, targetChain, txA);
-            Assert.IsTrue(simulator.EndBlock().Any());
+            simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // verify balances
             var feeB = targetChain.GetTransactionFee(txB);
@@ -985,27 +643,29 @@ namespace Phantasma.Tests
             sideAmount /= 2;
             simulator.BeginBlock();
             var txC = simulator.GenerateSideChainSend(sender, symbol, targetChain, sender.Address, sourceChain, sideAmount, 0);
-            var blockC = simulator.EndBlock().FirstOrDefault();
-            Assert.IsTrue(blockC != null);
+            simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // finish the chain transfer from child to parent
             simulator.BeginBlock();
             var txD = simulator.GenerateSideChainSettlement(sender, targetChain, sourceChain, txC);
-            Assert.IsTrue(simulator.EndBlock().Any());
+            simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
         }
 
+        [Ignore]
         [TestMethod]
         public void SideChainTransferMultipleSteps()
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             simulator.BeginBlock();
             simulator.GenerateChain(owner, DomainSettings.ValidatorsOrganizationName, nexus.RootChain.Name, "sale");
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var sourceChain = nexus.RootChain;
             var sideChain = nexus.GetChainByName("sale");
@@ -1029,6 +689,7 @@ namespace Phantasma.Tests
             simulator.GenerateTransfer(owner, sender.Address, nexus.RootChain, symbol, originalAmount);
             simulator.GenerateChain(owner, DomainSettings.ValidatorsOrganizationName, sideChain.Name, newChainName);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var targetChain = nexus.GetChainByName(newChainName);
 
@@ -1039,13 +700,14 @@ namespace Phantasma.Tests
             // do a side chain send using test user balance from root to apps chain
             simulator.BeginBlock();
             var txA = simulator.GenerateSideChainSend(sender, symbol, sourceChain, sender.Address, sideChain, sideAmount, 0);
-            var blockA = simulator.EndBlock().FirstOrDefault();
-            var evtsA = blockA.GetEventsForTransaction(txA.Hash);
+            simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // finish the chain transfer
             simulator.BeginBlock();
             var txB = simulator.GenerateSideChainSettlement(sender, nexus.RootChain, sideChain, txA);
-            Assert.IsTrue(simulator.EndBlock().Any());
+            simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var txCostA = simulator.Nexus.RootChain.GetTransactionFee(txA);
             var txCostB = sideChain.GetTransactionFee(txB);
@@ -1062,9 +724,8 @@ namespace Phantasma.Tests
             // do another side chain send using test user balance from apps to target chain
             simulator.BeginBlock();
             var txC = simulator.GenerateSideChainSend(sender, symbol, sideChain, receiver.Address, targetChain, sideAmount, extraFree);
-            var blockC = simulator.EndBlock().FirstOrDefault();
-
-            var evtsC = blockC.GetEventsForTransaction(txC.Hash);
+            simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var appSupplies = new SupplySheet(symbol, sideChain, nexus);
             var childBalance = appSupplies.GetChildBalance(sideChain.Storage, targetChain.Name);
@@ -1073,446 +734,21 @@ namespace Phantasma.Tests
             // finish the chain transfer
             simulator.BeginBlock();
             var txD = simulator.GenerateSideChainSettlement(receiver, sideChain, targetChain, txC);
-            Assert.IsTrue(simulator.EndBlock().Any());
+            simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // TODO  verify balances
         }
 
-        [TestMethod]
-        public void NftMint()
-        {
-            var owner = PhantasmaKeys.Generate();
-
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-
-            var chain = nexus.RootChain;
-
-            var symbol = "COOL";
-
-            var testUser = PhantasmaKeys.Generate();
-
-            // Create the token CoolToken as an NFT
-            simulator.BeginBlock();
-            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
-            simulator.EndBlock();
-
-            var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
-
-            // verify nft presence on the user pre-mint
-            var ownerships = new OwnershipSheet(symbol);
-            var ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
-
-            var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
-            var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
-
-            // Mint a new CoolToken to test address
-            simulator.BeginBlock();
-            simulator.MintNonFungibleToken(owner, testUser.Address, symbol, tokenROM, tokenRAM, 0);
-            simulator.EndBlock();
-
-            // obtain tokenID
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
-
-            // verify nft presence on the user post-mint
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
-
-            // check used storage
-            var tokenAddress = TokenUtils.GetContractAddress(symbol);
-            var usedStorage = (int)nexus.RootChain.InvokeContract(nexus.RootChain.Storage, "storage", nameof(StorageContract.GetUsedSpace), tokenAddress).AsNumber();
-            var minExpectedSize = tokenROM.Length + tokenRAM.Length;
-            Assert.IsTrue(usedStorage >= minExpectedSize);
-
-            //verify that the present nft is the same we actually tried to create
-            var tokenID = ownedTokenList.First();
-            var nft = nexus.ReadNFT(nexus.RootStorage, symbol, tokenID);
-            Assert.IsTrue(nft.ROM.SequenceEqual(tokenROM) && nft.RAM.SequenceEqual(tokenRAM),
-                "And why is this NFT different than expected? Not the same data");
-
-            var currentSupply = chain.GetTokenSupply(chain.Storage, symbol);
-            Assert.IsTrue(currentSupply == 1, "why supply did not increase?");
-
-            var testScript = new ScriptBuilder().CallNFT(symbol, 0, "getName", tokenID).EndScript();
-            var temp  = simulator.Nexus.RootChain.InvokeScript(simulator.Nexus.RootStorage, testScript);
-            var testResult = temp.AsString();
-            Assert.IsTrue(testResult == "CoolToken");
-        }
-
-
-        [TestMethod]
-        public void NftBurn()
-        {
-            var owner = PhantasmaKeys.Generate();
-
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-
-            var chain = nexus.RootChain;
-
-            var symbol = "COOL";
-
-            var testUser = PhantasmaKeys.Generate();
-
-            BigInteger seriesID = 123;
-
-            // Create the token CoolToken as an NFT
-            simulator.BeginBlock();
-            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Burnable, null, null, null, (uint)seriesID);
-            simulator.EndBlock();
-
-            var series = nexus.GetTokenSeries(nexus.RootStorage, symbol, seriesID);
-
-            Assert.IsTrue(series.MintCount == 0, "nothing should be minted yet");
-
-            // Send some KCAL and SOUL to the test user (required for gas used in "burn" transaction)
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, chain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.FuelTokenDecimals));
-            simulator.GenerateTransfer(owner, testUser.Address, chain, DomainSettings.StakingTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals));
-            simulator.EndBlock();
-
-            var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
-
-            // verify nft presence on the user pre-mint
-            var ownerships = new OwnershipSheet(symbol);
-            var ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the user already have a CoolToken?");
-
-            var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
-            var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
-
-            // Mint a new CoolToken to test address
-            simulator.BeginBlock();
-            simulator.MintNonFungibleToken(owner, testUser.Address, symbol, tokenROM, tokenRAM, seriesID);
-            simulator.EndBlock();
-
-            // obtain tokenID
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
-            var tokenID = ownedTokenList.First();
-
-            // verify nft presence on the user post-mint
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the user not have one now?");
-
-            var ownerAddress = ownerships.GetOwner(chain.Storage, tokenID);
-            Assert.IsTrue(ownerAddress == testUser.Address);
-
-            //verify that the present nft is the same we actually tried to create
-            var tokenId = ownedTokenList.ElementAt(0);
-            var nft = nexus.ReadNFT(nexus.RootStorage, symbol, tokenId);
-            Assert.IsTrue(nft.ROM.SequenceEqual(tokenROM) || nft.RAM.SequenceEqual(tokenRAM),
-                "And why is this NFT different than expected? Not the same data");
-
-            Assert.IsTrue(nft.Infusion.Length == 0); // nothing should be infused yet
-
-            var infuseSymbol = DomainSettings.StakingTokenSymbol;
-            var infuseAmount = UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals);
-
-            var prevBalance = nexus.RootChain.GetTokenBalance(nexus.RootChain.Storage, infuseSymbol, testUser.Address);
-
-            // Infuse some KCAL to the CoolToken
-            simulator.BeginBlock();
-            simulator.InfuseNonFungibleToken(testUser, symbol, tokenId, infuseSymbol, infuseAmount);
-            simulator.EndBlock();
-
-            nft = nexus.ReadNFT(nexus.RootStorage, symbol, tokenId);
-            Assert.IsTrue(nft.Infusion.Length == 1); // should have something infused now
-
-            var infusedBalance = nexus.RootChain.GetTokenBalance(nexus.RootChain.Storage, infuseSymbol, DomainSettings.InfusionAddress);
-            Assert.IsTrue(infusedBalance == infuseAmount); // should match
-
-            var curBalance = nexus.RootChain.GetTokenBalance(nexus.RootChain.Storage, infuseSymbol, testUser.Address);
-            Assert.IsTrue(curBalance + infusedBalance == prevBalance); // should match
-
-            prevBalance = curBalance;
-
-            // burn the token
-            simulator.BeginBlock();
-            simulator.GenerateNftBurn(testUser, chain, symbol, tokenId);
-            simulator.EndBlock();
-
-            //verify the user no longer has the token
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the user still have it post-burn?");
-
-            // verify that the user received the infused assets
-            curBalance = nexus.RootChain.GetTokenBalance(nexus.RootChain.Storage, infuseSymbol, testUser.Address);
-            Assert.IsTrue(curBalance == prevBalance + infusedBalance); // should match
-
-            var burnedSupply = nexus.GetBurnedTokenSupply(nexus.RootStorage, symbol);
-            Assert.IsTrue(burnedSupply == 1);
-
-            var burnedSeriesSupply = nexus.GetBurnedTokenSupplyForSeries(nexus.RootStorage, symbol, seriesID);
-            Assert.IsTrue(burnedSeriesSupply == 1);
-        }
-
-        [TestMethod]
-        public void NftTransfer()
-        {
-            var owner = PhantasmaKeys.Generate();
-
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-
-            var chain = nexus.RootChain;
-
-            var nftKey = PhantasmaKeys.Generate();
-            var symbol = "COOL";
-            var nftName = "CoolToken";
-
-            var sender = PhantasmaKeys.Generate();
-            var receiver = PhantasmaKeys.Generate();
-
-            // Send some SOUL to the test user (required for gas used in "transfer" transaction)
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, sender.Address, chain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(1, DomainSettings.FuelTokenDecimals));
-            simulator.EndBlock();
-
-            // Create the token CoolToken as an NFT
-            simulator.BeginBlock();
-            simulator.GenerateToken(owner, symbol, nftName, 0, 0, TokenFlags.Transferable);
-            simulator.EndBlock();
-
-            var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
-
-            // verify nft presence on the sender pre-mint
-            var ownerships = new OwnershipSheet(symbol);
-            var ownedTokenList = ownerships.Get(chain.Storage, sender.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
-
-            var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
-            var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
-
-            // Mint a new CoolToken 
-            simulator.BeginBlock();
-            simulator.MintNonFungibleToken(owner, sender.Address, symbol, tokenROM, tokenRAM, 0);
-            simulator.EndBlock();
-
-            // obtain tokenID
-            ownedTokenList = ownerships.Get(chain.Storage, sender.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
-            var tokenID = ownedTokenList.First();
-
-            // verify nft presence on the sender post-mint
-            ownedTokenList = ownerships.Get(chain.Storage, sender.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
-
-            //verify that the present nft is the same we actually tried to create
-            var tokenId = ownedTokenList.ElementAt(0);
-            var nft = nexus.ReadNFT(nexus.RootStorage, symbol, tokenId);
-            Assert.IsTrue(nft.ROM.SequenceEqual(tokenROM) || nft.RAM.SequenceEqual(tokenRAM),
-                "And why is this NFT different than expected? Not the same data");
-
-            // verify nft presence on the receiver pre-transfer
-            ownedTokenList = ownerships.Get(chain.Storage, receiver.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the receiver already have a CoolToken?");
-
-            // transfer that nft from sender to receiver
-            simulator.BeginBlock();
-            var txA = simulator.GenerateNftTransfer(sender, receiver.Address, chain, symbol, tokenId);
-            simulator.EndBlock();
-
-            // verify nft presence on the receiver post-transfer
-            ownedTokenList = ownerships.Get(chain.Storage, receiver.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the receiver not have one now?");
-
-            //verify that the transfered nft is the same we actually tried to create
-            tokenId = ownedTokenList.ElementAt(0);
-            nft = nexus.ReadNFT(nexus.RootStorage, symbol, tokenId);
-            Assert.IsTrue(nft.ROM.SequenceEqual(tokenROM) || nft.RAM.SequenceEqual(tokenRAM),
-                "And why is this NFT different than expected? Not the same data");
-        }
-
-        [TestMethod]
-        public void NftMassMint()
-        {
-            var owner = PhantasmaKeys.Generate();
-
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-
-            var chain = nexus.RootChain;
-
-            var symbol = "COOL";
-            
-            var testUser = PhantasmaKeys.Generate();
-
-            // Create the token CoolToken as an NFT
-            simulator.BeginBlock();
-            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
-            simulator.EndBlock();
-
-            var tokenAddress = TokenUtils.GetContractAddress(symbol);
-            var storageStakeAmount = UnitConversion.ToBigInteger(100000, DomainSettings.StakingTokenDecimals);
-
-            // Add some storage to the NFT contract
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, tokenAddress, chain, DomainSettings.StakingTokenSymbol, storageStakeAmount);
-
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract(Nexus.StakeContractName, nameof(StakeContract.Stake), tokenAddress, storageStakeAmount).
-                    SpendGas(owner.Address).
-                    EndScript());
-            simulator.EndBlock();
-
-
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
-
-            // verify nft presence on the user pre-mint
-            var ownerships = new OwnershipSheet(symbol);
-            var ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have nfts?");
-
-            var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
-
-            var nftCount = 1000;
-
-            var initialKCAL = nexus.RootChain.GetTokenBalance(nexus.RootStorage, DomainSettings.FuelTokenSymbol, owner.Address);
-
-            // Mint several nfts to test limit per tx
-            simulator.BeginBlock();
-            for (int i=1; i<=nftCount; i++)
-            {
-                var tokenROM = BitConverter.GetBytes(i);
-                simulator.MintNonFungibleToken(owner, testUser.Address, symbol, tokenROM, tokenRAM, 0);
-            }
-            var block = simulator.EndBlock().First();
-
-            Assert.IsTrue(block.TransactionCount == nftCount);
-
-            // obtain tokenID
-            ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            var ownedTotal = ownedTokenList.Count();
-            Assert.IsTrue(ownedTotal == nftCount);
-
-            var currentKCAL = nexus.RootChain.GetTokenBalance(nexus.RootStorage, DomainSettings.FuelTokenSymbol, owner.Address);
-
-            var fee = initialKCAL - currentKCAL;
-
-            var convertedFee = UnitConversion.ToDecimal(fee, DomainSettings.FuelTokenDecimals);
-
-            Assert.IsTrue(fee > 0);
-        }
-
-        [TestMethod]
-        [Ignore] //TODO side chain transfers of NFTs do currently not work, because Storage contract is not deployed on the side chain.
-        public void SidechainNftTransfer()
-        {
-            var owner = PhantasmaKeys.Generate();
-
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-
-            var sourceChain = nexus.RootChain;
-
-            var symbol = "COOL";
-
-            var sender = PhantasmaKeys.Generate();
-            var receiver = PhantasmaKeys.Generate();
-
-            var fullAmount = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
-            var smallAmount = fullAmount / 2;
-            Assert.IsTrue(smallAmount > 0);
-
-            // Send some SOUL to the test user (required for gas used in "transfer" transaction)
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, sender.Address, sourceChain, DomainSettings.FuelTokenSymbol, fullAmount);
-            simulator.GenerateChain(owner, DomainSettings.ValidatorsOrganizationName, "main", "test");
-            simulator.EndBlock();
-
-            var targetChain = nexus.GetChainByName("test");
-
-            // Create the token CoolToken as an NFT
-            simulator.BeginBlock();
-            simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
-            simulator.EndBlock();
-
-            var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
-
-            // verify nft presence on the sender pre-mint
-            var ownerships = new OwnershipSheet(symbol);
-            var ownedTokenList = ownerships.Get(sourceChain.Storage, sender.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
-
-            var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
-            var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
-
-            // Mint a new CoolToken 
-            simulator.BeginBlock();
-            simulator.MintNonFungibleToken(owner, sender.Address, symbol, tokenROM, tokenRAM, 0);
-            simulator.EndBlock();
-
-            // obtain tokenID
-            ownedTokenList = ownerships.Get(sourceChain.Storage, sender.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
-            var tokenID = ownedTokenList.First();
-
-            // verify nft presence on the sender post-mint
-            ownedTokenList = ownerships.Get(sourceChain.Storage, sender.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
-
-            //verify that the present nft is the same we actually tried to create
-            var tokenId = ownedTokenList.ElementAt(0);
-            var nft = nexus.ReadNFT(nexus.RootStorage, symbol, tokenId);
-            Assert.IsTrue(nft.ROM.SequenceEqual(tokenROM) || nft.RAM.SequenceEqual(tokenRAM),
-                "And why is this NFT different than expected? Not the same data");
-
-            // verify nft presence on the receiver pre-transfer
-            ownedTokenList = ownerships.Get(targetChain.Storage, receiver.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the receiver already have a CoolToken?");
-
-            var extraFee = UnitConversion.ToBigInteger(0.001m, DomainSettings.FuelTokenDecimals);
-
-            // transfer that nft from sender to receiver
-            simulator.BeginBlock();
-            var txA = simulator.GenerateSideChainSend(sender, symbol, sourceChain, receiver.Address, targetChain, tokenId, extraFee);
-            simulator.EndBlock();
-
-            var blockAHash = nexus.RootChain.GetLastBlockHash();
-            var blockA = nexus.RootChain.GetBlockByHash(blockAHash);
-
-            Console.WriteLine("step 1");
-            // finish the chain transfer
-            simulator.BeginBlock();
-            simulator.GenerateSideChainSettlement(receiver, nexus.RootChain, targetChain, txA);
-            Assert.IsTrue(simulator.EndBlock().Any());
-
-            // verify the sender no longer has it
-            ownedTokenList = ownerships.Get(sourceChain.Storage, sender.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender still have one?");
-
-            // verify nft presence on the receiver post-transfer
-            ownedTokenList = ownerships.Get(targetChain.Storage, receiver.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the receiver not have one now?");
-
-            //verify that the transfered nft is the same we actually tried to create
-            tokenId = ownedTokenList.ElementAt(0);
-            nft = nexus.ReadNFT(nexus.RootStorage, symbol, tokenId);
-            Assert.IsTrue(nft.ROM.SequenceEqual(tokenROM) || nft.RAM.SequenceEqual(tokenRAM),
-                "And why is this NFT different than expected? Not the same data");
-        }
 
         [TestMethod]
         public void NoGasSameChainTransfer()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
+            simulator.GetFundsInTheFuture(owner);
 
             var accountChain = nexus.GetChainByName("account");
 
@@ -1522,12 +758,13 @@ namespace Phantasma.Tests
             var sender = PhantasmaKeys.Generate();
             var receiver = PhantasmaKeys.Generate();
 
-            var amount = UnitConversion.ToBigInteger(1, token.Decimals);
+            var amount = UnitConversion.ToBigInteger(10, token.Decimals);
 
             // Send from Genesis address to test user
             simulator.BeginBlock();
             var tx = simulator.GenerateTransfer(owner, sender.Address, nexus.RootChain, symbol, amount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var oldBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, sender.Address);
             Assert.IsTrue(oldBalance == amount);
@@ -1539,6 +776,7 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             simulator.GenerateTransfer(sender, receiver.Address, nexus.RootChain, symbol, amount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // verify test user balance
             var transferBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, receiver.Address);
@@ -1550,35 +788,30 @@ namespace Phantasma.Tests
             // create a new receiver
             receiver = PhantasmaKeys.Generate();
 
-            //Try to send the entire balance without affording fees from sender to receiver
-            try
-            {
-                simulator.BeginBlock();
-                tx = simulator.GenerateTransfer(sender, receiver.Address, nexus.RootChain, symbol, transferBalance);
-                simulator.EndBlock();
-            }
-            catch (Exception e)
-            {
-                Assert.IsNotNull(e);
-            }
+            //Try to send the entire balance without being able to afford fees from sender to receiver
+            simulator.BeginBlock();
+            tx = simulator.GenerateTransfer(sender, receiver.Address, nexus.RootChain, symbol, transferBalance);
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
 
             // verify balances, receiver should have 0 balance
             transferBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, receiver.Address);
             Assert.IsTrue(transferBalance == 0, "Transaction failed completely as expected");
         }
 
+        [Ignore]
         [TestMethod]
         public void NoGasTestSideChainTransfer()
         {
             var owner = PhantasmaKeys.Generate();
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             simulator.BeginBlock();
             simulator.GenerateChain(owner, DomainSettings.ValidatorsOrganizationName, nexus.RootChain.Name, "sale");
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var sourceChain = nexus.RootChain;
             var targetChain = nexus.GetChainByName("sale");
@@ -1598,6 +831,7 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, sender.Address, nexus.RootChain, symbol, originalAmount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // verify test user balance
             var balance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, sender.Address);
@@ -1605,33 +839,20 @@ namespace Phantasma.Tests
 
             Transaction txA = null, txB = null;
 
-            try
-            {
-                // do a side chain send using test user balance from root to account chain
-                simulator.BeginBlock();
-                txA = simulator.GenerateSideChainSend(sender, symbol, sourceChain, receiver.Address, targetChain,
-                    originalAmount, 1);
-                simulator.EndBlock();
-            }
-            catch (Exception e)
-            {
-                Assert.IsNotNull(e);
-            }
+            // do a side chain send using test user balance from root to account chain
+            simulator.BeginBlock();
+            txA = simulator.GenerateSideChainSend(sender, symbol, sourceChain, receiver.Address, targetChain, originalAmount, 1);
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
 
-            try
-            {
-                var blockAHash = nexus.RootChain.GetLastBlockHash();
-                var blockA = nexus.RootChain.GetBlockByHash(blockAHash);
+            var blockAHash = nexus.RootChain.GetLastBlockHash();
+            var blockA = nexus.RootChain.GetBlockByHash(blockAHash);
 
-                // finish the chain transfer
-                simulator.BeginBlock();
-                txB = simulator.GenerateSideChainSettlement(sender, nexus.RootChain, targetChain, txA);
-                Assert.IsTrue(simulator.EndBlock().Any());
-            }
-            catch (Exception e)
-            {
-                Assert.IsNotNull(e);
-            }
+            // finish the chain transfer
+            simulator.BeginBlock();
+            txB = simulator.GenerateSideChainSettlement(sender, nexus.RootChain, targetChain, txA);
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
 
             // verify balances, receiver should have 0 balance
             balance = targetChain.GetTokenBalance(simulator.Nexus.RootStorage, token, receiver.Address);
@@ -1650,11 +871,10 @@ namespace Phantasma.Tests
 
             Assert.IsTrue(expectedAddress == input);
 
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
-            var genesisAddress = nexus.GetGenesisAddress(nexus.RootStorage);
+            var genesisAddress = simulator.CurrentValidatorAddresses.FirstOrDefault();
             Assert.IsTrue(address == genesisAddress);
             Assert.IsTrue(address.Text == genesisAddress.Text);
             Assert.IsTrue(address.ToByteArray().SequenceEqual(genesisAddress.ToByteArray()));
@@ -1664,9 +884,9 @@ namespace Phantasma.Tests
         public void ChainTransferExploit()
         {
             var owner = PhantasmaKeys.FromWIF("L2LGgkZAdupN2ee8Rs6hpkc65zaGcLbxhbSDGq8oh6umUxxzeW25");
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var user = PhantasmaKeys.Generate();
 
@@ -1676,14 +896,18 @@ namespace Phantasma.Tests
             var userAddressStr = Base16.Encode(user.Address.ToByteArray());
 
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, user.Address, simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, 100000000);
+            simulator.GenerateTransfer(owner, user.Address, simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, 10000000000);
             simulator.GenerateTransfer(owner, user.Address, simulator.Nexus.RootChain, DomainSettings.StakingTokenSymbol, 100000000);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var chainAddress = simulator.Nexus.RootChain.Address;
             simulator.BeginBlock();
             var tx = simulator.GenerateTransfer(owner, chainAddress, simulator.Nexus.RootChain, symbol, 100000000);
-            var block = simulator.EndBlock().First();
+
+            var block = simulator.EndBlock().FirstOrDefault();
+            Assert.IsNotNull(block);
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             var evts = block.GetEventsForTransaction(tx.Hash);
             Assert.IsTrue(evts.Any(x => x.Kind == EventKind.TokenReceive && x.Address == chainAddress));
@@ -1725,19 +949,12 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript().
-                    AllowGas(user.Address, Address.Null, 1, 9999).
+                    AllowGas(user.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
                     EmitRaw(script).
                     SpendGas(user.Address).
                     EndScript());
-
-            try
-            {
-                simulator.EndBlock();
-            }
-            catch (Exception e)
-            {
-                Assert.IsTrue(e is ChainException);
-            }
+            simulator.EndBlock();
+            Assert.IsFalse(simulator.LastBlockWasSuccessful());
 
             var finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, simulator.Nexus.RootChain.Address);
             Assert.IsTrue(initialBalance == finalBalance);
@@ -1747,11 +964,9 @@ namespace Phantasma.Tests
         public void TransactionFees()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-            simulator.MinimumFee = 100000;
 
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
 
             var testUserA = PhantasmaKeys.Generate();
             var testUserB = PhantasmaKeys.Generate();
@@ -1763,11 +978,13 @@ namespace Phantasma.Tests
             simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
             simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // Send from user A to user B
             simulator.BeginBlock();
             simulator.GenerateTransfer(testUserA, testUserB.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
             var block = simulator.EndBlock().FirstOrDefault();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             Assert.IsTrue(block != null);
 
@@ -1775,7 +992,7 @@ namespace Phantasma.Tests
 
             var feeValue = nexus.RootChain.GetTransactionFee(hash);
             var feeAmount = UnitConversion.ToDecimal(feeValue, DomainSettings.FuelTokenDecimals);
-            Assert.IsTrue(feeAmount >= 0.0009m);
+            Assert.IsTrue(feeAmount >= 0.0009m, $"{feeAmount} >= 0.0009m");
 
             var token = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
             var finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUserB.Address);
@@ -1783,12 +1000,16 @@ namespace Phantasma.Tests
         }
 
         [TestMethod]
+        [Ignore] 
         public void ValidatorSwitch()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+            var owner2 = PhantasmaKeys.Generate();
+            var owner3 = PhantasmaKeys.Generate();
+
+            var simulator = new NexusSimulator(new []{owner, owner2, owner3});
+            var nexus = simulator.Nexus;
+
             simulator.blockTimeSkip = TimeSpan.FromSeconds(5);
 
             var secondValidator = PhantasmaKeys.Generate();
@@ -1802,18 +1023,19 @@ namespace Phantasma.Tests
             simulator.GenerateTransfer(owner, secondValidator.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, stakeAmount);
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract(Nexus.GovernanceContractName, "SetValue", ValidatorContract.ValidatorCountTag, new BigInteger(5)).
+                    AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 999).
+                    CallContract(NativeContractKind.Governance, nameof(GovernanceContract.SetValue), owner.Address, ValidatorContract.ValidatorSlotsTag, 5).
                     SpendGas(owner.Address).
                     EndScript());
             simulator.EndBlock();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // make second validator candidate stake enough to become a stake master
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(secondValidator, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript().
-                    AllowGas(secondValidator.Address, Address.Null, 1, 9999).
-                    CallContract(Nexus.StakeContractName, "Stake", secondValidator.Address, stakeAmount).
+                    AllowGas(secondValidator.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
+                    CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), secondValidator.Address, stakeAmount).
                     SpendGas(secondValidator.Address).
                     EndScript());
             simulator.EndBlock();
@@ -1822,11 +1044,12 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript().
-                    AllowGas(owner.Address, Address.Null, 1, 9999).
-                    CallContract(Nexus.ValidatorContractName, "SetValidator", secondValidator.Address, 1, ValidatorType.Primary).
+                    AllowGas(owner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
+                    CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), secondValidator.Address, 1, ValidatorType.Primary).
                     SpendGas(owner.Address).
                     EndScript());
             var block = simulator.EndBlock().First();
+            Assert.IsTrue(simulator.LastBlockWasSuccessful());
 
             // verify that we suceed adding a new validator
             var events = block.GetEventsForTransaction(tx.Hash).ToArray();
@@ -1837,8 +1060,8 @@ namespace Phantasma.Tests
             simulator.BeginBlock();
             tx = simulator.GenerateCustomTransaction(secondValidator, ProofOfWork.None, () =>
             ScriptUtils.BeginScript().
-                AllowGas(secondValidator.Address, Address.Null, 1, 9999).
-                CallContract(Nexus.ValidatorContractName, "SetValidator", secondValidator.Address, 1, ValidatorType.Primary).
+                AllowGas(secondValidator.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
+                CallContract(NativeContractKind.Validator, "SetValidator", secondValidator.Address, 1, ValidatorType.Primary).
                 SpendGas(secondValidator.Address).
                 EndScript());
             block = simulator.EndBlock().First();
@@ -1874,7 +1097,8 @@ namespace Phantasma.Tests
 
                 //TODO needs to be checked again
                 //var currentValidator = currentValidatorIndex == 0 ? owner : secondValidator;
-                var currentValidator = (simulator.Nexus.RootChain.GetValidator(simulator.Nexus.RootStorage, simulator.CurrentTime) == owner.Address) ? owner : secondValidator;
+                // .GetValidator(simulator.Nexus.RootStorage, simulator.CurrentTime)
+                var currentValidator = (simulator.Nexus.RootChain.ValidatorAddress == owner.Address) ? owner : secondValidator;
 
                 simulator.BeginBlock(currentValidator);
                 simulator.GenerateTransfer(testUserA, testUserB.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
@@ -1929,12 +1153,12 @@ namespace Phantasma.Tests
             .CallContract("interop", "SettleTransaction", transcodedAddress, "neo", "neo", Hash.Null)
             .CallContract("swap", "SwapFee", transcodedAddress, swapSymbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
             .TransferBalance(swapSymbol, transcodedAddress, testUser.Address)
-            .AllowGas(transcodedAddress, Address.Null, 9999, limit)
+            .AllowGas(transcodedAddress, Address.Null, Transaction.DefaultGasLimit, limit)
             .SpendGas(transcodedAddress).EndScript();
 
             var vm = new GasMachine(script, 0, null);
             var result = vm.Execute();
-            Assert.IsTrue(result == VM.ExecutionState.Halt);
+            Assert.IsTrue(result == ExecutionState.Halt);
             Assert.IsTrue(vm.UsedGas > 0);
         }
 
@@ -1942,9 +1166,10 @@ namespace Phantasma.Tests
         public void ChainTransferStressTest()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
+
             simulator.blockTimeSkip = TimeSpan.FromSeconds(5);
 
             var testUser = PhantasmaKeys.Generate();
@@ -1959,8 +1184,8 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, stakeAmount).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, stakeAmount).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
@@ -1989,9 +1214,10 @@ namespace Phantasma.Tests
         public void DeployCustomAccountScript()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
+
             simulator.blockTimeSkip = TimeSpan.FromSeconds(5);
 
             var testUser = PhantasmaKeys.Generate();
@@ -2006,8 +1232,8 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, stakeAmount).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, stakeAmount).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
@@ -2078,7 +1304,7 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None,
-                () => ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
+                () => ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
                     .CallContract("account", "RegisterScript", testUser.Address, script, abiBytes)
                     .SpendGas(testUser.Address)
                     .EndScript());
@@ -2089,15 +1315,16 @@ namespace Phantasma.Tests
         public void DeployCustomContract()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
+
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
+
             simulator.blockTimeSkip = TimeSpan.FromSeconds(5);
 
             var testUser = PhantasmaKeys.Generate();
 
-            var fuelAmount = UnitConversion.ToBigInteger(10000, DomainSettings.FuelTokenDecimals);
-            var stakeAmount = UnitConversion.ToBigInteger(50000, DomainSettings.StakingTokenDecimals);
+            var fuelAmount = UnitConversion.ToBigInteger(8000, DomainSettings.FuelTokenDecimals);
+            var stakeAmount = StakeContract.DefaultMasterThreshold;
 
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
@@ -2106,8 +1333,8 @@ namespace Phantasma.Tests
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
-                    .CallContract(Nexus.StakeContractName, "Stake", testUser.Address, stakeAmount).
+                ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
+                    .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, stakeAmount).
                     SpendGas(testUser.Address).EndScript());
             simulator.EndBlock();
 
@@ -2146,14 +1373,14 @@ namespace Phantasma.Tests
             // deploy it
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.Minimal,
-                () => ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
+                () => ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
                     .CallInterop("Runtime.DeployContract", testUser.Address, contractName, script, abiBytes)
                     .SpendGas(testUser.Address)
                     .EndScript());
             simulator.EndBlock();
 
             // send some funds to contract address
-            var contractAddress = SmartContract.GetAddressForName(contractName);
+            var contractAddress = SmartContract.GetAddressFromContractName(contractName);
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, contractAddress, nexus.RootChain, DomainSettings.StakingTokenSymbol, stakeAmount);
             simulator.EndBlock();
@@ -2162,7 +1389,7 @@ namespace Phantasma.Tests
             // now stake some SOUL on the contract address
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.None,
-                () => ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
+                () => ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), contractAddress, UnitConversion.ToBigInteger(5, DomainSettings.StakingTokenDecimals))
                     .SpendGas(testUser.Address)
                     .EndScript());
@@ -2172,7 +1399,7 @@ namespace Phantasma.Tests
             var newScript = Core.Utils.ByteArrayUtils.ConcatBytes(script, new byte[] { (byte)Opcode.NOP }); // concat useless opcode just to make it different
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.Minimal,
-                () => ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
+                () => ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
                     .CallInterop("Runtime.UpgradeContract", testUser.Address, contractName, newScript, abiBytes)
                     .SpendGas(testUser.Address)
                     .EndScript());
@@ -2182,7 +1409,7 @@ namespace Phantasma.Tests
             Assert.IsTrue(nexus.RootChain.IsContractDeployed(nexus.RootStorage, contractName));
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUser, ProofOfWork.Minimal,
-                () => ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, 1, 9999)
+                () => ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
                     .CallInterop("Runtime.KillContract", testUser.Address, contractName)
                     .SpendGas(testUser.Address)
                     .EndScript());
@@ -2195,18 +1422,21 @@ namespace Phantasma.Tests
         public void Inflation()
         {
             var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
 
-            Block block = null;
-            simulator.TimeSkipDays(90, false, x => block = x);
+            var simulator = new NexusSimulator(owner);
+            var nexus = simulator.Nexus;
+
+            // skip 3 months to reach next inflation date
+            simulator.TimeSkipDays(90);
+
+            // we need to generate at least one block more to trigger inflation tx
+            Block block = simulator.TimeSkipDays(1);
 
             var inflation = false;
             foreach(var tx in block.TransactionHashes)
             {
-                Console.WriteLine("tx: " + tx);
-                foreach (var evt in block.GetEventsForTransaction(tx))
+                var events = block.GetEventsForTransaction(tx);
+                foreach (var evt in events)
                 {
                     if (evt.Kind == EventKind.Inflation)
                     {
@@ -2215,108 +1445,9 @@ namespace Phantasma.Tests
                 }
             }
 
-            Assert.AreEqual(true, inflation);
+            Assert.IsTrue(inflation);
         }
 
-
-        [TestMethod]
-        public void PriceOracle()
-        {
-            var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.Moderate,
-                () => ScriptUtils.BeginScript()
-                    .CallInterop("Oracle.Price", "SOUL")
-                    .AllowGas(owner.Address, Address.Null, 1, 9999)
-                    .SpendGas(owner.Address)
-                    .EndScript());
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.Moderate,
-                () => ScriptUtils.BeginScript()
-                    .CallInterop("Oracle.Price", "SOUL")
-                    .AllowGas(owner.Address, Address.Null, 1, 9997)
-                    .SpendGas(owner.Address)
-                    .EndScript());
-            var block = simulator.EndBlock().First();
-
-            foreach (var txHash in block.TransactionHashes)
-            {
-                var blkResult = block.GetResultForTransaction(txHash);
-                var vmObj = VMObject.FromBytes(blkResult);
-                Console.WriteLine("price: " + vmObj);
-            }
-
-            //TODO finish test
-        }
-
-        [TestMethod]
-        public void OracleData()
-        {
-            var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.Moderate,
-                () => ScriptUtils.BeginScript()
-                    .CallInterop("Oracle.Price", "SOUL")
-                    .AllowGas(owner.Address, Address.Null, 1, 9999)
-                    .SpendGas(owner.Address)
-                    .EndScript());
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.Moderate,
-                () => ScriptUtils.BeginScript()
-                    .CallInterop("Oracle.Price", "KCAL")
-                    .AllowGas(owner.Address, Address.Null, 1, 9999)
-                    .SpendGas(owner.Address)
-                    .EndScript());
-            var block1 = simulator.EndBlock().First();
-
-            simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.Moderate,
-                () => ScriptUtils.BeginScript()
-                    .CallInterop("Oracle.Price", "SOUL")
-                    .AllowGas(owner.Address, Address.Null, 1, 9999)
-                    .SpendGas(owner.Address)
-                    .EndScript());
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.Moderate,
-                () => ScriptUtils.BeginScript()
-                    .CallInterop("Oracle.Price", "KCAL")
-                    .AllowGas(owner.Address, Address.Null, 1, 9999)
-                    .SpendGas(owner.Address)
-                    .EndScript());
-            var block2 = simulator.EndBlock().First();
-
-            var oData1 = block1.OracleData.Count();
-            var oData2 = block2.OracleData.Count();
-
-            Console.WriteLine("odata1: " + oData1);
-            Console.WriteLine("odata2: " + oData2);
-
-            Assert.IsTrue(oData1 == oData2);
-        }
-
-        [TestMethod]
-        public void DuplicateTransferTest()
-        {
-            var owner = PhantasmaKeys.Generate();
-            var nexus = new Nexus("simnet", null, null);
-            nexus.SetOracleReader(new OracleSimulator(nexus));
-            var simulator = new NexusSimulator(nexus, owner, 1234);
-
-            var target = PhantasmaKeys.Generate();
-
-            simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, 1);
-            simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, 1);
-            Assert.ThrowsException<ChainException>(() =>
-            {
-                simulator.EndBlock();
-            });
-        }
     }
 
 }

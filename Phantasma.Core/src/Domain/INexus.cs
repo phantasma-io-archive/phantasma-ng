@@ -12,13 +12,9 @@ public interface INexus
     string Name { get; init; }
     IChain RootChain { get; }
     StorageContext RootStorage { get; init;  }
-    bool HasGenesis { get; set; }
-    BigInteger MaxGas { get; set; }
 
-    string NexusProtocolVersionTag { get;  }
-    string FuelPerContractDeployTag { get;  }
-    string FuelPerTokenDeployTag { get; }
-
+    bool HasGenesis();
+    void CommitGenesis(Hash hash);
     void SetOracleReader(IOracleReader oracleReader);
     void Attach(IOracleObserver observer);
     void Detach(IOracleObserver observer);
@@ -27,9 +23,9 @@ public interface INexus
     IKeyValueStoreAdapter CreateKeyStoreAdapter(string name);
     Block FindBlockByTransaction(Transaction tx);
     Block FindBlockByTransactionHash(Hash hash);
-    Address LookUpName(StorageContext storage, string name);
-    byte[] LookUpAddressScript(StorageContext storage, Address address);
-    bool HasAddressScript(StorageContext storage, Address address);
+    Address LookUpName(StorageContext storage, string name, Timestamp timestamp);
+    byte[] LookUpAddressScript(StorageContext storage, Address address, Timestamp timestamp);
+    bool HasAddressScript(StorageContext storage, Address address, Timestamp timestamp);
     SmartContract GetContractByName(StorageContext storage, string contractName);
     Transaction FindTransactionByHash(Hash hash);
     bool CreateChain(StorageContext storage, string organization, string name, string parentChainName);
@@ -48,6 +44,7 @@ public interface INexus
     OracleFeed GetFeedInfo(StorageContext storage, string name);
     IToken CreateToken(StorageContext storage, string symbol, string name, Address owner, BigInteger maxSupply, int decimals, TokenFlags flags, byte[] script, ContractInterface abi = null);
     bool TokenExists(StorageContext storage, string symbol);
+    bool IsSystemToken(string symbol);
     IToken GetTokenInfo(StorageContext storage, string symbol);
     IToken GetTokenInfo(StorageContext storage, Address contractAddress);
     void MintToken(IRuntime Runtime, IToken token, Address source, Address destination, string sourceChain, BigInteger tokenID);
@@ -61,6 +58,7 @@ public interface INexus
     void TransferToken(IRuntime Runtime, IToken token, Address source, Address destination, BigInteger tokenID, bool isInfusion = false);
     byte[] GetKeyForNFT(string symbol, BigInteger tokenID);
     byte[] GetKeyForNFT(string symbol, string key);
+    byte[] GetTokenSeriesKey(string symbol, BigInteger seriesID);
     BigInteger[] GetAllSeriesForToken(StorageContext storage, string symbol);
     TokenSeries CreateSeries(StorageContext storage, IToken token, BigInteger seriesID, BigInteger maxSupply, TokenSeriesMode mode, byte[] script, ContractInterface abi);
     TokenSeries GetTokenSeries(StorageContext storage, string symbol, BigInteger seriesID);
@@ -76,21 +74,22 @@ public interface INexus
     bool HasNFT(StorageContext storage, string symbol, BigInteger tokenID);
     void BeginInitialize(IRuntime vm, Address owner);
     void FinishInitialize(IRuntime vm, Address owner);
-    Dictionary<int, Transaction> CreateGenesisBlock(Timestamp timestamp, int version, PhantasmaKeys owner, IEnumerable<Address> initialValidators);
+    void SetInitialValidators(IEnumerable<Address> initialValidators);
+    Transaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner);
     Timestamp GetValidatorLastActivity(Address target);
-    ValidatorEntry[] GetValidators();
-    int GetPrimaryValidatorCount();
-    int GetSecondaryValidatorCount();
-    ValidatorType GetValidatorType(Address address);
-    bool IsPrimaryValidator(Address address);
-    bool IsSecondaryValidator(Address address);
-    bool IsKnownValidator(Address address);
-    BigInteger GetStakeFromAddress(StorageContext storage, Address address);
-    BigInteger GetUnclaimedFuelFromAddress(StorageContext storage, Address address);
-    Timestamp GetStakeTimestampOfAddress(StorageContext storage, Address address);
-    bool IsStakeMaster(StorageContext storage, Address address);
-    int GetIndexOfValidator(Address address);
-    ValidatorEntry GetValidatorByIndex(int index);
+    ValidatorEntry[] GetValidators(Timestamp timestamp);
+    int GetPrimaryValidatorCount(Timestamp timestamp);
+    int GetSecondaryValidatorCount(Timestamp timestamp);
+    ValidatorType GetValidatorType(Address address, Timestamp timestamp);
+    bool IsPrimaryValidator(Address address, Timestamp timestamp);
+    bool IsSecondaryValidator(Address address, Timestamp timestamp);
+    bool IsKnownValidator(Address address, Timestamp timestamp);
+    BigInteger GetStakeFromAddress(StorageContext storage, Address address, Timestamp timestamp);
+    BigInteger GetUnclaimedFuelFromAddress(StorageContext storage, Address address, Timestamp timestamp);
+    Timestamp GetStakeTimestampOfAddress(StorageContext storage, Address address, Timestamp timestamp);
+    bool IsStakeMaster(StorageContext storage, Address address, Timestamp timestamp);
+    int GetIndexOfValidator(Address address, Timestamp timestamp);
+    ValidatorEntry GetValidatorByIndex(int index, Timestamp timestamp);
     IArchive GetArchive(StorageContext storage, Hash hash);
     bool ArchiveExists(StorageContext storage, Hash hash);
     bool IsArchiveComplete(IArchive archive);
@@ -101,11 +100,10 @@ public interface INexus
     byte[] ReadArchiveBlock(IArchive archive, int blockIndex);
     void AddOwnerToArchive(StorageContext storage, IArchive archive, Address owner);
     void RemoveOwnerFromArchive(StorageContext storage, IArchive archive, Address owner);
-    BigInteger GetRelayBalance(Address address);
+    BigInteger GetRelayBalance(Address address, Timestamp timestamp);
     int CreatePlatform(StorageContext storage, string externalAddress, Address interopAddress, string name, string fuelSymbol);
     bool PlatformExists(StorageContext storage, string name);
     PlatformInfo GetPlatformInfo(StorageContext storage, string name);
-    void CreateContract(StorageContext storage, string name, byte[] script);
     bool ContractExists(StorageContext storage, string name);
     void CreateOrganization(StorageContext storage, string ID, string name, byte[] script);
     bool OrganizationExists(StorageContext storage, string name);
@@ -118,12 +116,10 @@ public interface INexus
     void RegisterPlatformAddress(StorageContext storage, string platform, Address localAddress, string externalAddress);
     bool IsPlatformAddress(StorageContext storage, Address address);
     string[] GetTokens(StorageContext storage);
-    string[] GetContracts(StorageContext storage);
     string[] GetChains(StorageContext storage);
     string[] GetPlatforms(StorageContext storage);
     string[] GetFeeds(StorageContext storage);
     string[] GetOrganizations(StorageContext storage);
-    Address GetGenesisAddress(StorageContext storage);
     Hash GetGenesisHash(StorageContext storage);
     Block GetGenesisBlock();
     bool TokenExistsOnPlatform(string symbol, string platform, StorageContext storage);
@@ -137,6 +133,5 @@ public interface INexus
     SmartContract GetTokenContract(StorageContext storage, string symbol);
     SmartContract GetTokenContract(StorageContext storage, Address contractAddress);
     uint GetProtocolVersion(StorageContext storage);
-    NativeContract GetNativeContractByAddress(Address contractAddress);
     bool IsNativeContract(string name);
 }

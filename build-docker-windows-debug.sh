@@ -29,4 +29,4 @@ cp -r "$TESTNET_ROOT"/node3/config_node3.json "$TESTNET_ROOT"/node3/publish/conf
 
 docker build -t phantasma-devnet -f DOCKER/Dockerfile .
 
-docker tag phantasma-devnet:latest phantasmaio/phantasma-devnet:$LAST_COMMIT
+docker tag phantasma-devnet:latest phantasmachain/phantasma-devnet:$LAST_COMMIT

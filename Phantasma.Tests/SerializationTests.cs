@@ -5,17 +5,14 @@ using System.Linq;
 using System.Numerics;
 using System.Collections.Generic;
 
-using Phantasma.Cryptography;
-using Phantasma.Blockchain.Contracts;
-using Phantasma.Blockchain;
 using Phantasma.Core.Types;
-using Phantasma.VM.Utils;
-using Phantasma.Numerics;
-using Phantasma.Storage;
-using Phantasma.Domain;
 using System.Text;
+using Phantasma.Core.Cryptography;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 
-namespace Phantasma.Tests
+namespace Phantasma.LegacyTests
 {
     [TestClass]
     public class SerializationTests
@@ -79,7 +76,7 @@ namespace Phantasma.Tests
 
             var chainKeys = PhantasmaKeys.Generate();
             var hashes = txs.Select(x => x.Hash);
-            uint protocol = 42;
+            uint protocol = DomainSettings.LatestKnownProtocol;
 
             var oracleEntries = new OracleEntry[]
             {
@@ -87,7 +84,8 @@ namespace Phantasma.Tests
                 new OracleEntry("test2", Encoding.UTF8.GetBytes("hello world")),
             };
 
-            var block = new Block(1, chainKeys.Address, Timestamp.Now, hashes, Hash.Null, protocol, chainKeys.Address, System.Text.Encoding.UTF8.GetBytes("TEST"), oracleEntries);
+            var block = new Block(1, chainKeys.Address, Timestamp.Now, Hash.Null, protocol, chainKeys.Address, System.Text.Encoding.UTF8.GetBytes("TEST"), oracleEntries);
+            block.AddAllTransactionHashes(hashes);
             Assert.IsTrue(block.OracleData.Length == oracleEntries.Length);
 
             int index = 0;
@@ -96,6 +94,7 @@ namespace Phantasma.Tests
                 var data = new TokenEventData(symbol, amounts[index], "main");
                 var dataBytes = Serialization.Serialize(data);
                 block.Notify(hash, new Event(EventKind.TokenSend, keysA.Address, "test", dataBytes));
+                block.SetStateForHash(hash, ExecutionState.Halt);
                 index++;
             }
 

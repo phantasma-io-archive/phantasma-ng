@@ -65,7 +65,7 @@ namespace Phantasma.Node
 
         public Node()
         {
-            this.ABCIConnector = new ABCIConnector(Settings.Default.Node.SeedValidators);
+            this.ABCIConnector = new ABCIConnector(Settings.Default.Node.SeedValidators, Settings.Default.Node.MinimumFee);
         }
 
         protected override void OnStart()
@@ -89,6 +89,7 @@ namespace Phantasma.Node
 
             if (!SetupNexus())
             {
+                Log.Information("Stopping node...");
                 this.OnStop();
                 return;
             }
@@ -225,7 +226,8 @@ namespace Phantasma.Node
             return nodeKeys;
         }
 
-        private bool SetupTendermint()
+        // NOTE - no longer started from here, instead start Tendermint externall
+        /*private bool SetupTendermint()
         {
             // TODO: Platform-specific path
             var tendermintPath = "tendermint";
@@ -255,7 +257,7 @@ namespace Phantasma.Node
             _tendermintProcess.BeginOutputReadLine();
 
             return true;
-        }
+        }*/
 
         private bool SetupNexus()
         {
@@ -264,24 +266,23 @@ namespace Phantasma.Node
             var oraclePath = Settings.Default.Node.OraclePath;
             var nexusName = Settings.Default.Node.NexusName;
             var rpcUrl = Settings.Default.Node.TendermintRPCHost+ ":" + Settings.Default.Node.TendermintRPCPort;
-            var maxGas = Settings.Default.Node.MaxGas;
 
             switch (Settings.Default.Node.StorageBackend)
             {
                 case StorageBackendType.CSV:
                     Log.Information("Setting CSV nexus...");
-                    NexusAPI.Nexus = new Nexus(nexusName, maxGas, (name) => new BasicDiskStore(storagePath + name + ".csv"));
-                    NexusAPI.TRPC = new NodeRpcClient(rpcUrl);
+                    NexusAPI.Nexus = new Nexus(nexusName, (name) => new BasicDiskStore(storagePath + name + ".csv"));
                     break;
 
                 case StorageBackendType.RocksDB:
                     Log.Information("Setting RocksDB nexus...");
-                    NexusAPI.Nexus = new Nexus(nexusName, maxGas, (name) => new DBPartition(storagePath + name));
-                    NexusAPI.TRPC = new NodeRpcClient(rpcUrl);
+                    NexusAPI.Nexus = new Nexus(nexusName, (name) => new DBPartition(storagePath + name));
                     break;
                 default:
                     throw new Exception("Backend has to be set to either \"db\" or \"file\"");
             }
+
+            NexusAPI.TRPC = new NodeRpcClient(rpcUrl);
 
             Log.Information("Nexus is set");
 

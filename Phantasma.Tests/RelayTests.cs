@@ -1,20 +1,9 @@
+/*using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Numerics;
 using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Phantasma.API;
-using Phantasma.Blockchain;
-using Phantasma.Blockchain.Contracts;
 using Phantasma.Simulator;
-using Phantasma.CodeGen.Assembler;
 using Phantasma.Core.Types;
-using Phantasma.Cryptography;
-using Phantasma.Network.P2P;
-using Phantasma.Numerics;
-using Phantasma.Storage;
-using Phantasma.VM.Utils;
-using static Phantasma.Blockchain.Contracts.RelayContract;
-using Phantasma.Domain;
 
 namespace Phantasma.Tests
 {
@@ -551,7 +540,6 @@ namespace Phantasma.Tests
 
         }
 
-        /*
         [TestMethod]
         public void TestMessageInterception()
         {
@@ -600,7 +588,6 @@ namespace Phantasma.Tests
                 //Assert.IsTrue(receiptResult.sender == messages[i].sender);
                 //Assert.IsTrue(receiptResult.timestamp == messages[i].timestamp);
         }
-        */
 
         [TestMethod]
         [Ignore]
@@ -709,103 +696,104 @@ namespace Phantasma.Tests
 
         }
 
-        //test claiming a receipt with an index gap > 1 over the last onchain receipt and verify that the sender is charged the appropriate amount
-        //[TestMethod]
-        //public void TestIndexGap()
-        //{
-        //    var test = CreateAPI();
+//test claiming a receipt with an index gap > 1 over the last onchain receipt and verify that the sender is charged the appropriate amount
+        [TestMethod]
+public void TestIndexGap()
+{
+    var test = CreateAPI();
 
-        //    var simulator = test.simulator;
-        //    var owner = test.owner;
-        //    var sender = PhantasmaKeys.Generate();
-        //    var receiver = PhantasmaKeys.Generate();
-        //    var node = PhantasmaKeys.FromWIF(nodeWIF);
-        //    var nexus = simulator.Nexus;
-        //    var api = test.api;
+    var simulator = test.simulator;
+    var owner = test.owner;
+    var sender = PhantasmaKeys.Generate();
+    var receiver = PhantasmaKeys.Generate();
+    var node = PhantasmaKeys.FromWIF(nodeWIF);
+    var nexus = simulator.Nexus;
+    var api = test.api;
 
-        //    var contractAddress = SmartContract.GetAddressForName("relay");
+    var contractAddress = SmartContract.GetAddressForName("relay");
 
-        //    simulator.BeginBlock();
-        //    simulator.GenerateTransfer(owner, sender.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 100000000);
-        //    simulator.EndBlock();
+    simulator.BeginBlock();
+    simulator.GenerateTransfer(owner, sender.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, 100000000);
+    simulator.EndBlock();
 
-        //    TopUpChannel(simulator, sender, 1000000);
+    TopUpChannel(simulator, sender, 1000000);
 
-        //    var indexGap = 5;
-        //    var messageCount = 3;
-        //    var messages = new RelayMessage[messageCount];
+    var indexGap = 5;
+    var messageCount = 3;
+    var messages = new RelayMessage[messageCount];
 
-        //    var random = new Random();
+    var random = new Random();
 
-        //    for (int i = 0; i < messageCount; i++)
-        //    {
-        //        var script = new byte[100];
-        //        random.NextBytes(script);
+    for (int i = 0; i < messageCount; i++)
+    {
+        var script = new byte[100];
+        random.NextBytes(script);
 
-        //        var message = new RelayMessage
-        //        {
-        //            nexus = nexus.Name,
-        //            index = i * indexGap,
-        //            receiver = receiver.Address, //node.Address,
-        //            script = script,
-        //            sender = sender.Address,
-        //            timestamp = Timestamp.Now
-        //        };
-        //        messages[i] = message;
+        var message = new RelayMessage
+        {
+            nexus = nexus.Name,
+            index = i * indexGap,
+            receiver = receiver.Address, //node.Address,
+            script = script,
+            sender = sender.Address,
+            timestamp = Timestamp.Now
+        };
+        messages[i] = message;
 
-        //        var receipt = RelayReceipt.FromMessage(message, sender);
-        //        string serializedHex = Base16.Encode(receipt.Serialize());
+        var receipt = RelayReceipt.FromMessage(message, sender);
+        string serializedHex = Base16.Encode(receipt.Serialize());
 
-        //        api.RelaySend(serializedHex);
-        //    }
+        api.RelaySend(serializedHex);
+    }
 
-        //    var receipts = (ArrayResult)api.RelayReceive(receiver.Address.Text);
+    var receipts = (ArrayResult)api.RelayReceive(receiver.Address.Text);
 
-        //    Assert.IsTrue(receipts.values.Length == messageCount);
+    Assert.IsTrue(receipts.values.Length == messageCount);
 
-        //    for (int i = 0; i < messageCount; i++)
-        //    {
-        //        var obj = receipts.values[i];
-        //        Assert.IsTrue(obj is ReceiptResult);
+    for (int i = 0; i < messageCount; i++)
+    {
+        var obj = receipts.values[i];
+        Assert.IsTrue(obj is ReceiptResult);
 
-        //        var receiptResult = (ReceiptResult)obj;
-        //        Assert.IsTrue(receiptResult.nexus == messages[i].nexus);
-        //        Assert.IsTrue(new BigInteger(receiptResult.index, 10) == messages[i].index);
-        //        //Assert.IsTrue(receiptResult.receiver == messages[i].receiver);
-        //        //Assert.IsTrue(receiptResult.script == messages[i].script);
-        //        //Assert.IsTrue(receiptResult.sender == messages[i].sender);
-        //        Assert.IsTrue(receiptResult.timestamp == messages[i].timestamp);
-        //    }
+        var receiptResult = (ReceiptResult)obj;
+        Assert.IsTrue(receiptResult.nexus == messages[i].nexus);
+        Assert.IsTrue(new BigInteger(receiptResult.index, 10) == messages[i].index);
+        //Assert.IsTrue(receiptResult.receiver == messages[i].receiver);
+        //Assert.IsTrue(receiptResult.script == messages[i].script);
+        //Assert.IsTrue(receiptResult.sender == messages[i].sender);
+        Assert.IsTrue(receiptResult.timestamp == messages[i].timestamp);
+    }
 
-        //    var lastMessage = messages[messageCount - 1];
-        //    var lastReceipt = RelayReceipt.FromMessage(lastMessage, sender);
+    var lastMessage = messages[messageCount - 1];
+    var lastReceipt = RelayReceipt.FromMessage(lastMessage, sender);
 
-        //    var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
+    var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
 
-        //    var senderInitialBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, sender.Address);
-        //    var chainInitialBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, contractAddress);
-        //    var receiverInitialBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, node.Address);
+    var senderInitialBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, sender.Address);
+    var chainInitialBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, contractAddress);
+    var receiverInitialBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, node.Address);
 
-        //    simulator.BeginBlock();
-        //    var tx = simulator.GenerateCustomTransaction(sender, ProofOfWork.None, () =>
-        //        ScriptUtils.BeginScript().AllowGas(sender.Address, Address.Null, 1, 9999)
-        //            .CallContract("relay", nameof(RelayContract.SettleChannel), lastReceipt).
-        //            SpendGas(sender.Address).EndScript());
-        //    simulator.EndBlock();
+    simulator.BeginBlock();
+    var tx = simulator.GenerateCustomTransaction(sender, ProofOfWork.None, () =>
+        ScriptUtils.BeginScript().AllowGas(sender.Address, Address.Null, 1, 9999)
+            .CallContract("relay", nameof(RelayContract.SettleChannel), lastReceipt).
+            SpendGas(sender.Address).EndScript());
+    simulator.EndBlock();
 
-        //    var txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
+    var txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
 
-        //    var senderFinalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, sender.Address);
-        //    var chainFinalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, contractAddress);
-        //    var receiverFinalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, receiver.Address);
+    var senderFinalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, sender.Address);
+    var chainFinalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, contractAddress);
+    var receiverFinalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, receiver.Address);
 
-        //    var expectedFee = RelayFeePerMessage * (lastReceipt.message.index + 1);
+    var expectedFee = RelayFeePerMessage * (lastReceipt.message.index + 1);
 
-        //    Assert.IsTrue(senderFinalBalance == senderInitialBalance - txCost);
-        //    Assert.IsTrue(receiverFinalBalance == receiverInitialBalance + (expectedFee / 2));
-        //    Assert.IsTrue(chainFinalBalance == chainInitialBalance - (expectedFee / 2));    //the sender's balance is escrowed in the chain address, so the chain just sends the other half of the fee away to the receiver
-        //}
+    Assert.IsTrue(senderFinalBalance == senderInitialBalance - txCost);
+    Assert.IsTrue(receiverFinalBalance == receiverInitialBalance + (expectedFee / 2));
+    Assert.IsTrue(chainFinalBalance == chainInitialBalance - (expectedFee / 2));    //the sender's balance is escrowed in the chain address, so the chain just sends the other half of the fee away to the receiver
+}
 
     }
 
 }
+*/

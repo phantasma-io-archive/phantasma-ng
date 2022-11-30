@@ -13,6 +13,7 @@ using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 using Tendermint.RPC;
 
@@ -57,6 +58,10 @@ public static class NexusAPI
         {
             throw new Exception("Nexus not available locally");
         }
+        
+        
+        if (!Nexus.HasGenesis()) throw new APIException("Nexus genesis is not setuped.");
+
     }
     public static void RequireTokenSwapper()
     {
@@ -155,7 +160,7 @@ public static class NexusAPI
             burnedSupply = burnedSupply.ToString(),
             decimals = tokenInfo.Decimals,
             flags = tokenInfo.Flags.ToString(),//.Split(',').Select(x => x.Trim()).ToArray(),
-            address = SmartContract.GetAddressForName(tokenInfo.Symbol).Text,
+            address = SmartContract.GetAddressFromContractName(tokenInfo.Symbol).Text,
             owner = tokenInfo.Owner.Text,
             script = tokenInfo.Script.Encode(),
             series = seriesList.ToArray(),
@@ -268,6 +273,10 @@ public static class NexusAPI
         var block = Nexus.FindBlockByTransaction(tx);
         var chain = block != null ? Nexus.GetChainByAddress(block.ChainAddress) : null;
 
+        Address from, target;
+        BigInteger gasPrice, gasLimit;
+        TransactionExtensions.ExtractGasDetailsFromScript(tx.Script, out from, out target, out gasPrice, out gasLimit);
+
         var result = new TransactionResult
         {
             hash = tx.Hash.ToString(),
@@ -279,11 +288,11 @@ public static class NexusAPI
             payload = tx.Payload.Encode(),
             fee = chain != null ? chain.GetTransactionFee(tx.Hash).ToString() : "0",
             state = block != null ? block.GetStateForTransaction(tx.Hash).ToString() : ExecutionState.Break.ToString(),
-            sender = tx.Sender.Text,
-            gasPayer = tx.GasPayer.Text,
-            gasTarget = tx.GasTarget.Text,
-            gasPrice = tx.GasPrice.ToString(),
-            gasLimit = tx.GasLimit.ToString(),
+            sender = Address.Null.Text,
+            gasPayer = from.Text,
+            gasTarget = target.Text,
+            gasPrice = gasPrice.ToString(),
+            gasLimit = gasLimit.ToString(),
             expiration = tx.Expiration.Value,
             signatures = tx.Signatures.Select(x => new SignatureResult() { Kind = x.Kind.ToString(), Data = Base16.Encode(x.ToByteArray()) }).ToArray(),
         };
@@ -297,6 +306,11 @@ public static class NexusAPI
             {
                 var eventEntry = FillEvent(evt);
                 eventList.Add(eventEntry);
+
+                if (evt.Kind == EventKind.GasEscrow && evt.Contract == "gas")
+                {
+                    result.sender = evt.Address.Text;
+                }
             }
 
             var txResult = block.GetResultForTransaction(tx.Hash);
@@ -481,12 +495,27 @@ public static class NexusAPI
 
         var storage = new StorageResult();
 
-        storage.used = (uint)Nexus.RootChain.InvokeContract(Nexus.RootChain.Storage, "storage", nameof(StorageContract.GetUsedSpace), address).AsNumber();
-        storage.available = (uint)Nexus.RootChain.InvokeContract(Nexus.RootChain.Storage, "storage", nameof(StorageContract.GetAvailableSpace), address).AsNumber();
+        storage.used = (uint)Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetUsedSpace), address).AsNumber();
+
+        var available = Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetAvailableSpace), address).AsNumber();
+
+        if (available < 0)
+        {
+            storage.available = 0;
+        }
+        else
+        if (available > uint.MaxValue)
+        {
+            storage.available = uint.MaxValue;
+        }
+        else
+        {
+            storage.available = (uint)available;
+        }
 
         if (storage.used > 0)
         {
-            var files = (Hash[])Nexus.RootChain.InvokeContract(Nexus.RootChain.Storage, "storage", nameof(StorageContract.GetFiles), address).ToObject();
+            var files = (Hash[])Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetFiles), address).ToObject();
 
             Hash avatarHash = Hash.Null;
             storage.archives = files.Select(x => {
@@ -530,14 +559,14 @@ public static class NexusAPI
 
         var result = new AccountResult();
         result.address = address.Text;
-        result.name = Nexus.RootChain.GetNameFromAddress(Nexus.RootStorage, address);
+        result.name = Nexus.RootChain.GetNameFromAddress(Nexus.RootStorage, address, Timestamp.Now);
 
-        var stake = Nexus.GetStakeFromAddress(Nexus.RootStorage, address);
+        var stake = Nexus.GetStakeFromAddress(Nexus.RootStorage, address, Timestamp.Now);
 
         if (stake > 0)
         {
-            var unclaimed = Nexus.GetUnclaimedFuelFromAddress(Nexus.RootStorage, address);
-            var time = Nexus.GetStakeTimestampOfAddress(Nexus.RootStorage, address);
+            var unclaimed = Nexus.GetUnclaimedFuelFromAddress(Nexus.RootStorage, address, Timestamp.Now);
+            var time = Nexus.GetStakeTimestampOfAddress(Nexus.RootStorage, address, Timestamp.Now);
             result.stakes = new StakeResult() { amount = stake.ToString(), time = time.Value, unclaimed = unclaimed.ToString() };
         }
         else
@@ -551,7 +580,7 @@ public static class NexusAPI
         result.stake = result.stakes.amount;
         result.unclaimed = result.stakes.unclaimed;
 
-        var validator = Nexus.GetValidatorType(address);
+        var validator = Nexus.GetValidatorType(address, Timestamp.Now);
 
         var balanceList = new List<BalanceResult>();
         var symbols = Nexus.GetTokens(Nexus.RootStorage);

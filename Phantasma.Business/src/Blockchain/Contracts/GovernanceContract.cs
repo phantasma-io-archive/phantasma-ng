@@ -1,4 +1,5 @@
 using System.Numerics;
+using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 
@@ -40,8 +41,6 @@ namespace Phantasma.Business.Blockchain.Contracts
 #pragma warning restore 0649
 
         public const string GasMinimumFeeTag = "governance.gas.minimumfee";
-        public static readonly BigInteger GasMinimumFeeDefault = 100000;
-        public static readonly int InitialValidatorCount = 4;
         
         public GovernanceContract() : base()
         {
@@ -133,24 +132,26 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
         }
 
-        public void CreateValue(string name, BigInteger initial, byte[] serializedConstraints)
+        public void CreateValue(Address from,  string name, BigInteger initial, byte[] serializedConstraints)
         {
             Runtime.Expect(!HasName(name), "name already exists");
-            Runtime.Expect(Runtime.IsWitness(Runtime.GenesisAddress), "genesis must be witness");
+
+            Runtime.Expect(Runtime.IsPrimaryValidator(from), $"{from.TendermintAddress} is not a validator address");
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
             var constraints = Serialization.Unserialize<ChainConstraint[]>(serializedConstraints);
             ValidateConstraints(name, 0, initial, constraints, false);
 
-            if (name == ValidatorContract.ValidatorCountTag)
+            if (name == ValidatorContract.ValidatorSlotsTag && Runtime.NexusName == DomainSettings.NexusMainnet)
             {
-                Runtime.Expect(initial == InitialValidatorCount, $"The initial number of validators must always be {InitialValidatorCount}.");
+                Runtime.Expect(initial == DomainSettings.InitialValidatorCount, $"The initial number of validators must always be {DomainSettings.InitialValidatorCount}.");
             }
 
             _valueMap.Set<string, BigInteger>(name, initial);
             _constraintMap.Set<string, ChainConstraint[]>(name, constraints);
             _nameList.Add<string>(name);
 
-            Runtime.Notify(EventKind.ValueCreate, Runtime.GenesisAddress, new ChainValueEventData() { Name = name, Value = initial });
+            Runtime.Notify(EventKind.ValueCreate, from, new ChainValueEventData() { Name = name, Value = initial });
         }
 
         //Optimized function in Nexus.OptimizedGetGovernanceValue
@@ -161,9 +162,13 @@ namespace Phantasma.Business.Blockchain.Contracts
             return value;
         }
 
-        public void SetValue(string name, BigInteger value)
+        public void SetValue(Address from, string name, BigInteger value)
         {
             Runtime.Expect(HasValue(name), "invalid value name in SetValue");
+
+            // TODO this might not be necessary here since we check for consensus below
+            Runtime.Expect(Runtime.IsPrimaryValidator(from), "must be validator address");
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
             var pollName = ConsensusContract.SystemPoll + name;
             var hasConsensus = Runtime.CallNativeContext(NativeContractKind.Consensus, nameof(ConsensusContract.HasConsensus), pollName, value).AsBool();
@@ -175,7 +180,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             _valueMap.Set<string, BigInteger>(name, value);
 
-            Runtime.Notify(EventKind.ValueUpdate, Runtime.GenesisAddress, new ChainValueEventData() { Name = name, Value = value});
+            Runtime.Notify(EventKind.ValueUpdate, from, new ChainValueEventData() { Name = name, Value = value});
         }
         #endregion
     }

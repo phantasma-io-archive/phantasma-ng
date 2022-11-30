@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
-using System.Linq;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
@@ -10,10 +9,8 @@ using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
-using Phantasma.Core.Performance;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
-using Serilog;
 using Logger = Serilog.Log;
 
 namespace Phantasma.Business.Blockchain
@@ -101,15 +98,7 @@ namespace Phantasma.Business.Blockchain
             this.ProtocolVersion = Nexus.GetProtocolVersion(this.RootStorage);
             this.MinimumFee = GetGovernanceValue(GovernanceContract.GasMinimumFeeTag);
 
-            if (this.Transaction is not null)
-            {
-                var txMaxGas = Transaction.GasPrice * Transaction.GasLimit;
-                this.MaxGas = BigInteger.Min(txMaxGas, Nexus.MaxGas);
-            }
-            else
-            {
-                this.MaxGas = Nexus.MaxGas;
-            }
+            this.MaxGas = 376;  // a minimum amount required for allowing calls to Gas contract etc
 
             ExtCalls.RegisterWithRuntime(this);
         }
@@ -142,8 +131,7 @@ namespace Phantasma.Business.Blockchain
             {
                 if (handlers.ContainsKey(method))
                 {
-                    using (var m = new ProfileMarker(method))
-                        return handlers[method](this);
+                    return handlers[method](this);
                 }
             }
 
@@ -178,6 +166,11 @@ namespace Phantasma.Business.Blockchain
             }
             catch (Exception ex)
             {
+                if (DelayPayment)
+                {
+                    throw ex;
+                }
+
                 var usedGasUntilError = this.UsedGas;
                 this.ExceptionMessage = ex.Message;
                 this.IsError = true;
@@ -186,24 +179,13 @@ namespace Phantasma.Business.Blockchain
 
                 if (!this.IsReadOnlyMode())
                 {
-                    // set the current context to entry context
-                    this.CurrentContext = FindContext(VirtualMachine.EntryContextName);
-                    var temp = DelayPayment;
-                    if (!DelayPayment)
+                    this.Notify(EventKind.ExecutionFailure, CurrentContext.Address, this.ExceptionMessage);
+
+                    if (!EnforceGasSpending())
                     {
-                        DelayPayment = true;
-                    }
-                    var allowance = this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowedGas), this.Transaction.GasPayer).AsNumber();
-                    if (allowance <= 0)
-                    {
-                        // if no allowance is given, create one
-                        this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas));
+                        throw ex; // should never happen
                     }
 
-                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
-
-                    this.Notify(EventKind.Error, Transaction.Sender, this.ExceptionMessage);
-                    DelayPayment = temp;
                     this.UsedGas = usedGasUntilError;
                 }
             }
@@ -215,28 +197,60 @@ namespace Phantasma.Business.Blockchain
                     throw new VMException(this, "VM changeset modified in read-only mode");
                 }
             }
-            else if (!IsError && PaidGas < UsedGas && Nexus.HasGenesis && !DelayPayment)
+            else if (!IsError && PaidGas < UsedGas && !DelayPayment && Nexus.HasGenesis())
             {
-                this.CurrentContext = FindContext(VirtualMachine.EntryContextName);
-                // we cannot throw here, would allow pushing failing txs without paying gas 
-                var allowance = this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowedGas), this.Transaction.GasPayer).AsNumber();
-
-                if (allowance >= UsedGas)
+                if (!EnforceGasSpending())
                 {
-                    // if we have an allowance but no spend gas call was part of the script, call spend gas anyway
-                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
-                }
-                else
-                {
-                    // if we don't have an allowance, allow gas
-                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas));
-
-                    // and call spend gas
-                    this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
+                    throw new VMException(this, "Could not enforce spendGas"); // should never happen
                 }
             }
 
             return result;
+        }
+
+        private bool EnforceGasSpending()
+        {
+            Address from, target;
+            BigInteger gasPrice, gasLimit;
+
+            if (!TransactionExtensions.ExtractGasDetailsFromScript(this.EntryScript, out from, out target, out gasPrice, out gasLimit))
+            {
+                return false;
+            }
+
+            // set the current context to entry context
+            this.CurrentContext = FindContext(VirtualMachine.EntryContextName);
+
+            // this is required, otherwise we get stuck in infinite loop
+            this.DelayPayment = true;
+
+            var allowance = this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowedGas), from).AsNumber();
+            if (allowance <= 0)
+            {
+                // if no allowance is given, create one
+                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas), from, target, gasPrice, gasLimit);
+            }
+
+            this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), from);
+
+            this.DelayPayment = false;
+
+            return true;
+
+            /*
+            if (allowance >= UsedGas)
+            {
+                // if we have an allowance but no spend gas call was part of the script, call spend gas anyway
+                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
+            }
+            else
+            {
+                // if we don't have an allowance, allow gas
+                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas));
+
+                // and call spend gas
+                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
+            }*/
         }
 
         public override ExecutionContext LoadContext(string contextName)
@@ -345,11 +359,13 @@ namespace Phantasma.Business.Blockchain
             ExpectScriptLength(bytes, nameof(bytes));
             ExpectNameLength(contract, nameof(contract));
 
+            var nativeContract = contract.FindNativeContractKindByName();
+
             switch (kind)
             {
                 case EventKind.GasEscrow:
                     {
-                        Expect(contract == ContractNames.GasContractName, $"event kind only in {ContractNames.GasContractName} contract");
+                        Expect(nativeContract == NativeContractKind.Gas, $"event kind only in {NativeContractKind.Gas} contract");
 
                         var gasInfo = Serialization.Unserialize<GasEventData>(bytes);
                         Expect(gasInfo.price >= this.MinimumFee, $"gas fee is too low {gasInfo.price} >= {this.MinimumFee}");
@@ -361,7 +377,7 @@ namespace Phantasma.Business.Blockchain
 
                 case EventKind.GasPayment:
                     {
-                        Expect(contract == ContractNames.GasContractName, $"event kind only in {ContractNames.GasContractName} contract");
+                        Expect(nativeContract == NativeContractKind.Gas, $"event kind only in {NativeContractKind.Gas} contract");
 
                         Expect(!address.IsNull, "invalid gas payment address");
                         var gasInfo = Serialization.Unserialize<GasEventData>(bytes);
@@ -371,13 +387,13 @@ namespace Phantasma.Business.Blockchain
                     }
 
                 case EventKind.ValidatorSwitch:
-                    Expect(contract == ContractNames.BlockContractName, $"event kind only in {ContractNames.BlockContractName} contract");
+                    Expect(nativeContract == NativeContractKind.Block, $"event kind only in {NativeContractKind.Block} contract");
                     break;
 
                 case EventKind.PollCreated:
                 case EventKind.PollClosed:
                 case EventKind.PollVote:
-                    Expect(contract == ContractNames.ConsensusContractName, $"event kind only in {ContractNames.ConsensusContractName} contract");
+                    Expect(nativeContract == NativeContractKind.Consensus, $"event kind only in {NativeContractKind.Consensus} contract");
                     break;
 
                 case EventKind.ChainCreate:
@@ -388,18 +404,18 @@ namespace Phantasma.Business.Blockchain
 
                 case EventKind.FileCreate:
                 case EventKind.FileDelete:
-                    Expect(contract == ContractNames.StorageContractName, $"event kind only in {ContractNames.StorageContractName } contract");
+                    Expect(nativeContract == NativeContractKind.Storage, $"event kind only in {NativeContractKind.Storage} contract");
                     break;
 
                 case EventKind.ValidatorPropose:
                 case EventKind.ValidatorElect:
                 case EventKind.ValidatorRemove:
-                    Expect(contract == ContractNames.ValidatorContractName, $"event kind only in {ContractNames.ValidatorContractName} contract");
+                    Expect(nativeContract == NativeContractKind.Validator, $"event kind only in {NativeContractKind.Validator} contract");
                     break;
 
                 case EventKind.ValueCreate:
                 case EventKind.ValueUpdate:
-                    Expect(contract == ContractNames.GovernanceContractName, $"event kind only in {ContractNames.GovernanceContractName} contract");
+                    Expect(nativeContract == NativeContractKind.Governance, $"event kind only in {NativeContractKind.Governance} contract");
                     break;
 
                 case EventKind.Inflation:
@@ -408,7 +424,7 @@ namespace Phantasma.Business.Blockchain
 
                     if (inflationSymbol == DomainSettings.StakingTokenSymbol)
                     {
-                        Expect(contract == ContractNames.GasContractName, $"event kind only in {ContractNames.GasContractName} contract");
+                        Expect(nativeContract == NativeContractKind.Gas, $"event kind only in {NativeContractKind.Gas} contract");
                     }
                     else
                     {
@@ -416,8 +432,9 @@ namespace Phantasma.Business.Blockchain
                     }
 
                     break;
+
                 case EventKind.CrownRewards:
-                    Expect(contract == ContractNames.GasContractName, $"event kind only in {ContractNames.GasContractName} contract");
+                    Expect(nativeContract == NativeContractKind.Gas, $"event kind only in {NativeContractKind.Gas} contract");
                     break;
             }
 
@@ -427,20 +444,8 @@ namespace Phantasma.Business.Blockchain
 
         public bool IsSystemToken(string symbol)
         {
-            var info = GetToken(symbol);
-            return IsSystemToken(info);
+            return Nexus.IsSystemToken(symbol);
         }
-
-        public bool IsSystemToken(IToken token)
-        {
-            if (DomainSettings.SystemTokens.Contains(token.Symbol, StringComparer.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
 
         public bool IsMintingAddress(Address address, string symbol)
         {
@@ -466,7 +471,7 @@ namespace Phantasma.Business.Blockchain
             ExpectEnumIsDefined(opcode, nameof(opcode));
 
             // required for allowing transactions to occur pre-minting of native token
-            if (!Nexus.HasGenesis)
+            if (!HasGenesis)
             {
                 return ExecutionState.Running;
             }
@@ -497,7 +502,7 @@ namespace Phantasma.Business.Blockchain
             }
 
             // required for allowing transactions to occur pre-minting of native token
-            if (!Nexus.HasGenesis)
+            if (!HasGenesis)
             {
                 return ExecutionState.Running;
             }
@@ -528,11 +533,10 @@ namespace Phantasma.Business.Blockchain
             var token = GetToken(symbol);
 
             Core.Throw.If(Oracle == null, "cannot read price from null oracle");
-            var bytes = Oracle.Read<byte[]>(this.Time, "price://" + symbol);
-            Expect(bytes != null && bytes.Length > 0, $"Could not read price of {symbol} from oracle");
-            var value = new BigInteger(bytes, true);
 
-            Expect(value > 0, "token price not available for " + symbol);
+            var value = Oracle.ReadPrice(this.Time, symbol);
+
+            Expect(value >= 0, "token price not available for " + symbol);
 
             return value;
         }
@@ -680,11 +684,23 @@ namespace Phantasma.Business.Blockchain
             return TriggerResult.Missing;
         }
 
+        private static byte[] _optimizedScriptMapKey = null;
+        private static byte[] _optimizedABIMapKey = null;
+
+        private static void PrepareOptimizedScriptMapKey()
+        {
+            if (_optimizedScriptMapKey == null)
+            {
+                var accountContractName = NativeContractKind.Account.GetContractName();
+                _optimizedScriptMapKey = Encoding.UTF8.GetBytes($".{accountContractName}._scriptMap");
+            }
+        }
+
         private byte[] OptimizedAddressScriptLookup(Address target)
         {
-            var scriptMapKey = Encoding.UTF8.GetBytes($".{ContractNames.AccountContractName}._scriptMap");
+            PrepareOptimizedScriptMapKey();
 
-            var scriptMap = new StorageMap(scriptMapKey, RootStorage);
+            var scriptMap = new StorageMap(_optimizedScriptMapKey, RootStorage);
 
             if (scriptMap.ContainsKey(target))
                 return scriptMap.Get<Address, byte[]>(target);
@@ -695,9 +711,13 @@ namespace Phantasma.Business.Blockchain
 
         private ContractInterface OptimizedAddressABILookup(Address target)
         {
-            var abiMapKey = Encoding.UTF8.GetBytes($".{ContractNames.AccountContractName}._abiMap");
+            if (_optimizedABIMapKey == null)
+            {
+                var accountContractName = NativeContractKind.Account.GetContractName();
+                _optimizedABIMapKey = Encoding.UTF8.GetBytes($".{accountContractName}._abiMap");
+            }
 
-            var abiMap = new StorageMap(abiMapKey, RootStorage);
+            var abiMap = new StorageMap(_optimizedABIMapKey, RootStorage);
 
             if (abiMap.ContainsKey(target))
             {
@@ -803,11 +823,10 @@ namespace Phantasma.Business.Blockchain
                 return false;
             }
 
-            using (var m = new ProfileMarker("validatedWitnesses.Contains"))
-                if (validatedWitnesses.Contains(address))
-                {
-                    return true;
-                }
+            if (validatedWitnesses.Contains(address))
+            {
+                return true;
+            }
 
             if (address.IsSystem)
             {
@@ -855,11 +874,10 @@ namespace Phantasma.Business.Blockchain
             {
                 accountResult = true;
             }
-            else if (address.IsUser && Nexus.HasGenesis && OptimizedHasAddressScript(RootStorage, address))
+            else if (address.IsUser && HasGenesis && OptimizedHasAddressScript(RootStorage, address))
             {
                 TriggerResult triggerResult;
-                using (var m = new ProfileMarker("InvokeTriggerOnAccount"))
-                    triggerResult = InvokeTriggerOnAccount(false, address, AccountTrigger.OnWitness, address);
+                triggerResult = InvokeTriggerOnAccount(false, address, AccountTrigger.OnWitness, address);
 
                 if (triggerResult == TriggerResult.Missing)
                 {
@@ -874,8 +892,7 @@ namespace Phantasma.Business.Blockchain
             {
                 if (Transaction != null)
                 {
-                    using (var m = new ProfileMarker("Transaction.IsSignedBy"))
-                        accountResult = Transaction.IsSignedBy(address);
+                    accountResult = Transaction.IsSignedBy(address);
                 }
                 else
                 if (CurrentTask != null)
@@ -898,9 +915,8 @@ namespace Phantasma.Business.Blockchain
 
         private bool OptimizedHasAddressScript(StorageContext context, Address address)
         {
-            var scriptMapKey = Encoding.UTF8.GetBytes($".{ContractNames.AccountContractName}._scriptMap");
-
-            var scriptMap = new StorageMap(scriptMapKey, context);
+            PrepareOptimizedScriptMapKey();
+            var scriptMap = new StorageMap(_optimizedScriptMapKey, context);
 
             if (address.IsUser)
             {
@@ -1070,25 +1086,25 @@ namespace Phantasma.Business.Blockchain
         public Address LookUpName(string name)
         {
             ExpectNameLength(name, nameof(name));
-            return Chain.LookUpName(RootStorage, name);
+            return Chain.LookUpName(RootStorage, name, Time);
         }
 
         public bool HasAddressScript(Address from)
         {
             ExpectAddressSize(from, nameof(from));
-            return Nexus.HasAddressScript(RootStorage, from);
+            return Nexus.HasAddressScript(RootStorage, from, Time);
         }
 
         public byte[] GetAddressScript(Address from)
         {
             ExpectAddressSize(from, nameof(from));
-            return Nexus.LookUpAddressScript(RootStorage, from);
+            return Nexus.LookUpAddressScript(RootStorage, from, Time);
         }
 
         public string GetAddressName(Address from)
         {
             ExpectAddressSize(from, nameof(from));
-            return Chain.GetNameFromAddress(RootStorage, from);
+            return Chain.GetNameFromAddress(RootStorage, from, Time);
         }
 
         public Event[] GetTransactionEvents(Hash transactionHash)
@@ -1109,52 +1125,52 @@ namespace Phantasma.Business.Blockchain
 
         public ValidatorEntry GetValidatorByIndex(int index)
         {
-            return Nexus.GetValidatorByIndex(index);
+            return Nexus.GetValidatorByIndex(index, Time);
         }
 
         public ValidatorEntry[] GetValidators()
         {
-            return Nexus.GetValidators();
+            return Nexus.GetValidators(Time);
         }
 
         public bool IsPrimaryValidator(Address address)
         {
             ExpectAddressSize(address, nameof(address));
-            return Nexus.IsPrimaryValidator(address);
+            return Nexus.IsPrimaryValidator(address, Time);
         }
 
         public bool IsSecondaryValidator(Address address)
         {
             ExpectAddressSize(address, nameof(address));
-            return Nexus.IsSecondaryValidator(address);
+            return Nexus.IsSecondaryValidator(address, Time);
         }
 
         public int GetPrimaryValidatorCount()
         {
-            return Nexus.GetPrimaryValidatorCount();
+            return Nexus.GetPrimaryValidatorCount(Time);
         }
 
         public int GetSecondaryValidatorCount()
         {
-            return Nexus.GetSecondaryValidatorCount();
+            return Nexus.GetSecondaryValidatorCount(Time);
         }
 
         public bool IsKnownValidator(Address address)
         {
             ExpectAddressSize(address, nameof(address));
-            return Nexus.IsKnownValidator(address);
+            return Nexus.IsKnownValidator(address, Time);
         }
 
         public bool IsStakeMaster(Address address)
         {
             ExpectAddressSize(address, nameof(address));
-            return Nexus.IsStakeMaster(RootStorage, address);
+            return Nexus.IsStakeMaster(RootStorage, address, Time);
         }
 
         public BigInteger GetStake(Address address)
         {
             ExpectAddressSize(address, nameof(address));
-            return Nexus.GetStakeFromAddress(RootStorage, address);
+            return Nexus.GetStakeFromAddress(RootStorage, address, Time);
         }
 
         public BigInteger GenerateUID()
@@ -1186,6 +1202,7 @@ namespace Phantasma.Business.Blockchain
             return Chain.GetTokenSupply(Storage, symbol);
         }
 
+        /*
         public void SetPlatformTokenHash(string symbol, string platform, Hash hash)
         {
             ExpectNameLength(symbol, nameof(symbol));
@@ -1211,7 +1228,7 @@ namespace Phantasma.Business.Blockchain
             Expect(!string.IsNullOrEmpty(platform), "chain name required");
 
             Nexus.SetPlatformTokenHash(symbol, platform, hash, RootStorage);
-        }
+        }*/
 
         public void CreateToken(Address owner, string symbol, string name, BigInteger maxSupply, int decimals, TokenFlags flags, byte[] script, ContractInterface abi)
         {
@@ -1292,9 +1309,13 @@ namespace Phantasma.Business.Blockchain
             Expect(!currentOwner.IsNull, "missing or invalid token owner");
             Expect(currentOwner == owner, "token owner constructor failure");
 
-            var fuelCost = GetGovernanceValue(Nexus.FuelPerTokenDeployTag);
+            var fuelCost = GetGovernanceValue(DomainSettings.FuelPerTokenDeployTag);
             // governance value is in usd fiat, here convert from fiat to fuel amount
             fuelCost = this.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
+
+            var fuelBalance = this.GetBalance(DomainSettings.FuelTokenSymbol, owner);
+            Expect(fuelBalance >= fuelCost, $"{UnitConversion.ToDecimal(fuelCost, DomainSettings.FuelTokenDecimals)} {DomainSettings.FuelTokenSymbol} required to create a token but {owner} has only {UnitConversion.ToDecimal(fuelBalance, DomainSettings.FuelTokenDecimals)} {DomainSettings.FuelTokenSymbol}");
+
             // burn the "cost" tokens
             BurnTokens(DomainSettings.FuelTokenSymbol, owner, fuelCost);
 
@@ -1354,7 +1375,7 @@ namespace Phantasma.Business.Blockchain
             this.Notify(EventKind.FeedCreate, owner, name);
         }
 
-        public BigInteger CreatePlatform(Address from, string name, string externalAddress, Address interopAddress, string fuelSymbol)
+        /*public BigInteger CreatePlatform(Address from, string name, string externalAddress, Address interopAddress, string fuelSymbol)
         {
             ExpectAddressSize(from, nameof(from));
             ExpectNameLength(name, nameof(name));
@@ -1374,7 +1395,7 @@ namespace Phantasma.Business.Blockchain
 
             this.Notify(EventKind.PlatformCreate, from, name);
             return platformID;
-        }
+        }*/
 
         public void CreateOrganization(Address from, string ID, string name, byte[] script)
         {
@@ -1385,7 +1406,6 @@ namespace Phantasma.Business.Blockchain
 
             Expect(this.IsRootChain(), "must be root chain");
 
-            Expect(from == GenesisAddress, $"(CreateOrganization) must be genesis from: {from} genesis: {GenesisAddress}");
             Expect(IsWitness(from), "invalid witness");
 
             Expect(ValidationUtils.IsValidIdentifier(ID), "invalid organization name");
@@ -1393,6 +1413,14 @@ namespace Phantasma.Business.Blockchain
             Expect(!Nexus.OrganizationExists(RootStorage, ID), "organization already exists");
 
             Nexus.CreateOrganization(RootStorage, ID, name, script);
+
+            // TODO org cost
+            /*var fuelCost = GetGovernanceValue(DomainSettings.FuelPerOrganizationDeployTag);
+            // governance value is in usd fiat, here convert from fiat to fuel amount
+            fuelCost = this.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
+            // burn the "cost" tokens
+            BurnTokens(DomainSettings.FuelTokenSymbol, from, fuelCost);*/
+
 
             this.Notify(EventKind.OrganizationCreate, from, ID);
         }
@@ -1476,7 +1504,7 @@ namespace Phantasma.Business.Blockchain
             ExpectAddressSize(from, nameof(from));
             ExpectAddressSize(target, nameof(target));
 
-            if (Nexus.HasGenesis)
+            if (HasGenesis)
             {
                 if (IsSystemToken(symbol))
                 {
@@ -1494,14 +1522,12 @@ namespace Phantasma.Business.Blockchain
             Expect(amount > 0, "amount must be positive and greater than zero");
 
             Expect(TokenExists(symbol), "invalid token");
-            IToken token;
-            using (var m = new ProfileMarker("Runtime.GetToken"))
-                token = GetToken(symbol);
+            IToken token; 
+            token = GetToken(symbol);
             Expect(token.Flags.HasFlag(TokenFlags.Fungible), "token must be fungible");
             Expect(!token.Flags.HasFlag(TokenFlags.Fiat), "token can't be fiat");
-
-            using (var m = new ProfileMarker("Nexus.MintTokens"))
-                Nexus.MintTokens(this, token, from, target, Chain.Name, amount);
+            
+            Nexus.MintTokens(this, token, from, target, Chain.Name, amount);
         }
 
         public BigInteger MintToken(string symbol, Address from, Address target, byte[] rom, byte[] ram, BigInteger seriesID)
@@ -1518,8 +1544,7 @@ namespace Phantasma.Business.Blockchain
 
             Expect(TokenExists(symbol), "invalid token");
             IToken token;
-            using (var m = new ProfileMarker("Runtime.GetToken"))
-                token = GetToken(symbol);
+            token = GetToken(symbol);
             Expect(!token.IsFungible(), "token must be non-fungible");
 
             // TODO should not be necessary, verified by trigger
@@ -1534,12 +1559,10 @@ namespace Phantasma.Business.Blockchain
             Address creator = from;
 
             BigInteger tokenID;
-            using (var m = new ProfileMarker("Nexus.CreateNFT"))
-                tokenID = Nexus.GenerateNFT(this, symbol, Chain.Name, creator, rom, ram, seriesID);
+            tokenID = Nexus.GenerateNFT(this, symbol, Chain.Name, creator, rom, ram, seriesID);
             Expect(tokenID > 0, "invalid tokenID");
 
-            using (var m = new ProfileMarker("Nexus.MintToken"))
-                Nexus.MintToken(this, token, from, target, Chain.Name, tokenID);
+            Nexus.MintToken(this, token, from, target, Chain.Name, tokenID);
 
             return tokenID;
         }
@@ -1981,12 +2004,6 @@ namespace Phantasma.Business.Blockchain
             org.MigrateMember(this, admin, source, destination);
         }
 
-        public Address GetValidator(Timestamp time)
-        {
-            return Chain.GetValidator(RootStorage, time);
-        }
-
-
         public Timestamp GetGenesisTime()
         {
             if (HasGenesis)
@@ -2326,10 +2343,31 @@ namespace Phantasma.Business.Blockchain
             return CurrentContext.Address == context.Address;
         }
 
-        public bool HasGenesis => Nexus.HasGenesis;
+        public bool HasGenesis => Nexus.HasGenesis(); // TODO cache this, as it does not change during a Runtime execution
+        
+        public IChain GetRootChain()
+        {
+            return GetChainByName(DomainSettings.RootChainName);
+        }
+
+        public bool IsRootChain()
+        {
+            var rootChain = GetRootChain();
+            return Chain.Address == rootChain.Address;
+        }
+
+        public VMObject InvokeContractAtTimestamp(NativeContractKind nativeContract, string methodName, params object[] args)
+        {
+            return Chain.InvokeContractAtTimestamp(Storage, Time, nativeContract, methodName, args);
+        }
+
+        public VMObject InvokeContractAtTimestamp(string contractName, string methodName, params object[] args)
+        {
+            return Chain.InvokeContractAtTimestamp(Storage, Time, contractName, methodName, args);
+        }
+
         public string NexusName => Nexus.Name;
         public uint ProtocolVersion { get; private set; }
-        public Address GenesisAddress => Nexus.GetGenesisAddress(RootStorage);
         public Hash GenesisHash => Nexus.GetGenesisHash(RootStorage);       
     }
 }

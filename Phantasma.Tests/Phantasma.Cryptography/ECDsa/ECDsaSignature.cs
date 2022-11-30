@@ -1,6 +1,6 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Phantasma.Cryptography.ECC;
-using Phantasma.Numerics;
+﻿/*using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Numerics;
 using System;
 using System.Text;
 
@@ -189,3 +189,4 @@ namespace Phantasma.Tests
         }
     }
 }
+*/

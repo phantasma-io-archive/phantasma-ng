@@ -15,8 +15,6 @@ namespace Phantasma.Core.Domain
         public ContractInterface ABI { get; protected set; }
         public abstract string Name { get; }
 
-        public BigInteger Order { get; internal set; } // TODO remove this?
-
         private readonly Dictionary<byte[], byte[]> _storage = new Dictionary<byte[], byte[]>(new ByteArrayComparer()); // TODO remove this?
 
         public IRuntime Runtime { get; protected set; }
@@ -28,7 +26,7 @@ namespace Phantasma.Core.Domain
             {
                 if (_address.IsNull)
                 {
-                   _address = GetAddressForName(Name);
+                   _address = GetAddressFromContractName(Name);
                 }
 
                 return _address;
@@ -37,18 +35,27 @@ namespace Phantasma.Core.Domain
 
         public SmartContract()
         {
-            this.Order = 0;
             _address = Address.Null;
         }
 
         public static Address GetAddressForNative(NativeContractKind kind)
         {
-            return GetAddressForName(kind.GetContractName());
+            return GetAddressFromContractName(kind.GetContractName());
         }
 
-        public static Address GetAddressForName(string name)
+        private static Dictionary<string, Address> _contractNameMap = new Dictionary<string, Address>();
+
+        public static Address GetAddressFromContractName(string name)
         {
-            return Address.FromHash(name);
+            if (_contractNameMap.ContainsKey(name))
+            {
+                return _contractNameMap[name];
+            }
+
+            var address = Address.FromHash(name);
+            _contractNameMap[name] = address;
+
+            return address;
         }
 
         public static byte[] GetKeyForField(NativeContractKind nativeContract, string fieldName, bool isProtected)
@@ -64,6 +71,11 @@ namespace Phantasma.Core.Domain
             string prefix = isProtected ? "." : "";
 
             return Encoding.UTF8.GetBytes($"{prefix}{contractName}.{fieldName}");
+        }
+
+        public override string ToString()
+        {
+            return Name;
         }
     }
 }

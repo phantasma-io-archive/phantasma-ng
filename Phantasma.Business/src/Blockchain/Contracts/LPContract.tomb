@@ -10,7 +10,8 @@ struct LPTokenContentRAM
     Amount0:number;
     Amount1:number;
     Liquidity:number;
-    ClaimedFees:number;
+    ClaimedFeesSymbol0:number;
+    ClaimedFeesSymbol1:number;
 }
 
 
@@ -18,6 +19,7 @@ token LP {
 	import Runtime;
 	import Time;
 	import NFT;
+	import Call;
 	import Address;
 	
 	global _owner:address;
@@ -55,6 +57,7 @@ token LP {
 		_owner = contractOwner;
 		_changed = false;
 		NFT.createSeries(_owner, $THIS_SYMBOL, 0, 0, TokenSeries.Unique, LPNFT);
+		Call.contract<none>("exchange", "MigrateToV3");
 	}
 	
 	public Mint(from:address, rom:LPTokenContentROM, ram:LPTokenContentRAM ):number {
@@ -101,6 +104,17 @@ token LP {
         local contractSymbol: string = $THIS_SYMBOL;
         Runtime.expect(symbol == contractSymbol, "invalid symbol");
         Runtime.expect(Runtime.isWitness(_owner), "witness failed");
+        return;
+    }
+    
+    public burn(from:address, tokenID:number ){
+       Runtime.expect(Runtime.isWitness(from), "witness failed");
+       return;
+    }
+    
+    trigger onBurn(from:address, to:address, symbol:string, tokenID:number)
+    {
+        Runtime.expect(Runtime.isWitness(from), "witness failed");
         return;
     }
 }

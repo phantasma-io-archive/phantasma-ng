@@ -14,14 +14,16 @@ internal class ScriptContextConstants
     public static Address DefaultFromAddress = Address.FromText("P2KAPiHoaW4hp5b8wSUC1tojrihdRR56FU8tPoNVmNVDPYp");
     public static Address DefaultToAddress = Address.FromText("P2KA2x8P5sLfj75pAzQeSYA3QrFE2MzyV1WaHgVEcaEXGn6");
 
-    public static byte[] TransferNftScript =>
-        ScriptUtils.BeginScript().AllowGas().TransferNFT("GHOST",
+    public static BigInteger DefaultGasPrice = 1000;
+    public static BigInteger DefaultGasLimit = 1999;
+
+    public static byte[] TransferNftScript => ScriptUtils.BeginScript().AllowGas(DefaultFromAddress, Address.Null, DefaultGasPrice, DefaultGasLimit).TransferNFT("GHOST",
                 DefaultFromAddress, DefaultToAddress,
                 BigInteger.Parse("80807712912753409015029052615541912663228133032695758696669246580757047529373"))
-            .SpendGas().EndScript();
+            .SpendGas(DefaultFromAddress).EndScript();
 
-    public static byte[] CustomContractScript =>
-        ScriptUtils.BeginScript().AllowGas().CallContract("TEST",
+    public static byte[] CustomContractScript => 
+        ScriptUtils.BeginScript().AllowGas(DefaultFromAddress, Address.Null, DefaultGasPrice, DefaultGasLimit).CallContract("TEST",
             "mintToken", new List<object>
             {
                 1,
@@ -49,21 +51,19 @@ internal class ScriptContextConstants
                 "",
                 0,
                 false
-            }.ToArray()).SpendGas().EndScript();
+            }.ToArray()).SpendGas(DefaultFromAddress).EndScript();
 
-    public static byte[] MigrateContractScript =>
-        ScriptUtils.BeginScript().AllowGas()
-            .CallContract("validator", "Migrate", DefaultFromAddress, DefaultToAddress).SpendGas()
+    public static byte[] MigrateContractScript => ScriptUtils.BeginScript().AllowGas(DefaultFromAddress, Address.Null, DefaultGasPrice, DefaultGasLimit)
+            .CallContract("validator", "Migrate", DefaultFromAddress, DefaultToAddress).SpendGas(DefaultFromAddress)
             .EndScript();
 
-    public static byte[] SettleTransactionScript =>
-        ScriptUtils.BeginScript()
+    public static byte[] SettleTransactionScript => ScriptUtils.BeginScript()
             .CallContract("interop", "SettleTransaction", DefaultFromAddress, "platform",
                 "0x000000000000000000000000000000000000dead")
             .CallContract("swap", "SwapFee", DefaultFromAddress, "TEST",
                 UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
             .TransferBalance("TEST", DefaultFromAddress, DefaultToAddress)
-            .AllowGas().SpendGas().EndScript();
+            .AllowGas(DefaultFromAddress, Address.Null, DefaultGasPrice, DefaultGasLimit).SpendGas(DefaultFromAddress).EndScript(); 
 
     public static byte[] AliasScript =>
         AssemblerUtils.BuildScript(new List<string>

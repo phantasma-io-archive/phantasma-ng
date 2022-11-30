@@ -16,7 +16,6 @@ namespace Phantasma.Core.Domain
     {
         Gas,
         Block,
-        Nexus,
         Stake,
         Swap,
         Account,
@@ -33,6 +32,7 @@ namespace Phantasma.Core.Domain
         Friends,
         Mail,
         Sale,
+        Unknown,
     }
 
     public sealed class ContractInterface: ISerializable

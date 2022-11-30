@@ -64,6 +64,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         public static readonly BigInteger DailyVotingBonus = 1;
 
         public const uint DefaultEnergyRatioDivisor = 500; // used as 1/500, will initially generate 0.002 per staked token
+        
+        private static readonly string DesiredPreviousContext =  "account";
 
         public StakeContract() : base()
         {
@@ -108,7 +110,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             var masters = Runtime.GetOrganization(DomainSettings.MastersOrganizationName);
 
-            DateTime requestedClaimDate = new DateTime(((DateTime)claimDate).Year, ((DateTime)claimDate).Month, 1);
+            var date = (DateTime)claimDate;
+            DateTime requestedClaimDate = new DateTime(date.Year, date.Month, 1);
 
             var addresses = masters.GetMembers();
             var count = addresses.Length;
@@ -188,7 +191,12 @@ namespace Phantasma.Business.Blockchain.Contracts
             var thisClaimDate = _masterClaims.Get<Address, Timestamp>(from);
             var totalAmount = MasterClaimGlobalAmount;
             var validMasterCount = GetClaimMasterCount(thisClaimDate);
-            var individualAmount = totalAmount / validMasterCount;
+            Runtime.Expect(validMasterCount > 0, "Validator count should be higher than 0");
+            BigInteger individualAmount = 0;
+            if (validMasterCount != 0)
+                individualAmount = totalAmount / validMasterCount;
+            else
+                individualAmount = totalAmount/ 1;
             var leftovers = totalAmount % validMasterCount;
             individualAmount += leftovers;
 
@@ -198,7 +206,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         // migrates the full stake from one address to other
         public void Migrate(Address from, Address to)
         {
-            Runtime.Expect(Runtime.PreviousContext.Name == "account", "invalid context");
+            Runtime.Expect(Runtime.PreviousContext.Name == DesiredPreviousContext, "invalid context");
 
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(to.IsUser, "destination must be user address");
@@ -265,23 +273,27 @@ namespace Phantasma.Business.Blockchain.Contracts
                 _masterClaims.Set<Address, Timestamp>(addr, nextClaim);
             }
 
-            Runtime.Expect(totalAmount == 0, $"{totalAmount} something failed");
+            Runtime.Expect(totalAmount == 0, $"Error on calculations, totalAmount should have been zero but it was {totalAmount} instead");
 
             _lastMasterClaim = Runtime.Time;
+            
+            Runtime.Notify(EventKind.MasterClaim, from, new MasterEventData(symbol, MasterClaimGlobalAmount, Runtime.Chain.Name, _lastMasterClaim));
         }
 
         public void Stake(Address from, BigInteger stakeAmount)
         {
             Runtime.Expect(stakeAmount >= MinimumValidStake, "invalid amount");
-            Runtime.Expect(Runtime.IsWitness(from), "witness failed");
+
+            if (Runtime.HasGenesis)
+            {
+                Runtime.Expect(Runtime.IsWitness(from), "witness failed");
+            }
+            else
+            {
+                Runtime.Expect(Runtime.IsPrimaryValidator(from), "only primary validators can stake during genesis");
+            }
 
             var balance = Runtime.GetBalance(DomainSettings.StakingTokenSymbol, from);
-
-            if (stakeAmount > balance) 
-            {
-                var diff = stakeAmount - balance;
-                throw new BalanceException(Runtime.GetToken("SOUL"), from, diff);
-            }
 
             Runtime.Expect(balance >= stakeAmount, $"balance: {balance} stake: {stakeAmount} not enough balance to stake at {from}");
 
@@ -336,6 +348,8 @@ namespace Phantasma.Business.Blockchain.Contracts
 
                 _masterAgeMap.Set<Address, Timestamp>(from, Runtime.Time);
             }
+            
+            Runtime.Notify(EventKind.TokenStake, from, new TokenEventData(DomainSettings.StakingTokenSymbol, stakeAmount, Runtime.Chain.Name));
         }
 
         public void Unstake(Address from, BigInteger unstakeAmount)
@@ -748,7 +762,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public void UpdateRate(BigInteger rate)
         {
-            var bombAddress = GetAddressForName("bomb");
+            var bombAddress = GetAddressFromContractName("bomb");
             Runtime.Expect(Runtime.IsWitness(bombAddress), "must be called from bomb address");
 
             Runtime.Expect(rate > 0, "invalid rate");

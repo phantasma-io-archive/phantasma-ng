@@ -59,7 +59,10 @@ namespace Phantasma.Core.Domain
 
     public static class DomainSettings
     {
-        public const int LatestKnownProtocol = 7;
+        public const int LatestKnownProtocol = 8;
+
+        public const int Phantasma20Protocol = 7;
+        public const int Phantasma30Protocol = 8;
 
         public const int MaxTxPerBlock = 1024;
 
@@ -71,7 +74,8 @@ namespace Phantasma.Core.Domain
 
         public const int MAX_TOKEN_DECIMALS = 18;
         
-        public const int MinimumFee = 100000;
+        public const int DefaultMinimumGasFee = 100000; // 100000
+        public const int InitialValidatorCount = 4;
 
         public const string FuelTokenSymbol = "KCAL";
         public const string FuelTokenName = "Phantasma Energy";
@@ -94,6 +98,10 @@ namespace Phantasma.Core.Domain
         public const string LiquidityTokenSymbol = "LP";
         public const string LiquidityTokenName = "Phantasma Liquidity";
         public const int LiquidityTokenDecimals = 8;
+
+        public const string FuelPerContractDeployTag = "nexus.contract.cost";
+        public const string FuelPerTokenDeployTag = "nexus.token.cost";
+        public const string FuelPerOrganizationDeployTag = "nexus.organization.cost";
 
         public static readonly IEnumerable<string> SystemTokens = new List<string>
         {
@@ -120,7 +128,7 @@ namespace Phantasma.Core.Domain
         public static readonly uint ArchiveBlockSize = MerkleTree.ChunkSize;
 
         public static readonly string InfusionName = "infusion";
-        public static readonly Address InfusionAddress = SmartContract.GetAddressForName(InfusionName);
+        public static readonly Address InfusionAddress = SmartContract.GetAddressFromContractName(InfusionName);
 
         public const int NameMaxLength = 255;
         public const int UrlMaxLength = 2048;

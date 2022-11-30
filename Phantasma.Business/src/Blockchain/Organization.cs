@@ -18,7 +18,7 @@ namespace Phantasma.Business.Blockchain
             {
                 if (_address.IsNull)
                 {
-                    _address = Address.FromHash(ID);
+                    _address = GetAddressFromID(ID);
                 }
 
                 return _address;
@@ -196,6 +196,11 @@ namespace Phantasma.Business.Blockchain
             Runtime.Notify(EventKind.OrganizationAdd, admin, new OrganizationEventData(this.ID, to));
 
             return true;
+        }
+
+        public static Address GetAddressFromID(string ID)
+        {
+            return Address.FromHash(ID);
         }
     }
 }

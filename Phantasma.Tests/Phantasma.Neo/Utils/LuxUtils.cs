@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿/*using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Neo.Utils;
 
 // Testing methods:
@@ -28,4 +28,4 @@ namespace Phantasma.Tests
             Assert.IsFalse("AP6ZkjweW4NGskMca2KH2cchNJbFWW2lOI".IsValidAddress());
         }
     }
-}
+}*/
