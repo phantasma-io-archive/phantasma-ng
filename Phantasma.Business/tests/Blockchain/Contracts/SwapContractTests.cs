@@ -11,7 +11,6 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Infrastructure.RocksDB;
-
 namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
 public class SwapContractTests : IDisposable

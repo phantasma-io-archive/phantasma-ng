@@ -18,6 +18,7 @@ using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
+[Collection("NexusTestsBusiness")]
 public class NexusTests : IDisposable
 {
     public NexusTests()

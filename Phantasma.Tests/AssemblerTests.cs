@@ -17,6 +17,7 @@ using Phantasma.Business.VM;
 
 namespace Phantasma.LegacyTests
 {
+    [Collection("AssemblerTests")]
     public class AssemblerTests
     {
         public const int TestGasLimit = 9999;

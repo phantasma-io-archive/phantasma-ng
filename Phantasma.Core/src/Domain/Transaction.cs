@@ -210,8 +210,9 @@ namespace Phantasma.Core.Domain
                     Signatures[i] = reader.ReadSignature();
                 }
             }
-            catch
+            catch(Exception e)
             {
+                Console.WriteLine($"Error:{e.Message} || {e.StackTrace}");
                 this.Signatures = new Signature[0];
             }
 

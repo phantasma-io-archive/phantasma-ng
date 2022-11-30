@@ -5,6 +5,7 @@ using System.Linq;
 
 namespace Phantasma.LegacyTests
 {
+    [Collection("MerkleTreeTests")]
     public class MerkleTreeTests
     {
         [Fact]

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.CodeGen.Assembler;
@@ -13,9 +12,12 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Simulator;
 
+using Xunit;
+using Shouldly;
+
 namespace Phantasma.LegacyTests.ContractTests;
 
-[TestClass]
+[Collection("ExchangeContractTests")]
 public class ExchangeContractTests
 {
     private const string maxDivTokenSymbol = "MADT";        //divisible token with maximum decimal count
@@ -23,8 +25,7 @@ public class ExchangeContractTests
     private const string nonDivisibleTokenSymbol = "NDT";
 
     #region Exchange
-    [TestMethod]
-    [Ignore]
+    [Fact(Skip = "Skip")]
     public void TestIoCLimitMinimumQuantity()
     {
         CoreClass core = new CoreClass();
@@ -58,11 +59,10 @@ public class ExchangeContractTests
         var seller_orderSize = orderSizeBase + (qtyBase * 100 / 99);
         
         seller.OpenLimitOrder(baseSymbol, quoteSymbol, seller_orderSize, orderPriceBase, ExchangeOrderSide.Sell);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful(), "Used leftover under minimum quantity");
+        Assert.True(core.simulator.LastBlockWasSuccessful(), "Used leftover under minimum quantity");
     }
 
-    [TestMethod]
-    [Ignore]
+    [Fact(Skip = "Ignore Exchange tests")]
     public void TestIoCLimitOrderUnmatched()
     {
         CoreClass core = new CoreClass();
@@ -83,12 +83,11 @@ public class ExchangeContractTests
         //test unmatched IoC orders 
         seller.OpenLimitOrder(0.01m, 0.5m, ExchangeOrderSide.Sell);
         buyer.OpenLimitOrder(0.01m, 0.1m, ExchangeOrderSide.Buy);
-        Assert.IsTrue(buyer.OpenLimitOrder(0.123m, 0.3m, ExchangeOrderSide.Buy, IoC: true) == 0, "Shouldn't have filled any part of the order");
-        Assert.IsTrue(seller.OpenLimitOrder(0.123m, 0.3m, ExchangeOrderSide.Sell, IoC: true) == 0, "Shouldn't have filled any part of the order");
+        Assert.True(buyer.OpenLimitOrder(0.123m, 0.3m, ExchangeOrderSide.Buy, IoC: true) == 0, "Shouldn't have filled any part of the order");
+        Assert.True(seller.OpenLimitOrder(0.123m, 0.3m, ExchangeOrderSide.Sell, IoC: true) == 0, "Shouldn't have filled any part of the order");
     }
 
-    [Ignore]
-    [TestMethod]
+    [Fact(Skip = "Ignore Exchange tests")]
     public void TestIoCLimitOrderCompleteFulfilment()
     {
         CoreClass core = new CoreClass();
@@ -108,14 +107,13 @@ public class ExchangeContractTests
         //-----------------------------------------
         //test fully matched IoC orders
         buyer.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Buy, IoC: false);
-        Assert.IsTrue(seller.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Sell, IoC: true) == 0.1m, "Unexpected amount of tokens received");
+        Assert.True(seller.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Sell, IoC: true) == 0.1m, "Unexpected amount of tokens received");
 
         seller.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Sell, IoC: false);
-        Assert.IsTrue(buyer.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Buy, IoC: true) == 0.1m, "Unexpected amount of tokens received");
+        Assert.True(buyer.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Buy, IoC: true) == 0.1m, "Unexpected amount of tokens received");
     }
 
-    [Ignore]
-    [TestMethod]
+    [Fact(Skip = "Ignore Exchange tests")]
     public void TestIoCLimitOrderPartialFulfilment()
     {
         CoreClass core = new CoreClass();
@@ -135,14 +133,13 @@ public class ExchangeContractTests
         //-----------------------------------------
         //test partially matched IoC orders
         buyer.OpenLimitOrder(0.05m, 1m, ExchangeOrderSide.Buy, IoC: false);
-        Assert.IsTrue(seller.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Sell, IoC: true) == 0.05m, "Unexpected amount of tokens received");
+        Assert.True(seller.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Sell, IoC: true) == 0.05m, "Unexpected amount of tokens received");
 
         seller.OpenLimitOrder(0.05m, 1m, ExchangeOrderSide.Sell, IoC: false);
-        Assert.IsTrue(buyer.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Buy, IoC: true) == 0.05m, "Unexpected amount of tokens received");
+        Assert.True(buyer.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Buy, IoC: true) == 0.05m, "Unexpected amount of tokens received");
     }
-
-    [Ignore]
-    [TestMethod]
+    
+    [Fact(Skip = "Ignore Exchange tests")]
     public void TestIoCLimitOrderMultipleFulfilsPerOrder()
     {
         CoreClass core = new CoreClass();
@@ -165,7 +162,7 @@ public class ExchangeContractTests
         buyer.OpenLimitOrder(0.05m, 2m, ExchangeOrderSide.Buy, IoC: false);
         buyer.OpenLimitOrder(0.05m, 3m, ExchangeOrderSide.Buy, IoC: false);
         buyer.OpenLimitOrder(0.05m, 0.5m, ExchangeOrderSide.Buy, IoC: false);
-        Assert.IsTrue(seller.OpenLimitOrder(0.15m, 1m, ExchangeOrderSide.Sell, IoC: true) == 0.3m, "Unexpected amount of tokens received");
+        Assert.True(seller.OpenLimitOrder(0.15m, 1m, ExchangeOrderSide.Sell, IoC: true) == 0.3m, "Unexpected amount of tokens received");
 
         core = new CoreClass();
         buyer = new ExchangeUser(baseSymbol, quoteSymbol, core);
@@ -177,12 +174,12 @@ public class ExchangeContractTests
         seller.OpenLimitOrder(0.05m, 2m, ExchangeOrderSide.Sell, IoC: false);
         seller.OpenLimitOrder(0.05m, 3m, ExchangeOrderSide.Sell, IoC: false);
         seller.OpenLimitOrder(0.05m, 0.5m, ExchangeOrderSide.Sell, IoC: false);
-        Assert.IsTrue(buyer.OpenLimitOrder(0.15m, 3m, ExchangeOrderSide.Buy, IoC: true) == 0.2m, "Unexpected amount of tokens received");
+        Assert.True(buyer.OpenLimitOrder(0.15m, 3m, ExchangeOrderSide.Buy, IoC: true) == 0.2m, "Unexpected amount of tokens received");
 
         //TODO: test multiple IoC orders against each other on the same block!
     }
 
-    [TestMethod]
+    [Fact]
     public void TestFailedIOC()
     {
         CoreClass core = new CoreClass();
@@ -205,23 +202,22 @@ public class ExchangeContractTests
         var orderPrice = UnitConversion.ToBigInteger(0.5m, GetDecimals(quoteSymbol));
         
         buyer.OpenLimitOrder(baseSymbol, quoteSymbol, 0, orderPrice, ExchangeOrderSide.Buy, IoC: true);
-        Assert.IsFalse(core.simulator.LastBlockWasSuccessful());
-        //Assert.IsTrue(false, "Order should fail due to insufficient amount");
+        Assert.False(core.simulator.LastBlockWasSuccessful());
+        //Assert.True(false, "Order should fail due to insufficient amount");
         
         buyer.OpenLimitOrder(baseSymbol, quoteSymbol,orderPrice, 0, ExchangeOrderSide.Buy, IoC: true);
-        Assert.IsFalse(core.simulator.LastBlockWasSuccessful());
+        Assert.False(core.simulator.LastBlockWasSuccessful());
         
         var orderPrices = UnitConversion.ToBigInteger(0.3m, GetDecimals(quoteSymbol));
         var orderSize = UnitConversion.ToBigInteger(0.123m, GetDecimals(baseSymbol));
 
         buyer.OpenLimitOrder(baseSymbol, quoteSymbol, orderSize, orderPrices, ExchangeOrderSide.Buy, IoC: true);
-        Assert.IsFalse(core.simulator.LastBlockWasSuccessful(), "Shouldn't have filled any part of the order");
+        Assert.False(core.simulator.LastBlockWasSuccessful(), "Shouldn't have filled any part of the order");
         seller.OpenLimitOrder(baseSymbol, quoteSymbol, orderSize, orderPrices, ExchangeOrderSide.Sell, IoC: true);
-        Assert.IsFalse(core.simulator.LastBlockWasSuccessful(), "Shouldn't have filled any part of the order");
+        Assert.False(core.simulator.LastBlockWasSuccessful(), "Shouldn't have filled any part of the order");
     }
 
-    [Ignore]
-    [TestMethod]
+    [Fact(Skip = "Ignore Exchange tests")]
     public void TestLimitMinimumQuantity()
     {
         CoreClass core = new CoreClass();
@@ -248,8 +244,7 @@ public class ExchangeContractTests
         seller.OpenLimitOrder(minimumBaseToken, minimumQuoteToken, ExchangeOrderSide.Sell);
     }
 
-    [Ignore]
-    [TestMethod]
+    [Fact(Skip = "Ignore Exchange tests")]
     public void TestLimitOrderUnmatched()
     {
         CoreClass core = new CoreClass();
@@ -270,12 +265,11 @@ public class ExchangeContractTests
         //test unmatched IoC orders 
         seller.OpenLimitOrder(0.01m, 0.5m, ExchangeOrderSide.Sell);
         buyer.OpenLimitOrder(0.01m, 0.1m, ExchangeOrderSide.Buy);
-        Assert.IsTrue(buyer.OpenLimitOrder(0.123m, 0.3m, ExchangeOrderSide.Buy, IoC: true) == 0, "Shouldn't have filled any part of the order");
-        Assert.IsTrue(seller.OpenLimitOrder(0.123m, 0.3m, ExchangeOrderSide.Sell, IoC: true) == 0, "Shouldn't have filled any part of the order");
+        Assert.True(buyer.OpenLimitOrder(0.123m, 0.3m, ExchangeOrderSide.Buy, IoC: true) == 0, "Shouldn't have filled any part of the order");
+        Assert.True(seller.OpenLimitOrder(0.123m, 0.3m, ExchangeOrderSide.Sell, IoC: true) == 0, "Shouldn't have filled any part of the order");
     }
 
-    [Ignore]
-    [TestMethod]
+    [Fact(Skip = "Ignore Exchange tests")]
     public void TestLimitOrderCompleteFulfilment()
     {
         CoreClass core = new CoreClass();
@@ -295,14 +289,13 @@ public class ExchangeContractTests
         //-----------------------------------------
         //test fully matched IoC orders
         buyer.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Buy, IoC: false);
-        Assert.IsTrue(seller.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Sell, IoC: true) == 0.1m, "Unexpected amount of tokens received");
+        Assert.True(seller.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Sell, IoC: true) == 0.1m, "Unexpected amount of tokens received");
 
         seller.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Sell, IoC: false);
-        Assert.IsTrue(buyer.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Buy, IoC: true) == 0.1m, "Unexpected amount of tokens received");
+        Assert.True(buyer.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Buy, IoC: true) == 0.1m, "Unexpected amount of tokens received");
     }
 
-    [Ignore]
-    [TestMethod]
+    [Fact(Skip = "Ignore Exchange tests")]
     public void TestLimitOrderPartialFulfilment()
     {
         CoreClass core = new CoreClass();
@@ -322,14 +315,13 @@ public class ExchangeContractTests
         //-----------------------------------------
         //test partially matched IoC orders
         buyer.OpenLimitOrder(0.05m, 1m, ExchangeOrderSide.Buy, IoC: false);
-        Assert.IsTrue(seller.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Sell, IoC: true) == 0.05m, "Unexpected amount of tokens received");
+        Assert.True(seller.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Sell, IoC: true) == 0.05m, "Unexpected amount of tokens received");
 
         seller.OpenLimitOrder(0.05m, 1m, ExchangeOrderSide.Sell, IoC: false);
-        Assert.IsTrue(buyer.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Buy, IoC: true) == 0.05m, "Unexpected amount of tokens received");
+        Assert.True(buyer.OpenLimitOrder(0.1m, 1m, ExchangeOrderSide.Buy, IoC: true) == 0.05m, "Unexpected amount of tokens received");
     }
 
-    [Ignore]
-    [TestMethod]
+    [Fact(Skip = "Ignore Exchange tests")]
     public void TestLimitOrderMultipleFulfilsPerOrder()
     {
         CoreClass core = new CoreClass();
@@ -352,7 +344,7 @@ public class ExchangeContractTests
         buyer.OpenLimitOrder(0.05m, 2m, ExchangeOrderSide.Buy, IoC: false);
         buyer.OpenLimitOrder(0.05m, 3m, ExchangeOrderSide.Buy, IoC: false);
         buyer.OpenLimitOrder(0.05m, 0.5m, ExchangeOrderSide.Buy, IoC: false);
-        Assert.IsTrue(seller.OpenLimitOrder(0.15m, 1m, ExchangeOrderSide.Sell, IoC: true) == 0.3m, "Unexpected amount of tokens received");
+        Assert.True(seller.OpenLimitOrder(0.15m, 1m, ExchangeOrderSide.Sell, IoC: true) == 0.3m, "Unexpected amount of tokens received");
 
         buyer.FundQuoteToken(quantity: quoteSymbolAmount, fundFuel: true);
         seller.FundBaseToken(quantity: baseSymbolAmount, fundFuel: true);
@@ -361,12 +353,12 @@ public class ExchangeContractTests
         seller.OpenLimitOrder(0.05m, 2m, ExchangeOrderSide.Sell, IoC: false);
         seller.OpenLimitOrder(0.05m, 3m, ExchangeOrderSide.Sell, IoC: false);
         seller.OpenLimitOrder(0.05m, 0.5m, ExchangeOrderSide.Sell, IoC: false);
-        Assert.IsTrue(buyer.OpenLimitOrder(0.15m, 3m, ExchangeOrderSide.Buy, IoC: true) == 0.2m, "Unexpected amount of tokens received");
+        Assert.True(buyer.OpenLimitOrder(0.15m, 3m, ExchangeOrderSide.Buy, IoC: true) == 0.2m, "Unexpected amount of tokens received");
 
         //TODO: test multiple IoC orders against each other on the same block!
     }
 
-    [TestMethod]
+    [Fact]
     public void TestFailedRegular()
     {
         CoreClass core = new CoreClass();
@@ -388,18 +380,18 @@ public class ExchangeContractTests
         try
         {
             buyer.OpenLimitOrder(0, 0.5m, ExchangeOrderSide.Buy);
-            Assert.IsTrue(false, "Order should fail due to insufficient amount");
+            Assert.True(false, "Order should fail due to insufficient amount");
         }
         catch (Exception e) { }
         try
         {
             buyer.OpenLimitOrder(0.5m, 0, ExchangeOrderSide.Buy);
-            Assert.IsTrue(false, "Order should fail due to insufficient price");
+            Assert.True(false, "Order should fail due to insufficient price");
         }
         catch (Exception e) { }
     }
 
-    [TestMethod]
+    [Fact]
     public void TestEmptyBookMarketOrder()
     {
         CoreClass core = new CoreClass();
@@ -416,11 +408,10 @@ public class ExchangeContractTests
         buyer.FundQuoteToken(quantity: quoteSymbolAmount, fundFuel: true);
         seller.FundBaseToken(quantity: baseSymbolAmount, fundFuel: true);
 
-        Assert.IsTrue(buyer.OpenMarketOrder(1, ExchangeOrderSide.Buy) == 0, "Should not have bought anything");
+        Assert.True(buyer.OpenMarketOrder(1, ExchangeOrderSide.Buy) == 0, "Should not have bought anything");
     }
 
-    [Ignore]
-    [TestMethod]
+    [Fact(Skip = "Ignore Exchange tests")]
     public void TestMarketOrderPartialFill()
     {
         CoreClass core = new CoreClass();
@@ -438,11 +429,10 @@ public class ExchangeContractTests
         seller.FundBaseToken(quantity: baseSymbolAmount, fundFuel: true);
 
         seller.OpenLimitOrder(0.2m, 1m, ExchangeOrderSide.Sell);
-        Assert.IsTrue(buyer.OpenMarketOrder(0.3m, ExchangeOrderSide.Buy) == 0.2m, "");
+        Assert.True(buyer.OpenMarketOrder(0.3m, ExchangeOrderSide.Buy) == 0.2m, "");
     }
 
-    [TestMethod]
-    [Ignore]
+    [Fact(Skip = "Ignore Exchange tests")]
     public void TestMarketOrderCompleteFulfilment()
     {
         CoreClass core = new CoreClass();
@@ -468,10 +458,10 @@ public class ExchangeContractTests
 
         var marketOrder = buyer.OpenMarketOrder( 0.3m, ExchangeOrderSide.Buy);
 
-        Assert.IsTrue(marketOrder == 0.2m, $"{marketOrder} == 0.2m");
+        Assert.True(marketOrder == 0.2m, $"{marketOrder} == 0.2m");
     }
 
-    [TestMethod]
+    [Fact]
     public void TestMarketOrderTotalFillNoOrderbookWipe()
     {
         CoreClass core = new CoreClass();
@@ -495,13 +485,13 @@ public class ExchangeContractTests
 
         seller.OpenLimitOrder(baseSymbol, quoteSymbol, orderSize1, orderPrice1, ExchangeOrderSide.Sell);
         seller.OpenLimitOrder(baseSymbol, quoteSymbol, orderSize2, orderPrice2, ExchangeOrderSide.Sell);
-        Assert.IsTrue(buyer.OpenMarketOrder(0.25m, ExchangeOrderSide.Buy) == 0.175m, "");
+        Assert.True(buyer.OpenMarketOrder(0.25m, ExchangeOrderSide.Buy) == 0.175m, "");
     }
     
     #endregion
     
     #region OTC Tests
-    [TestMethod, TestCategory("OTC")]
+    [Fact]
     public void TestOpenOTCOrder()
     {
         CoreClass core = new CoreClass();
@@ -522,7 +512,7 @@ public class ExchangeContractTests
         var initialBalance = seller.GetBalance(baseSymbol);
 
         // Verify my Funds
-        Assert.IsTrue(initialBalance == UnitConversion.ToBigInteger(500, GetDecimals(baseSymbol)));
+        Assert.True(initialBalance == UnitConversion.ToBigInteger(500, GetDecimals(baseSymbol)));
 
         // Create OTC Offer
         var txValue = seller.OpenOTCOrder(baseSymbol, quoteSymbol, 1m, 2m);
@@ -530,14 +520,14 @@ public class ExchangeContractTests
         // Test if the seller lost money.
         var finalBalance = seller.GetBalance(baseSymbol);
 
-        Assert.IsFalse(initialBalance == finalBalance, $"{initialBalance} == {finalBalance}");
+        Assert.False(initialBalance == finalBalance, $"{initialBalance} == {finalBalance}");
 
         // Test if lost the quantity used
         var subtractSpendToken = initialBalance - UnitConversion.ToBigInteger(2m, GetDecimals(baseSymbol));
-        Assert.IsTrue(subtractSpendToken == finalBalance, $"{subtractSpendToken} == {finalBalance}");
+        Assert.True(subtractSpendToken == finalBalance, $"{subtractSpendToken} == {finalBalance}");
     }
 
-    [TestMethod, TestCategory("OTC")]
+    [Fact]
     public void TestGetOTC()
     {
         CoreClass core = new CoreClass();
@@ -558,7 +548,7 @@ public class ExchangeContractTests
 
         var empytOTC = new ExchangeOrder[0];
 
-        Assert.IsTrue(initialOTC.Length == 0);
+        Assert.True(initialOTC.Length == 0);
 
         // Create an Order
         seller.OpenOTCOrder(baseSymbol, quoteSymbol, 1m, 1m);
@@ -566,11 +556,11 @@ public class ExchangeContractTests
         // Test if theres an order
         var finallOTC = seller.GetOTC();
 
-        Assert.IsTrue(initialOTC != finallOTC);
+        Assert.True(initialOTC != finallOTC);
     }
 
 
-    [TestMethod, TestCategory("OTC")]
+    [Fact]
     public void TestTakeOTCOrder()
     {
         CoreClass core = new CoreClass();
@@ -598,10 +588,10 @@ public class ExchangeContractTests
         // Test if Seller lost balance
         var finalSeller_B = seller.GetBalance(baseSymbol);
 
-        Assert.IsFalse(initialSeller_B == finalSeller_B);
+        Assert.False(initialSeller_B == finalSeller_B);
 
         // Test if lost the quantity used
-        Assert.IsTrue((initialSeller_B - UnitConversion.ToBigInteger(10m, GetDecimals(baseSymbol))) == finalSeller_B);
+        Assert.True((initialSeller_B - UnitConversion.ToBigInteger(10m, GetDecimals(baseSymbol))) == finalSeller_B);
 
         // Take an Order
         // Get Order UID
@@ -616,15 +606,15 @@ public class ExchangeContractTests
         // Consider Transactions Fees
 
         // Test seller received
-        Assert.IsTrue((initialSeller_Q + UnitConversion.ToBigInteger(5m, GetDecimals(quoteSymbol)) - sellerTXFees) == finalSeller_Q);
+        Assert.True((initialSeller_Q + UnitConversion.ToBigInteger(5m, GetDecimals(quoteSymbol)) - sellerTXFees) == finalSeller_Q);
 
         // Test Buyer spend and receibed
-        Assert.IsTrue((initialBuyer_B + UnitConversion.ToBigInteger(10m, GetDecimals(baseSymbol))) == finalBuyer_B);
-        Assert.IsTrue((initialBuyer_Q - UnitConversion.ToBigInteger(5m, GetDecimals(quoteSymbol)) - buyerTXFees) == finalBuyer_Q);
+        Assert.True((initialBuyer_B + UnitConversion.ToBigInteger(10m, GetDecimals(baseSymbol))) == finalBuyer_B);
+        Assert.True((initialBuyer_Q - UnitConversion.ToBigInteger(5m, GetDecimals(quoteSymbol)) - buyerTXFees) == finalBuyer_Q);
 
     }
 
-    [TestMethod, TestCategory("OTC")]
+    [Fact]
     public void TestCancelOTCOrder()
     {
         CoreClass core = new CoreClass();
@@ -647,10 +637,10 @@ public class ExchangeContractTests
         // Test if the seller lost money.
         var finalBalance = seller.GetBalance(baseSymbol);
 
-        Assert.IsFalse(initialBalance == finalBalance);
+        Assert.False(initialBalance == finalBalance);
 
         // Test if lost the quantity used
-        Assert.IsTrue((initialBalance - UnitConversion.ToBigInteger(5m, GetDecimals(baseSymbol))) == finalBalance);
+        Assert.True((initialBalance - UnitConversion.ToBigInteger(5m, GetDecimals(baseSymbol))) == finalBalance);
 
         // Cancel Order
         // Get Order UID
@@ -660,7 +650,7 @@ public class ExchangeContractTests
         // Test if the token is back;
         var atualBalance = seller.GetBalance(baseSymbol);
 
-        Assert.IsTrue(initialBalance == atualBalance);
+        Assert.True(initialBalance == atualBalance);
     }
     #endregion
 
@@ -731,7 +721,7 @@ public class ExchangeContractTests
         SetupNormalPool();
     }
 
-    [TestMethod]
+    [Fact]
     public void MigrateTest()
     {
         CoreClass core = new CoreClass();
@@ -749,22 +739,22 @@ public class ExchangeContractTests
         var poolSOULGAS = poolOwner.GetPool(soul.Symbol, gas.Symbol);
         
         // TODO: Checks
-        Assert.IsTrue(poolSOULKCAL.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
-        Assert.IsTrue(poolSOULKCAL.Symbol1 == kcal.Symbol, "Symbol1 doesn't check");
-        Assert.IsTrue(poolSOULETH.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
-        Assert.IsTrue(poolSOULETH.Symbol1 == eth.Symbol, "Symbol1 doesn't check");
-        Assert.IsTrue(poolSOULBNB.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
-        Assert.IsTrue(poolSOULBNB.Symbol1 == bnb.Symbol, "Symbol1 doesn't check");
-        Assert.IsTrue(poolSOULNEO.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
-        Assert.IsTrue(poolSOULNEO.Symbol1 == neo.Symbol, "Symbol1 doesn't check");
-        Assert.IsTrue(poolSOULGAS.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
-        Assert.IsTrue(poolSOULGAS.Symbol1 == gas.Symbol, "Symbol1 doesn't check");
-        //Assert.IsTrue(poolSOULKCAL.Amount0 == myPoolAmount0, $"Amount0 doesn't check {poolSOULKCAL.Amount0}");
+        Assert.True(poolSOULKCAL.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
+        Assert.True(poolSOULKCAL.Symbol1 == kcal.Symbol, "Symbol1 doesn't check");
+        Assert.True(poolSOULETH.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
+        Assert.True(poolSOULETH.Symbol1 == eth.Symbol, "Symbol1 doesn't check");
+        Assert.True(poolSOULBNB.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
+        Assert.True(poolSOULBNB.Symbol1 == bnb.Symbol, "Symbol1 doesn't check");
+        Assert.True(poolSOULNEO.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
+        Assert.True(poolSOULNEO.Symbol1 == neo.Symbol, "Symbol1 doesn't check");
+        Assert.True(poolSOULGAS.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
+        Assert.True(poolSOULGAS.Symbol1 == gas.Symbol, "Symbol1 doesn't check");
+        //Assert.True(poolSOULKCAL.Amount0 == myPoolAmount0, $"Amount0 doesn't check {poolSOULKCAL.Amount0}");
     }
 
 
-    [TestMethod]
-    [TestCategory("DEX")]
+    [Fact]
+    
     public void CreatePool()
     {
         CoreClass core = new CoreClass();
@@ -790,7 +780,7 @@ public class ExchangeContractTests
         // Create Token
         //CoreClass.ExchangeTokenInfo cool = new CoreClass.ExchangeTokenInfo("COOL", "Phantasma Cool", UnitConversion.ToBigInteger(10000000, 8), 8, flags );
         //poolOwner.CreateToken(cool);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
 
         // Give Users tokens
         poolOwner.FundUser(soul: 50000, kcal: 100);
@@ -808,33 +798,33 @@ public class ExchangeContractTests
         //token0
         var token0 = core.nexus.GetTokenInfo(core.nexus.RootStorage, soul.Symbol);
         var token0Address = core.nexus.GetTokenContract(core.nexus.RootStorage, soul.Symbol);
-        Assert.IsTrue(token0.Symbol == soul.Symbol);
+        Assert.True(token0.Symbol == soul.Symbol);
 
         // token1
         var token1 = core.nexus.GetTokenInfo(core.nexus.RootStorage, cool.Symbol);
         var token1Address = core.nexus.GetTokenContract(core.nexus.RootStorage, cool.Symbol);
-        Assert.IsTrue(token1.Symbol == cool.Symbol);
-        Assert.IsTrue(token1.Flags.HasFlag(TokenFlags.Transferable), "Not swappable.");
+        Assert.True(token1.Symbol == cool.Symbol);
+        Assert.True(token1.Flags.HasFlag(TokenFlags.Transferable), "Not swappable.");
 
         // Create a Pool
         poolOwner.CreatePool(soul.Symbol, myPoolAmount0, cool.Symbol, 0);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
         
         var pool = poolOwner.GetPool(soul.Symbol, cool.Symbol);
 
-        Assert.IsTrue(pool.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
-        Assert.IsTrue(pool.Amount0 == myPoolAmount0, $"Amount0 doesn't check {pool.Amount0}");
-        Assert.IsTrue(pool.Symbol1 == cool.Symbol, "Symbol1 doesn't check");
-        Assert.IsTrue(pool.Amount1 == myPoolAmount1, $"Amount1 doesn't check {pool.Amount1} != {myPoolAmount1}");
-        Assert.IsTrue(pool.TotalLiquidity == totalLiquidity, "Liquidity doesn't check"); 
-        Assert.IsTrue(pool.Symbol0Address == token0Address.Address.Text);
-        Assert.IsTrue(pool.Symbol1Address == token1Address.Address.Text);
+        Assert.True(pool.Symbol0 == soul.Symbol, "Symbol0 doesn't check");
+        Assert.True(pool.Amount0 == myPoolAmount0, $"Amount0 doesn't check {pool.Amount0}");
+        Assert.True(pool.Symbol1 == cool.Symbol, "Symbol1 doesn't check");
+        Assert.True(pool.Amount1 == myPoolAmount1, $"Amount1 doesn't check {pool.Amount1} != {myPoolAmount1}");
+        Assert.True(pool.TotalLiquidity == totalLiquidity, "Liquidity doesn't check"); 
+        Assert.True(pool.Symbol0Address == token0Address.Address.Text);
+        Assert.True(pool.Symbol1Address == token1Address.Address.Text);
 
         Console.WriteLine($"Check Values | {pool.Symbol0}({pool.Symbol0Address}) -> {pool.Amount0} | {pool.Symbol1}({pool.Symbol1Address}) -> {pool.Amount1} || {pool.TotalLiquidity}");
     }
 
-    [TestMethod]
-    [TestCategory("DEX")]
+    [Fact]
+    
     public void CreateVirtualPool()
     {
         CoreClass core = new CoreClass();
@@ -871,32 +861,32 @@ public class ExchangeContractTests
         //token1
         var token1 = core.nexus.GetTokenInfo(core.nexus.RootStorage, kcal.Symbol);
         var token1Address = core.nexus.GetTokenContract(core.nexus.RootStorage, kcal.Symbol);
-        Assert.IsTrue(token1.Symbol == kcal.Symbol, "Symbol1 != Token1");
+        Assert.True(token1.Symbol == kcal.Symbol, "Symbol1 != Token1");
 
         // virtual Token
         var virtualToken = core.nexus.GetTokenInfo(core.nexus.RootStorage, cool.Symbol);
         var virtualTokenAddress = core.nexus.GetTokenContract(core.nexus.RootStorage, cool.Symbol);
-        Assert.IsTrue(cool.Symbol == virtualToken.Symbol, $"VirtualSymbol != VirtualToken({virtualToken})");
+        Assert.True(cool.Symbol == virtualToken.Symbol, $"VirtualSymbol != VirtualToken({virtualToken})");
 
         poolOwner.CreatePool(kcal.Symbol, amount0, cool.Symbol , amount1);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
         
         // Check if the pool was created
         var pool = poolOwner.GetPool(kcal.Symbol, cool.Symbol);
 
-        Assert.IsTrue(pool.Symbol0 == kcal.Symbol);
-        Assert.IsTrue(pool.Amount0 == amount0);
-        Assert.IsTrue(pool.Symbol1 == cool.Symbol); 
-        Assert.IsTrue(pool.Amount1 == amount1);
-        Assert.IsTrue(pool.TotalLiquidity == totalLiquidity);
-        Assert.IsTrue(pool.Symbol0Address == token1Address.Address.Text);
-        Assert.IsTrue(pool.Symbol1Address == virtualTokenAddress.Address.Text);
+        Assert.True(pool.Symbol0 == kcal.Symbol);
+        Assert.True(pool.Amount0 == amount0);
+        Assert.True(pool.Symbol1 == cool.Symbol); 
+        Assert.True(pool.Amount1 == amount1);
+        Assert.True(pool.TotalLiquidity == totalLiquidity);
+        Assert.True(pool.Symbol0Address == token1Address.Address.Text);
+        Assert.True(pool.Symbol1Address == virtualTokenAddress.Address.Text);
 
         Console.WriteLine($"Check Values | {pool.Symbol0}({pool.Symbol0Address}) -> {pool.Amount0} | {pool.Symbol1}({pool.Symbol1Address}) -> {pool.Amount1} || {pool.TotalLiquidity}");
     }
 
-    [TestMethod]
-    [TestCategory("DEX")]
+    [Fact]
+    
     // TODO: Get the pool initial values and calculate the target rate with those values insted of the static ones.
     public void AddLiquidityToPool()
     {
@@ -930,20 +920,20 @@ public class ExchangeContractTests
 
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(soul.Symbol, amount0, eth.Symbol, 0);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
         
         // Check the Liquidity
         var poolAfter = poolOwner.GetPool(soul.Symbol, eth.Symbol);
         pool.TotalLiquidity += (amount0 * pool.TotalLiquidity) / (pool.Amount0);
 
-        Assert.IsTrue(poolAfter.Symbol0 == soul.Symbol, $"Symbol is incorrect: {soul.Symbol}");
-        Assert.IsTrue(poolAfter.Amount0 == pool.Amount0 + amount0, $"Symbol Amount0 is incorrect: {pool.Amount0 + amount0} != {poolAfter.Amount0} {soul.Symbol}");
-        Assert.IsTrue(poolAfter.Symbol1 == eth.Symbol, $"Pair is incorrect: {eth.Symbol}");
-        Assert.IsTrue(poolAfter.Amount1 == pool.Amount1 + amountCalculated, $"Symbol Amount1 is incorrect: {pool.Amount1 + amountCalculated} != {poolAfter.Amount1} {eth.Symbol}");
-        Assert.IsTrue(pool.TotalLiquidity == poolAfter.TotalLiquidity, $"TotalLiquidity doesn't checkout {pool.TotalLiquidity}!={poolAfter.TotalLiquidity}");
+        Assert.True(poolAfter.Symbol0 == soul.Symbol, $"Symbol is incorrect: {soul.Symbol}");
+        Assert.True(poolAfter.Amount0 == pool.Amount0 + amount0, $"Symbol Amount0 is incorrect: {pool.Amount0 + amount0} != {poolAfter.Amount0} {soul.Symbol}");
+        Assert.True(poolAfter.Symbol1 == eth.Symbol, $"Pair is incorrect: {eth.Symbol}");
+        Assert.True(poolAfter.Amount1 == pool.Amount1 + amountCalculated, $"Symbol Amount1 is incorrect: {pool.Amount1 + amountCalculated} != {poolAfter.Amount1} {eth.Symbol}");
+        Assert.True(pool.TotalLiquidity == poolAfter.TotalLiquidity, $"TotalLiquidity doesn't checkout {pool.TotalLiquidity}!={poolAfter.TotalLiquidity}");
     }
 
-    [TestMethod]
+    [Fact]
     public void AddLiquidityToVirtualPool()
     {
         CoreClass core = new CoreClass();
@@ -980,11 +970,11 @@ public class ExchangeContractTests
 
         var pool = poolOwner.GetPool(kcal.Symbol, cool.Symbol);
         BigInteger totalLiquidity = ExchangeContract.Sqrt(initialAmount0SameDecimals * initialAmount1SameDecimals) * UnitConversion.GetUnitValue(DomainSettings.MAX_TOKEN_DECIMALS);
-        Assert.IsTrue(totalLiquidity == pool.TotalLiquidity);
+        Assert.True(totalLiquidity == pool.TotalLiquidity);
 
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(kcal.Symbol, amount0, cool.Symbol, amount1);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
 
         // Check the Liquidity
         totalLiquidity += (amount0 * pool.TotalLiquidity) / (pool.Amount0);
@@ -992,14 +982,14 @@ public class ExchangeContractTests
         var poolAfter = poolOwner.GetPool(kcal.Symbol, cool.Symbol);
 
         Console.WriteLine($"{poolAfter.Amount1} != {pool.Amount1+amount1}");
-        Assert.IsTrue(poolAfter.Symbol0 == kcal.Symbol, "Symbol is incorrect");
-        Assert.IsTrue(poolAfter.Amount0 == pool.Amount0 + amount0, "Symbol Amount0 is incorrect");
-        Assert.IsTrue(poolAfter.Symbol1 == cool.Symbol, "Pair is incorrect");
-        Assert.IsTrue(poolAfter.Amount1 == pool.Amount1 + amount1, "Symbol Amount1 is incorrect");
-        Assert.IsTrue(poolAfter.TotalLiquidity == totalLiquidity, $"{poolAfter.TotalLiquidity} == {totalLiquidity}");
+        Assert.True(poolAfter.Symbol0 == kcal.Symbol, "Symbol is incorrect");
+        Assert.True(poolAfter.Amount0 == pool.Amount0 + amount0, "Symbol Amount0 is incorrect");
+        Assert.True(poolAfter.Symbol1 == cool.Symbol, "Pair is incorrect");
+        Assert.True(poolAfter.Amount1 == pool.Amount1 + amount1, "Symbol Amount1 is incorrect");
+        Assert.True(poolAfter.TotalLiquidity == totalLiquidity, $"{poolAfter.TotalLiquidity} == {totalLiquidity}");
     }
 
-    [TestMethod]
+    [Fact]
     public void RemoveLiquidityToPool()
     {
         CoreClass core = new CoreClass();
@@ -1037,11 +1027,11 @@ public class ExchangeContractTests
         BigInteger totalLiquidity = pool.TotalLiquidity;
         var calculatedTLP = ExchangeContract.Sqrt(sameDecimalsAmount0 * sameDecimalsAmount1) *
                             UnitConversion.GetUnitValue(DomainSettings.MAX_TOKEN_DECIMALS);
-        Assert.IsTrue(calculatedTLP == totalLiquidity, $"{calculatedTLP} == {totalLiquidity}");
+        Assert.True(calculatedTLP == totalLiquidity, $"{calculatedTLP} == {totalLiquidity}");
         
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(soul.Symbol, amount0, eth.Symbol, amount1);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
         
         var lpAdded = (amount0 * totalLiquidity) / totalAm0;
         totalLiquidity += lpAdded;
@@ -1057,7 +1047,7 @@ public class ExchangeContractTests
         var amount1Remove = UnitConversion.ConvertDecimals((amount0Remove  / poolRatio ), DomainSettings.FiatTokenDecimals, eth.Decimals);
 
         poolOwner.RemoveLiquidity(soul.Symbol, amount0Remove, eth.Symbol, 0);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
 
         // Get Pool
         var poolAfter = poolOwner.GetPool(soul.Symbol, eth.Symbol);
@@ -1075,13 +1065,13 @@ public class ExchangeContractTests
         Console.WriteLine($"TEST: BeforeLP:{nftRAMBefore.Liquidity}  | AfterLP:{nftRAMAfter.Liquidity} | LPRemoved:{lpRemoved}");
 
         // Validation
-        Assert.IsFalse(nftRAMBefore.Amount0 == nftRAMAfter.Amount0, "Amount0 does not differ.");
-        Assert.IsFalse(nftRAMBefore.Amount1 == nftRAMAfter.Amount1, "Amount1 does not differ.");
-        Assert.IsFalse(nftRAMBefore.Liquidity == nftRAMAfter.Liquidity, $"Liquidity does not differ. | {nftRAMBefore.Liquidity} == {nftRAMAfter.Liquidity}");
+        Assert.False(nftRAMBefore.Amount0 == nftRAMAfter.Amount0, "Amount0 does not differ.");
+        Assert.False(nftRAMBefore.Amount1 == nftRAMAfter.Amount1, "Amount1 does not differ.");
+        Assert.False(nftRAMBefore.Liquidity == nftRAMAfter.Liquidity, $"Liquidity does not differ. | {nftRAMBefore.Liquidity} == {nftRAMAfter.Liquidity}");
 
-        Assert.IsTrue(nftRAMBefore.Amount0 - amount0Remove == nftRAMAfter.Amount0, "Amount0 not true.");
-        Assert.IsTrue(nftRAMBefore.Amount1 - amount1Remove == nftRAMAfter.Amount1, $"Amount1 not true. {nftRAMBefore.Amount1 - amount1} != {nftRAMAfter.Amount1}");
-        Assert.IsTrue(newLP == nftRAMAfter.Liquidity, $"Liquidity does differ. | {newLP} == {nftRAMAfter.Liquidity}");
+        Assert.True(nftRAMBefore.Amount0 - amount0Remove == nftRAMAfter.Amount0, "Amount0 not true.");
+        Assert.True(nftRAMBefore.Amount1 - amount1Remove == nftRAMAfter.Amount1, $"Amount1 not true. {nftRAMBefore.Amount1 - amount1} != {nftRAMAfter.Amount1}");
+        Assert.True(newLP == nftRAMAfter.Liquidity, $"Liquidity does differ. | {newLP} == {nftRAMAfter.Liquidity}");
 
         // Get Amount by Liquidity
         // Liqudity Formula  Liquidity = (amount0 * pool.TotalLiquidity) / pool.Amount0;
@@ -1098,11 +1088,11 @@ public class ExchangeContractTests
         Console.WriteLine($"user after = am0:{nftRAMAfter.Amount0} | am1:{nftRAMAfter.Amount1} | lp:{nftRAMAfter.Liquidity}");
         Console.WriteLine($"pool after = am0:{poolAfter.Amount0} | am1:{poolAfter.Amount1} | lp:{poolAfter.TotalLiquidity}");
         Console.WriteLine($"am0 = {_amount0} == {nftRAMAfter.Amount0} || am1 = {_amount1} == {nftRAMAfter.Amount1}");
-        Assert.IsTrue(_pool_amount0 == poolAfter.Amount0, $"Pool Amount0 not calculated properly | {_pool_amount0} != {poolAfter.Amount0}");
-        Assert.IsTrue(_pool_amount1 == poolAfter.Amount1, $"Pool Amount1 not calculated properly | {_pool_amount1} != {poolAfter.Amount1}");
-        Assert.IsTrue(_pool_liquidity == poolAfter.TotalLiquidity, $"Pool TotalLiquidity not calculated properly | {_pool_liquidity} != {poolAfter.TotalLiquidity}");
-        Assert.IsTrue(_amount0 == nftRAMAfter.Amount0, $"Amount0 not calculated properly | {_amount0+ UnitConversion.ToBigInteger(0.00000001m, soul.Decimals) } != {nftRAMAfter.Amount0}");
-        Assert.IsTrue(_amount1 == nftRAMAfter.Amount1, $"Amount1 not calculated properly | {_amount1+ UnitConversion.ToBigInteger(0.000000001m, eth.Decimals)} != {nftRAMAfter.Amount1}");
+        Assert.True(_pool_amount0 == poolAfter.Amount0, $"Pool Amount0 not calculated properly | {_pool_amount0} != {poolAfter.Amount0}");
+        Assert.True(_pool_amount1 == poolAfter.Amount1, $"Pool Amount1 not calculated properly | {_pool_amount1} != {poolAfter.Amount1}");
+        Assert.True(_pool_liquidity == poolAfter.TotalLiquidity, $"Pool TotalLiquidity not calculated properly | {_pool_liquidity} != {poolAfter.TotalLiquidity}");
+        Assert.True(_amount0 == nftRAMAfter.Amount0, $"Amount0 not calculated properly | {_amount0+ UnitConversion.ToBigInteger(0.00000001m, soul.Decimals) } != {nftRAMAfter.Amount0}");
+        Assert.True(_amount1 == nftRAMAfter.Amount1, $"Amount1 not calculated properly | {_amount1+ UnitConversion.ToBigInteger(0.000000001m, eth.Decimals)} != {nftRAMAfter.Amount1}");
 
         // Get Liquidity by amount
         var liquidityAm0 = nftRAMAfter.Amount0 * totalLiquidity / poolAfter.Amount0;
@@ -1112,12 +1102,12 @@ public class ExchangeContractTests
         Console.WriteLine($"LiquidityAm0 = {nftRAMAfter.Amount0} * {totalLiquidity} / {poolAfter.Amount1} = {nftRAMAfter.Amount0 * totalLiquidity / poolAfter.Amount0}");
         Console.WriteLine($"LiquidityAm0 = {nftRAMAfter.Amount0} * {poolAfter.TotalLiquidity} / {poolAfter.Amount1} = {nftRAMAfter.Amount0 * poolAfter.TotalLiquidity / poolAfter.Amount0}");
 
-        Assert.IsTrue(liquidityAm0 == nftRAMAfter.Liquidity, "Liquidity Amount0 -> not calculated properly");
-        Assert.IsTrue(liquidityAm1 == nftRAMAfter.Liquidity, "Liquidity Amount1 -> not calculated properly");
-        Assert.IsTrue(totalLiquidity == poolAfter.TotalLiquidity, $"Liquidity not true.");
+        Assert.True(liquidityAm0 == nftRAMAfter.Liquidity, "Liquidity Amount0 -> not calculated properly");
+        Assert.True(liquidityAm1 == nftRAMAfter.Liquidity, "Liquidity Amount1 -> not calculated properly");
+        Assert.True(totalLiquidity == poolAfter.TotalLiquidity, $"Liquidity not true.");
     }
 
-    [TestMethod]
+    [Fact]
     public void RemoveLiquiditySmall()
     {
         CoreClass core = new CoreClass();
@@ -1153,7 +1143,7 @@ public class ExchangeContractTests
 
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(soul.Symbol, amount0, eth.Symbol, 0);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
 
         var lpAdded = (amount0 * totalLiquidity) / totalAm0;
         totalLiquidity += lpAdded;
@@ -1166,11 +1156,11 @@ public class ExchangeContractTests
         var _amount0 = (nftRAMBefore.Liquidity) * poolBefore.Amount0 / poolBefore.TotalLiquidity;
         var _amount1 = (nftRAMBefore.Liquidity) * poolBefore.Amount1 / poolBefore.TotalLiquidity;
 
-        Assert.IsTrue(_amount0 + UnitConversion.ToBigInteger(0.00000001m, 8)  >= nftRAMBefore.Amount0, $"Amount0 not calculated properly | {_amount0} != {nftRAMBefore.Amount0}");
-        Assert.IsTrue(_amount1 + UnitConversion.ToBigInteger(0.00000001m, 10) >= nftRAMBefore.Amount1, $"Amount1 not calculated properly | {_amount1} != {nftRAMBefore.Amount1}");
+        Assert.True(_amount0 + UnitConversion.ToBigInteger(0.00000001m, 8)  >= nftRAMBefore.Amount0, $"Amount0 not calculated properly | {_amount0} != {nftRAMBefore.Amount0}");
+        Assert.True(_amount1 + UnitConversion.ToBigInteger(0.00000001m, 10) >= nftRAMBefore.Amount1, $"Amount1 not calculated properly | {_amount1} != {nftRAMBefore.Amount1}");
     }
 
-    [TestMethod]
+    [Fact]
     public void RemoveLiquidityToVirtualPool()
     {
         CoreClass core = new CoreClass();
@@ -1207,11 +1197,11 @@ public class ExchangeContractTests
         BigInteger totalAm0SameDecimals = UnitConversion.ConvertDecimals(totalAm0, kcal.Decimals, 8);
         BigInteger totalAm1SameDecimals = UnitConversion.ConvertDecimals(totalAm1, cool.Decimals, 8);
         BigInteger totalLiquidity = (BigInteger)Math.Sqrt((double)(totalAm0SameDecimals * totalAm1SameDecimals)) * UnitConversion.GetUnitValue(DomainSettings.MAX_TOKEN_DECIMALS);
-        Assert.IsTrue(totalLiquidity == pool.TotalLiquidity);
+        Assert.True(totalLiquidity == pool.TotalLiquidity);
         
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(kcal.Symbol, amount0, cool.Symbol, amount1);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
 
         var lpAdded = (amount0 * totalLiquidity) / totalAm0;
         totalLiquidity += lpAdded;
@@ -1225,7 +1215,7 @@ public class ExchangeContractTests
         var amount1Remove = UnitConversion.ToBigInteger((UnitConversion.ToDecimal(UnitConversion.ConvertDecimals(amount0Remove, 10, 8), 8)  / poolRatio), cool.Decimals);
 
         poolOwner.RemoveLiquidity(kcal.Symbol, amount0Remove, cool.Symbol, amount1Remove);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
         
         var poolAfter = poolOwner.GetPool(kcal.Symbol, cool.Symbol);
         var nftRAMAfter = poolOwner.GetPoolRAM(kcal.Symbol, cool.Symbol);
@@ -1239,12 +1229,12 @@ public class ExchangeContractTests
         // Get My NFT DATA 
 
         // Validation
-        Assert.IsFalse(nftRAMBefore.Amount0 == nftRAMAfter.Amount0, "Amount0 does not differ.");
-        Assert.IsFalse(nftRAMBefore.Amount1 == nftRAMAfter.Amount1, "Amount1 does not differ.");
-        Assert.IsFalse(nftRAMBefore.Liquidity == nftRAMAfter.Liquidity, "Liquidity does not differ.");
+        Assert.False(nftRAMBefore.Amount0 == nftRAMAfter.Amount0, "Amount0 does not differ.");
+        Assert.False(nftRAMBefore.Amount1 == nftRAMAfter.Amount1, "Amount1 does not differ.");
+        Assert.False(nftRAMBefore.Liquidity == nftRAMAfter.Liquidity, "Liquidity does not differ.");
 
-        Assert.IsTrue(nftRAMBefore.Amount0 - amount0Remove == nftRAMAfter.Amount0, "Amount0 not true.");
-        Assert.IsTrue(nftRAMBefore.Amount1 - amount1Remove == nftRAMAfter.Amount1, "Amount1 not true.");
+        Assert.True(nftRAMBefore.Amount0 - amount0Remove == nftRAMAfter.Amount0, "Amount0 not true.");
+        Assert.True(nftRAMBefore.Amount1 - amount1Remove == nftRAMAfter.Amount1, "Amount1 not true.");
 
         // Get Amount by Liquidity
         // Liqudity Formula  Liquidity = (amount0 * pool.TotalLiquidity) / pool.Amount0;
@@ -1253,8 +1243,8 @@ public class ExchangeContractTests
         var _amount1 = (nftRAMAfter.Liquidity) * poolAfter.Amount1 / poolAfter.TotalLiquidity;
 
         Console.WriteLine($"am0 = {_amount0} == {nftRAMAfter.Amount0} || am1 = {_amount1} == {nftRAMAfter.Amount1}");
-        Assert.IsTrue(_amount0 == nftRAMAfter.Amount0, $"Amount0 not calculated properly ({_amount0} != {nftRAMAfter.Amount0})");
-        Assert.IsTrue(_amount1 == nftRAMAfter.Amount1, "Amount1 not calculated properly");
+        Assert.True(_amount0 == nftRAMAfter.Amount0, $"Amount0 not calculated properly ({_amount0} != {nftRAMAfter.Amount0})");
+        Assert.True(_amount1 == nftRAMAfter.Amount1, "Amount1 not calculated properly");
 
         // Get Liquidity by amount
         var liquidityAm0 = nftRAMAfter.Amount0 * totalLiquidity / poolAfter.Amount0;
@@ -1262,12 +1252,12 @@ public class ExchangeContractTests
 
         Console.WriteLine($"LiquidityAm0 = {liquidityAm0} == {nftRAMAfter.Liquidity} || LiquidityAm1 = {liquidityAm1} == {nftRAMAfter.Liquidity}");
 
-        Assert.IsTrue(liquidityAm0 == nftRAMAfter.Liquidity, "Liquidity Amount0 -> not calculated properly");
-        Assert.IsTrue(liquidityAm1 == nftRAMAfter.Liquidity, "Liquidity Amount1 -> not calculated properly");
-        Assert.IsTrue(totalLiquidity == poolAfter.TotalLiquidity, "Liquidity not true.");
+        Assert.True(liquidityAm0 == nftRAMAfter.Liquidity, "Liquidity Amount0 -> not calculated properly");
+        Assert.True(liquidityAm1 == nftRAMAfter.Liquidity, "Liquidity Amount1 -> not calculated properly");
+        Assert.True(totalLiquidity == poolAfter.TotalLiquidity, "Liquidity not true.");
     }
 
-    [TestMethod]
+    [Fact]
     public void TestAddLPSwapRemoveLP()
     {
         CoreClass core = new CoreClass();
@@ -1302,41 +1292,41 @@ public class ExchangeContractTests
         BigInteger tradeAmount = UnitConversion.ToBigInteger(100, kcal.Decimals);
         
         poolOwner.AddLiquidity(soul.Symbol, amount0, kcal.Symbol, 0);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
         var poolAfter = poolOwner.GetPool(soul.Symbol, kcal.Symbol);
         var nftBefore = poolOwner.GetPoolRAM(soul.Symbol, kcal.Symbol);
         // CALCULATE BASED ON THIS liquidity = (AMOUNTX  * LP_TOTAL )/  AMOUNTX
         var nft_lp = poolBefore.TotalLiquidity * amount0 / poolSameDecimalsAmount0;
         var amount0_lp = nft_lp * poolBefore.Amount0  / (poolBefore.TotalLiquidity) ;
         var amount1_lp = nftBefore.Liquidity * poolBefore.Amount1 / (poolBefore.TotalLiquidity) ;
-        Assert.IsTrue(nftBefore.Amount0 == amount0, $"{UnitConversion.ToDecimal(nftBefore.Amount0, 8)} == {amount0}");
-        Assert.IsTrue(nftBefore.Amount1 == amount1, $"{UnitConversion.ToDecimal(nftBefore.Amount1, 10)} == {UnitConversion.ToDecimal(amount1, 10)}");
-        Assert.IsTrue(nftBefore.Liquidity == nft_lp, $"LP_NFT:{nftBefore.Liquidity} == {nft_lp}");
-        Assert.IsTrue(nftBefore.Amount0 == amount0_lp, $"Am0:{UnitConversion.ToDecimal(nftBefore.Amount0, 8)} == {UnitConversion.ToDecimal(amount0_lp, 8)} || {nftBefore.Amount0} == {amount0_lp}");
-        Assert.IsTrue(nftBefore.Amount1 == amount1_lp, $"Am1:{UnitConversion.ToDecimal(nftBefore.Amount1, 10)} == {UnitConversion.ToDecimal(amount1_lp, 10)}");
+        Assert.True(nftBefore.Amount0 == amount0, $"{UnitConversion.ToDecimal(nftBefore.Amount0, 8)} == {amount0}");
+        Assert.True(nftBefore.Amount1 == amount1, $"{UnitConversion.ToDecimal(nftBefore.Amount1, 10)} == {UnitConversion.ToDecimal(amount1, 10)}");
+        Assert.True(nftBefore.Liquidity == nft_lp, $"LP_NFT:{nftBefore.Liquidity} == {nft_lp}");
+        Assert.True(nftBefore.Amount0 == amount0_lp, $"Am0:{UnitConversion.ToDecimal(nftBefore.Amount0, 8)} == {UnitConversion.ToDecimal(amount0_lp, 8)} || {nftBefore.Amount0} == {amount0_lp}");
+        Assert.True(nftBefore.Amount1 == amount1_lp, $"Am1:{UnitConversion.ToDecimal(nftBefore.Amount1, 10)} == {UnitConversion.ToDecimal(amount1_lp, 10)}");
         
         var rate = poolOwner2.GetRate(kcal.Symbol, soul.Symbol, tradeAmount);
-        Assert.IsTrue(rate > 0, $"{rate}");
+        Assert.True(rate > 0, $"{rate}");
         var fees = poolOwner2.SwapTokens(kcal.Symbol, soul.Symbol, tradeAmount);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
 
         var balance = poolOwner2.GetBalance(kcal.Symbol);
-        Assert.IsTrue(balance ==  balanceBefore - fees - tradeAmount );
+        Assert.True(balance ==  balanceBefore - fees - tradeAmount );
 
         var unclaimed = poolOwner.GetUnclaimedFees(soul.Symbol, kcal.Symbol);
-        Assert.IsTrue(unclaimed.Item2 > 0);
+        Assert.True(unclaimed.Item2 > 0);
         
         
         // FAIL - Try to remove all that you had before
         poolOwner.RemoveLiquidity(soul.Symbol, amount0*2, kcal.Symbol, 0);
-        Assert.IsFalse(core.simulator.LastBlockWasSuccessful());
+        Assert.False(core.simulator.LastBlockWasSuccessful());
         
         var nftAfter = poolOwner.GetPoolRAM(soul.Symbol, kcal.Symbol);
     }
 
     
     /*
-     [TestMethod]
+     [Fact]
     // TODO: Get the pool initial values and calculate the target rate with those values insted of the static ones.
     public void GetRatesForSwap()
     {
@@ -1367,10 +1357,10 @@ public class ExchangeContractTests
             }
         }
 
-        Assert.IsTrue(rate == UnitConversion.ToDecimal(targetRate, DomainSettings.FuelTokenDecimals), $"{rate} != {targetRate}");
+        Assert.True(rate == UnitConversion.ToDecimal(targetRate, DomainSettings.FuelTokenDecimals), $"{rate} != {targetRate}");
     }*/
 
-    [TestMethod]
+    [Fact]
     // TODO: Get the pool initial values and calculate the target rate with those values insted of the static ones.
     public void GetRateForSwap()
     {
@@ -1399,10 +1389,10 @@ public class ExchangeContractTests
         
         var rate = poolOwner.GetRate(soul.Symbol, eth.Symbol, amount);
 
-        Assert.IsTrue(targetRate == rate);
+        Assert.True(targetRate == rate);
     }
 
-    [TestMethod]
+    [Fact]
     public void SwapTokens()
     {
         CoreClass core = new CoreClass();
@@ -1437,14 +1427,14 @@ public class ExchangeContractTests
 
         // Make Swap SOUL / ETH
         var txFees = poolOwner2.SwapTokens(soul.Symbol, eth.Symbol, swapValue);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
         var afterTXBalanceKCAL = poolOwner2.GetBalance(kcal.Symbol);
         var kcalfee = beforeTXBalanceKCAL - afterTXBalanceKCAL;
         Console.WriteLine($"KCAL Fee: {kcalfee}");
 
         // Check trade
         var originalBalance = poolOwner2.GetBalance(eth.Symbol);
-        Assert.IsTrue(rate == originalBalance, $"{rate} != {originalBalance}");
+        Assert.True(rate == originalBalance, $"{rate} != {originalBalance}");
 
         // Make Swap SOUL / KCAL
         rate = poolOwner2.GetRate(soul.Symbol, kcal.Symbol, swapValue);
@@ -1452,14 +1442,14 @@ public class ExchangeContractTests
         Console.WriteLine($"{swapValue} {soul.Symbol} for {rate} {kcal.Symbol}");
         
         txFees += poolOwner2.SwapTokens(soul.Symbol, kcal.Symbol, swapValue);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
 
         originalBalance = poolOwner2.GetBalance(kcal.Symbol);
 
-        Assert.IsTrue(rate == originalBalance-afterTXBalanceKCAL+kcalfee, $"{rate} != {originalBalance-afterTXBalanceKCAL+kcalfee}");
+        Assert.True(rate == originalBalance-afterTXBalanceKCAL+kcalfee, $"{rate} != {originalBalance-afterTXBalanceKCAL+kcalfee}");
     }
 
-    [TestMethod]
+    [Fact]
     public void SwapTokensReverse()
     {
         CoreClass core = new CoreClass();
@@ -1495,7 +1485,7 @@ public class ExchangeContractTests
 
         // Add Liquidity to the pool SOUL / KCAL
         poolOwner.AddLiquidity(soul.Symbol, amount0, kcal.Symbol, 0);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
 
         // SOUL / ETH
 
@@ -1505,7 +1495,7 @@ public class ExchangeContractTests
         Console.WriteLine($"{UnitConversion.ToDecimal(swapValueETH, eth.Decimals)} {eth.Symbol} for {UnitConversion.ToDecimal(rate, soul.Decimals)} {soul.Symbol}");
         // Make Swap SOUL / ETH
         poolOwner2.SwapTokens(eth.Symbol, soul.Symbol, swapValueETH);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
         
         var afterTXBalanceKCAL = poolOwner2.GetBalance(kcal.Symbol);
         var kcalfee = beforeTXBalanceKCAL - afterTXBalanceKCAL;
@@ -1515,8 +1505,8 @@ public class ExchangeContractTests
         var afterTXBalanceSOUL = poolOwner2.GetBalance(soul.Symbol);
         var afterTXBalanceETH = poolOwner2.GetBalance(eth.Symbol);
 
-        Assert.IsTrue(beforeTXBalanceSOUL + rate == afterTXBalanceSOUL, $"{beforeTXBalanceSOUL+rate} != {afterTXBalanceSOUL}");
-        Assert.IsTrue(beforeTXBalanceETH - swapValueETH == afterTXBalanceETH, $"{beforeTXBalanceETH - swapValueETH} != {afterTXBalanceETH}");
+        Assert.True(beforeTXBalanceSOUL + rate == afterTXBalanceSOUL, $"{beforeTXBalanceSOUL+rate} != {afterTXBalanceSOUL}");
+        Assert.True(beforeTXBalanceETH - swapValueETH == afterTXBalanceETH, $"{beforeTXBalanceETH - swapValueETH} != {afterTXBalanceETH}");
 
         // Make Swap SOUL / KCAL
         rate = poolOwner2.GetRate(kcal.Symbol, soul.Symbol, swapValueKCAL);
@@ -1524,17 +1514,17 @@ public class ExchangeContractTests
         Console.WriteLine($"{UnitConversion.ToDecimal(swapValueKCAL, kcal.Decimals)} {kcal.Symbol} for {UnitConversion.ToDecimal(rate, soul.Decimals)} {soul.Symbol}");
 
         poolOwner2.SwapTokens(kcal.Symbol, soul.Symbol, swapValueKCAL);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
 
         var afterTXBalanceSOULEND = poolOwner2.GetBalance(soul.Symbol);
         var afterTXBalanceKCALEND = poolOwner2.GetBalance(kcal.Symbol);
 
-        Assert.IsTrue(afterTXBalanceSOUL + rate == afterTXBalanceSOULEND, $"{rate} != {afterTXBalanceSOULEND}");
-        Assert.IsTrue(afterTXBalanceKCALEND == afterTXBalanceKCAL - kcalfee - swapValueKCAL, $"{afterTXBalanceKCALEND} != {afterTXBalanceKCAL - kcalfee - swapValueKCAL}");
+        Assert.True(afterTXBalanceSOUL + rate == afterTXBalanceSOULEND, $"{rate} != {afterTXBalanceSOULEND}");
+        Assert.True(afterTXBalanceKCALEND == afterTXBalanceKCAL - kcalfee - swapValueKCAL, $"{afterTXBalanceKCALEND} != {afterTXBalanceKCAL - kcalfee - swapValueKCAL}");
     }
 
 
-    [TestMethod]
+    [Fact]
     public void SwapVirtual()
     {
         CoreClass core = new CoreClass();
@@ -1570,17 +1560,17 @@ public class ExchangeContractTests
         Console.WriteLine($"{UnitConversion.ToDecimal(swapValueKCAL, kcal.Decimals)} {eth.Symbol} for {UnitConversion.ToDecimal(rate, eth.Decimals)} {eth.Symbol}");
         // Make Swap KCAL / ETH
         poolOwner2.SwapTokens(kcal.Symbol, eth.Symbol, swapValueKCAL);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
         
         var afterTXBalanceKCAL =  poolOwner2.GetBalance(kcal.Symbol);
         var afterTXBalanceETH =  poolOwner2.GetBalance(eth.Symbol);
         var kcalfee = beforeTXBalanceKCAL - afterTXBalanceKCAL - swapValueKCAL;
         
-        Assert.IsTrue(afterTXBalanceETH == beforeTXBalanceETH+rate, $"{afterTXBalanceETH} != {beforeTXBalanceETH+rate}");
-        Assert.IsTrue(beforeTXBalanceKCAL - kcalfee - swapValueKCAL == afterTXBalanceKCAL, $"{beforeTXBalanceKCAL - kcalfee - swapValueKCAL} != {afterTXBalanceKCAL}");
+        Assert.True(afterTXBalanceETH == beforeTXBalanceETH+rate, $"{afterTXBalanceETH} != {beforeTXBalanceETH+rate}");
+        Assert.True(beforeTXBalanceKCAL - kcalfee - swapValueKCAL == afterTXBalanceKCAL, $"{beforeTXBalanceKCAL - kcalfee - swapValueKCAL} != {afterTXBalanceKCAL}");
     }
 
-    [TestMethod]
+    [Fact]
     public void SwapFee()
     {
         CoreClass core = new CoreClass();
@@ -1633,7 +1623,7 @@ public class ExchangeContractTests
 
         // Make Swap SOUL / KCAL (SwapFee)
         poolOwner2.SwapFee(soul.Symbol, swapValueSOUL);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
 
         // Get the balances
         var afterTXBalanceSOUL = poolOwner2.GetBalance( soul.Symbol );
@@ -1644,11 +1634,11 @@ public class ExchangeContractTests
 
         Console.WriteLine($"{beforeTXBalanceSOUL} != {afterTXBalanceSOUL} | {afterTXBalanceKCAL}");
 
-        Assert.IsTrue(afterTXBalanceSOUL == beforeTXBalanceSOUL-(kcalToSwap) /* + UnitConversion.ConvertDecimals(500,  kcal.Decimals, DomainSettings.FiatTokenDecimals))*/, $"SOUL {afterTXBalanceSOUL} != {beforeTXBalanceSOUL-(kcalToSwap + UnitConversion.ConvertDecimals(500, kcal.Decimals, DomainSettings.FiatTokenDecimals))}");
-        Assert.IsTrue(beforeTXBalanceKCAL + kcalfee + rate == afterTXBalanceKCAL, $"KCAL {beforeTXBalanceKCAL + kcalfee + rate} != {afterTXBalanceKCAL}");
+        Assert.True(afterTXBalanceSOUL == beforeTXBalanceSOUL-(kcalToSwap) /* + UnitConversion.ConvertDecimals(500,  kcal.Decimals, DomainSettings.FiatTokenDecimals))*/, $"SOUL {afterTXBalanceSOUL} != {beforeTXBalanceSOUL-(kcalToSwap + UnitConversion.ConvertDecimals(500, kcal.Decimals, DomainSettings.FiatTokenDecimals))}");
+        Assert.True(beforeTXBalanceKCAL + kcalfee + rate == afterTXBalanceKCAL, $"KCAL {beforeTXBalanceKCAL + kcalfee + rate} != {afterTXBalanceKCAL}");
     }
 
-    [TestMethod]
+    [Fact]
     public void GetUnclaimed()
     {
         CoreClass core = new CoreClass();
@@ -1677,24 +1667,24 @@ public class ExchangeContractTests
 
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(soul.Symbol, UnitConversion.ToBigInteger(1000, soul.Decimals), kcal.Symbol, 0);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
 
         // Get Rate
         var unclaimed = poolOwner.GetUnclaimedFees(soul.Symbol, kcal.Symbol);
-        Assert.IsTrue(unclaimed.Item1 == 0, "Unclaimed Failed");
+        Assert.True(unclaimed.Item1 == 0, "Unclaimed Failed");
         
         // Make a swap and check the fees
         poolOwner2.SwapTokens(soul.Symbol, kcal.Symbol, swapValue);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
 
         var unclaimedFees = poolOwner.GetUnclaimedFees(soul.Symbol, kcal.Symbol);
 
-        Assert.IsTrue(unclaimedFees.Item1 > 0, $"{unclaimedFees} > 0");
+        Assert.True(unclaimedFees.Item1 > 0, $"{unclaimedFees} > 0");
         // TODO: Add more tests (Swap on the pool and check the fees)
     }
 
 
-    [TestMethod]
+    [Fact]
     public void GetFees()
     {
         CoreClass core = new CoreClass();
@@ -1727,7 +1717,7 @@ public class ExchangeContractTests
 
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(soul.Symbol, addLPAmount, eth.Symbol,  0);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
         
         // Get Pool
         var pool = poolOwner.GetPool(soul.Symbol, eth.Symbol);
@@ -1742,7 +1732,7 @@ public class ExchangeContractTests
         
         // Make Swap SOUL / ETH
         poolOwner2.SwapTokens(soul.Symbol, eth.Symbol, swapValueSOUL);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
         
         // Get Rate
         var unclaimed = poolOwner.GetUnclaimedFees(soul.Symbol, eth.Symbol);
@@ -1755,11 +1745,10 @@ public class ExchangeContractTests
         BigInteger feeAmount = nftRAMBefore.Liquidity * UnitConversion.GetUnitValue(DomainSettings.MAX_TOKEN_DECIMALS) / pool.TotalLiquidity;
         var calculatedFees = feeForUsers * feeAmount / UnitConversion.GetUnitValue(DomainSettings.MAX_TOKEN_DECIMALS);
 
-        Assert.IsTrue(unclaimed.Item1 == calculatedFees, $"Unclaimed Failed | {unclaimed.Item1} != {calculatedFees}");
+        Assert.True(unclaimed.Item1 == calculatedFees, $"Unclaimed Failed | {unclaimed.Item1} != {calculatedFees}");
     }
 
-    [TestMethod]
-    [TestCategory("DEX")]
+    [Fact]
     public void GetClaimFees()
     {
         CoreClass core = new CoreClass();
@@ -1788,7 +1777,7 @@ public class ExchangeContractTests
 
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(soul.Symbol, UnitConversion.ToBigInteger(10000, soul.Decimals), kcal.Symbol, 0);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
 
         // Get Pool
         var pool = poolOwner.GetPool(soul.Symbol, kcal.Symbol);
@@ -1802,7 +1791,7 @@ public class ExchangeContractTests
         
         // Make Swap SOUL / ETH
         poolOwner2.SwapTokens(soul.Symbol, kcal.Symbol, swapValueSOUL);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
         
         // Get Unclaimed Fees
         var unclaimed = poolOwner.GetUnclaimedFees(soul.Symbol, kcal.Symbol);
@@ -1816,8 +1805,8 @@ public class ExchangeContractTests
         var calculatedFees = feeForUsers * feeAmount / UnitConversion.GetUnitValue(DomainSettings.MAX_TOKEN_DECIMALS);
 
         Console.WriteLine($"{calculatedFees} {kcal.Symbol}");
-        Assert.IsTrue(unclaimed.Item1 == calculatedFees, $"Unclaimed Failed | {unclaimed.Item1} != {calculatedFees}");
-        Assert.IsTrue(unclaimed.Item2 == 0, $"Unclaimed Failed | {unclaimed.Item2} != {0}");
+        Assert.True(unclaimed.Item1 == calculatedFees, $"Unclaimed Failed | {unclaimed.Item1} != {calculatedFees}");
+        Assert.True(unclaimed.Item2 == 0, $"Unclaimed Failed | {unclaimed.Item2} != {0}");
 
         // Claim Fees
         // Get User Balance Before Claiming Fees
@@ -1825,7 +1814,7 @@ public class ExchangeContractTests
         var beforeTXBalanceKCAL = poolOwner.GetBalance( kcal.Symbol );
 
         poolOwner.ClaimFees(soul.Symbol, kcal.Symbol);
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
 
         // Get User Balance After Claiming Fees
         var afterTXBalanceSOUL = poolOwner.GetBalance(soul.Symbol);
@@ -1833,13 +1822,13 @@ public class ExchangeContractTests
         
         var unclaimedAfter = poolOwner.GetUnclaimedFees(soul.Symbol, kcal.Symbol);
 
-        Assert.IsTrue(afterTXBalanceSOUL == beforeTXBalanceSOUL+calculatedFees, $"Soul Claimed Failed | {afterTXBalanceSOUL} != {beforeTXBalanceSOUL}");
-        Assert.IsTrue(beforeTXBalanceKCAL != afterTXBalanceKCAL, $"Kcal for TX Failed | {beforeTXBalanceKCAL} != {afterTXBalanceKCAL}");
-        Assert.IsTrue(unclaimedAfter.Item1 == 0, $"Kcal for TX Failed | {unclaimedAfter} != {0}");
-        Assert.IsTrue(unclaimedAfter.Item2 == 0, $"Kcal for TX Failed | {unclaimedAfter} != {0}");
+        Assert.True(afterTXBalanceSOUL == beforeTXBalanceSOUL+calculatedFees, $"Soul Claimed Failed | {afterTXBalanceSOUL} != {beforeTXBalanceSOUL}");
+        Assert.True(beforeTXBalanceKCAL != afterTXBalanceKCAL, $"Kcal for TX Failed | {beforeTXBalanceKCAL} != {afterTXBalanceKCAL}");
+        Assert.True(unclaimedAfter.Item1 == 0, $"Kcal for TX Failed | {unclaimedAfter} != {0}");
+        Assert.True(unclaimedAfter.Item2 == 0, $"Kcal for TX Failed | {unclaimedAfter} != {0}");
     }
 
-    [TestMethod]
+    [Fact]
     public void CosmicSwap()
     {
         CoreClass core = new CoreClass();
@@ -1874,15 +1863,15 @@ public class ExchangeContractTests
         );
         //core.simulator.GenerateSwapFee(poolOwner.userKeys, core.nexus.RootChain, DomainSettings.StakingTokenSymbol, swapAmount);
         core.simulator.EndBlock();
-        Assert.IsTrue(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful());
         var txCost = core.simulator.Nexus.RootChain.GetTransactionFee(tx);
         
         var finalBalance = poolOwner.GetBalance( DomainSettings.FuelTokenSymbol );
-        Assert.IsTrue(finalBalance >= originalBalance + kcalRate - txCost, $"{finalBalance} > {originalBalance+ kcalRate - txCost}");
+        Assert.True(finalBalance >= originalBalance + kcalRate - txCost, $"{finalBalance} > {originalBalance+ kcalRate - txCost}");
     }
     /*
 
-    [TestMethod]
+    [Fact]
     public void ChainSwapIn()
     {
         
@@ -1934,20 +1923,20 @@ public class ExchangeContractTests
 
         var swapToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, swapSymbol);
         var balance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, swapToken, transcodedAddress);
-        Assert.IsTrue(balance == 0);
+        Assert.True(balance == 0);
 
         balance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, swapToken, testUser.Address);
-        Assert.IsTrue(balance > 0);
+        Assert.True(balance > 0);
 
         var settleHash = (Hash)nexus.RootChain.InvokeContract(nexus.RootStorage, "interop", nameof(InteropContract.GetSettlement), "neo", neoTxHash).ToObject();
-        Assert.IsTrue(settleHash == tx.Hash);
+        Assert.True(settleHash == tx.Hash);
 
         var fuelToken = nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
         var leftoverBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, transcodedAddress);
-        //Assert.IsTrue(leftoverBalance == 0);
+        //Assert.True(leftoverBalance == 0);
     }
 
-    [TestMethod]
+    [Fact]
     public void ChainSwapOut()
     {
         
@@ -1979,34 +1968,34 @@ public class ExchangeContractTests
         var currentBalance = rootChain.GetTokenBalance(rootChain.Storage, DomainSettings.StakingTokenSymbol, testUser.Address);
         var currentSupply = rootChain.GetTokenSupply(rootChain.Storage, DomainSettings.StakingTokenSymbol);
 
-        Assert.IsTrue(currentBalance < oldBalance);
-        Assert.IsTrue(currentBalance == 0);
+        Assert.True(currentBalance < oldBalance);
+        Assert.True(currentBalance == 0);
 
-        Assert.IsTrue(currentSupply < oldSupply);
+        Assert.True(currentSupply < oldSupply);
     }
 
-    [TestMethod]
+    [Fact]
     public void QuoteConversions()
     {
         
 
-        Assert.IsTrue(nexus.PlatformExists(nexus.RootStorage, "neo"));
-        Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, "NEO"));
+        Assert.True(nexus.PlatformExists(nexus.RootStorage, "neo"));
+        Assert.True(nexus.TokenExists(nexus.RootStorage, "NEO"));
 
         var context = new StorageChangeSetContext(nexus.RootStorage);
         var runtime = new RuntimeVM(-1, new byte[0], 0, nexus.RootChain, Address.Null, Timestamp.Now, null, context, new OracleSimulator(nexus), ChainTask.Null, true);
 
         var temp = runtime.GetTokenQuote("NEO", "KCAL", 1);
         var price = UnitConversion.ToDecimal(temp, DomainSettings.FuelTokenDecimals);
-        Assert.IsTrue(price == 100);
+        Assert.True(price == 100);
 
         temp = runtime.GetTokenQuote("KCAL", "NEO", UnitConversion.ToBigInteger(100, DomainSettings.FuelTokenDecimals));
         price = UnitConversion.ToDecimal(temp, 0);
-        Assert.IsTrue(price == 1);
+        Assert.True(price == 1);
 
         temp = runtime.GetTokenQuote("SOUL", "KCAL", UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals));
         price = UnitConversion.ToDecimal(temp, DomainSettings.FuelTokenDecimals);
-        Assert.IsTrue(price == 5);
+        Assert.True(price == 5);
     }*/
 
         
@@ -2181,7 +2170,7 @@ public class ExchangeContractTests
                     .SpendGas(owner.Address)
                     .EndScript());
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful(), "Deploying LP Contract Failed");
+            Assert.True(simulator.LastBlockWasSuccessful(), "Deploying LP Contract Failed");
             
             return;
             /*var PathToFile = Path.GetFullPath("./../../../../Phantasma.Business/src/Blockchain/Contracts/");
@@ -2208,7 +2197,7 @@ public class ExchangeContractTests
                     .SpendGas(owner.Address)
                     .EndScript());
             var block = simulator.EndBlock().First();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful(), "Migrate Call failed");
+            Assert.True(simulator.LastBlockWasSuccessful(), "Migrate Call failed");
             var resultBytes = block.GetResultForTransaction(tx.Hash);
         }
 
@@ -2358,7 +2347,7 @@ public class ExchangeContractTests
             var events = nexus.FindBlockByTransaction(tx).GetEventsForTransaction(tx.Hash);
 
             var wasNewOrderCreated = events.Count(x => x.Kind == EventKind.OrderCreated && x.Address == user.Address) == 1;
-            Assert.IsTrue(wasNewOrderCreated, "Order was not created");
+            Assert.True(wasNewOrderCreated, "Order was not created");
 
             var wasNewOrderClosed = events.Count(x => x.Kind == EventKind.OrderClosed && x.Address == user.Address) == 1;
             var wasNewOrderCancelled = events.Count(x => x.Kind == EventKind.OrderCancelled && x.Address == user.Address) == 1;
@@ -2373,7 +2362,7 @@ public class ExchangeContractTests
             //in case the new order was IoC and it wasnt closed, order should have been cancelled
             if (wasNewOrderClosed == false && IoC)
             {
-                Assert.IsTrue(wasNewOrderCancelled, "Non closed IoC order did not get cancelled");
+                Assert.True(wasNewOrderCancelled, "Non closed IoC order did not get cancelled");
             }
             else
             //if the new order was closed
@@ -2383,7 +2372,7 @@ public class ExchangeContractTests
                 try
                 {
                     simulator.InvokeContract( NativeContractKind.Exchange, "GetExchangeOrder", createdOrderUid);
-                    Assert.IsTrue(false, "Closed order exists on the orderbooks");
+                    Assert.True(false, "Closed order exists on the orderbooks");
                 }
                 catch (Exception e)
                 {
@@ -2392,7 +2381,7 @@ public class ExchangeContractTests
             }
             else //if the order was not IoC and it wasn't closed, then:
             {
-                Assert.IsTrue(IoC == false, "All IoC orders should have been triggered by the previous ifs");
+                Assert.True(IoC == false, "All IoC orders should have been triggered by the previous ifs");
 
                 //check that it still exists on the orderbook
                 try
@@ -2401,7 +2390,7 @@ public class ExchangeContractTests
                 }
                 catch (Exception e)
                 {
-                    Assert.IsTrue(false, "Non-IoC unclosed order does not exist on the orderbooks");
+                    Assert.True(false, "Non-IoC unclosed order does not exist on the orderbooks");
                 }
             }
             //------------------
@@ -2440,7 +2429,7 @@ public class ExchangeContractTests
                     Console.WriteLine("tokenExchangeEvent.Address " + tokenExchangeEvent.Address);
                     Console.WriteLine("tokenExchangeEvent.Address2 " + SmartContract.GetAddressForNative(NativeContractKind.Exchange));
                     Console.WriteLine("tokenExchangeEvent.Address gas " + SmartContract.GetAddressForNative( NativeContractKind.Gas));
-                    //Assert.IsTrue(OtherAddressesTokensInitial.ContainsKey(tokenExchangeEvent.Address), "Address that was not on this orderbook received tokens");
+                    //Assert.True(OtherAddressesTokensInitial.ContainsKey(tokenExchangeEvent.Address), "Address that was not on this orderbook received tokens");
 
                     if (OtherAddressesTokensDelta.ContainsKey(tokenExchangeEvent.Address))
                         OtherAddressesTokensDelta[tokenExchangeEvent.Address] += eventData.Value;
@@ -2461,11 +2450,11 @@ public class ExchangeContractTests
                 switch (side)
                 {
                     case ExchangeOrderSide.Buy:
-                        //Assert.IsTrue(Abs(OpenerQuoteTokensDelta) == escrowedUsage - (quoteSymbol == DomainSettings.FuelTokenSymbol ? txCost : 0));
+                        //Assert.True(Abs(OpenerQuoteTokensDelta) == escrowedUsage - (quoteSymbol == DomainSettings.FuelTokenSymbol ? txCost : 0));
                         break;
 
                     case ExchangeOrderSide.Sell:
-                        //Assert.IsTrue(Abs(OpenerBaseTokensDelta) == escrowedUsage - (baseSymbol == DomainSettings.FuelTokenSymbol ? txCost : 0));
+                        //Assert.True(Abs(OpenerBaseTokensDelta) == escrowedUsage - (baseSymbol == DomainSettings.FuelTokenSymbol ? txCost : 0));
                         break;
                 }
             }
@@ -2474,7 +2463,7 @@ public class ExchangeContractTests
                 BigInteger actualRemainingEscrow;
                 if (expectedRemainingEscrow == 0)
                 {
-                    Assert.IsTrue(wasNewOrderClosed, "Order wasn't closed but we expect no leftover escrow");
+                    Assert.True(wasNewOrderClosed, "Order wasn't closed but we expect no leftover escrow");
                     try
                     {
                         //should throw an exception because order should not exist
@@ -2491,7 +2480,7 @@ public class ExchangeContractTests
                     actualRemainingEscrow = simulator.InvokeContract( NativeContractKind.Exchange, "GetOrderLeftoverEscrow", createdOrderUid).AsNumber();
                 }
                 
-                Assert.IsTrue(expectedRemainingEscrow == actualRemainingEscrow);
+                Assert.True(expectedRemainingEscrow == actualRemainingEscrow);
             }
 
 
@@ -2499,8 +2488,8 @@ public class ExchangeContractTests
             var OpenerBaseTokensFinal = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, baseToken, user.Address);
             var OpenerQuoteTokensFinal = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, quoteToken, user.Address);
 
-            Assert.IsTrue(OpenerBaseTokensFinal == OpenerBaseTokensDelta + OpenerBaseTokensInitial);
-            Assert.IsTrue(OpenerQuoteTokensFinal == OpenerQuoteTokensDelta + OpenerQuoteTokensInitial);
+            Assert.True(OpenerBaseTokensFinal == OpenerBaseTokensDelta + OpenerBaseTokensInitial);
+            Assert.True(OpenerQuoteTokensFinal == OpenerQuoteTokensDelta + OpenerQuoteTokensInitial);
 
             foreach (var entry in OtherAddressesTokensInitial)
             {
@@ -2515,7 +2504,7 @@ public class ExchangeContractTests
 
                 var otherAddressFinalTokens = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, targetToken, entry.Key);
 
-                Assert.IsTrue(otherAddressFinalTokens == delta + otherAddressInitialTokens);
+                Assert.True(otherAddressFinalTokens == delta + otherAddressInitialTokens);
             }
 
             return side == ExchangeOrderSide.Buy ? UnitConversion.ToDecimal(baseTokensReceived, baseToken.Decimals) : UnitConversion.ToDecimal(quoteTokensReceived, quoteToken.Decimals);
@@ -2602,7 +2591,7 @@ public class ExchangeContractTests
 
             var ordersCreated = events.Count(x => x.Kind == EventKind.OrderCreated && x.Address == user.Address);
             var wasNewOrderCreated = ordersCreated >= 1;
-            Assert.IsTrue(wasNewOrderCreated, "No orders were created");
+            Assert.True(wasNewOrderCreated, "No orders were created");
 
             var ordersClosed = events.Count(x => x.Kind == EventKind.OrderClosed && x.Address == user.Address);
             var wasNewOrderClosed = ordersClosed == 1;
@@ -2618,20 +2607,20 @@ public class ExchangeContractTests
             //in case the new order was IoC and it wasnt closed, order should have been cancelled
             if (wasNewOrderClosed == false)
             {
-                Assert.IsTrue(wasNewOrderCancelled, "Non closed order did not get cancelled");
+                Assert.True(wasNewOrderCancelled, "Non closed order did not get cancelled");
             }
             else
                 //if the new order was closed
             if (wasNewOrderClosed)
             {
-                Assert.IsTrue(wasNewOrderCancelled == false, "Closed order also got cancelled");
+                Assert.True(wasNewOrderCancelled == false, "Closed order also got cancelled");
             }
 
             //check that the order no longer exists on the orderbook
             try
             {
                 simulator.InvokeContract( NativeContractKind.Exchange, "GetExchangeOrder", createdOrderUid);
-                Assert.IsTrue(false, "Market order exists on the orderbooks");
+                Assert.True(false, "Market order exists on the orderbooks");
             }
             catch (Exception e)
             {
@@ -2675,7 +2664,7 @@ public class ExchangeContractTests
                 }
                 else
                 {
-                    //Assert.IsTrue(OtherAddressesTokensInitial.ContainsKey(tokenExchangeEvent.Address), "Address that was not on this orderbook received tokens");
+                    //Assert.True(OtherAddressesTokensInitial.ContainsKey(tokenExchangeEvent.Address), "Address that was not on this orderbook received tokens");
 
                     if (OtherAddressesTokensDelta.ContainsKey(tokenExchangeEvent.Address))
                         OtherAddressesTokensDelta[tokenExchangeEvent.Address] += eventData.Value;
@@ -2696,11 +2685,11 @@ public class ExchangeContractTests
             {
                 case ExchangeOrderSide.Buy:
                     //Console.WriteLine($"{Abs(OpenerQuoteTokensDelta)} == {escrowedUsage} - {(quoteSymbol == DomainSettings.FuelTokenSymbol ? txCost : 0)}");
-                    //Assert.IsTrue(Abs(OpenerQuoteTokensDelta) == expectedRemainingEscrow - (quoteSymbol == DomainSettings.FuelTokenSymbol ? txCost : 0));
+                    //Assert.True(Abs(OpenerQuoteTokensDelta) == expectedRemainingEscrow - (quoteSymbol == DomainSettings.FuelTokenSymbol ? txCost : 0));
                     break;
 
                 case ExchangeOrderSide.Sell:
-                    //Assert.IsTrue(Abs(OpenerBaseTokensDelta) == expectedRemainingEscrow - (baseSymbol == DomainSettings.FuelTokenSymbol ? txCost : 0));
+                    //Assert.True(Abs(OpenerBaseTokensDelta) == expectedRemainingEscrow - (baseSymbol == DomainSettings.FuelTokenSymbol ? txCost : 0));
                     break;
             }
 
@@ -2709,8 +2698,8 @@ public class ExchangeContractTests
             var OpenerQuoteTokensFinal = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, quoteToken, user.Address);
 
             Console.WriteLine($"final: {OpenerBaseTokensFinal} == {OpenerBaseTokensDelta} + {OpenerBaseTokensInitial}");
-            Assert.IsTrue(OpenerBaseTokensFinal == OpenerBaseTokensDelta + OpenerBaseTokensInitial);
-            Assert.IsTrue(OpenerQuoteTokensFinal == OpenerQuoteTokensDelta + OpenerQuoteTokensInitial);
+            Assert.True(OpenerBaseTokensFinal == OpenerBaseTokensDelta + OpenerBaseTokensInitial);
+            Assert.True(OpenerQuoteTokensFinal == OpenerQuoteTokensDelta + OpenerQuoteTokensInitial);
 
             foreach (var entry in OtherAddressesTokensInitial)
             {
@@ -2725,7 +2714,7 @@ public class ExchangeContractTests
 
                 var otherAddressFinalTokens = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, targetToken, entry.Key);
 
-                Assert.IsTrue(otherAddressFinalTokens == delta + otherAddressInitialTokens);
+                Assert.True(otherAddressFinalTokens == delta + otherAddressInitialTokens);
             }
 
             return side == ExchangeOrderSide.Buy ? UnitConversion.ToDecimal(baseTokensReceived, baseToken.Decimals) : UnitConversion.ToDecimal(quoteTokensReceived, quoteToken.Decimals);

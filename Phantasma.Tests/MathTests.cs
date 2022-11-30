@@ -6,6 +6,7 @@ using System.Linq;
 
 namespace Phantasma.LegacyTests
 {
+    [Collection("MathTests")]
     public class MathTests
     {
         #region BASE CONVERSIONS

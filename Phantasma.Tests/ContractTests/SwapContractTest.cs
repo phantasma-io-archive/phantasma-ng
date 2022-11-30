@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM.Utils;
@@ -13,9 +12,11 @@ using Phantasma.Core.Types;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Simulator;
 
+using Xunit;
+
 namespace Phantasma.LegacyTests.ContractTests;
 
-[TestClass]
+[Collection("SwapContractTest")]
 public class SwapContractTest
 {
     Address sysAddress;
@@ -30,8 +31,7 @@ public class SwapContractTest
     BigInteger startBalance;
     StakeReward reward;
 
-    [TestInitialize]
-    public void Initialize()
+    public SwapContractTest()
     {
         sysAddress = SmartContract.GetAddressForNative(NativeContractKind.Swap);
         user = PhantasmaKeys.Generate();
@@ -60,10 +60,10 @@ public class SwapContractTest
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.StakingTokenSymbol, initialAmount);
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
     }
     
-    [TestMethod]
+    [Fact]
     public void TestSwaping()
     {
         simulator.BeginBlock();
@@ -77,7 +77,7 @@ public class SwapContractTest
         simulator.GenerateTransfer(owner, user.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
         simulator.GenerateTransfer(owner, user.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 100000000);
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
         var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
@@ -95,16 +95,16 @@ public class SwapContractTest
                 .SpendGas(user.Address)
                 .EndScript());
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var currentSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, user.Address);
         var currentKcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, user.Address);
 
-        Assert.IsTrue(currentSoulBalance < startingSoulBalance, $"{currentSoulBalance} < {startingSoulBalance}");
-        Assert.IsTrue(currentKcalBalance > startingKcalBalance);
+        Assert.True(currentSoulBalance < startingSoulBalance, $"{currentSoulBalance} < {startingSoulBalance}");
+        Assert.True(currentKcalBalance > startingKcalBalance);
     }
     
-    [TestMethod]
+    [Fact]
     public void CosmicSwap()
     {
         var testUser = PhantasmaKeys.Generate();
@@ -123,7 +123,7 @@ public class SwapContractTest
                 .EndScript());
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, soulUserAmount);
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
         var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
@@ -142,16 +142,16 @@ public class SwapContractTest
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var currentSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         var currentKcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
 
-        Assert.IsTrue(currentSoulBalance < startingSoulBalance, $"{currentSoulBalance} < {startingSoulBalance}");
-        Assert.IsTrue(currentKcalBalance > startingKcalBalance);
+        Assert.True(currentSoulBalance < startingSoulBalance, $"{currentSoulBalance} < {startingSoulBalance}");
+        Assert.True(currentKcalBalance > startingKcalBalance);
     }
 
-    [TestMethod]
+    [Fact]
     public void CosmicSwapFail()
     {
         var testUser = PhantasmaKeys.Generate();
@@ -170,7 +170,7 @@ public class SwapContractTest
                 .EndScript());
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, soulUserAmount);
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
         var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
@@ -188,22 +188,22 @@ public class SwapContractTest
                 .CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapFee), testUser.Address, DomainSettings.StakingTokenSymbol, swapAmount)
                 .SpendGas(testUser.Address)
                 .EndScript());
-        Assert.ThrowsException<ChainException>(() =>
+        Assert.Throws<ChainException>(() =>
         {
             return simulator.EndBlock();
         });
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
         
         var currentSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         var currentKcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
 
-        Assert.IsFalse(currentSoulBalance < startingSoulBalance, $"{currentSoulBalance} < {startingSoulBalance}");
-        Assert.IsFalse(currentKcalBalance > startingKcalBalance, $"{currentKcalBalance} > {startingKcalBalance}");
+        Assert.False(currentSoulBalance < startingSoulBalance, $"{currentSoulBalance} < {startingSoulBalance}");
+        Assert.False(currentKcalBalance > startingKcalBalance, $"{currentKcalBalance} > {startingKcalBalance}");
     }
     
     
     /*
-        [TestMethod]
+        [Fact]
         public void GetRatesForSwap()
         {
             var owner = PhantasmaKeys.Generate();
@@ -229,7 +229,7 @@ public class SwapContractTest
                 }
             }
 
-            Assert.IsTrue(targetRate == 5m);
+            Assert.True(targetRate == 5m);
         }*/
 
 }

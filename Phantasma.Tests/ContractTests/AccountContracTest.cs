@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Tokens;
@@ -14,10 +13,12 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Simulator;
+using Xunit;
+using Shouldly;
 
 namespace Phantasma.LegacyTests.ContractTests;
 
-[TestClass]
+[Collection("AccountTests")]
 public class AccountContracTest
 {
     Address sysAddress;
@@ -32,7 +33,11 @@ public class AccountContracTest
     BigInteger startBalance;
     StakeReward reward;
 
-    [TestInitialize]
+    public AccountContracTest()
+    {
+        Initialize();
+    }
+
     public void Initialize()
     {
         sysAddress = SmartContract.GetAddressForNative(NativeContractKind.Account);
@@ -62,11 +67,9 @@ public class AccountContracTest
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.StakingTokenSymbol, initialAmount);
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        simulator.LastBlockWasSuccessful().ShouldBeTrue();
     }
     
-
-    [TestMethod]
     public void AccountTriggersAllowance()
     {
         string[] scriptString;
@@ -156,14 +159,13 @@ public class AccountContracTest
 
         var balance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, symbol, target.Address);
         var expectedBalance = initialBalance + amount;
-        Assert.IsTrue(balance == expectedBalance);
+        Assert.True(balance == expectedBalance);
 
         balance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, symbol, other.Address);
-        Assert.IsTrue(balance == amount);
+        Assert.True(balance == amount);
     }
 
-    [TestMethod]
-    [Ignore]
+    [Fact(Skip = "AccountTriggers")]
     public void AccountTriggersEventPropagation()
     {
         string[] scriptString;
@@ -276,20 +278,20 @@ public class AccountContracTest
         simulator.EndBlock();
 
         var accountScript = simulator.Nexus.LookUpAddressScript(simulator.Nexus.RootStorage, target.Address, simulator.CurrentTime);
-        Assert.IsTrue(accountScript != null && accountScript.Length > 0);
+        Assert.True(accountScript != null && accountScript.Length > 0);
 
         var token = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, symbol);
         var balance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, target.Address);
-        Assert.IsTrue(balance == 1000);
+        Assert.True(balance == 1000);
 
         var events = simulator.Nexus.FindBlockByTransaction(tx).GetEventsForTransaction(tx.Hash);
-        Assert.IsTrue(events.Count(x => x.Kind == EventKind.Custom) == 1);
+        Assert.True(events.Count(x => x.Kind == EventKind.Custom) == 1);
 
         var eventData = events.First(x => x.Kind == EventKind.Custom).Data;
         var eventMessage = (VMObject)Serialization.Unserialize(eventData, typeof(VMObject));
 
-        Assert.IsTrue(eventMessage.AsString() == message);
-        Assert.ThrowsException<ChainException>(() =>
+        Assert.True(eventMessage.AsString() == message);
+        Assert.Throws<ChainException>(() =>
         {
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain as Chain, symbol, 10);
@@ -297,10 +299,10 @@ public class AccountContracTest
         });
 
         balance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, target.Address);
-        Assert.IsTrue(balance == 1000);
+        Assert.True(balance == 1000);
     }
     
-            [TestMethod]
+    [Fact]
     public void AccountRegister()
     {
         var owner = PhantasmaKeys.Generate();
@@ -322,10 +324,10 @@ public class AccountContracTest
 
                 if (lastBlock != null)
                 {
-                    Assert.IsTrue(tx != null);
+                    Assert.True(tx != null);
 
                     var evts = lastBlock.GetEventsForTransaction(tx.Hash);
-                    Assert.IsTrue(evts.Any(x => x.Kind == EventKind.AddressRegister));
+                    Assert.True(evts.Any(x => x.Kind == EventKind.AddressRegister));
                 }
             }
             catch (Exception)
@@ -344,7 +346,7 @@ public class AccountContracTest
         var stakeAmount = UnitConversion.ToBigInteger(3, DomainSettings.StakingTokenDecimals);
 
         var initialBalance = nexus.RootChain.GetTokenBalance(nexus.RootStorage, DomainSettings.StakingTokenSymbol, owner.Address);
-        Assert.IsTrue(initialBalance >= stakeAmount);
+        Assert.True(initialBalance >= stakeAmount);
 
         // Send from Genesis address to test user
         simulator.BeginBlock();
@@ -354,7 +356,7 @@ public class AccountContracTest
 
         // verify test user balance
         var balance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
-        Assert.IsTrue(balance == amount);
+        Assert.True(balance == amount);
 
         // make user stake enough to register a name
         simulator.BeginBlock();
@@ -367,21 +369,21 @@ public class AccountContracTest
         simulator.EndBlock();
 
         var targetName = "hello";
-        Assert.IsFalse(registerName(testUser, targetName.Substring(3)));
-        Assert.IsFalse(registerName(testUser, targetName.ToUpper()));
-        Assert.IsFalse(registerName(testUser, targetName + "!"));
-        Assert.IsTrue(registerName(testUser, targetName));
+        Assert.False(registerName(testUser, targetName.Substring(3)));
+        Assert.False(registerName(testUser, targetName.ToUpper()));
+        Assert.False(registerName(testUser, targetName + "!"));
+        Assert.True(registerName(testUser, targetName));
 
         var currentName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, testUser.Address, simulator.CurrentTime);
-        Assert.IsTrue(currentName == targetName);
+        Assert.True(currentName == targetName);
 
         var someAddress = nexus.LookUpName(nexus.RootStorage, targetName, simulator.CurrentTime);
-        Assert.IsTrue(someAddress == testUser.Address);
+        Assert.True(someAddress == testUser.Address);
 
-        Assert.IsFalse(registerName(testUser, "other"));
+        Assert.False(registerName(testUser, "other"));
     }
 
-    [TestMethod]
+    [Fact]
     public void AccountMigrate()
     {
         var symbol = DomainSettings.FuelTokenSymbol;
@@ -401,7 +403,7 @@ public class AccountContracTest
 
         // verify test user balance
         var balance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
-        Assert.IsTrue(balance == amount);
+        Assert.True(balance == amount);
 
         // make user stake enough to register a name
         simulator.BeginBlock();
@@ -421,18 +423,18 @@ public class AccountContracTest
 
         if (lastBlock != null)
         {
-            Assert.IsTrue(tx != null);
+            Assert.True(tx != null);
 
             var evts = lastBlock.GetEventsForTransaction(tx.Hash);
-            Assert.IsTrue(evts.Any(x => x.Kind == EventKind.AddressRegister));
+            Assert.True(evts.Any(x => x.Kind == EventKind.AddressRegister));
         }
 
 
         var currentName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, testUser.Address, simulator.CurrentTime);
-        Assert.IsTrue(currentName == targetName);
+        Assert.True(currentName == targetName);
 
         var someAddress = nexus.LookUpName(nexus.RootStorage, targetName, simulator.CurrentTime);
-        Assert.IsTrue(someAddress == testUser.Address);
+        Assert.True(someAddress == testUser.Address);
 
         var migratedUser = PhantasmaKeys.Generate();
 
@@ -448,9 +450,9 @@ public class AccountContracTest
         simulator.EndBlock().FirstOrDefault();
 
         currentName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, testUser.Address, simulator.CurrentTime);
-        Assert.IsFalse(currentName == targetName);
+        Assert.False(currentName == targetName);
 
         var newName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, migratedUser.Address, simulator.CurrentTime);
-        Assert.IsTrue(newName == targetName);
+        Assert.True(newName == targetName);
     }
 }

@@ -1,6 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-
-using System;
+﻿using System;
 using System.Linq;
 using System.Numerics;
 using System.Collections.Generic;
@@ -12,12 +10,14 @@ using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 
+using Xunit;
+
 namespace Phantasma.LegacyTests
 {
-    [TestClass]
+    [Collection("SerializationTests")]
     public class SerializationTests
     {
-        [TestMethod]
+        [Fact]
         public void TransactionSerialization()
         {
             var keysA = PhantasmaKeys.Generate();
@@ -33,21 +33,21 @@ namespace Phantasma.LegacyTests
             tx.Mine(3);
 
             var bytesUnsigned = tx.ToByteArray(false);
-            Assert.IsTrue(bytesUnsigned != null);
+            Assert.True(bytesUnsigned != null);
 
             tx.Sign(keysA);
             var bytesSigned = tx.ToByteArray(true);
 
-            Assert.IsTrue(bytesSigned != null);
-            Assert.IsTrue(bytesSigned.Length != bytesUnsigned.Length);
+            Assert.True(bytesSigned != null);
+            Assert.True(bytesSigned.Length != bytesUnsigned.Length);
 
             var tx2 = Transaction.Unserialize(bytesSigned);
-            Assert.IsTrue(tx2 != null);
+            Assert.True(tx2 != null);
 
-            Assert.IsTrue(tx.Hash == tx2.Hash);
+            Assert.True(tx.Hash == tx2.Hash);
         }
 
-        [TestMethod]
+        [Fact]
         public void BlockSerialization()
         {
             var keysA = PhantasmaKeys.Generate();
@@ -86,7 +86,7 @@ namespace Phantasma.LegacyTests
 
             var block = new Block(1, chainKeys.Address, Timestamp.Now, Hash.Null, protocol, chainKeys.Address, System.Text.Encoding.UTF8.GetBytes("TEST"), oracleEntries);
             block.AddAllTransactionHashes(hashes);
-            Assert.IsTrue(block.OracleData.Length == oracleEntries.Length);
+            Assert.True(block.OracleData.Length == oracleEntries.Length);
 
             int index = 0;
             foreach (var hash in hashes)
@@ -102,33 +102,33 @@ namespace Phantasma.LegacyTests
 
             for (int i = 0; i < oracleEntries.Length; i++)
             {
-                Assert.IsTrue(oracleEntries[i].URL == block.OracleData[i].URL);
-                Assert.IsTrue(oracleEntries[i].Content == block.OracleData[i].Content);
+                Assert.True(oracleEntries[i].URL == block.OracleData[i].URL);
+                Assert.True(oracleEntries[i].Content == block.OracleData[i].Content);
             }
 
             var bytes = block.ToByteArray(true);
 
-            Assert.IsTrue(bytes != null);
+            Assert.True(bytes != null);
 
             var block2 = Block.Unserialize(bytes);
-            Assert.IsTrue(block2 != null);
+            Assert.True(block2 != null);
 
             var bytes2 = block2.ToByteArray(true);
-            Assert.IsTrue(bytes2.Length == bytes.Length);
+            Assert.True(bytes2.Length == bytes.Length);
 
-            Assert.IsTrue(block2.OracleData.Length == oracleEntries.Length);
+            Assert.True(block2.OracleData.Length == oracleEntries.Length);
 
             for (int i = 0; i < oracleEntries.Length; i++)
             {
-                Assert.IsTrue(oracleEntries[i].URL == block2.OracleData[i].URL);
-                Assert.IsTrue(oracleEntries[i].Content.SequenceEqual(block2.OracleData[i].Content));
+                Assert.True(oracleEntries[i].URL == block2.OracleData[i].URL);
+                Assert.True(oracleEntries[i].Content.SequenceEqual(block2.OracleData[i].Content));
             }
 
-            Assert.IsTrue(block.Hash == block2.Hash);
+            Assert.True(block.Hash == block2.Hash);
         }
 
 
-        [TestMethod]
+        [Fact]
         public void TransactionMining()
         {
             var keysA = PhantasmaKeys.Generate();
@@ -146,10 +146,10 @@ namespace Phantasma.LegacyTests
             tx.Mine(expectedDiff);        
             var newHash = tx.Hash;
 
-            Assert.IsTrue(oldHash != newHash);
+            Assert.True(oldHash != newHash);
 
             var diff = tx.Hash.GetDifficulty();
-            Assert.IsTrue(diff >= expectedDiff);
+            Assert.True(diff >= expectedDiff);
         }
 
     }

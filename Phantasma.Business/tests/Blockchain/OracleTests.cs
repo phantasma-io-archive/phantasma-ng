@@ -1,5 +1,3 @@
-//using Microsoft.VisualStudio.TestTools.UnitTesting;
-
 using System;
 using System.Linq;
 using System.Numerics;
@@ -19,6 +17,7 @@ using Xunit;
 namespace Phantasma.Business.Tests.Blockchain;
 
 
+[Collection("OracleTestsBusiness")]
 public class OracleTests
 {
     PhantasmaKeys user;

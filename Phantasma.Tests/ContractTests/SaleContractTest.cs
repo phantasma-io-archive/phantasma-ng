@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM.Utils;
@@ -11,9 +10,11 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Simulator;
 
+using Xunit;
+
 namespace Phantasma.LegacyTests.ContractTests;
 
-[TestClass]
+[Collection("SaleContractTest")]
 public class SaleContractTest
 {
     public uint DefaultEnergyRatioDivisor => StakeContract.DefaultEnergyRatioDivisor;
@@ -35,7 +36,11 @@ public class SaleContractTest
     BigInteger startBalance;
     StakeReward reward;
 
-    [TestInitialize]
+    public SaleContractTest()
+    {
+        Initialize();
+    }
+
     public void Initialize()
     {
         sysAddress = SmartContract.GetAddressForNative(NativeContractKind.Friends);
@@ -65,10 +70,10 @@ public class SaleContractTest
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.StakingTokenSymbol, initialAmount);
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
     }
     
-    [TestMethod]
+    [Fact]
     public void TestSale()
     {
         var saleUser = PhantasmaKeys.Generate();
@@ -145,12 +150,12 @@ public class SaleContractTest
             resultObj = simulator.InvokeContract(NativeContractKind.Sale, nameof(SaleContract.GetSoldAmount), saleHash);
             var raisedAmount = resultObj.AsNumber();
 
-            Assert.IsTrue(raisedAmount == expectedAmount);
+            Assert.True(raisedAmount == expectedAmount);
 
             resultObj = simulator.InvokeContract(NativeContractKind.Sale, nameof(SaleContract.GetPurchasedAmount), saleHash, saleBuyer.Address);
             var purchasedAmount = resultObj.AsNumber();
 
-            Assert.IsTrue(purchasedAmount == expectedAmount);
+            Assert.True(purchasedAmount == expectedAmount);
         }
 
         simulator.BeginBlock();
@@ -159,7 +164,7 @@ public class SaleContractTest
                 .CallContract(NativeContractKind.Sale, nameof(SaleContract.Purchase), saleBuyer.Address, saleHash, "SOUL", purchaseAmount).
                 SpendGas(saleBuyer.Address).EndScript());
         simulator.EndBlock();
-        Assert.IsFalse(simulator.LastBlockWasSuccessful());
+        Assert.False(simulator.LastBlockWasSuccessful());
 
 
         var otherPurchaseAmount = UnitConversion.ToBigInteger(150, DomainSettings.StakingTokenDecimals);
@@ -177,7 +182,7 @@ public class SaleContractTest
             resultObj = simulator.InvokeContract(NativeContractKind.Sale, nameof(SaleContract.GetSoldAmount), saleHash);
             var raisedAmount = resultObj.AsNumber();
 
-            Assert.IsTrue(raisedAmount == expectedAmount);
+            Assert.True(raisedAmount == expectedAmount);
         }
 
         simulator.TimeSkipDays(4);
@@ -194,17 +199,17 @@ public class SaleContractTest
 
         var buyerBalance = nexus.RootChain.GetTokenBalance(nexus.RootStorage, saleSymbol, saleBuyer.Address);
         BigInteger expectedBalance = 3 * saleRate * DomainExtensions.ConvertBaseToQuote(null, purchaseAmount, UnitConversion.GetUnitValue(decimals), baseToken, quoteToken);
-        //Assert.IsTrue(buyerBalance == expectedBalance);
+        //Assert.True(buyerBalance == expectedBalance);
 
         var otherBuyerBalance = nexus.RootChain.GetTokenBalance(nexus.RootStorage, saleSymbol, saleBuyer.Address);
         expectedBalance = saleRate * DomainExtensions.ConvertBaseToQuote(null, otherPurchaseAmount, UnitConversion.GetUnitValue(decimals), baseToken, quoteToken);
-        //Assert.IsTrue(otherBuyerBalance == expectedBalance);
+        //Assert.True(otherBuyerBalance == expectedBalance);
 
         var newSellerBalance = nexus.RootChain.GetTokenBalance(nexus.RootStorage, "SOUL", saleUser.Address);
 
         var totalRaisedAmount = DomainExtensions.ConvertQuoteToBase(null, totalSoldAmount, UnitConversion.GetUnitValue(decimals), baseToken, quoteToken) / saleRate;
 
         expectedBalance = oldSellerBalance + totalRaisedAmount;
-        Assert.IsTrue(newSellerBalance == expectedBalance);
+        Assert.True(newSellerBalance == expectedBalance);
     }
 }
