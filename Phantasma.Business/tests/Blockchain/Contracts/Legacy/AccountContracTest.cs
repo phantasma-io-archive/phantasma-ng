@@ -6,17 +6,17 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.CodeGen.Assembler;
+using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
-using Phantasma.Simulator;
 using Xunit;
 using Shouldly;
 
-namespace Phantasma.Business.Tests.Blockchain.Contracts;
+namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
 [Collection("AccountLegacyTests")]
 public class AccountContracTest

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Numerics;
 using System.Collections.Generic;
 
-using Phantasma.Simulator;
 using Phantasma.Core.Types;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
@@ -16,6 +15,7 @@ using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM;
 using Phantasma.Infrastructure.Pay.Chains;
 

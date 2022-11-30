@@ -1,18 +1,18 @@
 using System;
 using System.Linq;
 using System.Numerics;
-using Phantasma.Simulator;
 using Phantasma.Core.Types;
 using Phantasma.Core.Cryptography;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Domain;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Numerics;
 
 using Xunit;
-namespace Phantasma.Business.Tests.Blockchain.Contracts;
+namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
 [Collection("MarketLegacyContractTest")]
 public class MarketContractTest
