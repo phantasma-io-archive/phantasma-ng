@@ -15,7 +15,7 @@ using Xunit;
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
 [Collection(nameof(SystemTestCollectionDefinition))]
-public class StakeContractTest
+public class StakeContractTestLegacy
 {
     public static BigInteger MinimumValidStake => UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
     public static BigInteger MinimumGasLimit = 99999;
@@ -41,7 +41,7 @@ public class StakeContractTest
     BigInteger startBalance;
     StakeReward reward;
 
-    public StakeContractTest()
+    public StakeContractTestLegacy()
     {
         Initialize();
     }
