@@ -1,3 +1,4 @@
+/*
 using NSubstitute;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
@@ -303,4 +304,4 @@ public class MarketContractTests : IDisposable
             Console.WriteLine("Unable to clean test directory");
         }
     }
-}
+}*/
