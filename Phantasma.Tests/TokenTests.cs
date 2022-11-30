@@ -11,7 +11,7 @@ using Phantasma.Simulator;
 
 using Xunit;
 
-namespace Phantasma.LegacyTests;
+namespace Phantasma.Business.Tests.Blockchain;
 
 [Collection("TokenTests")]
 public class TokenTests

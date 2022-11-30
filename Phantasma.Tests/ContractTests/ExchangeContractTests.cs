@@ -15,7 +15,7 @@ using Phantasma.Simulator;
 using Xunit;
 using Shouldly;
 
-namespace Phantasma.LegacyTests.ContractTests;
+namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
 [Collection("ExchangeContractTests")]
 public class ExchangeContractTests
