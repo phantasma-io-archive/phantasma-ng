@@ -12,7 +12,7 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Simulator;
 
-namespace Phantasma.LegacyTests;
+namespace Phantasma.Business.Tests.Blockchain;
 
 [Collection("NFTTests")]
 public class NFTTests
