@@ -16,9 +16,9 @@ using Phantasma.Simulator;
 using Xunit;
 using Shouldly;
 
-namespace Phantasma.LegacyTests.ContractTests;
+namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
-[Collection("AccountTests")]
+[Collection("AccountLegacyTests")]
 public class AccountContracTest
 {
     Address sysAddress;

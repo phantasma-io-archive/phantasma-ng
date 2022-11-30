@@ -12,7 +12,7 @@ using Phantasma.Simulator;
 
 using Xunit;
 
-namespace Phantasma.LegacyTests.ContractTests;
+namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
 [Collection("FriendContractTest")]
 public class FriendContractTest
