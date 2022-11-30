@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Xunit;
 using Phantasma.Core.Cryptography.Hashing;
 using Phantasma.Core.Numerics;
 using System.Linq;
@@ -6,10 +6,9 @@ using System.Text;
 
 namespace Phantasma.LegacyTests
 {
-    [TestClass]
     public class HashTests
     {
-        [TestMethod]
+        [Fact]
         public void TestSha256Repeatability()
         {
             byte[] source = Encoding.ASCII.GetBytes(
@@ -28,12 +27,12 @@ namespace Phantasma.LegacyTests
                 var sharedTestHash = sharedTest.ComputeHash(source);
                 var freshTestHash = freshTest.ComputeHash(source);
 
-                Assert.IsTrue(sharedTestHash.SequenceEqual(freshTestHash));
-                Assert.IsTrue(sharedTestHash.SequenceEqual(predefinedTestHash));
+                Assert.True(sharedTestHash.SequenceEqual(freshTestHash));
+                Assert.True(sharedTestHash.SequenceEqual(predefinedTestHash));
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void TestMurmur32()
         {
             byte[] source = Encoding.ASCII.GetBytes(
@@ -48,13 +47,13 @@ namespace Phantasma.LegacyTests
             for (int i = 0; i < 10000; i++)
             {
                 murmurTest = Murmur32.Hash(source, 144);
-                Assert.IsTrue(murmurTest == murmurTarget);
-                Assert.IsTrue(murmurTest == predefinedTestHash);
+                Assert.True(murmurTest == murmurTarget);
+                Assert.True(murmurTest == predefinedTestHash);
             }
 
         }
         /*
-        [TestMethod]
+        [Fact]
         public void TestPoly1305Donna()
         {
             var key = new Array8<UInt32>();
@@ -76,7 +75,7 @@ namespace Phantasma.LegacyTests
         */
 
 
-        [TestMethod]
+        [Fact]
         public void TestSha3Keccak()
         {
             byte[] source = Encoding.ASCII.GetBytes(
@@ -87,11 +86,11 @@ namespace Phantasma.LegacyTests
                 var sha3Test = SHA3Keccak.CalculateHash(source);
                 var sha3Target = Base16.Decode("09D3FA337D33E1BEB3C3D560D93F5FB57C66BC3E044127816F42494FA4947A92");     //https://asecuritysite.com/encryption/sha3 , using sha-3 256 bit
 
-                Assert.IsTrue(sha3Test.SequenceEqual(sha3Target));
+                Assert.True(sha3Test.SequenceEqual(sha3Target));
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void TestRIPEMD160()
         {
             byte[] source = Encoding.ASCII.GetBytes(
@@ -103,7 +102,7 @@ namespace Phantasma.LegacyTests
             {
                 var ripemd160Test = new RIPEMD160().ComputeHash(source);
 
-                Assert.IsTrue(ripemd160Test.SequenceEqual(ripemd160Target));
+                Assert.True(ripemd160Test.SequenceEqual(ripemd160Target));
             }
         }
     }

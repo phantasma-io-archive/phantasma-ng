@@ -1,17 +1,15 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
 using System;
 using System.Linq;
-using System.Numerics;
 
 namespace Phantasma.LegacyTests
 {
-    [TestClass]
     public class MathTests
     {
         #region BASE CONVERSIONS
-        [TestMethod]
+        [Fact]
         public void Base16Tests()
         {
             var bytes = new byte[Address.LengthInBytes];
@@ -20,14 +18,14 @@ namespace Phantasma.LegacyTests
 
             var base16 = Base16.Encode(bytes);
 
-            Assert.IsTrue(base16.Length == bytes.Length * 2);
+            Assert.True(base16.Length == bytes.Length * 2);
 
             var output = Base16.Decode(base16);
-            Assert.IsTrue(output.Length == bytes.Length);
-            Assert.IsTrue(output.SequenceEqual(bytes));
+            Assert.True(output.Length == bytes.Length);
+            Assert.True(output.SequenceEqual(bytes));
         }
 
-        [TestMethod]
+        [Fact]
         public void Base58Tests()
         {
             var bytes = new byte[Address.LengthInBytes];
@@ -36,18 +34,18 @@ namespace Phantasma.LegacyTests
 
             var base58 = Base58.Encode(bytes);
             var output = Base58.Decode(base58);
-            Assert.IsTrue(output.Length == bytes.Length);
-            Assert.IsTrue(output.SequenceEqual(bytes));
+            Assert.True(output.Length == bytes.Length);
+            Assert.True(output.SequenceEqual(bytes));
 
             bytes = new byte[Address.LengthInBytes];
             bytes[0] = 1;
             base58 = Base58.Encode(bytes);
             output = Base58.Decode(base58);
-            Assert.IsTrue(output.Length == bytes.Length);
-            Assert.IsTrue(output.SequenceEqual(bytes));
+            Assert.True(output.Length == bytes.Length);
+            Assert.True(output.SequenceEqual(bytes));
         }
 
-        [TestMethod]
+        [Fact]
         public void Test35ByteEncodeDecode58()
         {
             var input = new byte[35];
@@ -55,12 +53,12 @@ namespace Phantasma.LegacyTests
             var temp = Base58.Encode(input);
             var output = Base58.Decode(temp);
 
-            Assert.IsTrue(output.Length == input.Length);
+            Assert.True(output.Length == input.Length);
         }
         #endregion
 
         #region Proof of Work
-        [TestMethod]
+        [Fact]
         public void PowDifficulty()
         {
             int diff;
@@ -68,29 +66,29 @@ namespace Phantasma.LegacyTests
 
             bytes[0] = 1;
             diff = new Hash(bytes).GetDifficulty();
-            Assert.IsTrue(diff == 255);
+            Assert.True(diff == 255);
 
             bytes[31] = 1;
             diff = new Hash(bytes).GetDifficulty();
-            Assert.IsTrue(diff == 7);
+            Assert.True(diff == 7);
 
             bytes[31] = 128;
             diff = new Hash(bytes).GetDifficulty();
-            Assert.IsTrue(diff == 0);
+            Assert.True(diff == 0);
         }
         #endregion
 
         /*
         #region BIG INT
 
-        [TestMethod]
+        [Fact]
         public void BigIntZeroComparison()
         {
             BigInteger a = 0;
-            Assert.IsTrue((a != 0) == false);
-            Assert.IsTrue(a == 0);
-            Assert.IsTrue((a > 0) == false);
-            Assert.IsTrue((a < 0) == false);
+            Assert.True((a != 0) == false);
+            Assert.True(a == 0);
+            Assert.True((a > 0) == false);
+            Assert.True((a < 0) == false);
         }
 
 
@@ -98,29 +96,29 @@ namespace Phantasma.LegacyTests
         {
             public BigInteger a;
         }
-        [TestMethod]
+        [Fact]
         public void BigIntStructComparisonExplicitInit()
         {
             BigIntStruct s = new BigIntStruct() {a = 0};
 
-            Assert.IsTrue((s.a != 0) == false);
-            Assert.IsTrue(s.a == 0);
-            Assert.IsTrue((s.a > 0) == false);
-            Assert.IsTrue((s.a < 0) == false);
+            Assert.True((s.a != 0) == false);
+            Assert.True(s.a == 0);
+            Assert.True((s.a > 0) == false);
+            Assert.True((s.a < 0) == false);
         }
 
-        [TestMethod]
+        [Fact]
         public void BigIntStructComparisonImplicitInit()
         {
             BigIntStruct s = new BigIntStruct();
 
-            Assert.IsTrue((s.a != 0) == false);
-            Assert.IsTrue(s.a == 0);
-            Assert.IsTrue((s.a > 0) == false);
-            Assert.IsTrue((s.a < 0) == false);
+            Assert.True((s.a != 0) == false);
+            Assert.True(s.a == 0);
+            Assert.True((s.a > 0) == false);
+            Assert.True((s.a < 0) == false);
         }
 
-        //[TestMethod]
+        //[Fact]
         //public void BigIntAdd()
         //{
         //    string x = "332f389d332f3831332f389e332f37a5332f3959332f3914332f31853331947182937109805983456120394582304719284720459801283490657359687231098405982130983123498759234823019834589723985734582314097359837493817498709346908723498721309481309834095734895729689230853490833333129873102938abfe29810296723829";
@@ -135,25 +133,25 @@ namespace Phantasma.LegacyTests
 
         //    var result = a + b;
 
-        //    Assert.IsTrue(result == target);
+        //    Assert.True(result == target);
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void BigIntAddNegatives()
         //{
         //    string x = "1000";
         //    string y = "2000";
 
-        //    Assert.IsTrue((new BigInteger("-" + x, 10) + new BigInteger(y, 10)).ToDecimal() == "1000");
-        //    Assert.IsTrue((new BigInteger(x, 10) + new BigInteger("-" + y, 10)).ToDecimal() == "-1000");
-        //    Assert.IsTrue((new BigInteger("-" + x, 10) + new BigInteger("-" + y, 10)).ToDecimal() == "-3000");
+        //    Assert.True((new BigInteger("-" + x, 10) + new BigInteger(y, 10)).ToDecimal() == "1000");
+        //    Assert.True((new BigInteger(x, 10) + new BigInteger("-" + y, 10)).ToDecimal() == "-1000");
+        //    Assert.True((new BigInteger("-" + x, 10) + new BigInteger("-" + y, 10)).ToDecimal() == "-3000");
 
-        //    Assert.IsTrue((new BigInteger("-" + y, 10) + new BigInteger(x, 10)).ToDecimal() == "-1000");
-        //    Assert.IsTrue((new BigInteger(y, 10) + new BigInteger("-" + x, 10)).ToDecimal() == "1000");
-        //    Assert.IsTrue((new BigInteger("-" + y, 10) + new BigInteger("-" + x, 10)).ToDecimal() == "-3000");
+        //    Assert.True((new BigInteger("-" + y, 10) + new BigInteger(x, 10)).ToDecimal() == "-1000");
+        //    Assert.True((new BigInteger(y, 10) + new BigInteger("-" + x, 10)).ToDecimal() == "1000");
+        //    Assert.True((new BigInteger("-" + y, 10) + new BigInteger("-" + x, 10)).ToDecimal() == "-3000");
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void BigIntSub()
         //{
         //    string bx = "332f389d332f3831332f389e332f37a5332f3959332f3914332f31853331947182937109805983456120394582304719284720459801283490657359687231098405982130983123498759234823019834589723985734582314097359837493817498709346908723498721309481309834095734895729689230853490833333129873102938abfe29810296723829";
@@ -166,25 +164,25 @@ namespace Phantasma.LegacyTests
         //    var c = a - b;
         //    var target = new BigInteger(bz, 16);
 
-        //    Assert.IsTrue(c == target);
+        //    Assert.True(c == target);
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void BigIntSubNegatives()
         //{
         //    int x = 1000;
         //    int y = 2000;
 
-        //    Assert.IsTrue((new BigInteger(-x) - new BigInteger(y)).ToDecimal() == "-3000");
-        //    Assert.IsTrue((new BigInteger(x) - new BigInteger(-y)).ToDecimal() == "3000");
-        //    Assert.IsTrue((new BigInteger(-x) - new BigInteger(-y)).ToDecimal() == "1000");
+        //    Assert.True((new BigInteger(-x) - new BigInteger(y)).ToDecimal() == "-3000");
+        //    Assert.True((new BigInteger(x) - new BigInteger(-y)).ToDecimal() == "3000");
+        //    Assert.True((new BigInteger(-x) - new BigInteger(-y)).ToDecimal() == "1000");
 
-        //    Assert.IsTrue((new BigInteger(-y) - new BigInteger(x)).ToDecimal() == "-3000");
-        //    Assert.IsTrue((new BigInteger(y) - new BigInteger(-x)).ToDecimal() == "3000");
-        //    Assert.IsTrue((new BigInteger(-y) - new BigInteger(-x)).ToDecimal() == "-1000");
+        //    Assert.True((new BigInteger(-y) - new BigInteger(x)).ToDecimal() == "-3000");
+        //    Assert.True((new BigInteger(y) - new BigInteger(-x)).ToDecimal() == "3000");
+        //    Assert.True((new BigInteger(-y) - new BigInteger(-x)).ToDecimal() == "-1000");
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void BigIntMult()
         //{
         //    string x = "120938109581209348298572913834710238901381847238471902348083410abefbaebf11298731982873819238750985610982134098593847592318403945789823757893452309840258305801239842349534563456928347390183045982348718923746874957489057031947892385683475639184723901";
@@ -198,25 +196,25 @@ namespace Phantasma.LegacyTests
         //    var c = a * b;
         //    var tmp = (new BigInteger(x, 16) * new BigInteger(y, 16)).ToString();
         //    var tmp2 = target.ToDecimal();
-        //    Assert.IsTrue(c == target);
+        //    Assert.True(c == target);
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void BigIntMultNegatives()
         //{
         //    int x = 100000;
         //    int y = 1000;
 
-        //    Assert.IsTrue((new BigInteger(-x) * new BigInteger(y)).ToDecimal() == "-100000000");
-        //    Assert.IsTrue((new BigInteger(x) * new BigInteger(-y)).ToDecimal() == "-100000000");
-        //    Assert.IsTrue((new BigInteger(-x) * new BigInteger(-y)).ToDecimal() == "100000000");
+        //    Assert.True((new BigInteger(-x) * new BigInteger(y)).ToDecimal() == "-100000000");
+        //    Assert.True((new BigInteger(x) * new BigInteger(-y)).ToDecimal() == "-100000000");
+        //    Assert.True((new BigInteger(-x) * new BigInteger(-y)).ToDecimal() == "100000000");
 
-        //    Assert.IsTrue((new BigInteger(-y) * new BigInteger(x)).ToDecimal() == "-100000000");
-        //    Assert.IsTrue((new BigInteger(y) * new BigInteger(-x)).ToDecimal() == "-100000000");
-        //    Assert.IsTrue((new BigInteger(-y) * new BigInteger(-x)).ToDecimal() == "100000000");
+        //    Assert.True((new BigInteger(-y) * new BigInteger(x)).ToDecimal() == "-100000000");
+        //    Assert.True((new BigInteger(y) * new BigInteger(-x)).ToDecimal() == "-100000000");
+        //    Assert.True((new BigInteger(-y) * new BigInteger(-x)).ToDecimal() == "100000000");
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void BigIntMultiDigitDiv()
         //{
         //    string bx = "332f389d332f3831332f389e332f37a5332f3959332f3914332f31853331947182937109805983456120394582304719284720459801283490657359687231098405982130983123498759234823019834589723985734582314097359837493817498709346908723498721309481309834095734895729689230853490833333129873102938abfe29810296723829";
@@ -234,11 +232,11 @@ namespace Phantasma.LegacyTests
         //    BigInteger rem;
         //    BigInteger.DivideAndModulus(numerator, denominator, out quot, out rem);
 
-        //    Assert.IsTrue(quot == target_quot);
-        //    Assert.IsTrue(rem == target_rem);
+        //    Assert.True(quot == target_quot);
+        //    Assert.True(rem == target_rem);
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void BigIntSingleDigitDiv()
         //{
         //    string bx = "332f389d332f3831332f389e332f37a5332f3959332f3914332f31853331947182937109805983456120394582304719284720459801283490657359687231098405982130983123498759234823019834589723985734582314097359837493817498709346908723498721309481309834095734895729689230853490833333129873102938abfe29810296723829";
@@ -256,26 +254,26 @@ namespace Phantasma.LegacyTests
         //    BigInteger rem;
         //    BigInteger.DivideAndModulus(numerator, denominator, out quot, out rem);
 
-        //    Assert.IsTrue(quot == target_quot);
-        //    Assert.IsTrue(rem == target_rem);
+        //    Assert.True(quot == target_quot);
+        //    Assert.True(rem == target_rem);
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void BigIntDivNegatives()
         //{
         //    int x = 100000;
         //    int y = 1000;
 
-        //    Assert.IsTrue((new BigInteger(-x) / new BigInteger(y)).ToDecimal() == "-100");
-        //    Assert.IsTrue((new BigInteger(x) / new BigInteger(-y)).ToDecimal() == "-100");
-        //    Assert.IsTrue((new BigInteger(-x) / new BigInteger(-y)).ToDecimal() == "100");
+        //    Assert.True((new BigInteger(-x) / new BigInteger(y)).ToDecimal() == "-100");
+        //    Assert.True((new BigInteger(x) / new BigInteger(-y)).ToDecimal() == "-100");
+        //    Assert.True((new BigInteger(-x) / new BigInteger(-y)).ToDecimal() == "100");
 
-        //    Assert.IsTrue((new BigInteger(-y) / new BigInteger(x)).ToDecimal() == "0");
-        //    Assert.IsTrue((new BigInteger(y) / new BigInteger(-x)).ToDecimal() == "0");
-        //    Assert.IsTrue((new BigInteger(-y) / new BigInteger(-x)).ToDecimal() == "0");
+        //    Assert.True((new BigInteger(-y) / new BigInteger(x)).ToDecimal() == "0");
+        //    Assert.True((new BigInteger(y) / new BigInteger(-x)).ToDecimal() == "0");
+        //    Assert.True((new BigInteger(-y) / new BigInteger(-x)).ToDecimal() == "0");
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void TestSubtractionBorrowing()
         //{
         //    var x1 = new BigInteger(new uint[] { 0x01000001 });
@@ -286,17 +284,17 @@ namespace Phantasma.LegacyTests
 
         //    var z1 = x1 - y1;
 
-        //    Assert.IsTrue(z1 == groundTruth1);
+        //    Assert.True(z1 == groundTruth1);
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void TestToString()
         //{
         //    var x = new BigInteger("24750ed6468b0f8c43d270e609e1224613046930e24730e4730ae32506e0327000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", 16);
-        //    Assert.IsTrue(x.ToDecimal() == "343255395128441705738430800749513158191704924924659029403775342881472703497041611993270924407633010896488451591654215164571079711934795651275975982617029318658658666648753731952553042523384561627517385625811279929494676406022746972049340844301447752320787688611375601417145691357093739519857589421036607980254378910944708786049273704140249078873935879289476950237030005460408499081908841901857811534210748336837493224463100031667809871040667649289996624956751872");
+        //    Assert.True(x.ToDecimal() == "343255395128441705738430800749513158191704924924659029403775342881472703497041611993270924407633010896488451591654215164571079711934795651275975982617029318658658666648753731952553042523384561627517385625811279929494676406022746972049340844301447752320787688611375601417145691357093739519857589421036607980254378910944708786049273704140249078873935879289476950237030005460408499081908841901857811534210748336837493224463100031667809871040667649289996624956751872");
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void TestComparison()
         //{
         //    var x = new BigInteger("1000000", 16);
@@ -304,14 +302,14 @@ namespace Phantasma.LegacyTests
 
         //    var z = x / y;
 
-        //    Assert.IsTrue(z.ToDecimal() == "1");
+        //    Assert.True(z.ToDecimal() == "1");
 
         //    var test1 = new BigInteger("0100", 16);
 
-        //    Assert.IsTrue(test1 > z);
+        //    Assert.True(test1 > z);
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void TestLeftShift()
         //{
         //    var x = new BigInteger("123a876b234587c621e9387304f0912309823498712398723985719283701938", 16);
@@ -319,15 +317,15 @@ namespace Phantasma.LegacyTests
         //    //testing extra digit
         //    var target = new BigInteger("123a876b234587c621e9387304f09123098234987123987239857192837019380000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", 16);
         //    var y = x << 1000;  
-        //    Assert.IsTrue(y == target);
+        //    Assert.True(y == target);
 
         //    //testing no extra digit
         //    target = new BigInteger("24750ed6468b0f8c43d270e609e1224613046930e24730e4730ae32506e0327000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", 16);
         //    y = x << 1281;  
-        //    Assert.IsTrue(y == target);
+        //    Assert.True(y == target);
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void TestRightShift()
         //{
         //    var x = new BigInteger("111230981409285093459012840956983409578093148394857023194801239875784567834568931749081123437456abecdf", 16);
@@ -335,15 +333,15 @@ namespace Phantasma.LegacyTests
         //    //to test extra shrinkage off
         //    var target = new BigInteger("11123098140928509345901284095698340957809314839485702", 16);
         //    var y = x >> 196;
-        //    Assert.IsTrue(y == target);
+        //    Assert.True(y == target);
         //    
         //    //to test extra shrinkage on
         //    target = new BigInteger("111230981409285093459012840956983409578093148394", 16);
         //    y = x >> 216;   
-        //    Assert.IsTrue(y == target);
+        //    Assert.True(y == target);
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void TestXor()
         //{
         //    string bx = "332f389d332f3831332f389e332f37a5332f3959332f3914332f31853331947182937109805983456120394582304719284720459801283490657359687231098405982130983123498759234823019834589723985734582314097359837493817498709346908723498721309481309834095734895729689230853490833333129873102938abfe29810296723829";
@@ -358,10 +356,10 @@ namespace Phantasma.LegacyTests
 
         //    BigInteger target = new BigInteger(bz, 16);
 
-        //    Assert.IsTrue(result == target);
+        //    Assert.True(result == target);
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void TestBitwiseAnd()
         //{
         //    string bx = "332f389d332f3831332f389e332f37a5332f3959332f3914332f31853331947182937109805983456120394582304719284720459801283490657359687231098405982130983123498759234823019834589723985734582314097359837493817498709346908723498721309481309834095734895729689230853490833333129873102938abfe29810296723829";
@@ -376,10 +374,10 @@ namespace Phantasma.LegacyTests
 
         //    BigInteger target = new BigInteger(bz, 16);
 
-        //    Assert.IsTrue(result == target);
+        //    Assert.True(result == target);
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void TestBitwiseOr()
         //{
         //    string bx = "332f389d332f3831332f389e332f37a5332f3959332f3914332f31853331947182937109805983456120394582304719284720459801283490657359687231098405982130983123498759234823019834589723985734582314097359837493817498709346908723498721309481309834095734895729689230853490833333129873102938abfe29810296723829";
@@ -394,16 +392,16 @@ namespace Phantasma.LegacyTests
 
         //    BigInteger target = new BigInteger(bz, 16);
 
-        //    Assert.IsTrue(result == target);
+        //    Assert.True(result == target);
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void TestZeroSign()
         //{
         //    //TODO: try all possible operations that could change a large int to 0, and validate if the sign changes accordingly
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void TestModPow()
         //{
         //    BigInteger b = new BigInteger("332f389d332f3831332f389e332f37a5332f3959332f3914332f31853331947182937109805983456120394582304719284720459801283490657359687231098405982130983123498759234823019834589723985734582314097359837493817498709346908723498721309481309834095734895729689230853490833333129873102938abfe29810296723829", 16);
@@ -414,32 +412,32 @@ namespace Phantasma.LegacyTests
 
         //    var target = new BigInteger("24c59f542554271f199bb50074796df8a4a0a8bafa6d3bc25f8f96ea1fce4", 16);
 
-        //    Assert.IsTrue(result == target);
+        //    Assert.True(result == target);
 
         //    //TODO: we cant test negative exponentials yet because we need to implement the modInverse operation first!
         //    
         //    //result = b.ModPow(-256, mod);
         //    //target = new BigInteger("");
-        //    //Assert.IsTrue(result == target);
+        //    //Assert.True(result == target);
         //    
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void TestBitLength()
         //{
         //    var n = new BigInteger("0", 16);
-        //    Assert.IsTrue(n.GetBitLength() == 0);
+        //    Assert.True(n.GetBitLength() == 0);
 
         //    n++;
 
         //    for (int i = 2; i <= 2048; i++)
         //    {
         //        n <<= 1;
-        //        Assert.IsTrue(n.GetBitLength() == i);
+        //        Assert.True(n.GetBitLength() == i);
         //    }
         //}
 
-        //[TestMethod]
+        //[Fact]
         //public void TestTwosComplement()
         //{
         //    var posNum =
@@ -451,9 +449,9 @@ namespace Phantasma.LegacyTests
 
         //    var negBigInt = BigInteger.FromSignedArray(negArray);
 
-        //    Assert.IsTrue(posBigint.Sign== 1);
-        //    Assert.IsTrue(negBigInt.Sign== -1);
-        //    Assert.IsTrue(negBigInt.ToUintArray().SequenceEqual(posBigint.ToUintArray()));
+        //    Assert.True(posBigint.Sign== 1);
+        //    Assert.True(negBigInt.Sign== -1);
+        //    Assert.True(negBigInt.ToUintArray().SequenceEqual(posBigint.ToUintArray()));
         //}
         //#endregion
         */

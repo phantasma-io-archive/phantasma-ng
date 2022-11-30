@@ -1,17 +1,13 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Xunit;
 using Phantasma.Core.Cryptography;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Net.Mime;
-using System.Text;
 
 namespace Phantasma.LegacyTests
 {
-    [TestClass]
     public class MerkleTreeTests
     {
-        [TestMethod]
+        [Fact]
         public void TestSingleNodeMerkleSuccess()
         {
             uint fileSize = 1000;
@@ -36,11 +32,11 @@ namespace Phantasma.LegacyTests
             for (int i = 0; i < chunkCount; i++)
             {
                 Array.Copy(file, i * actualChunkSize, chunk, 0, actualChunkSize);
-                Assert.IsTrue(tree.VerifyContent(chunk, i));
+                Assert.True(tree.VerifyContent(chunk, i));
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void TestSingleNodeMerkleFailure()
         {
             uint fileSize = 1000;
@@ -74,11 +70,11 @@ namespace Phantasma.LegacyTests
                     r.NextBytes(fakeChunk);
                 }
 
-                Assert.IsFalse(tree.VerifyContent(fakeChunk, i));
+                Assert.False(tree.VerifyContent(fakeChunk, i));
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void TestMultipleNodeMerkleSuccess()
         {
             uint chunkSize = MerkleTree.ChunkSize;
@@ -104,11 +100,11 @@ namespace Phantasma.LegacyTests
                 var chunk = new byte[actualChunkSize];
 
                 Array.Copy(file, i * MerkleTree.ChunkSize, chunk, 0, actualChunkSize);
-                Assert.IsTrue(tree.VerifyContent(chunk, i));
+                Assert.True(tree.VerifyContent(chunk, i));
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void TestMultipleNodeMerkleFailure()
         {
             uint chunkSize = MerkleTree.ChunkSize;
@@ -141,7 +137,7 @@ namespace Phantasma.LegacyTests
                     r.NextBytes(fakeChunk);
                 } while (fakeChunk.SequenceEqual(originalChunk));
 
-                Assert.IsFalse(tree.VerifyContent(fakeChunk, i));
+                Assert.False(tree.VerifyContent(fakeChunk, i));
             }
         }
     }
