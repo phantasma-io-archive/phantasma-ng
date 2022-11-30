@@ -16,12 +16,13 @@ using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Infrastructure.Pay.Chains;
 using System.Runtime.InteropServices;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Akka.Util;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Node.Chains.Neo2;
 using VMType = Phantasma.Core.Domain.VMType;
+
+using Xunit;
 
 namespace Phantasma.Simulator
 {
@@ -235,7 +236,7 @@ namespace Phantasma.Simulator
 
             var initialBalance = Nexus.RootChain.GetTokenBalance(Nexus.RootStorage, DomainSettings.StakingTokenSymbol, _currentValidator.Address);
             // check if the owner address got at least enough tokens to be a SM
-            Assert.IsTrue(initialBalance >= StakeContract.DefaultMasterThreshold);
+            Assert.True(initialBalance >= StakeContract.DefaultMasterThreshold);
 
             /*
             var neoPlatform = NeoWallet.NeoPlatform;

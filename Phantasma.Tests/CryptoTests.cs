@@ -9,6 +9,7 @@ using Phantasma.Core.Cryptography;
 
 namespace Phantasma.LegacyTests
 {
+    [Collection("CryptoTests")]
     public class CryptoTests
     {
         [Fact]

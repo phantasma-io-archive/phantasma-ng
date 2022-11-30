@@ -16,6 +16,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
+[Collection("InteropTestsBusiness")]
 public class InteropTests : IDisposable
 {
     private PhantasmaKeys Validator { get; set; }

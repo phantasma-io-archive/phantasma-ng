@@ -15,6 +15,7 @@ using Phantasma.Business.VM;
 
 namespace Phantasma.LegacyTests
 {
+    [Collection("OldContractTests")]
     public class OldContractTests
     {
         public static BigInteger MinimumValidStake => UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);

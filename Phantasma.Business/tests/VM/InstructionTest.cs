@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.VM;
 
+[Collection("InstructionTest")]
 public class InstructionTest
 {
     [Fact]

@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
 using System.Numerics;
@@ -12,9 +11,11 @@ using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Numerics;
 
+using Xunit;
+
 namespace Phantasma.LegacyTests.ContractTests
 {
-    [TestClass]
+    [Collection("MarketLegacyContractTest")]
     public class MarketContractTest
     {
         string sysAddress;
@@ -29,7 +30,11 @@ namespace Phantasma.LegacyTests.ContractTests
         BigInteger startBalance;
         StakeReward reward;
 
-        [TestInitialize]
+        public MarketContractTest()
+        {
+            Initialize();
+        }
+
         public void Initialize()
         {
             sysAddress = "S3d79FvexQeerRioAY3pGYpNPFx7oJkMV4KazdTHdGDA5iy";
@@ -59,10 +64,10 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
             simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.StakingTokenSymbol, initialAmount);
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
         }
 
-        [TestMethod]
+        [Fact]
         public void TestMarketContractBasic()
         {
             var chain = nexus.RootChain;
@@ -78,12 +83,12 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
+            Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
             var ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
+            Assert.True(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
             var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
@@ -95,7 +100,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // obtain tokenID
             ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
             var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
@@ -103,7 +108,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user post-mint
             ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
             var price = 1000;
@@ -120,10 +125,10 @@ namespace Phantasma.LegacyTests.ContractTests
                   EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
+            Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
@@ -137,17 +142,17 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
+            Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
             ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 0, "How does the seller still have one?");
+            Assert.True(ownedTokenList.Count() == 0, "How does the seller still have one?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestMarketContractAuctionDutch()
         {
             var chain = nexus.RootChain;
@@ -160,12 +165,12 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
+            Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
             var ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
+            Assert.True(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
             var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
@@ -177,7 +182,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // obtain tokenID
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
             var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
@@ -185,7 +190,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user post-mint
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
             var price = 1500;
@@ -215,7 +220,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify auction is here
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
+            Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
@@ -227,7 +232,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // move time half way through auction
@@ -244,7 +249,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // make one bid
@@ -258,26 +263,26 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // verify auctions empty
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
+            Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 0, "How does the seller still have one?");
+            Assert.True(ownedTokenList.Count() == 0, "How does the seller still have one?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
 
             // verify balance after
             var balanceOwnerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenToSell, owner.Address);
-            Assert.IsTrue(balanceOwnerAfter == balanceOwnerBefore - 1000, " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter);
+            Assert.True(balanceOwnerAfter == balanceOwnerBefore - 1000, " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter);
         }
 
-        [TestMethod]
+        [Fact]
         public void TestMarketContractAuctionClassic()
         {
             var owner = PhantasmaKeys.Generate();
@@ -302,12 +307,12 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
+            Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
             var ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
+            Assert.True(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
             var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
@@ -319,7 +324,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // obtain tokenID
             ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
             var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
@@ -327,7 +332,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user post-mint
             ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
             var price = 1500;
@@ -355,7 +360,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
             // list token as Classic auction
             simulator.BeginBlock();
@@ -371,7 +376,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify auction is here
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
+            Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid before auction starts (should fail)
             simulator.BeginBlock();
@@ -384,7 +389,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // move time post start date
@@ -401,7 +406,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // make one bid
@@ -415,7 +420,7 @@ namespace Phantasma.LegacyTests.ContractTests
                   EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // make one more bid from same address
@@ -429,7 +434,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // cancel auction after it received bids (should fail)
@@ -443,7 +448,7 @@ namespace Phantasma.LegacyTests.ContractTests
                     EndScript()
                 );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // make one bid lower (should fail)
@@ -457,7 +462,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // move time 5 minutes before end of auction
@@ -475,7 +480,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // make one bid which will trigger extend time
@@ -489,7 +494,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // move time 45 minutes to check if time was properly extended
@@ -506,12 +511,12 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // check if auction is still there post extension
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == previousAuctionCount + 1, "auction ids should not be empty at this point");
+            Assert.True(auctions.Length == previousAuctionCount + 1, "auction ids should not be empty at this point");
 
             // move time post end date
             simulator.TimeSkipDays(2);
@@ -527,26 +532,26 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // verify auctions empty
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
+            Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
             ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 0, "How does the seller still have one?");
+            Assert.True(ownedTokenList.Count() == 0, "How does the seller still have one?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
 
             // verify balance after
             var balanceOwnerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenToSell, owner.Address);
-            Assert.IsTrue(balanceOwnerAfter == balanceOwnerBefore - (bidPrice + 300), " balanceOwnerBefore: " + balanceOwnerBefore + " bidPrice + 200: " + bidPrice + 300 + " balanceOwnerAfter: " + balanceOwnerAfter);
+            Assert.True(balanceOwnerAfter == balanceOwnerBefore - (bidPrice + 300), " balanceOwnerBefore: " + balanceOwnerBefore + " bidPrice + 200: " + bidPrice + 300 + " balanceOwnerAfter: " + balanceOwnerAfter);
         }
 
-        [TestMethod]
+        [Fact]
         public void TestMarketContractAuctionClassicNoWinner()
         {
             var owner = PhantasmaKeys.Generate();
@@ -571,12 +576,12 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
+            Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
             var ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
+            Assert.True(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
             var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
@@ -588,7 +593,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // obtain tokenID
             ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
             var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
@@ -596,7 +601,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user post-mint
             ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
             var price = 1500;
@@ -624,7 +629,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // list token as Classic auction
@@ -638,12 +643,12 @@ namespace Phantasma.LegacyTests.ContractTests
                   EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // verify auction is here
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
+            Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // move time post auction end date
             simulator.TimeSkipDays(4);
@@ -659,19 +664,19 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // verify auctions empty
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
+            Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft is back to the original owner
             ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the seller did not get back his NFT?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the seller did not get back his NFT?");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestMarketContractAuctionReserve()
         {
             var chain = nexus.RootChain;
@@ -691,12 +696,12 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
+            Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
             var ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
+            Assert.True(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
             var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
@@ -708,7 +713,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // obtain tokenID
             ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
             var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
@@ -716,7 +721,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user post-mint
             ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
             var price = 1500;
@@ -748,12 +753,12 @@ namespace Phantasma.LegacyTests.ContractTests
                   EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // verify auction is here
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
+            Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid below reserve price (should fail)
             simulator.BeginBlock();
@@ -766,7 +771,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // make one bid above reserve price
@@ -780,7 +785,7 @@ namespace Phantasma.LegacyTests.ContractTests
                   EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // make one bid lower (should fail)
@@ -794,7 +799,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
             // make one other address outbids previous one
             simulator.BeginBlock();
@@ -807,7 +812,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // move time between bids
@@ -824,7 +829,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // move time post end date
@@ -841,30 +846,30 @@ namespace Phantasma.LegacyTests.ContractTests
                   EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // verify auctions empty
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
+            Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
             ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 0, "How does the seller still have one?");
+            Assert.True(ownedTokenList.Count() == 0, "How does the seller still have one?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
 
             // verify balance after
             var balanceOwnerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenToSell, owner.Address);
             var balanceTestUserAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenToSell, testUser.Address);
             var balanceTestUser2After = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenToSell, testUser2.Address);
-            Assert.IsTrue(balanceOwnerAfter == balanceOwnerBefore - bidPrice3, " balanceOwnerBefore: " + balanceOwnerBefore + " bidPrice: " + bidPrice3 + " balanceOwnerAfter: " + balanceOwnerAfter);
-            Assert.IsTrue(balanceTestUserAfter == balanceTestUserBefore + bidPrice3, " balanceOwnerBefore: " + balanceTestUserBefore + " bidPrice: " + bidPrice3 + " balanceOwnerAfter: " + balanceTestUserAfter);
-            Assert.IsTrue(balanceTestUser2After == balanceTestUser2Before, " balanceTestUser2After: " + balanceTestUser2After + " balanceTestUser2Before: " + balanceTestUser2Before);
+            Assert.True(balanceOwnerAfter == balanceOwnerBefore - bidPrice3, " balanceOwnerBefore: " + balanceOwnerBefore + " bidPrice: " + bidPrice3 + " balanceOwnerAfter: " + balanceOwnerAfter);
+            Assert.True(balanceTestUserAfter == balanceTestUserBefore + bidPrice3, " balanceOwnerBefore: " + balanceTestUserBefore + " bidPrice: " + bidPrice3 + " balanceOwnerAfter: " + balanceTestUserAfter);
+            Assert.True(balanceTestUser2After == balanceTestUser2Before, " balanceTestUser2After: " + balanceTestUser2After + " balanceTestUser2Before: " + balanceTestUser2Before);
         }
 
-        [TestMethod]
+        [Fact]
         public void TestMarketContractAuctionFixed()
         {
             var chain = nexus.RootChain;
@@ -878,12 +883,12 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
+            Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
             var ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
+            Assert.True(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
             var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
@@ -895,7 +900,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // obtain tokenID
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
             var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
@@ -903,7 +908,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user post-mint
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
             var price = 1500;
@@ -931,12 +936,12 @@ namespace Phantasma.LegacyTests.ContractTests
                   EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // verify auction is here
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
+            Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid before auction starts (should fail)
             simulator.BeginBlock();
@@ -949,7 +954,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
             // move time post start date
             simulator.TimeSkipDays(2);
@@ -965,7 +970,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // make one higher (should fail)
@@ -979,7 +984,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
             // make one bid - also claims it
             simulator.BeginBlock();
@@ -992,26 +997,26 @@ namespace Phantasma.LegacyTests.ContractTests
                   EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // verify auctions empty
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
+            Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 0, "How does the seller still have one?");
+            Assert.True(ownedTokenList.Count() == 0, "How does the seller still have one?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
 
             // verify balance after
             var balanceOwnerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenToSell, owner.Address);
-            Assert.IsTrue(balanceOwnerAfter == balanceOwnerBefore - price, " balanceOwnerBefore: " + balanceOwnerBefore + " price: " + price + " balanceOwnerAfter: " + balanceOwnerAfter);
+            Assert.True(balanceOwnerAfter == balanceOwnerBefore - price, " balanceOwnerBefore: " + balanceOwnerBefore + " price: " + price + " balanceOwnerAfter: " + balanceOwnerAfter);
         }
 
-        [TestMethod]
+        [Fact]
         public void TestMarketContractAuctionEdit()
         {
             var chain = nexus.RootChain;
@@ -1026,12 +1031,12 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
+            Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
             var ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
+            Assert.True(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
             var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
@@ -1043,7 +1048,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // obtain tokenID
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
             var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
@@ -1051,7 +1056,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user post-mint
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
             var price = 1500;
@@ -1079,12 +1084,12 @@ namespace Phantasma.LegacyTests.ContractTests
                   EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // verify auction is here
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
+            Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // edit auction price with wrong symbol (should fail)
             simulator.BeginBlock();
@@ -1097,7 +1102,7 @@ namespace Phantasma.LegacyTests.ContractTests
                     EndScript()
                 );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
             // edit auction price with correct symbol
             simulator.BeginBlock();
@@ -1110,7 +1115,7 @@ namespace Phantasma.LegacyTests.ContractTests
                     EndScript()
                 );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
             
             // edit auction price with incorrect end date (should fail)
             simulator.BeginBlock();
@@ -1123,7 +1128,7 @@ namespace Phantasma.LegacyTests.ContractTests
                     EndScript()
                 );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
             
             // move time post start date
             simulator.TimeSkipDays(2);
@@ -1139,26 +1144,26 @@ namespace Phantasma.LegacyTests.ContractTests
                   EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // verify auctions empty
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
+            Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 0, "How does the seller still have one?");
+            Assert.True(ownedTokenList.Count() == 0, "How does the seller still have one?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
 
             // verify balance after
             var balanceOwnerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenToSell, owner.Address);
-            Assert.IsTrue(balanceOwnerAfter == balanceOwnerBefore - 2500, " balanceOwnerBefore: " + balanceOwnerBefore + " price: " + 2500 + " balanceOwnerAfter: " + balanceOwnerAfter);
+            Assert.True(balanceOwnerAfter == balanceOwnerBefore - 2500, " balanceOwnerBefore: " + balanceOwnerBefore + " price: " + 2500 + " balanceOwnerAfter: " + balanceOwnerAfter);
         }
 
-        [TestMethod]
+        [Fact]
         public void TestMarketContractAuctionCancel()
         {
             var chain = nexus.RootChain;
@@ -1175,12 +1180,12 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
+            Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
             var ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
+            Assert.True(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
             var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
@@ -1192,7 +1197,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // obtain tokenID
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
             var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
@@ -1200,7 +1205,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user post-mint
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
             var price = 1500;
@@ -1229,7 +1234,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify auction is here
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
+            Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // move half way through sale
             simulator.TimeSkipDays(1);
@@ -1245,7 +1250,7 @@ namespace Phantasma.LegacyTests.ContractTests
                     EndScript()
                 );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // move past end date
@@ -1262,27 +1267,27 @@ namespace Phantasma.LegacyTests.ContractTests
                     EndScript()
                 );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // verify auctions empty
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
+            Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was not moved
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the seller still have zero?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the seller still have zero?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 0, "How does the buyer has it while it was cancelled?");
+            Assert.True(ownedTokenList.Count() == 0, "How does the buyer has it while it was cancelled?");
 
             // verify balance after
             var balanceOwnerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenToSell, owner.Address);
-            Assert.IsTrue(balanceOwnerAfter == balanceOwnerBefore, " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter);
+            Assert.True(balanceOwnerAfter == balanceOwnerBefore, " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter);
 
         }
 
-        [TestMethod]
+        [Fact]
         public void TestMarketContractAuctionFeesDivisible()
         {
             var chain = nexus.RootChain;
@@ -1298,12 +1303,12 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
+            Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
             var ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
+            Assert.True(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
             var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
@@ -1315,7 +1320,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // obtain tokenID
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
             var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
@@ -1323,7 +1328,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user post-mint
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
             var price = 1500;
@@ -1357,12 +1362,12 @@ namespace Phantasma.LegacyTests.ContractTests
                   EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // verify auction is here
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
+            Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid before auction starts (should fail)
             simulator.BeginBlock();
@@ -1375,7 +1380,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // move time post start date
@@ -1392,7 +1397,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // make one higher (should fail)
@@ -1406,7 +1411,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // make one bid - also claims it
@@ -1420,32 +1425,32 @@ namespace Phantasma.LegacyTests.ContractTests
                   EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // verify auctions empty
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
+            Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 0, "How does the seller still have one?");
+            Assert.True(ownedTokenList.Count() == 0, "How does the seller still have one?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
 
             // verify balance after
             var balanceOwnerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, owner.Address);
             var balanceSellerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, user.Address);
             var balanceListFeeAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, listingFeeAddress);
             var balanceBuyFeeAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, buyingFeeAddress);
-            Assert.IsTrue(balanceListFeeAfter == balanceListFeeBefore + (listingFee * price / 100), " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
-            Assert.IsTrue(balanceBuyFeeAfter == balanceBuyFeeBefore + (buyingFee * price / 100), " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
-            Assert.IsTrue(balanceSellerAfter == balanceSellerBefore + price, " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
-            Assert.IsTrue(balanceOwnerAfter == balanceOwnerBefore - price - (listingFee * price / 100) - (buyingFee * price / 100), " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
+            Assert.True(balanceListFeeAfter == balanceListFeeBefore + (listingFee * price / 100), " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
+            Assert.True(balanceBuyFeeAfter == balanceBuyFeeBefore + (buyingFee * price / 100), " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
+            Assert.True(balanceSellerAfter == balanceSellerBefore + price, " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
+            Assert.True(balanceOwnerAfter == balanceOwnerBefore - price - (listingFee * price / 100) - (buyingFee * price / 100), " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
         }
 
-        [TestMethod]
+        [Fact]
         public void TestMarketContractAuctionFeesIndivisible()
         {
             var chain = nexus.RootChain;
@@ -1466,12 +1471,12 @@ namespace Phantasma.LegacyTests.ContractTests
             simulator.EndBlock();
 
             var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
-            Assert.IsTrue(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
+            Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
 
             // verify nft presence on the user pre-mint
             var ownerships = new OwnershipSheet(symbol);
             var ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
+            Assert.True(!ownedTokenList.Any(), "How does the sender already have a CoolToken?");
 
             var tokenROM = new byte[] { 0x1, 0x3, 0x3, 0x7 };
             var tokenRAM = new byte[] { 0x1, 0x4, 0x4, 0x6 };
@@ -1483,7 +1488,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // obtain tokenID
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             var tokenID = ownedTokenList.First();
 
             var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
@@ -1491,7 +1496,7 @@ namespace Phantasma.LegacyTests.ContractTests
 
             // verify nft presence on the user post-mint
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
             tokenID = ownedTokenList.First();
 
             var price = 3;
@@ -1524,11 +1529,11 @@ namespace Phantasma.LegacyTests.ContractTests
                   EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
             // verify auction is here
             auctions = (MarketAuction[])simulator.InvokeContract(NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
+            Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
             // make one bid before auction starts (should fail)
             simulator.BeginBlock();
@@ -1541,7 +1546,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
             // move time post start date
             simulator.TimeSkipDays(2);
@@ -1557,7 +1562,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // make one higher (should fail)
@@ -1571,7 +1576,7 @@ namespace Phantasma.LegacyTests.ContractTests
                 EndScript()
             );
             simulator.EndBlock();
-            Assert.IsFalse(simulator.LastBlockWasSuccessful());
+            Assert.False(simulator.LastBlockWasSuccessful());
 
 
             // make one bid - also claims it
@@ -1585,29 +1590,29 @@ namespace Phantasma.LegacyTests.ContractTests
                   EndScript()
             );
             simulator.EndBlock();
-            Assert.IsTrue(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             // verify auctions empty
             auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
-            Assert.IsTrue(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
+            Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
             // verify that the nft was really moved
             ownedTokenList = ownerships.Get(chain.Storage, user.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 0, "How does the seller still have one?");
+            Assert.True(ownedTokenList.Count() == 0, "How does the seller still have one?");
 
             ownedTokenList = ownerships.Get(chain.Storage, owner.Address);
-            Assert.IsTrue(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
+            Assert.True(ownedTokenList.Count() == 1, "How does the buyer does not have what he bought?");
 
             // verify balance after
             var balanceOwnerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, owner.Address);
             var balanceSellerAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, user.Address);
             var balanceListFeeAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, listingFeeAddress);
             var balanceBuyFeeAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, tokenTicker, buyingFeeAddress);
-            Assert.IsTrue(balanceListFeeAfter == balanceListFeeBefore + 1, " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
-            Assert.IsTrue(balanceBuyFeeAfter == balanceBuyFeeBefore + 1, " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
-            Assert.IsTrue(balanceSellerAfter == balanceSellerBefore + price, " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
-            Assert.IsTrue(balanceOwnerAfter == balanceOwnerBefore - price - 1 - 1, " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
+            Assert.True(balanceListFeeAfter == balanceListFeeBefore + 1, " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
+            Assert.True(balanceBuyFeeAfter == balanceBuyFeeBefore + 1, " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
+            Assert.True(balanceSellerAfter == balanceSellerBefore + price, " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
+            Assert.True(balanceOwnerAfter == balanceOwnerBefore - price - 1 - 1, " balanceSellerBefore: " + balanceSellerBefore + " balanceSellerAfter: " + balanceSellerAfter + " balanceOwnerBefore: " + balanceOwnerBefore + " balanceOwnerAfter: " + balanceOwnerAfter + " balanceListFeeBefore: " + balanceListFeeBefore + " balanceListFeeAfter: " + balanceListFeeAfter + " balanceBuyFeeBefore: " + balanceBuyFeeBefore + " balanceBuyFeeAfter: " + balanceBuyFeeAfter);
         }
     }
 }

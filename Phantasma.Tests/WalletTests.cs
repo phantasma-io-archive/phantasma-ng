@@ -1,16 +1,16 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Phantasma.Core.Cryptography;
+﻿using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Domain;
 using System.Linq;
 using Phantasma.Business.VM.Utils;
 
+using Xunit;
+
 namespace Phantasma.LegacyTests
 {
-    [TestClass]
     public class WalletTests
     {
-        [TestMethod]
+        [Fact]
         public void TransferScriptMethodExtraction()
         {
             var source = PhantasmaKeys.Generate();
@@ -21,7 +21,7 @@ namespace Phantasma.LegacyTests
             var table = DisasmUtils.GetDefaultDisasmTable();
             var methods = DisasmUtils.ExtractMethodCalls(script, table);
 
-            Assert.IsTrue(methods != null && methods.Count() == 3);
+            Assert.True(methods != null && methods.Count() == 3);
         }
     }
 

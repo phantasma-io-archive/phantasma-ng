@@ -18,6 +18,7 @@ namespace Phantasma.Business.Tests.VM;
 
 using static ScriptContextConstants;
 
+[Collection("ScriptContextTest")]
 public class ScriptContextTest
 {
     [Fact]

@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
+﻿using System;
 using System.IO;
 using System.Numerics;
 using System.Collections.Generic;
@@ -13,8 +12,11 @@ using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Utils;
 
+using Xunit;
+
 namespace Phantasma.LegacyTests
 {
+    [Collection("TestVMTests")]
     public class TestVM : VirtualMachine
     {
         private Dictionary<string, Func<ExecutionFrame, ExecutionState>> _interops = new Dictionary<string, Func<ExecutionFrame, ExecutionState>>();
@@ -85,7 +87,7 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                throw new InternalTestFailureException("Error parsing the script");
+                throw new Exception("Error parsing the script");
             }
 
             var sb = new ScriptBuilder();
@@ -102,7 +104,7 @@ namespace Phantasma.LegacyTests
             }
             catch (Exception e)
             {
-                throw new InternalTestFailureException("Error assembling the script");
+                throw new Exception("Error assembling the script");
             }
 
             return script;
@@ -236,10 +238,9 @@ namespace Phantasma.LegacyTests
         }
     }
 
-    [TestClass]
     public class VMTests
     {
-        [TestMethod]
+        [Fact]
         public void Interop()
         {
             var source = PhantasmaKeys.Generate();
@@ -248,60 +249,60 @@ namespace Phantasma.LegacyTests
             var vm = new TestVM(script, 0);
             vm.RegisterDefaultInterops();
             var state = vm.Execute();
-            Assert.IsTrue(state == ExecutionState.Halt);
+            Assert.True(state == ExecutionState.Halt);
 
-            Assert.IsTrue(vm.Stack.Count == 1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            Assert.IsTrue(result == "HELLO");
+            Assert.True(result == "HELLO");
         }
 
-        [TestMethod]
+        [Fact]
         public void DecodeStruct()
         {
             var bytes = Base16.Decode("010E04076372656174656405C95AC15F040763726561746F720823220100279FB052FA82D619FB33581321E3A5F592507EAC995907B504876ABF6F62421F0409726F79616C746965730302160004046E616D65041C61736461736461617364617364616173646173646161736461736461040B6465736372697074696F6E041C61736461736461617364617364616173646173646161736461736461040474797065030202000408696D61676555524C04096173646173646173640407696E666F55524C0400040E61747472696275746554797065310400040F61747472696275746556616C7565310400040E61747472696275746554797065320400040F61747472696275746556616C7565320400040E61747472696275746554797065330400040F61747472696275746556616C7565330400");
 
             var obj = VMObject.FromBytes(bytes);
 
-            Assert.IsTrue(obj.Type == VMType.Struct);
+            Assert.True(obj.Type == VMType.Struct);
         }
 
-        [TestMethod]
+        [Fact]
         public void ArrayObjects()
         {
             var array = new BigInteger[] { 10, 50, 120, 250 };
 
             var obj = VMObject.FromArray(array);
 
-            Assert.IsTrue(obj.Type == VMType.Struct);
+            Assert.True(obj.Type == VMType.Struct);
 
             var temp = obj.ToArray<BigInteger>();
 
-            Assert.IsTrue(temp.Length == array.Length);
+            Assert.True(temp.Length == array.Length);
 
             for (int i=0; i<array.Length; i++)
             {
-                Assert.IsTrue(array[i] == temp[i]);
+                Assert.True(array[i] == temp[i]);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void StringUnicodeArrays()
         {
             var original = "Hello Phantasma";
 
             var obj = VMObject.FromObject(original);
-            Assert.IsTrue(obj.Type == VMType.String);
+            Assert.True(obj.Type == VMType.String);
 
             var temp = VMObject.CastTo(obj, VMType.Struct);
-            Assert.IsTrue(temp.Type == VMType.Struct);
+            Assert.True(temp.Type == VMType.Struct);
 
             var elements = temp.GetChildren();
-            Assert.IsTrue(elements.Count == original.Length);
+            Assert.True(elements.Count == original.Length);
 
             var result = temp.AsString();
 
-            Assert.IsTrue(original == result);
+            Assert.True(original == result);
         }
 
         public struct TestStruct : ISerializable
@@ -330,7 +331,7 @@ namespace Phantasma.LegacyTests
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void EncodeDecodeStruct()
         {
             BigInteger number = 123;
@@ -338,36 +339,36 @@ namespace Phantasma.LegacyTests
 
             var test = new TestStruct(name, number);
 
-            Assert.IsTrue(test.Name == name);
-            Assert.IsTrue(test.Number == number);
+            Assert.True(test.Name == name);
+            Assert.True(test.Number == number);
 
             var vmStruct = VMObject.FromStruct(test);
 
             var backFromStruct = vmStruct.AsStruct<TestStruct>();
 
-            Assert.IsTrue(backFromStruct.Name == name);
-            Assert.IsTrue(backFromStruct.Number == number);
+            Assert.True(backFromStruct.Name == name);
+            Assert.True(backFromStruct.Number == number);
 
             var vmSerialize = vmStruct.Serialize();
             var backFromSerialize = VMObject.FromBytes(vmSerialize);
             var backToStruct = backFromSerialize.AsStruct<TestStruct>();
 
-            Assert.IsTrue(backToStruct.Name == name);
-            Assert.IsTrue(backToStruct.Number == number);
+            Assert.True(backToStruct.Name == name);
+            Assert.True(backToStruct.Number == number);
 
             test = new TestStruct("", number);
             vmStruct = VMObject.FromStruct(test);
             backFromStruct = vmStruct.AsStruct<TestStruct>();
 
-            Assert.IsTrue(string.IsNullOrEmpty(backFromStruct.Name));
-            Assert.IsTrue(backFromStruct.Number == number);
+            Assert.True(string.IsNullOrEmpty(backFromStruct.Name));
+            Assert.True(backFromStruct.Number == number);
 
             vmSerialize = vmStruct.Serialize();
             backFromSerialize = VMObject.FromBytes(vmSerialize);
             backToStruct = backFromSerialize.AsStruct<TestStruct>();
 
-            Assert.IsTrue(string.IsNullOrEmpty(backToStruct.Name));
-            Assert.IsTrue(backToStruct.Number == number);
+            Assert.True(string.IsNullOrEmpty(backToStruct.Name));
+            Assert.True(backToStruct.Number == number);
         }
 
 
@@ -397,7 +398,7 @@ namespace Phantasma.LegacyTests
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void EncodeWithAddress()
         {
             Address addr = Address.FromText("P2K6Sm1bUYGsFkxuzHPhia1AbANZaHBJV54RgtQi5q8oK34");
@@ -405,22 +406,22 @@ namespace Phantasma.LegacyTests
 
             TestAddressStruct test = new TestAddressStruct(name, addr);
 
-            Assert.IsTrue(test.Name == name);
-            Assert.IsTrue(test.Owner == addr);
+            Assert.True(test.Name == name);
+            Assert.True(test.Owner == addr);
 
             var vmStruct = VMObject.FromStruct(test);
 
             var backFromStruct = vmStruct.AsStruct<TestAddressStruct>();
 
-            Assert.IsTrue(backFromStruct.Name == name);
-            Assert.IsTrue(backFromStruct.Owner == addr);
+            Assert.True(backFromStruct.Name == name);
+            Assert.True(backFromStruct.Owner == addr);
 
             var vmSerialize = vmStruct.Serialize();
             var backFromSerialize = VMObject.FromBytes(vmSerialize);
             var backToStruct = backFromSerialize.AsStruct<TestAddressStruct>();
 
-            Assert.IsTrue(backToStruct.Name == name);
-            Assert.IsTrue(backToStruct.Owner == addr);
+            Assert.True(backToStruct.Name == name);
+            Assert.True(backToStruct.Owner == addr);
         }
 
 
@@ -454,7 +455,7 @@ namespace Phantasma.LegacyTests
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void EncodeDecodeWithMultipleStructures()
         {
             Address addr = Address.FromText("P2K6Sm1bUYGsFkxuzHPhia1AbANZaHBJV54RgtQi5q8oK34");
@@ -470,67 +471,67 @@ namespace Phantasma.LegacyTests
             MyMultiStruct multi = new MyMultiStruct(One, Two, Three);
 
             // Test One
-            Assert.IsTrue(One.Name == name_2);
-            Assert.IsTrue(One.Owner == addr);
+            Assert.True(One.Name == name_2);
+            Assert.True(One.Owner == addr);
 
             var vmStruct = VMObject.FromStruct(One);
 
             var backFromStruct = vmStruct.AsStruct<TestAddressStruct>();
 
-            Assert.IsTrue(backFromStruct.Name == name_2);
-            Assert.IsTrue(backFromStruct.Owner == addr);
+            Assert.True(backFromStruct.Name == name_2);
+            Assert.True(backFromStruct.Owner == addr);
 
             var vmSerialize = vmStruct.Serialize();
             var backFromSerialize = VMObject.FromBytes(vmSerialize);
             var backToStruct = backFromSerialize.AsStruct<TestAddressStruct>();
 
-            Assert.IsTrue(backToStruct.Name == name_2);
-            Assert.IsTrue(backToStruct.Owner == addr);
+            Assert.True(backToStruct.Name == name_2);
+            Assert.True(backToStruct.Owner == addr);
 
             // Test Two
-            Assert.IsTrue(Two.Name == name);
-            Assert.IsTrue(Two.Number == number);
+            Assert.True(Two.Name == name);
+            Assert.True(Two.Number == number);
 
             var vmStruct_Two = VMObject.FromStruct(Two);
 
             var backFromStruct_Two = vmStruct_Two.AsStruct<TestStruct>();
 
-            Assert.IsTrue(backFromStruct_Two.Name == name);
-            Assert.IsTrue(backFromStruct_Two.Number == number);
+            Assert.True(backFromStruct_Two.Name == name);
+            Assert.True(backFromStruct_Two.Number == number);
 
             var vmSerialize_Two = vmStruct_Two.Serialize();
             var backFromSerialize_Two = VMObject.FromBytes(vmSerialize_Two);
             var backToStruct_Two = backFromSerialize_Two.AsStruct<TestStruct>();
 
-            Assert.IsTrue(backToStruct_Two.Name == name);
-            Assert.IsTrue(backToStruct_Two.Number == number);
+            Assert.True(backToStruct_Two.Name == name);
+            Assert.True(backToStruct_Two.Number == number);
 
             // Test Multi
-            Assert.IsTrue(multi.One.Name == One.Name);
-            Assert.IsTrue(multi.One.Owner == One.Owner);
-            Assert.IsTrue(multi.Two.Name == Two.Name);
-            Assert.IsTrue(multi.Two.Number == Two.Number);
-            Assert.IsTrue(multi.Three == Three);
+            Assert.True(multi.One.Name == One.Name);
+            Assert.True(multi.One.Owner == One.Owner);
+            Assert.True(multi.Two.Name == Two.Name);
+            Assert.True(multi.Two.Number == Two.Number);
+            Assert.True(multi.Three == Three);
 
 
             var vmStruct_multi = VMObject.FromStruct(multi);
             var backFromStruct_multi = vmStruct_multi.AsStruct<MyMultiStruct>();
 
-            Assert.IsTrue(backFromStruct_multi.One.Name == One.Name);
-            Assert.IsTrue(backFromStruct_multi.One.Owner == One.Owner);
-            Assert.IsTrue(backFromStruct_multi.Two.Name == Two.Name);
-            Assert.IsTrue(backFromStruct_multi.Two.Number == Two.Number);
-            Assert.IsTrue(backFromStruct_multi.Three == Three);
+            Assert.True(backFromStruct_multi.One.Name == One.Name);
+            Assert.True(backFromStruct_multi.One.Owner == One.Owner);
+            Assert.True(backFromStruct_multi.Two.Name == Two.Name);
+            Assert.True(backFromStruct_multi.Two.Number == Two.Number);
+            Assert.True(backFromStruct_multi.Three == Three);
 
             var vmSerialize_multi = vmStruct_multi.Serialize();
             var backFromSerialize_multi = VMObject.FromBytes(vmSerialize_multi);
             var backToStruct_multi = backFromSerialize_multi.AsStruct<MyMultiStruct>();
 
-            Assert.IsTrue(backToStruct_multi.One.Name == One.Name);
-            Assert.IsTrue(backToStruct_multi.One.Owner == One.Owner);
-            Assert.IsTrue(backToStruct_multi.Two.Name == Two.Name);
-            Assert.IsTrue(backToStruct_multi.Two.Number == Two.Number);
-            Assert.IsTrue(backToStruct_multi.Three == Three);
+            Assert.True(backToStruct_multi.One.Name == One.Name);
+            Assert.True(backToStruct_multi.One.Owner == One.Owner);
+            Assert.True(backToStruct_multi.Two.Name == Two.Name);
+            Assert.True(backToStruct_multi.Two.Number == Two.Number);
+            Assert.True(backToStruct_multi.Three == Three);
         }
 
         // Test Specific cases

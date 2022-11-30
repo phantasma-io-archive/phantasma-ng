@@ -21,6 +21,7 @@ using Phantasma.Infrastructure.Pay.Chains;
 
 namespace Phantasma.LegacyTests
 {
+    [Collection("ChainLegacyTests")]
     public class ChainTests
     {
         [Fact]
@@ -1440,7 +1441,6 @@ namespace Phantasma.LegacyTests
 
             Assert.True(inflation);
         }
-
     }
 
 }

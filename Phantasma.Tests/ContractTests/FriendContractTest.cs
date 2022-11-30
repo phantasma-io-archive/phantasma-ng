@@ -1,6 +1,5 @@
 using System;
 using System.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.CodeGen.Assembler;
@@ -11,9 +10,11 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Simulator;
 
+using Xunit;
+
 namespace Phantasma.LegacyTests.ContractTests;
 
-[TestClass]
+[Collection("FriendContractTest")]
 public class FriendContractTest
 {
     public static BigInteger MinimumValidStake => UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
@@ -37,7 +38,11 @@ public class FriendContractTest
     BigInteger startBalance;
     StakeReward reward;
 
-    [TestInitialize]
+    public FriendContractTest()
+    {
+        Initialize();
+    }
+
     public void Initialize()
     {
         sysAddress = SmartContract.GetAddressForNative(NativeContractKind.Friends);
@@ -67,10 +72,10 @@ public class FriendContractTest
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.StakingTokenSymbol, initialAmount);
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
     }
     
-    [TestMethod]
+    [Fact]
     public void TestFriendsContract()
     {
         var stakeAmount = MinimumValidStake;
@@ -92,10 +97,10 @@ public class FriendContractTest
         var unclaimedAmount = simulator.InvokeContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), user.Address).AsNumber();
         double realUnclaimedAmount = ((double)unclaimedAmount) * Math.Pow(10, -DomainSettings.FuelTokenDecimals);
 
-        Assert.IsTrue(realUnclaimedAmount == realExpectedUnclaimedAmount);
+        Assert.True(realUnclaimedAmount == realExpectedUnclaimedAmount);
 
         BigInteger actualEnergyRatio = (BigInteger)(realStakeAmount / realUnclaimedAmount);
-        Assert.IsTrue(actualEnergyRatio == DefaultEnergyRatioDivisor);
+        Assert.True(actualEnergyRatio == DefaultEnergyRatioDivisor);
     }
 
     private struct FriendTestStruct
@@ -122,7 +127,7 @@ public class FriendContractTest
         simulator.GenerateTransfer(owner, testUserC.Address, nexus.RootChain, fuelToken, initialFuel);
         simulator.GenerateTransfer(owner, testUserC.Address, nexus.RootChain, stakingToken, 100000000);
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
@@ -132,7 +137,7 @@ public class FriendContractTest
                 .SpendGas(testUserA.Address)
                 .EndScript());
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
@@ -142,7 +147,7 @@ public class FriendContractTest
                 .SpendGas(testUserA.Address)
                 .EndScript());
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var scriptString = new string[]
         {
@@ -205,15 +210,9 @@ public class FriendContractTest
         return script;
     }
 
-    [TestMethod]
-    [Ignore]
+    [Fact(Skip = "Ignore test array")]
     public void TestFriendArray()
     {
-        var owner = PhantasmaKeys.Generate();
-
-        var simulator = new NexusSimulator(owner);
-        var nexus = simulator.Nexus;
-
         var fuelToken = DomainSettings.FuelTokenSymbol;
         var stakingToken = DomainSettings.StakingTokenSymbol;
 
@@ -248,16 +247,16 @@ public class FriendContractTest
                 .SpendGas(testUserA.Address)
                 .EndScript());
         simulator.EndBlock();
-        Assert.IsTrue(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var scriptA = GetScriptForFriends(testUserA.Address);
         var resultA = simulator.InvokeScript(scriptA);
-        Assert.IsTrue(resultA != null);
+        Assert.True(resultA != null);
 
         var tempA = resultA.ToArray<FriendTestStruct>();
-        Assert.IsTrue(tempA.Length == 2);
-        Assert.IsTrue(tempA[0].address == testUserB.Address);
-        Assert.IsTrue(tempA[1].address == testUserC.Address);
+        Assert.True(tempA.Length == 2);
+        Assert.True(tempA[0].address == testUserB.Address);
+        Assert.True(tempA[1].address == testUserC.Address);
 
         /*
         // we also test that the API can handle complex return types
@@ -270,9 +269,9 @@ public class FriendContractTest
 
         // finally as last step, convert it to a C# struct
         var tempB = resultB.ToArray<FriendTestStruct>();
-        Assert.IsTrue(tempB.Length == 2);
-        Assert.IsTrue(tempB[0].address == testUserB.Address);
-        Assert.IsTrue(tempB[1].address == testUserC.Address);
+        Assert.True(tempB.Length == 2);
+        Assert.True(tempB[0].address == testUserB.Address);
+        Assert.True(tempB[1].address == testUserC.Address);
 
         // check what happens when no friends available
         var scriptB = GetScriptForFriends(testUserB.Address);
@@ -281,7 +280,6 @@ public class FriendContractTest
         // NOTE objBytes will contain a serialized VMObject
         var objBytesB = Base16.Decode(apiResultB.results[0]);
         var resultEmpty = Serialization.Unserialize<VMObject>(objBytesB);
-        Assert.IsTrue(resultEmpty != null);*/
+        Assert.True(resultEmpty != null);*/
     }
-
 }

@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.VM;
 
+[Collection("DisassemblerTest")]
 public class DisassemblerTest
 {
     [Fact]
