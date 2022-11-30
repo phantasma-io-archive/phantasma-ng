@@ -15,9 +15,9 @@ using Phantasma.Business.VM.Utils;
 using Transaction = Phantasma.Core.Domain.Transaction;
 using Phantasma.Business.VM;
 
-namespace Phantasma.Business.Tests.VM;
+namespace Phantasma.Business.Tests.VM.Legacy;
 
-[Collection("AssemblerTestsLegacy")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class AssemblerTestsLegacy
 {
     public const int TestGasLimit = 9999;

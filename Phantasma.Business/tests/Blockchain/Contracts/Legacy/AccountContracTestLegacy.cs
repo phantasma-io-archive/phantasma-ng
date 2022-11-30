@@ -19,7 +19,7 @@ using Shouldly;
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
 [Collection(nameof(SystemTestCollectionDefinition))]
-public class AccountContracTest
+public class AccountContracTestLegacy
 {
     Address sysAddress;
     PhantasmaKeys user;
@@ -33,7 +33,7 @@ public class AccountContracTest
     BigInteger startBalance;
     StakeReward reward;
 
-    public AccountContracTest()
+    public AccountContracTestLegacy()
     {
         Initialize();
     }

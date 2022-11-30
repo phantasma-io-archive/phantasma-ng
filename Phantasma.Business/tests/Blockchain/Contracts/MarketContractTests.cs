@@ -18,9 +18,6 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
-
-
-
 public struct XToken : IToken
 {
     public string Name { get; }
@@ -33,7 +30,8 @@ public struct XToken : IToken
     public ContractInterface ABI { get; }
 }
 
-[Collection("MarketContractTestsBusiness")]
+
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class MarketContractTests : IDisposable
 {
     private PhantasmaKeys Validator { get; set; }
@@ -250,7 +248,7 @@ public class MarketContractTests : IDisposable
                 this.Validator.Address,
                 Timestamp.Now,
                 tx,
-                new StorageChangeSetContext(new KeyStoreStorage(new DBPartition(this.PartitionPath))),
+                new StorageChangeSetContext(new MemoryStorageContext()),
                 null,
                 ChainTask.Null,
                 delayPayment

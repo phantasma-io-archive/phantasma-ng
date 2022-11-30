@@ -15,7 +15,7 @@ using Xunit;
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
 [Collection(nameof(SystemTestCollectionDefinition))]
-public class MarketContractTest
+public class MarketContractTestLegacy
 {
     string sysAddress;
     PhantasmaKeys user;
@@ -29,7 +29,7 @@ public class MarketContractTest
     BigInteger startBalance;
     StakeReward reward;
 
-    public MarketContractTest()
+    public MarketContractTestLegacy()
     {
         Initialize();
     }

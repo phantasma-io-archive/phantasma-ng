@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
-[Collection("PayTests")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class PayTests
 {
     [Fact]
