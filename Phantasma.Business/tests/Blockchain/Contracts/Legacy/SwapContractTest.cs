@@ -16,7 +16,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
-[Collection("SwapContractTest")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class SwapContractTest
 {
     Address sysAddress;

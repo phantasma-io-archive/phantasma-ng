@@ -14,7 +14,7 @@ using Phantasma.Core.Numerics;
 using Xunit;
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
-[Collection("MarketLegacyContractTest")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class MarketContractTest
 {
     string sysAddress;

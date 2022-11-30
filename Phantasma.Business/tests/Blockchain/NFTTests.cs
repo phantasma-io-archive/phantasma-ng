@@ -14,7 +14,7 @@ using Phantasma.Core.Types;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
-[Collection("NFTTests")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class NFTTests
 {
     PhantasmaKeys user;

@@ -9,6 +9,8 @@ using ExecutionContext = Phantasma.Core.Domain.ExecutionContext;
 
 namespace Phantasma.Business.Tests.VM;
 
+[Collection("VirtualTestMachineTests")]
+
 public class VirtualMachineTest
 {
     public class VirtualTestMachine : VirtualMachine

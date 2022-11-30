@@ -8,6 +8,9 @@ using Xunit;
 namespace Phantasma.Business.Tests;
 
 
+
+[Collection("WalletTests")]
+[CollectionDefinition(nameof(WalletTests), DisableParallelization = true)]
 public class WalletTests
 {
     [Fact]

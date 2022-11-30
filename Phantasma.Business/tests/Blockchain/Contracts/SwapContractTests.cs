@@ -11,8 +11,10 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Infrastructure.RocksDB;
+using Xunit;
 namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
+[Collection("SwapBusinessTests")]
 public class SwapContractTests : IDisposable
 {
 

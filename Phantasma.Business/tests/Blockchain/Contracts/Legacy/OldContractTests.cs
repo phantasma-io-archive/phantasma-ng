@@ -15,7 +15,7 @@ using Phantasma.Business.VM;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
-[Collection("OldContractTests")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class OldContractTests
 {
     public static BigInteger MinimumValidStake => UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
