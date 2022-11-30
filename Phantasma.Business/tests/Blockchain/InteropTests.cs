@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
@@ -16,6 +17,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class InteropTests : IDisposable
 {
     private PhantasmaKeys Validator { get; set; }
@@ -545,8 +547,8 @@ public class InteropTests : IDisposable
         count.ShouldBe(1);
     }
 
-    /*
-    [Fact]
+    
+    /*[Fact]
     public void invoke_Runtime_Log_success()
     {
         var runtime = CreateRuntime_Default();
@@ -626,7 +628,7 @@ public class InteropTests : IDisposable
         throw new NotImplementedException("dummy test, need test IsWitness more");
     }
 
-    [Fact]
+    [Fact(Skip = "Ignore for now")]
     public void invoke_Runtime_IsWitness_success()
     {
         var tx = new Transaction(
@@ -837,7 +839,7 @@ public class InteropTests : IDisposable
             bool tokenExists = true)
     {
         var nexusMoq = new Mock<INexus>();
-        var storage = new StorageChangeSetContext(new KeyStoreStorage(new DBPartition(this.PartitionPath)));
+        var storage = new StorageChangeSetContext(new MemoryStorageContext());
 
         nexusMoq.Setup( n => n.GetOrganizationByName(
                     It.IsAny<StorageContext>(),
@@ -1023,3 +1025,4 @@ public class InteropTests : IDisposable
         this.Mints.Clear();
     }
 }
+

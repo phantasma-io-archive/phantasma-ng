@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.VM;
 
-
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class DebugInfoTest
 {
     private List<DebugRange> emptyDebugRangeList;

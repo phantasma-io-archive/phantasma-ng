@@ -10,6 +10,7 @@ using Phantasma.Business.VM;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Storage;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Infrastructure.RocksDB;
@@ -18,6 +19,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class RuntimeTests
 {
     private string PartitionPath { get; set; }
@@ -293,7 +295,7 @@ public class RuntimeTests
         this.PartitionPath = Path.Combine(Path.GetTempPath(), "PhantasmaUnitTest", $"{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
         Directory.CreateDirectory(this.PartitionPath);
 
-        this.Nexus = new Nexus("unittest", (name) => new DBPartition(PartitionPath + name));
+        this.Nexus = new Nexus("unittest", (name) => new MemoryStore());
         var maxSupply = 10000000;
 
         var ftFlags = TokenFlags.Burnable | TokenFlags.Divisible | TokenFlags.Fungible | TokenFlags.Mintable | TokenFlags.Stakable | TokenFlags.Transferable;
@@ -305,7 +307,7 @@ public class RuntimeTests
         var ntFlags = TokenFlags.Burnable | TokenFlags.Divisible | TokenFlags.Fungible | TokenFlags.Mintable | TokenFlags.Stakable;
         this.NonTransferableToken = new TokenInfo("EXNT", "Example Token non transferable", TokenOwner.Address, 0, 8, ntFlags, new byte[1] { 0 }, new ContractInterface());
 
-        var storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage("main"));
+        var storage = (StorageContext)new MemoryStorageContext();
         this.Context = new StorageChangeSetContext(storage);
 
         this.Chain = new Chain((Nexus)this.Nexus, "main");

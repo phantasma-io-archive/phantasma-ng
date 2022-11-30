@@ -35,4 +35,5 @@ public class SerializationTests
         var readByte = stream.ReadByte();
         readByte.ShouldBe(42);
     }
+    
 }

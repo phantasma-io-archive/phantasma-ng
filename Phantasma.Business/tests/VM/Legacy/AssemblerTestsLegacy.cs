@@ -1,83 +1,147 @@
+using Xunit;
 using System;
-using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using System.Text;
 using System.Numerics;
-using Moq;
-using Phantasma.Business.Blockchain;
-using Phantasma.Business.CodeGen.Assembler;
-using Phantasma.Business.VM;
-using Phantasma.Core.Cryptography;
-using Phantasma.Core.Domain;
-using Phantasma.Core.Numerics;
-using Phantasma.Core.Storage;
-using Phantasma.Core.Storage.Context;
+using System.Collections.Generic;
 using Phantasma.Core.Types;
-using Phantasma.Infrastructure.RocksDB;
-using Shouldly;
-using Xunit;
+using Phantasma.Core.Cryptography;
+using Phantasma.Business.CodeGen.Assembler;
+using Phantasma.Business.Blockchain;
+using Phantasma.Business.Tests.Simulator;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Domain;
+using Phantasma.Business.VM.Utils;
+using Transaction = Phantasma.Core.Domain.Transaction;
+using Phantasma.Business.VM;
 
-namespace Phantasma.Business.Tests.VM;
+namespace Phantasma.Business.Tests.VM.Legacy;
 
 [Collection(nameof(SystemTestCollectionDefinition))]
-public class AssemblerTests
+public class AssemblerTestsLegacy
 {
-    private string PartitionPath { get; set; }
-    private INexus Nexus { get; set; }
-    private StorageChangeSetContext Context { get; set; }
-    private Chain Chain { get; set; }
-
+    public const int TestGasLimit = 9999;
+    
     [Fact]
-    public void Abs()
+    public void Alias()
     {
         string[] scriptString;
-        RuntimeVM vm;
-
-        var args = new List<List<string>>()
-        {
-            new List<string>() {"-1123124", "1123124"},
-            new List<string>() {"0", "0"},
-            new List<string>() {"14564535", "14564535" }
-        };
-
-        for (int i = 0; i < args.Count; i++)
-        {
-            var argsLine = args[i];
-            string r1 = argsLine[0];
-            string target = argsLine[1];
-
-            scriptString = new string[]
-            {
-                $@"load r1, {r1}",
-                @"abs r1, r2",
-                @"push r2",
-                @"ret"
-            };
-
-            vm = ExecuteScriptIsolated(scriptString);
-
-            vm.Stack.Count.ShouldBe(1);
-
-            var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
-        }
+        TestVM vm;
 
         scriptString = new string[]
         {
-            $"load r1, \"abc\"",
-            @"abs r1, r2",
-            @"push r2",
-            @"ret"
+            $"alias r1, $hello",
+            $"alias r2, $world",
+            $"load $hello, 3",
+            $"load $world, 2",
+            $"add r1, r2, r3",
+            $"push r3",
+            $"ret"
         };
+
         vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("Cannot convert String 'abc' to BigInteger.");
+
+        var result = vm.Stack.Pop().AsNumber();
+        Assert.True(result == 5);
     }
+
+    private bool IsInvalidCast(Exception e)
+    {
+        return e.Message.StartsWith("Cannot convert") 
+            || e.Message.StartsWith("Invalid cast")
+            || e.Message.StartsWith("logical op unsupported");
+    }
+
+    [Fact]
+    public void EventNotify()
+    {
+        string[] scriptString;
+
+        var owner = PhantasmaKeys.Generate();
+        var addressStr = Base16.Encode(owner.Address.ToByteArray());
+
+        var simulator = new NexusSimulator(owner);
+        var nexus = simulator.Nexus;
+
+        string message = "customEvent";
+        var methodName = "notify";
+
+        scriptString = new string[]
+        {
+            $"@{methodName}: NOP ",
+            $"load r11 0x{addressStr}",
+            $"push r11",
+            $@"extcall ""Address()""",
+            $"pop r11",
+
+            $"load r10, {(int)EventKind.Custom}",
+            $@"load r12, ""{message}""",
+
+            $"push r12",
+            $"push r11",
+            $"push r10",
+            $@"extcall ""Runtime.Notify""",
+            @"ret",
+        };
+
+        DebugInfo debugInfo;
+        Dictionary<string, int> labels;
+        var script = AssemblerUtils.BuildScript(scriptString, "test", out debugInfo, out labels);
+
+        var methods = new[]
+        {
+            new ContractMethod(methodName , VMType.None, labels[methodName], new ContractParameter[0])
+        };
+        var abi = new ContractInterface(methods, Enumerable.Empty<ContractEvent>());
+        var abiBytes = abi.ToByteArray();
+
+        var contractName = "test";
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.Minimal,
+            () => ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, simulator.MinimumFee, NexusSimulator.DefaultGasLimit)
+                .CallInterop("Runtime.DeployContract", owner.Address, contractName, script, abiBytes)
+                .SpendGas(owner.Address)
+                .EndScript());
+        simulator.EndBlock();
+
+        scriptString = new string[]
+        {
+            $"load r1, \\\"test\\\"",
+            $"ctx r1, r2",
+            $"load r3, \\\"notify\\\"",
+            $"push r3",
+            $"switch r2",
+        };
+
+        script = AssemblerUtils.BuildScript(scriptString);
+        simulator.BeginBlock();
+        var tx = simulator.GenerateCustomTransaction(owner, ProofOfWork.None, (() =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, NexusSimulator.DefaultGasLimit)
+                .EmitRaw(script)
+                .SpendGas(owner.Address)
+                .EndScript()));
+        simulator.EndBlock();
+
+        var events = simulator.Nexus.FindBlockByTransaction(tx).GetEventsForTransaction(tx.Hash);
+        Assert.True(events.Count(x => x.Kind == EventKind.Custom) == 1);
+
+        var eventData = events.First(x => x.Kind == EventKind.Custom).Data;
+        var eventMessage = (VMObject)Serialization.Unserialize(eventData, typeof(VMObject));
+
+        Assert.True(eventMessage.AsString() == message);
+    }
+
+
+
+
+    #region RegisterOps
 
     [Fact]
     public void Move()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<int>>()
         {
@@ -92,7 +156,12 @@ public class AssemblerTests
 
             scriptString = new string[]
             {
-                $"load r1, 1",
+                //put a DebugClass with x = {r1} on register 1
+                $@"load r1, {r1}",
+                $"push r1",
+                $"extcall \\\"PushDebugClass\\\"", 
+                $"pop r1",
+
                 //move it to r2, change its value on the stack and see if it changes on both registers
                 @"move r1, r2",
                 @"push r2",
@@ -101,15 +170,14 @@ public class AssemblerTests
             };
 
             vm = ExecuteScriptIsolated(scriptString);
-            vm.ExceptionMessage.ShouldBeNull();
 
-            vm.Stack.Count.ShouldBe(2);
+            Assert.True(vm.Stack.Count == 2);
 
             var r1obj = vm.Stack.Pop();
             var r2obj = vm.Stack.Pop();
 
-            r1obj.Type.ShouldBe(VMType.None);
-            r2obj.Type.ShouldBe(VMType.Number);
+            Assert.True(r1obj.Type == VMType.None);
+            Assert.True(r2obj.Type == VMType.Object);
         }
     }
 
@@ -117,26 +185,34 @@ public class AssemblerTests
     public void Copy()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         scriptString = new string[]
         {
-            $"load r1, 12345",
+            //put a DebugClass with x = {r1} on register 1
+            //$@"load r1, {value}",
+            $"load r5, 1",
+            $"push r5",
+            $"extcall \\\"PushDebugStruct\\\"",
+            $"pop r1",
+            $"load r3, \\\"key\\\"",
+            $"put r1, r2, r3",
+
+            //move it to r2, change its value on the stack and see if it changes on both registers
             @"copy r1, r2",
             @"push r2",
+            $"extcall \\\"IncrementDebugStruct\\\"",
             $"push r1",
             @"ret"
         };
 
         vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBeNull();
 
-        var r1obj = vm.Stack.Pop();
-        var r2obj = vm.Stack.Pop();
+        var r1struct = vm.Stack.Pop().AsInterop<TestVM.DebugStruct>();
+        var r2struct = vm.Stack.Pop().AsInterop<TestVM.DebugStruct>();
 
-        r1obj.Type.ShouldBe(VMType.Number);
-        r2obj.Type.ShouldBe(VMType.Number);
-        r1obj.AsNumber().ShouldBe(r2obj.AsNumber());
+        Assert.True(r1struct.x != r2struct.x);
+
     }
 
     [Fact]
@@ -145,7 +221,7 @@ public class AssemblerTests
         //TODO: test all VMTypes
 
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         scriptString = new string[]
         {
@@ -165,16 +241,16 @@ public class AssemblerTests
 
         vm = ExecuteScriptIsolated(scriptString);
 
-        vm.Stack.Count.ShouldBe(3);
+        Assert.True(vm.Stack.Count == 3);
 
         var str = vm.Stack.Pop().AsString();
-        str.CompareTo("hello").ShouldBe(0);
+        Assert.True(str.CompareTo("hello") == 0);
 
         var num = vm.Stack.Pop().AsNumber();
-        num.ShouldBe(new BigInteger(123));
+        Assert.True(num == new BigInteger(123));
 
         var bo = vm.Stack.Pop().AsBool();
-        bo.ShouldBeTrue();
+        Assert.True(bo);
     }
 
     [Fact]
@@ -189,7 +265,7 @@ public class AssemblerTests
         //TODO: test all VMTypes
 
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         scriptString = new string[]
         {
@@ -217,23 +293,23 @@ public class AssemblerTests
 
         vm = ExecuteScriptIsolated(scriptString);
 
-        vm.Stack.Count.ShouldBe(3);
+        Assert.True(vm.Stack.Count == 3);
 
         var str = vm.Stack.Pop().AsString();
-        str.CompareTo("hello").ShouldBe(0);
+        Assert.True(str.CompareTo("hello") == 0);
 
         var num = vm.Stack.Pop().AsNumber();
-        num.ShouldBe(new BigInteger(123));
+        Assert.True(num == new BigInteger(123));
 
         var bo = vm.Stack.Pop().AsBool();
-        bo.ShouldBeTrue();
+        Assert.True(bo);
     }
 
     [Fact]
     public void Swap()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         scriptString = new string[]
         {
@@ -247,14 +323,16 @@ public class AssemblerTests
 
         vm = ExecuteScriptIsolated(scriptString);
 
-        vm.Stack.Count.ShouldBe(2);
+        Assert.True(vm.Stack.Count == 2);
 
         var str = vm.Stack.Pop().AsString();
-        str.CompareTo("hello").ShouldBe(0);
+        Assert.True(str.CompareTo("hello") == 0);
 
         var num = vm.Stack.Pop().AsNumber();
-        num.ShouldBe(new BigInteger(123));
+        Assert.True(num == new BigInteger(123));
     }
+
+    #endregion
 
     #region FlowOps
 
@@ -278,51 +356,51 @@ public class AssemblerTests
 
         var vm = ExecuteScriptIsolated(scriptString);
 
-        vm.Stack.Count.ShouldBe(1);
+        Assert.True(vm.Stack.Count == 1);
 
         var result = vm.Stack.Pop().AsNumber();
-        result.ShouldBe(targetVal);
+        Assert.True(result == targetVal);
     }
 
-    //[Fact]
-    //public void ExtCall()
-    //{
-    //    string[] scriptString;
-    //    RuntimeVM vm;
+    [Fact]
+    public void ExtCall()
+    {
+        string[] scriptString;
+        TestVM vm;
 
-    //    var args = new List<List<string>>()
-    //    {
-    //        new List<string>() {"abc", "ABC"},
-    //    };
+        var args = new List<List<string>>()
+        {
+            new List<string>() {"abc", "ABC"},
+        };
 
-    //    for (int i = 0; i < args.Count; i++)
-    //    {
-    //        var argsLine = args[i];
-    //        var r1 = argsLine[0];
-    //        var target = argsLine[1];
+        for (int i = 0; i < args.Count; i++)
+        {
+            var argsLine = args[i];
+            var r1 = argsLine[0];
+            var target = argsLine[1];
 
-    //        scriptString = new string[]
-    //        {
-    //            $"load r1, \\\"{r1}\\\"",
-    //            $"push r1",
-    //            $"extcall \\\"Upper\\\"",
-    //            @"ret"
-    //        };
+            scriptString = new string[]
+            {
+                $"load r1, \\\"{r1}\\\"",
+                $"push r1",
+                $"extcall \\\"Upper\\\"",
+                @"ret"
+            };
 
-    //        vm = ExecuteScriptIsolated(scriptString);
+            vm = ExecuteScriptIsolated(scriptString);
 
-    //        vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
-    //        var result = vm.Stack.Pop().AsString();
-    //        result.ShouldBe(target);
-    //    }
-    //}
+            var result = vm.Stack.Pop().AsString();
+            Assert.True(result == target);
+        }
+    }
 
     [Fact]
     public void Jmp()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<int>>()
         {
@@ -346,10 +424,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsNumber();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
     }
 
@@ -357,7 +435,7 @@ public class AssemblerTests
     public void JmpConditional()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<int>>()
         {
@@ -387,13 +465,13 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(2);
+            Assert.True(vm.Stack.Count == 2);
 
             var result = vm.Stack.Pop().AsNumber();
-            result.ShouldBe(target);
+            Assert.True(result == target, "Opcode JmpNot isn't working correctly");
 
             result = vm.Stack.Pop().AsNumber();
-            result.ShouldBe(target);
+            Assert.True(result == target, "Opcode JmpIf isn't working correctly");
         }
     }
 
@@ -401,12 +479,14 @@ public class AssemblerTests
     public void Throw()
     {
         string[] scriptString;
-        RuntimeVM vm = null;
+        TestVM vm = null;
 
         var args = new List<List<bool>>()
         {
             new List<bool>() {true, true},
         };
+
+        var msg = "exception";
 
         for (int i = 0; i < args.Count; i++)
         {
@@ -426,9 +506,17 @@ public class AssemblerTests
                 $"ret"
             };
 
-            vm = ExecuteScriptIsolated(scriptString);
-            vm.ExceptionMessage.ShouldNotBeNull();
-            vm.ExceptionMessage.ShouldBe("test throw exception");
+            bool result = false;
+            Assert.Throws<VMException>(() =>
+            {
+                vm = ExecuteScriptIsolated(scriptString);
+                Assert.True(vm.Stack.Count == 1);
+                result = vm.Stack.Pop().AsBool();
+                Assert.True(result == target, "Opcode JmpNot isn't working correctly");
+            });
+
+
+
         }
     }
 
@@ -449,10 +537,10 @@ public class AssemblerTests
 
         var vm = ExecuteScriptIsolated(scriptString);
 
-        vm.Stack.Count.ShouldBe(1);
+        Assert.True(vm.Stack.Count == 1);
 
         var result = vm.Stack.Pop().AsString();
-        result.ShouldBe("false");
+        Assert.True(result == "false");
 
         scriptString = new string[]
         {
@@ -462,15 +550,24 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("Invalid cast: expected bool, got String");
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to NOT a non-bool variable.");
     }
 
     [Fact]
     public void And()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -498,10 +595,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -513,15 +610,24 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("logical op unsupported for type String");
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
     }
 
     [Fact]
     public void Or()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -549,10 +655,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -564,15 +670,24 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("logical op unsupported for type String");
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to OR a non-bool variable.");
     }
 
     [Fact]
     public void Xor()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -600,10 +715,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -615,15 +730,24 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("logical op unsupported for type String");
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to XOR a non-bool variable.");
     }
 
     [Fact]
-    public void TestEquals()
+    public void Equal()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
         string result;
 
         var args = new List<List<string>>()
@@ -656,11 +780,11 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
 
             result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
     }
 
@@ -668,7 +792,7 @@ public class AssemblerTests
     public void LessThan()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -695,10 +819,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -710,14 +834,24 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
     }
 
     [Fact]
     public void GreaterThan()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -744,10 +878,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -759,14 +893,24 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
     }
 
     [Fact]
     public void LesserThanOrEquals()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -793,10 +937,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -808,14 +952,24 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
     }
 
     [Fact]
     public void GreaterThanOrEquals()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -842,10 +996,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -857,7 +1011,17 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
     }
     #endregion
 
@@ -866,7 +1030,7 @@ public class AssemblerTests
     public void Increment()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -889,10 +1053,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -903,14 +1067,24 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
     }
 
     [Fact]
     public void Decrement()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -933,10 +1107,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -947,14 +1121,24 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
     }
 
     [Fact]
     public void Sign()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -979,10 +1163,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -993,14 +1177,24 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
     }
 
     [Fact]
     public void Negate()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -1025,10 +1219,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -1039,15 +1233,80 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("Cannot convert String 'abc' to BigInteger.");
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
+    }
+
+    [Fact]
+    public void Abs()
+    {
+        string[] scriptString;
+        TestVM vm;
+
+        var args = new List<List<string>>()
+        {
+            new List<string>() {"-1123124", "1123124"},
+            new List<string>() {"0", "0"},
+            new List<string>() {"14564535", "14564535" }
+        };
+
+        for (int i = 0; i < args.Count; i++)
+        {
+            var argsLine = args[i];
+            string r1 = argsLine[0];
+            string target = argsLine[1];
+
+            scriptString = new string[]
+            {
+                $@"load r1, {r1}",
+                @"abs r1, r2",
+                @"push r2",
+                @"ret"
+            };
+
+            vm = ExecuteScriptIsolated(scriptString);
+
+            Assert.True(vm.Stack.Count == 1);
+
+            var result = vm.Stack.Pop().AsString();
+            Assert.True(result == target);
+        }
+
+        scriptString = new string[]
+        {
+            $"load r1, \"abc\"",
+            @"abs r1, r2",
+            @"push r2",
+            @"ret"
+        };
+
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
     }
 
     [Fact]
     public void Add()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -1072,10 +1331,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -1087,15 +1346,25 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("Cannot convert String 'stuff' to BigInteger.");
+
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
     }
 
     [Fact]
     public void Sub()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -1120,10 +1389,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -1136,15 +1405,24 @@ public class AssemblerTests
         };
 
 
-        vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("Cannot convert String 'stuff' to BigInteger.");
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
     }
 
     [Fact]
     public void Mul()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -1169,10 +1447,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -1185,15 +1463,24 @@ public class AssemblerTests
         };
 
 
-        vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("Cannot convert String 'stuff' to BigInteger.");
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
     }
 
     [Fact]
     public void Div()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -1218,10 +1505,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -1234,15 +1521,24 @@ public class AssemblerTests
         };
 
 
-        vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("Cannot convert String 'stuff' to BigInteger.");
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
     }
 
     [Fact]
     public void Mod()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -1267,10 +1563,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -1283,15 +1579,24 @@ public class AssemblerTests
         };
 
 
-        vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("Cannot convert String 'stuff' to BigInteger.");
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
     }
 
     [Fact]
     public void ShiftLeft()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -1316,10 +1621,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -1332,15 +1637,24 @@ public class AssemblerTests
         };
 
 
-        vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("Cannot convert String 'stuff' to BigInteger.");
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
     }
 
     [Fact]
     public void ShiftRight()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -1365,10 +1679,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -1381,8 +1695,17 @@ public class AssemblerTests
         };
 
 
-        vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("Cannot convert String 'stuff' to BigInteger.");
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to AND a non-bool variable.");
     }
 
 
@@ -1390,7 +1713,7 @@ public class AssemblerTests
     public void Min()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -1417,10 +1740,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -1432,15 +1755,24 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("Cannot convert String 'abc' to BigInteger.");
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
     }
 
     [Fact]
     public void Max()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<string>>()
         {
@@ -1467,10 +1799,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
 
         scriptString = new string[]
@@ -1482,53 +1814,62 @@ public class AssemblerTests
             @"ret"
         };
 
-        vm = ExecuteScriptIsolated(scriptString);
-        vm.ExceptionMessage.ShouldBe("Cannot convert String 'abc' to BigInteger.");
+        try
+        {
+            vm = ExecuteScriptIsolated(scriptString);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
     }
     #endregion
 
     #region ContextOps
 
-    //[Fact]
-    //public void ContextSwitching()
-    //{
-    //    string[] scriptString;
-    //    RuntimeVM vm;
+    [Fact]
+    public void ContextSwitching()
+    {
+        string[] scriptString;
+        TestVM vm;
 
-    //    var args = new List<int[]>()
-    //    {
-    //        new int[] {1, 2},
-    //    };
+        var args = new List<int[]>()
+        {
+            new int[] {1, 2},
+        };
 
-    //    for (int i = 0; i < args.Count; i++)
-    //    {
-    //        var argsLine = args[i];
-    //        var r1 = argsLine[0];
-    //        var target = argsLine[1];
+        for (int i = 0; i < args.Count; i++)
+        {
+            var argsLine = args[i];
+            var r1 = argsLine[0];
+            var target = argsLine[1];
 
-    //        scriptString = new string[]
-    //        {
-    //            $"load r1, \\\"test\\\"",
-    //            $"load r3, 1",
-    //            $"push r3",
-    //            $"ctx r1, r2",
-    //            $"switch r2",
-    //            $"load r5, 42",
-    //            $"push r5",
-    //            @"ret",
-    //        };
+            scriptString = new string[]
+            {
+                $"load r1, \\\"test\\\"",
+                $"load r3, 1",
+                $"push r3",
+                $"ctx r1, r2",
+                $"switch r2",
+                $"load r5, 42",
+                $"push r5",
+                @"ret",
+            };
 
-    //        vm = ExecuteScriptIsolated(scriptString);
+            vm = ExecuteScriptIsolated(scriptString);
 
-    //        vm.Stack.Count.ShouldBe(2);
+            Assert.True(vm.Stack.Count == 2);
 
-    //        var result = vm.Stack.Pop().AsNumber();
-    //        result.ShouldBe(42);
+            var result = vm.Stack.Pop().AsNumber();
+            Assert.True(result == 42);
 
-    //        result = vm.Stack.Pop().AsNumber();
-    //        result.ShouldBe(2);
-    //    }
-    //}
+            result = vm.Stack.Pop().AsNumber();
+            Assert.True(result == 2);
+        }
+    }
 
     #endregion
 
@@ -1538,7 +1879,7 @@ public class AssemblerTests
     public void PutGet()
     {
         string[] scriptString;
-        RuntimeVM vm;
+        TestVM vm;
 
         var args = new List<List<int>>()
         {
@@ -1553,6 +1894,7 @@ public class AssemblerTests
 
             scriptString = new string[]
             {
+                //$"switch \\\"Test\\\"",
                 $"load r1 {r1}",
                 $"load r2 \\\"key\\\"",
                 $"put r1 r3 r2",
@@ -1563,10 +1905,10 @@ public class AssemblerTests
 
             vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsNumber();
-            result.ShouldBe(target);
+            Assert.True(result == target);
         }
     }
 
@@ -1577,88 +1919,88 @@ public class AssemblerTests
         public Address address;
     }
 
-    //[Fact]
-    //public void StructInterop()
-    //{
-    //    string[] scriptString;
-    //    RuntimeVM vm;
+    [Fact]
+    public void StructInterop()
+    {
+        string[] scriptString;
+        TestVM vm;
 
-    //    var randomKey = PhantasmaKeys.Generate();
+        var randomKey = PhantasmaKeys.Generate();
 
-    //    var demoValue = new TestInteropStruct()
-    //    {
-    //        ID = 1234,
-    //        name = "monkey",
-    //        address = randomKey.Address
-    //    };
+        var demoValue = new TestInteropStruct()
+        {
+            ID = 1234,
+            name = "monkey",
+            address = randomKey.Address
+        };
 
-    //    var hexStr = Base16.Encode(demoValue.address.ToByteArray());
+        var hexStr = Base16.Encode(demoValue.address.ToByteArray());
 
-    //    scriptString = new string[]
-    //    {
-    //        // first field
-    //        $"load r1 \\\"ID\\\"",
-    //        $"load r2 {demoValue.ID}",
-    //        $"put r2 r3 r1",
-    //        $"load r1 \\\"name\\\"",
+        scriptString = new string[]
+        {
+            // first field
+            $"load r1 \\\"ID\\\"",
+            $"load r2 {demoValue.ID}",
+            $"put r2 r3 r1",
+            $"load r1 \\\"name\\\"",
 
-    //        // second field
-    //        $"load r2 \\\"{demoValue.name}\\\"",
-    //        $"put r2 r3 r1",
-    //        $"load r1 \\\"address\\\"",
+            // second field
+            $"load r2 \\\"{demoValue.name}\\\"",
+            $"put r2 r3 r1",
+            $"load r1 \\\"address\\\"",
 
-    //        // third field
-    //        // this one is more complex because it is not a primitive type supported in the VM
-    //        $"load r2 0x{hexStr}",
-    //        $"push r2",
-    //        $"extcall \\\"Address()\\\"",
-    //        $"pop r2",
-    //        $"put r2 r3 r1",
-    //        $"push r3",
-    //        @"ret",
-    //    };
+            // third field
+            // this one is more complex because it is not a primitive type supported in the VM
+            $"load r2 0x{hexStr}",
+            $"push r2",
+            $"extcall \\\"Address()\\\"",
+            $"pop r2",
+            $"put r2 r3 r1",
+            $"push r3",
+            @"ret",
+        };
 
-    //    vm = ExecuteScriptIsolated(scriptString, (_vm) =>
-    //    {
-    //        // here we register the interop for extcall "Address()"
-    //        // this part would not need to be here... 
-    //        // however this is normally done in the Chain Runtime, which we don't use for those tests
-    //        // suggestion: maybe move some of those interop to the VM core?
-    //        _vm.RegisterInterop("Address()", (frame) =>
-    //        {
-    //            var input = _vm.Stack.Pop().AsType(VMType.Bytes);
+        vm = ExecuteScriptIsolated(scriptString, (_vm) =>
+        {
+            // here we register the interop for extcall "Address()"
+            // this part would not need to be here... 
+            // however this is normally done in the Chain Runtime, which we don't use for those tests
+            // suggestion: maybe move some of those interop to the VM core?
+            _vm.RegisterInterop("Address()", (frame) =>
+            {
+                var input = _vm.Stack.Pop().AsType(VMType.Bytes);
 
-    //            try
-    //            {
-    //                var obj = Address.FromBytes((byte[])input);
-    //                var tempObj = new VMObject();
-    //                tempObj.SetValue(obj);
-    //                _vm.Stack.Push(tempObj);
-    //            }
-    //            catch
-    //            {
-    //                return ExecutionState.Fault;
-    //            }
+                try
+                {
+                    var obj = Address.FromBytes((byte[])input);
+                    var tempObj = new VMObject();
+                    tempObj.SetValue(obj);
+                    _vm.Stack.Push(tempObj);
+                }
+                catch
+                {
+                    return ExecutionState.Fault;
+                }
 
-    //            return ExecutionState.Running;
-    //        });
-    //    });
+                return ExecutionState.Running;
+            });
+        });
 
-    //    vm.Stack.Count.ShouldBe(1);
+        Assert.True(vm.Stack.Count == 1);
 
-    //    var temp = vm.Stack.Pop();
-    //    temp.ShouldNotBeNull();
+        var temp = vm.Stack.Pop();
+        Assert.True(temp != null);
 
-    //    var result = temp.ToStruct<TestInteropStruct>();
-    //    demoValue.ID.ShouldBe(result.ID);
-    //    demoValue.name.ShouldBe(result.name);
-    //    demoValue.address.ShouldBe(result.address);
-    //}
+        var result = temp.ToStruct<TestInteropStruct>();
+        Assert.True(demoValue.ID == result.ID);
+        Assert.True(demoValue.name == result.name);
+        Assert.True(demoValue.address == result.address);
+    }
 
     [Fact]
     public void ArrayInterop()
     {
-        RuntimeVM vm;
+        TestVM vm;
 
         var demoArray = new BigInteger[] { 1, 42, 1024 };
 
@@ -1675,13 +2017,13 @@ public class AssemblerTests
 
         vm = ExecuteScriptIsolated(script);
 
-        vm.Stack.Count.ShouldBe(1);
+        Assert.True(vm.Stack.Count == 1);
 
         var temp = vm.Stack.Pop();
-        temp.ShouldNotBeNull();
+        Assert.True(temp != null);
 
         var result = temp.ToArray<BigInteger>();
-        result.Length.ShouldBe(demoArray.Length);
+        Assert.True(result.Length == demoArray.Length);
     }
 
     #endregion
@@ -1751,10 +2093,10 @@ public class AssemblerTests
 
             var vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
-            result.ShouldBe(String.Concat(argsLine[0], argsLine[1]));
+            Assert.True(result == String.Concat(argsLine[0], argsLine[1]));
         }
 
         var scriptString2 = new string[]
@@ -1766,8 +2108,17 @@ public class AssemblerTests
             @"ret"
         };
 
-        var vm2 = ExecuteScriptIsolated(scriptString2);
-        vm2.ExceptionMessage.ShouldBe("Invalid cast during concat opcode");
+        try
+        {
+            var vm2 = ExecuteScriptIsolated(scriptString2);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
+        }
+
+        throw new Exception("VM did not throw exception when trying to cat a string and a non-string object, and it should");
     }
 
     [Fact]
@@ -1793,12 +2144,12 @@ public class AssemblerTests
 
         var vm = ExecuteScriptIsolated(scriptString);
 
-        vm.Stack.Count.ShouldBe(1);
+        Assert.True(vm.Stack.Count == 1);
 
         var resultBytes = vm.Stack.Pop().AsByteArray();
         var result = Encoding.UTF8.GetString(resultBytes);
 
-        result.ShouldBe(target);
+        Assert.True(result == target);
     }
 
     [Fact]
@@ -1830,12 +2181,30 @@ public class AssemblerTests
 
             var vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var resultBytes = vm.Stack.Pop().AsByteArray();
             var result = Encoding.UTF8.GetString(resultBytes);
             
-            result.ShouldBe(target);
+            Assert.True(result == target);
+        }
+
+        var scriptString2 = new string[]
+        {
+            $"load r1, 100",
+            @"left r1, r2, 1",
+            @"push r2",
+            @"ret"
+        };
+
+        try
+        {
+            var vm2 = ExecuteScriptIsolated(scriptString2);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
         }
     }
 
@@ -1868,12 +2237,30 @@ public class AssemblerTests
 
             var vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var resultBytes = vm.Stack.Pop().AsByteArray();
             var result = Encoding.UTF8.GetString(resultBytes);
 
-            result.ShouldBe(target);
+            Assert.True(result == target);
+        }
+
+        var scriptString2 = new string[]
+        {
+            $"load r1, 100",
+            @"right r1, r2, 1",
+            @"push r2",
+            @"ret"
+        };
+
+        try
+        {
+            var vm2 = ExecuteScriptIsolated(scriptString2);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
         }
     }
 
@@ -1905,57 +2292,68 @@ public class AssemblerTests
 
             var vm = ExecuteScriptIsolated(scriptString);
 
-            vm.Stack.Count.ShouldBe(1);
+            Assert.True(vm.Stack.Count == 1);
 
             var result = vm.Stack.Pop().AsString();
 
-            result.ShouldBe(target);
+            Assert.True(result == target);
+        }
+
+        var scriptString2 = new string[]
+        {
+            $"load r1, 100",
+            @"size r1, r2",
+            @"push r2",
+            @"ret"
+        };
+
+        try
+        {
+            var vm2 = ExecuteScriptIsolated(scriptString2);
+        }
+        catch (Exception e)
+        {
+            Assert.True(IsInvalidCast(e));
+            return;
         }
     }
     #endregion
 
-    public AssemblerTests()
+    #region Disassembler
+    [Fact]
+    public void MethodExtract()
     {
-        this.PartitionPath = Path.Combine(Path.GetTempPath(), "PhantasmaUnitTest", $"{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
-        Directory.CreateDirectory(this.PartitionPath);
+        var methodName = "MyCustomMethod";
 
-        this.Nexus = new Nexus("unittest", (name) => new MemoryStore());
-        var maxSupply = 10000000;
+        string[] scriptString = new string[]
+        {
+            $"extcall \"{methodName}\"",
+            $"ret"
+        };
 
-        var storage = (StorageContext)new MemoryStorageContext();
-        this.Context = new StorageChangeSetContext(storage);
-
-        this.Chain = new Chain((Nexus)this.Nexus, "main");
-    }
-
-    private RuntimeVM CreateRuntime(byte[] script)
-    {
-        var nexusMoq = new Mock<INexus>();
-
-        nexusMoq.Setup( n => n.GetChainByName(
-                    It.IsAny<string>())
-                ).Returns(this.Chain);
-
-        this.Chain = new Chain(nexusMoq.Object, "main");
-
-        return new RuntimeVM(
-                0,
-                script,
-                0,
-                this.Chain,
-                Address.Null,
-                Timestamp.Now,
-                null,
-                this.Context,
-                null,
-                ChainTask.Null
-                );
-    }
-
-    private RuntimeVM ExecuteScriptIsolated(IEnumerable<string> scriptString, Action<RuntimeVM> beforeExecute = null)
-    {
         var script = AssemblerUtils.BuildScript(scriptString);
-        var vm = CreateRuntime(script);
+
+        var table = DisasmUtils.GetDefaultDisasmTable();
+        table[methodName] = 0; // this method has no args
+
+        var calls = DisasmUtils.ExtractMethodCalls(script, table);
+
+        Assert.True(calls.Count() == 1);
+        Assert.True(calls.First().MethodName == methodName);
+    }
+    #endregion
+
+    #region AuxFunctions
+    private TestVM ExecuteScriptWithNexus(IEnumerable<string> scriptString, Action<TestVM> beforeExecute = null)
+    {
+        var owner = PhantasmaKeys.Generate();
+        var script = AssemblerUtils.BuildScript(scriptString);
+
+        var nexus = new Nexus("asmnet");
+        nexus.CreateGenesisTransaction(Timestamp.Now, owner);
+        var tx = new Transaction(nexus.Name, nexus.RootChain.Name, script, 0);
+
+        var vm = new TestVM(tx.Script, 0);
 
         beforeExecute?.Invoke(vm);
 
@@ -1963,4 +2361,39 @@ public class AssemblerTests
 
         return vm;
     }
+
+    private TestVM ExecuteScriptIsolated(IEnumerable<string> scriptString, Action<TestVM> beforeExecute = null)
+    {
+        var script = AssemblerUtils.BuildScript(scriptString);
+
+        var vm = new TestVM(script, 0);
+
+        beforeExecute?.Invoke(vm);
+
+        vm.Execute();
+
+        return vm;
+    }
+
+    private TestVM ExecuteScriptIsolated(IEnumerable<string> scriptString, out Transaction tx, Action<TestVM> beforeExecute = null)
+    {
+        var owner = PhantasmaKeys.Generate();
+        var script = AssemblerUtils.BuildScript(scriptString);
+
+        var keys = PhantasmaKeys.Generate();
+        var nexus = new Nexus("asmnet");
+        nexus.CreateGenesisTransaction(Timestamp.Now, owner);
+        tx = new Transaction(nexus.Name, nexus.RootChain.Name, script, 0);
+
+        var vm = new TestVM(tx.Script, 0);
+
+        beforeExecute?.Invoke(vm);
+
+        vm.Execute();
+
+        return vm;
+    }
+
+    #endregion
+
 }
