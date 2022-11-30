@@ -16,7 +16,8 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
-[Collection("ExchangeContractTestBusiness")]
+
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class ExchangeContractTest : IDisposable
 {
 

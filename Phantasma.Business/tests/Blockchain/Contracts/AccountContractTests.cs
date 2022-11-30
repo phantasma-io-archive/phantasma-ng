@@ -16,7 +16,8 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
-[Collection("AccountContractTestsBusiness")]
+
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class AccountContractTests : IDisposable
 {
     private PhantasmaKeys Validator { get; set; }

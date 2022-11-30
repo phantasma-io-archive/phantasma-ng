@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
-[Collection("OrganizationTestsBusiness")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class OrganizationTests : IDisposable
 {
     private StorageContext Context { get; set; }
