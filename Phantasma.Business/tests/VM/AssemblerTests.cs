@@ -18,7 +18,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.VM;
 
-[Collection("AssemblerTestsBusiness")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class AssemblerTests
 {
     private string PartitionPath { get; set; }
