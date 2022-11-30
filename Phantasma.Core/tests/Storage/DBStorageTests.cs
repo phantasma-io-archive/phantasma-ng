@@ -6,7 +6,6 @@ using System.Threading;
 using System.Text;
 using Phantasma.Core;
 using Phantasma.Core.Storage;
-using Phantasma.Infrastructure.RocksDB;
 
 using Xunit;
 

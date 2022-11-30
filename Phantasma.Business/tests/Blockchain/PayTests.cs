@@ -7,7 +7,7 @@ using Phantasma.Core.Numerics;
 using Phantasma.Infrastructure.Pay.Chains;
 using Xunit;
 
-namespace Phantasma.Core.Tests;
+namespace Phantasma.Business.Tests.Blockchain;
 
 [Collection("PayTests")]
 public class PayTests

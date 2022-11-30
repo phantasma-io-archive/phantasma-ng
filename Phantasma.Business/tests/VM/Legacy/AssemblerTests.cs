@@ -5,10 +5,10 @@ using System.Text;
 using System.Numerics;
 using System.Collections.Generic;
 using Phantasma.Core.Types;
-using Phantasma.Simulator;
 using Phantasma.Core.Cryptography;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Blockchain;
+using Phantasma.Business.Tests.Simulator;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Domain;
 using Phantasma.Business.VM.Utils;
@@ -17,8 +17,8 @@ using Phantasma.Business.VM;
 
 namespace Phantasma.Business.Tests.VM;
 
-[Collection("AssemblerTests")]
-public class AssemblerTests
+[Collection("AssemblerTestsLegacy")]
+public class AssemblerTestsLegacy
 {
     public const int TestGasLimit = 9999;
     
