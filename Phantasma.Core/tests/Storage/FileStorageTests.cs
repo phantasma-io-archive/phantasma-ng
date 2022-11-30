@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Numerics;
-using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
 /*
 

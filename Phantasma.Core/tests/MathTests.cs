@@ -1,8 +1,10 @@
 using Xunit;
-using Phantasma.Core.Cryptography;
-using Phantasma.Core.Numerics;
+
 using System;
 using System.Linq;
+using System.Text;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
 
 namespace Phantasma.Core.Tests;
 
@@ -33,15 +35,15 @@ public class MathTests
         var rnd = new Random(39545);
         rnd.NextBytes(bytes);
 
-        var base58 = Base58.Encode(bytes);
-        var output = Base58.Decode(base58);
+        var base58 = Numerics.Base58.Encode(bytes);
+        var output = Numerics.Base58.Decode(base58);
         Assert.True(output.Length == bytes.Length);
         Assert.True(output.SequenceEqual(bytes));
 
         bytes = new byte[Address.LengthInBytes];
         bytes[0] = 1;
-        base58 = Base58.Encode(bytes);
-        output = Base58.Decode(base58);
+        base58 = Numerics.Base58.Encode(bytes);
+        output = Numerics.Base58.Decode(base58);
         Assert.True(output.Length == bytes.Length);
         Assert.True(output.SequenceEqual(bytes));
     }
@@ -51,8 +53,8 @@ public class MathTests
     {
         var input = new byte[35];
 
-        var temp = Base58.Encode(input);
-        var output = Base58.Decode(temp);
+        var temp = Numerics.Base58.Encode(input);
+        var output = Numerics.Base58.Decode(temp);
 
         Assert.True(output.Length == input.Length);
     }

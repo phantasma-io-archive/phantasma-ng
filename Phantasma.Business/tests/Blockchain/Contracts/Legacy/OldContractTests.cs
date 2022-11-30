@@ -4,16 +4,16 @@ using System.Linq;
 using System.Numerics;
 using System.Collections.Generic;
 
-using Phantasma.Simulator;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Business.CodeGen.Assembler;
+using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM;
 
-namespace Phantasma.Business.Tests.Blockchain.Contracts;
+namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
 [Collection("OldContractTests")]
 public class OldContractTests

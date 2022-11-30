@@ -6,7 +6,7 @@ using Phantasma.Core.Storage;
 using Phantasma.Core.Storage.Context;
 using Xunit;
 
-namespace Phantasma.Business.Tests.Blockchain.Storage;
+namespace Phantasma.Core.Tests.Storage;
 
 public class StorageTests
 {
