@@ -32,7 +32,6 @@
     <ProjectReference Include="../src\Phantasma.Business.csproj" />
     <ProjectReference Include="../../Phantasma.Core/src/Phantasma.Core.csproj" />
     <ProjectReference Include="../../Phantasma.Infrastructure/src/Phantasma.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\Phantasma.Tests\Phantasma.Tests.csproj" />
   </ItemGroup>
 
 </Project>

@@ -31,6 +31,10 @@
     <PackageReference Include="System.Runtime.Extensions" Version="4.3.0" />
   </ItemGroup>
 
+<ItemGroup>
+	<AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute" />
+</ItemGroup>
+	
   <ItemGroup>
     <ProjectReference Include="../../Phantasma.Business/src/Phantasma.Business.csproj" />
     <ProjectReference Include="../../Phantasma.Core/src/Phantasma.Core.csproj" />
