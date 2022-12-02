@@ -22,10 +22,10 @@ mkdir -p "$TESTNET_ROOT"/node1/publish/
 mkdir -p "$TESTNET_ROOT"/node2/publish/
 mkdir -p "$TESTNET_ROOT"/node3/publish/
 
-cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node0/publish
-cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node1/publish
-cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node2/publish
-cp -R "$PUBLISH_ROOT" "$TESTNET_ROOT"/node3/publish
+cp -R "$PUBLISH_ROOT"* "$TESTNET_ROOT"/node0/publish
+cp -R "$PUBLISH_ROOT"* "$TESTNET_ROOT"/node1/publish
+cp -R "$PUBLISH_ROOT"* "$TESTNET_ROOT"/node2/publish
+cp -R "$PUBLISH_ROOT"* "$TESTNET_ROOT"/node3/publish
 
 cp -R "$TESTNET_ROOT"/node0/config_testnet_node0.json "$TESTNET_ROOT"/node0/publish/config.json
 cp -R "$TESTNET_ROOT"/node1/config_testnet_node1.json "$TESTNET_ROOT"/node1/publish/config.json
