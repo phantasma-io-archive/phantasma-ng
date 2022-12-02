@@ -1671,11 +1671,6 @@ public class StakeContractTestLegacy
     [Fact]
     public void TestBigStakes()
     {
-        var owner = PhantasmaKeys.Generate();
-
-        var simulator = new NexusSimulator(owner);
-        var nexus = simulator.Nexus;
-
         //Let A be an address
         var testUserA = PhantasmaKeys.Generate();
         var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUserA.Address).AsNumber();
@@ -1738,8 +1733,10 @@ public class StakeContractTestLegacy
 
         //-----------
         //Time skip to the next possible claim date
-        var missingDays = (new DateTime(simulator.CurrentTime.Year, simulator.CurrentTime.Month + 1, 1) - simulator.CurrentTime).Days + 1;
-        simulator.TimeSkipDays(missingDays, true);
+
+        var missingDays = 30;
+           // (new DateTime(simulator.CurrentTime.Year, simulator.CurrentTime.Month + 1, 1)).Day; //.Subtract(simulator.CurrentTime).Days + 1; // - simulator.CurrentTime).Days + 1;
+        simulator.TimeSkipDays(missingDays + 1, true);
 
         //-----------
         //A attempts master claim -> verify success
