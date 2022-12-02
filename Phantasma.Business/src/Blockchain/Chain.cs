@@ -304,6 +304,11 @@ namespace Phantasma.Business.Blockchain
 
         public IEnumerable<T> EndBlock<T>() where T : class
         {
+            //if (Height == 1)
+            //{
+            //    throw new ChainException("genesis transaction failed");
+            //}
+            
             // TODO currently the managing of the ABI cache is broken so we have to call this at end of the block
             ((Chain)Nexus.RootChain).FlushExtCalls();
             
