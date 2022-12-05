@@ -132,9 +132,6 @@ public class AssemblerTestsLegacy
         Assert.True(eventMessage.AsString() == message);
     }
 
-
-
-
     #region RegisterOps
 
     [Fact]
