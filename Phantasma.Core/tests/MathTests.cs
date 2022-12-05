@@ -2,6 +2,7 @@ using Xunit;
 
 using System;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
@@ -81,9 +82,8 @@ public class MathTests
     }
     #endregion
 
-    /*
+    
     #region BIG INT
-
     [Fact]
     public void BigIntZeroComparison()
     {
@@ -99,6 +99,7 @@ public class MathTests
     {
         public BigInteger a;
     }
+    
     [Fact]
     public void BigIntStructComparisonExplicitInit()
     {
@@ -456,7 +457,7 @@ public class MathTests
     //    Assert.True(negBigInt.Sign== -1);
     //    Assert.True(negBigInt.ToUintArray().SequenceEqual(posBigint.ToUintArray()));
     //}
-    //#endregion
-    */
+    #endregion
+    
 }
 
