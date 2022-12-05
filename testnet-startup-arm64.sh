@@ -13,4 +13,4 @@ chmod u+x ./build-docker-testnet-arm64.sh
 ./build-docker-testnet-arm64.sh
 
 # Run the testnet
-docker run --name phantasma-devnet -v $(pwd)/DOCKER/testnet:/app/testnet -tid -p 5102:5102 -p 5101:5101 -p 26057:26057 phantasma-devnet
+docker run --name phantasma-devnet -v $(pwd)/DOCKER/testnet:/app/testnet -tid -p 5102:5102 -p 5101:5101 -p 26056:26056 -p 26156:26156 -p 26256:26256 -p 26356:26356 -p 26057:26057 -p 26157:26157 -p 26257:26257 -p 26357:26357 phantasma-devnet
