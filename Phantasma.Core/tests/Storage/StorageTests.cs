@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Phantasma.Core.Tests.Storage;
 
+[Collection("Storage")]
 public class StorageTests
 {
    [Fact] 

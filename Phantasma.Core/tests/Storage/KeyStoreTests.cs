@@ -3,6 +3,7 @@ namespace Phantasma.Core.Tests.Storage;
 using Xunit;
 using Phantasma.Core.Storage;
 
+[Collection("Storage")]
 public class KeyStoreTests
 {
     [Fact]
