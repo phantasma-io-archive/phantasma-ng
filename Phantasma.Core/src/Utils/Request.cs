@@ -170,6 +170,7 @@ namespace Phantasma.Core.Utils
             public string id { get; set; }
             public object[] @params { get; set; }
         }
+        
         public static JsonDocument RPCRequest(string url, string method, out string stringResponse, int timeoutInSeconds = 0, int maxAttempts = 1, params object[] parameters)
         {
             var rpcRequest = new RpcRequest

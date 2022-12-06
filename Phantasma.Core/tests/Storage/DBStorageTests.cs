@@ -9,7 +9,6 @@ using Phantasma.Core.Storage;
 using Phantasma.Infrastructure.RocksDB;
 using Xunit;
 
-
 namespace Phantasma.Core.Tests.Storage;
 
 public class DBStorageTests

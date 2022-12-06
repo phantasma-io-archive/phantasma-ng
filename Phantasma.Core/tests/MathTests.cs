@@ -82,7 +82,6 @@ public class MathTests
     }
     #endregion
 
-    
     #region BIG INT
     [Fact]
     public void BigIntZeroComparison()
@@ -458,6 +457,5 @@ public class MathTests
     //    Assert.True(negBigInt.ToUintArray().SequenceEqual(posBigint.ToUintArray()));
     //}
     #endregion
-    
 }
 

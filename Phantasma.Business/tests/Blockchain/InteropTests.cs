@@ -32,7 +32,7 @@ public class InteropTests : IDisposable
     private IChain Chain { get; set; }
     private Dictionary<string, BigInteger> Mints { get; set; }
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Oracle_Quote_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -40,7 +40,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Oracle_Price_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -48,7 +48,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Oracle_Read_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -98,7 +98,7 @@ public class InteropTests : IDisposable
         result.AsString().ShouldBe(TokenOwner.Address.ToString());
     }
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_List_Clear_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -106,7 +106,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_List_Count_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -114,7 +114,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_List_RemoveAt_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -122,7 +122,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_List_Replace_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -130,7 +130,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_List_Add_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -138,7 +138,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_List_Get_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -146,7 +146,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Map_Keys_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -154,7 +154,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Map_Clear_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -162,7 +162,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Map_Count_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -170,7 +170,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Map_Remove_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -178,7 +178,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Map_Set_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -186,7 +186,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Map_Get_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -194,7 +194,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Map_Has_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -202,7 +202,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Data_Delete_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -210,7 +210,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Data_Set_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -218,7 +218,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Data_Get_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -226,7 +226,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Task_Current_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -234,7 +234,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Task_Get_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -242,7 +242,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Task_Stop_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -250,7 +250,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Task_Start_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -311,7 +311,7 @@ public class InteropTests : IDisposable
     }*/
 
     // currently unused
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Nexus_CreateChain_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -348,7 +348,7 @@ public class InteropTests : IDisposable
     }*/
 
     // TODO::
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Nexus_CreateToken_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -356,7 +356,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Nexus_EndInit_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -364,7 +364,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Nexus_BeginInit_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -372,7 +372,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Nexus_GetGovernanceValue_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -380,7 +380,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_TokenGetFlags_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -388,7 +388,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_TokenGetDecimals_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -396,7 +396,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_TokenExists_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -404,7 +404,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_WriteToken_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -412,7 +412,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_ReadToken_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -420,7 +420,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_ReadTokenRAM_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -428,7 +428,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_ReadTokenROM_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -436,7 +436,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_InfuseToken_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -444,7 +444,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_BurnToken_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -452,7 +452,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_MintToken_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -460,7 +460,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_TransferToken_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -468,7 +468,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_SwapTokens_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -476,7 +476,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_BurnTokens_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -484,7 +484,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_TransferBalance_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -492,7 +492,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_TransferTokens_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -500,7 +500,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_GetBalance_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -508,13 +508,13 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_KillContract_success()
     //{
     //    throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_UpgradeContract_success()
     //{
     //    var runtime = CreateRuntime_Default();
@@ -522,7 +522,7 @@ public class InteropTests : IDisposable
     //    //throw new NotImplementedException("Unit test empty!");
     //}
 
-    //[TestMethod]
+    //[Fact]
     //public void invoke_Runtime_DeployContract_success()
     //{
     //    var runtime = CreateRuntime_Default();
