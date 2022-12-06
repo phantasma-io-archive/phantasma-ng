@@ -131,7 +131,7 @@ public class SwapContractTest
         var startingSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         var startingKcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
 
-        BigInteger swapAmount = UnitConversion.ToBigInteger(5, DomainSettings.StakingTokenDecimals);
+        BigInteger swapAmount = UnitConversion.ToBigInteger(1m, DomainSettings.StakingTokenDecimals);
         
         // Should Pass
         simulator.BeginBlock();
