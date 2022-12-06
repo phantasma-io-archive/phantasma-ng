@@ -35,7 +35,7 @@
       "sender.host": "",
       "sender.threads": 8,
       "sender.address.count": 100,
-      "storage.path": "",
+      "storage.path": "./Storage",
       "verify.storage.path": "",
       "oracle.path": "",
       "storage.backend": "rocksdb",
