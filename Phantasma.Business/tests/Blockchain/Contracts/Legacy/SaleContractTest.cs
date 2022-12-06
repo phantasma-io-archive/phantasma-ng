@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
-[Collection("SaleContractTest")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class SaleContractTest
 {
     public uint DefaultEnergyRatioDivisor => StakeContract.DefaultEnergyRatioDivisor;

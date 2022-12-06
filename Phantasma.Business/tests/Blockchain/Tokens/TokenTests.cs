@@ -13,7 +13,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
-[Collection("TokenTests")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class TokenTests
 {
     [Fact]

@@ -16,7 +16,8 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
-[Collection("AccountContractTestsBusiness")]
+
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class AccountContractTests : IDisposable
 {
     private PhantasmaKeys Validator { get; set; }
@@ -271,7 +272,7 @@ public class AccountContractTests : IDisposable
                 this.Validator.Address,
                 Timestamp.Now,
                 tx,
-                new StorageChangeSetContext(new KeyStoreStorage(new DBPartition(this.PartitionPath))),
+                new StorageChangeSetContext(new MemoryStorageContext()),
                 null,
                 ChainTask.Null,
                 delayPayment

@@ -237,6 +237,7 @@ public class TestVM : VirtualMachine
     }
 }
 
+[Collection("VMTests")]
 public class VMTests
 {
     [Fact]

@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
-[Collection("ConsensusContractTest")]
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class ConsensusContractTest
 {
     static PhantasmaKeys owner = PhantasmaKeys.Generate();

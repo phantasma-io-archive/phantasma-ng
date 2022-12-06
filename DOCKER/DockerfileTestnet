@@ -8,6 +8,6 @@ COPY DOCKER/bin /app/bin
 
 RUN apt-get update; apt-get install -y libc6-dev libsnappy-dev libicu-dev screen bash vim net-tools ca-certificates openssl libssl-dev librocksdb-dev
 
-EXPOSE 5101 5102 5103 5104
+EXPOSE 5101 5102 5103 5104 26056 26156 26256 26356 26057 26157 26257 26357
 
 ENTRYPOINT ["/app/wrapper-testnet.sh"]
