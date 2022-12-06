@@ -223,6 +223,13 @@ namespace Phantasma.Core.Utils
             }
             return array;
         }
+        
+        public static T ReadSerializable<T>(this BinaryReader reader, int max = 0x1000000) where T : ISerializable, new()
+        {
+            T item = new T();
+            item.UnserializeData(reader);
+            return item;
+        }
 
         public static byte[] ToArray(this ISerializable value)
         {
