@@ -4,7 +4,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
 using Xunit;
 
-namespace Phantasma.Core.Tests;
+namespace Phantasma.Core.Tests.Cryptography;
 
 public class AddressTests
 {

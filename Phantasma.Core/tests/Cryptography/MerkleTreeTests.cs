@@ -3,7 +3,7 @@ using Phantasma.Core.Cryptography;
 using System;
 using System.Linq;
 
-namespace Phantasma.Core.Tests;
+namespace Phantasma.Core.Tests.Cryptography;
 
 [Collection("MerkleTreeTests")]
 public class MerkleTreeTests

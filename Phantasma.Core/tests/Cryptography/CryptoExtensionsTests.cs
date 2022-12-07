@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text;
+using Phantasma.Core.Numerics;
 
 namespace Phantasma.Core.Tests.Cryptography;
 
@@ -54,12 +55,12 @@ public class CryptoExtensionsTests
         var text = "Hello World";
         var bytes  = Encoding.UTF8.GetBytes(text);
         var base58 = CryptoExtensions.Base58CheckEncode(bytes);
-        var dataEncoded = Numerics.Base58.Encode(bytes);
+        var dataEncoded = Base58.Encode(bytes);
         Assert.NotEqual(dataEncoded, base58);
         
         // decode the base 58 string
         var dataDecoded = CryptoExtensions.Base58CheckDecode(base58);
-        var dataDecoded2 = Numerics.Base58.Decode(dataEncoded);
+        var dataDecoded2 = Base58.Decode(dataEncoded);
         Assert.Equal(dataDecoded, dataDecoded2);
     }
 
