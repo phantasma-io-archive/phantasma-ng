@@ -147,7 +147,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 return _userMap.Get<Address, string>(target);
             }
 
-            return null;
+            return "";
         }
         #endregion
 

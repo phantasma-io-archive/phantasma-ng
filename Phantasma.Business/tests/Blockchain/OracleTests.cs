@@ -28,6 +28,11 @@ public class OracleTests
     BigInteger startBalance;
     StakeReward reward;
 
+    public OracleTests()
+    {
+        Initialize();
+    }
+
     public void Initialize()
     {
         user = PhantasmaKeys.Generate();
@@ -62,8 +67,6 @@ public class OracleTests
     [Fact]
     public void OracleTestNoData()
     {
-        Initialize();
-        
         var wallet = PhantasmaKeys.Generate();
 
         nexus.CreatePlatform(nexus.RootStorage, "", wallet.Address, "neo", "GAS");
@@ -86,8 +89,6 @@ public class OracleTests
     [Fact]
     public void OracleTestWithData()
     {
-        Initialize();
-
         var wallet = PhantasmaKeys.Generate();
 
         nexus.CreatePlatform(nexus.RootStorage, "", wallet.Address, "neo", "GAS");
@@ -167,8 +168,6 @@ public class OracleTests
     [Fact]
     public void OraclePrice()
     {
-        Initialize();
-        
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(owner, ProofOfWork.None,
             () => ScriptUtils.BeginScript()
@@ -213,8 +212,6 @@ public class OracleTests
     [Fact]
     public void OracleData()
     {
-        Initialize();
-        
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(owner, ProofOfWork.Moderate,
             () => ScriptUtils.BeginScript()
@@ -251,8 +248,71 @@ public class OracleTests
         Console.WriteLine("odata1: " + oData1);
         Console.WriteLine("odata2: " + oData2);
 
-        
+        Assert.Equal(DomainSettings.LatestKnownProtocol, nexus.GetOracleReader().ProtocolVersion);
         Assert.True(oData1 == oData2);
+    }
+
+    [Fact]
+    public void TestOracleClear()
+    {
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None,
+            () => ScriptUtils.BeginScript()
+                .CallInterop("Oracle.Price", "SOUL")
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 999)
+                .SpendGas(owner.Address)
+                .EndScript());
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None,
+            () => ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 999)
+                .CallInterop("Oracle.Price", "SOUL")
+                .SpendGas(owner.Address)
+                .EndScript());
+        var block = simulator.EndBlock().First();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        var before = nexus.GetOracleReader().Entries;
+        nexus.GetOracleReader().Clear();
+        var after = nexus.GetOracleReader().Entries;
+        Assert.NotEqual(before, after);
+    }
+
+    [Fact]
+    public void TestReadTransaction()
+    {
+        var wallet = PhantasmaKeys.Generate();
+
+        nexus.CreatePlatform(nexus.RootStorage, "", wallet.Address, "neo", "GAS");
+        
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None,
+            () => ScriptUtils.BeginScript()
+                .CallInterop("Oracle.Price", "SOUL")
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 999)
+                .SpendGas(owner.Address)
+                .EndScript());
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None,
+            () => ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 999)
+                .CallInterop("Oracle.Price", "SOUL")
+                .SpendGas(owner.Address)
+                .EndScript());
+        var block = simulator.EndBlock().First();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+       
+        foreach (var txHash in block.TransactionHashes)
+        {
+            var blkResult = block.GetResultForTransaction(txHash);
+            nexus.GetOracleReader().ReadTransaction("phantasma", "main", txHash);
+            nexus.GetOracleReader().ReadTransaction("phantasma", "main", txHash);
+            nexus.GetOracleReader().ReadTransaction("phantasma", "main", txHash);
+            nexus.GetOracleReader().ReadTransaction("phantasma", "main", txHash);
+
+            var vmObj = VMObject.FromBytes(blkResult);
+            Console.WriteLine("price: " + vmObj);
+        }
+        
     }
 
 }

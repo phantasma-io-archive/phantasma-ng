@@ -1,4 +1,4 @@
-namespace Phantasma.Core.Tests;
+namespace Phantasma.Core.Tests.Cryptography;
 
 public class SignatureTests
 {

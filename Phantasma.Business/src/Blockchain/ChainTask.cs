@@ -49,6 +49,7 @@ namespace Phantasma.Business.Blockchain
                     writer.Write((byte)Mode);
                     writer.WriteBigInteger(GasLimit);
                     writer.WriteBigInteger(Height);
+                    writer.Write(State);
                 }
 
                 return stream.ToArray();
@@ -69,8 +70,9 @@ namespace Phantasma.Business.Blockchain
                     var mode = (TaskFrequencyMode)reader.ReadByte();
                     var gasLimit = reader.ReadBigInteger();
                     var height = reader.ReadBigInteger();
+                    var state = reader.ReadBoolean();
 
-                    return new ChainTask(taskID, payer, contractName, method, frequency, delay, mode, gasLimit, height, true);
+                    return new ChainTask(taskID, payer, contractName, method, frequency, delay, mode, gasLimit, height, state);
                 }
             }
         }

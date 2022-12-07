@@ -3,7 +3,7 @@ using Phantasma.Core.Domain;
 using Shouldly;
 using Xunit;
 
-namespace Phantasma.Core.Tests;
+namespace Phantasma.Core.Tests.Domain;
 
 public class DomainExtensionsTests
 {
