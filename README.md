@@ -21,8 +21,8 @@
 </p>
 
 ## Commits
-[![GitHub last commit](https://img.shields.io/github/last-commit/phantasma-io/PhantasmaChain.svg?style=flat)]()
-[![GitHub commit activity the past week, 4 weeks](https://img.shields.io/github/commit-activity/y/phantasma-io/PhantasmaChain.svg?style=flat)]()
+[![GitHub last commit](https://img.shields.io/github/last-commit/phantasma-io/phantasma-ng.svg?style=flat)]()
+[![GitHub commit activity the past week, 4 weeks](https://img.shields.io/github/commit-activity/y/phantasma-io/phantasma-ng.svg?style=flat)]()
 
 ## Social
 
