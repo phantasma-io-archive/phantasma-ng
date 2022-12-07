@@ -43,7 +43,7 @@ public class FriendContractTest
         Initialize();
     }
 
-    public void Initialize()
+    private void Initialize()
     {
         sysAddress = SmartContract.GetAddressForNative(NativeContractKind.Friends);
         user = PhantasmaKeys.Generate();
