@@ -1339,6 +1339,21 @@ public class NexusSimulator
 
         return blocks.First();
     }
+    public void WriteArchive(Hash hash, int blockIndex, byte[] bytes)
+    {
+        var archive = Nexus.GetArchive(Nexus.RootStorage, hash);
+        if (archive == null)
+        {
+            throw new ChainException("archive not found");
+        }
+
+        if (blockIndex < 0 || blockIndex >= archive.BlockCount)
+        {
+            throw new ChainException("invalid block index");
+        }
+
+        Nexus.WriteArchiveBlock(archive, blockIndex, bytes);
+    }
 
     public bool LastBlockWasSuccessful()
     {
