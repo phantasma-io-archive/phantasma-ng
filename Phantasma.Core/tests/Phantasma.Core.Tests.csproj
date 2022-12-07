@@ -28,8 +28,4 @@
         <ProjectReference Include="..\src\Phantasma.Core.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Storage\Context" />
-    </ItemGroup>
-
 </Project>
