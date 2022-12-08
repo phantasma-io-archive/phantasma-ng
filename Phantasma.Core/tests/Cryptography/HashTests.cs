@@ -7,7 +7,7 @@ using Phantasma.Core.Numerics;
 using Shouldly;
 using Xunit;
 
-namespace Phantasma.Core.Tests;
+namespace Phantasma.Core.Tests.Cryptography;
 
 [Collection("HashTests")]
 public class HashTests

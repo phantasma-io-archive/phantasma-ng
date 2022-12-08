@@ -27,7 +27,7 @@ public class RequestTests
     [Fact]
     public void TestRequestWithParams()
     {
-        var request = RequestUtils.RPCRequest("http://testnet.phantasma.io:5101/rpc", "GetBlockHeight", out string myResponse, 1, 1, "main");
+        var request = RequestUtils.RPCRequest("http://testnet.phantasma.io:5101/rpc", "GetBlockHeight", out string myResponse, 0, 1, "main");
         
         Assert.NotNull(myResponse);
         // tests
@@ -37,7 +37,7 @@ public class RequestTests
     [Fact]
     public void TestRequestWithMultipleParams()
     {
-        var request = RequestUtils.RPCRequest("http://testnet.phantasma.io:5101/rpc", "GetContract", out string myResponse, 1, 1, "main", "swap");
+        var request = RequestUtils.RPCRequest("http://testnet.phantasma.io:5101/rpc", "GetContract", out string myResponse, 0, 1, "main", "swap");
         
         Assert.NotNull(myResponse);
         // tests
