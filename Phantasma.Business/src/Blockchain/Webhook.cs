@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Utils;
+using Serilog;
 
 namespace Phantasma.Business.Blockchain;
 
@@ -13,11 +14,12 @@ public static class Webhook
     public static string Token { get; set; }
     public static string Channel { get; set; }
     
-    public static Task Notify(string message)
+    public static void Notify(string message)
     {
+        Log.Logger.Error("Sending webhook notification: {message}", message);
         if (string.IsNullOrEmpty(Token) || string.IsNullOrEmpty(Channel))
         {
-            return Task.CompletedTask;
+            return;
         }
         
         var client = new HttpClient();
@@ -31,6 +33,7 @@ public static class Webhook
                          
         var content = new StringContent(msgContent, Encoding.UTF8, "application/json");
         //var response = await client.PostAsync(WebhookUrl, content);
-        return client.PostAsync($"{WebhookUrl}/{Channel}/{Token}", content);
+        client.PostAsync($"{WebhookUrl}/{Channel}/{Token}", content).GetAwaiter().GetResult();
+        return;
     }
 }
