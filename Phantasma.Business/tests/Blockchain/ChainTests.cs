@@ -710,7 +710,6 @@ public class ChainTests
     {
         Filter.Test(() =>
         {
-            Filter.Enabled = false;
             var owner = PhantasmaKeys.Generate();
 
             var simulator = new NexusSimulator(owner);
@@ -1389,7 +1388,6 @@ public class ChainTests
     {
         Filter.Test(() =>
         {
-            Filter.Enabled = false;
             var owner = PhantasmaKeys.Generate();
 
             var simulator = new NexusSimulator(owner);
