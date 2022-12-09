@@ -8,10 +8,13 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Grpc.Core;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage;
 using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.API;
@@ -55,6 +58,10 @@ namespace Phantasma.Node
         private EthAPI _ethAPI;
         private string _cryptoCompareAPIKey = null;
         private Thread _tokenSwapperThread;
+
+        private string _tendermintHome;
+        private string _tendermint_RPC_URL;
+        private string _tendermint_Proxy_URL;
         private Process _tendermintProcess;
 
         public NeoAPI NeoAPI { get { return _neoAPI; } }
@@ -70,10 +77,6 @@ namespace Phantasma.Node
 
         protected override void OnStart()
         {
-            //Log.Information($"Starting Tendermint Engine");
-
-            //SetupTendermint();
-
             Log.Information($"Starting ABCI Application");
 
             Console.CancelKeyPress += delegate
@@ -87,6 +90,9 @@ namespace Phantasma.Node
 
             _nodeKeys = SetupNodeKeys();
 
+            _tendermint_RPC_URL = Settings.Instance.Node.TendermintRPCHost + ":" + Settings.Instance.Node.TendermintRPCPort;
+            _tendermint_Proxy_URL = Settings.Instance.Node.TendermintProxyHost + ":" + Settings.Instance.Node.TendermintProxyPort;
+
             if (!SetupNexus())
             {
                 Log.Information("Stopping node...");
@@ -94,9 +100,7 @@ namespace Phantasma.Node
                 return;
             }
 
-            var rpcUrl = Settings.Instance.Node.TendermintRPCHost+ ":" + Settings.Instance.Node.TendermintRPCPort;
-
-            this.ABCIConnector.SetNodeInfo(NexusAPI.Nexus, rpcUrl, _nodeKeys);
+            this.ABCIConnector.SetNodeInfo(NexusAPI.Nexus, _tendermint_RPC_URL, _nodeKeys);
 
             var options = new ChannelOption[] {
                 new ChannelOption(ChannelOptions.MaxReceiveMessageLength, 1500*1024*1024)
@@ -130,6 +134,11 @@ namespace Phantasma.Node
             //{
             //    StartTokenSwapper();
             //}
+
+            if (!string.IsNullOrEmpty(Settings.Instance.Node.TendermintPath))
+            {
+                LaunchTendermint(Settings.Instance.Node.TendermintPath);
+            }
         }
 
         public TokenSwapper StartTokenSwapper()
@@ -219,38 +228,376 @@ namespace Phantasma.Node
             return nodeKeys;
         }
 
-        // NOTE - no longer started from here, instead start Tendermint externall
-        /*private bool SetupTendermint()
+        public enum Platform
         {
-            // TODO: Platform-specific path
-            var tendermintPath = "tendermint";
+            Windows,
+            Linux,
+            Mac
+        }
+
+        public static Platform GetRunningPlatform()
+        {
+            switch (Environment.OSVersion.Platform)
+            {
+                case PlatformID.Unix:
+                    // Well, there are chances MacOSX is reported as Unix instead of MacOSX.
+                    // Instead of platform check, we'll do a feature checks (Mac specific root folders)
+                    if (Directory.Exists("/Applications")
+                        & Directory.Exists("/System")
+                        & Directory.Exists("/Users")
+                        & Directory.Exists("/Volumes"))
+                        return Platform.Mac;
+                    else
+                        return Platform.Linux;
+
+                case PlatformID.MacOSX:
+                    return Platform.Mac;
+
+                default:
+                    return Platform.Windows;
+            }
+        }
+
+        // NOTE - Tendermint is run here only if config.json has a path configured, instead start Tendermint externally, it also works
+        private bool LaunchTendermint(string tendermintPath)
+        {
+            var platform = GetRunningPlatform();
 
             if (!File.Exists(tendermintPath))
             {
-                Log.Error("Could not find Tendermint binary, make sure its next to Phantasma");
+                var exeName = "tendermint";
+                if (platform == Platform.Windows)
+                {
+                    exeName += ".exe";
+                }
+
+                var newPath = tendermintPath;
+
+                if (!newPath.EndsWith(exeName))
+                {
+                    if (!newPath.EndsWith(Path.DirectorySeparatorChar))
+                    {
+                        newPath += Path.DirectorySeparatorChar;
+                    }
+
+                    newPath += exeName;
+                }
+
+                if (File.Exists(newPath))
+                {
+                    tendermintPath = newPath;
+                }
+                else
+                {
+                    Log.Error("Could not find Tendermint binary at location: " + tendermintPath);
+                    Log.Error("Get latest version here: https://github.com/tendermint/tendermint/releases");
+                    return false;
+                }
+            }
+
+            _tendermintHome = Settings.Instance.Node.TendermintHome;
+
+            if (string.IsNullOrEmpty(_tendermintHome))
+            {
+                _tendermintHome = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + Path.DirectorySeparatorChar + "tendermint";
+            }
+
+            if (!Directory.Exists(_tendermintHome))
+            {
+                Log.Warning("Initializing Tendermint home");
+
+                if (!RunTendermint(tendermintPath, "init"))
+                {
+                    Log.Error("Could not initialize Tendermint home");
+                    return false;
+                }
+
+                if (!PatchTendermintValidatorKey())
+                {
+                    Log.Error("Could not patch Tendermint private key");
+                    return false;
+                }
+
+                if (!PatchTendermintConfigToml())
+                {
+                    Log.Error("Could not patch Tendermint config.toml: " + _patchError);
+                    return false;
+                }
+
+                if (!PatchTendermintGenesis())
+                {
+                    Log.Error("Could not patch Tendermint genesis: " + _patchError);
+                    return false;
+                }
+            }
+
+            return RunTendermint(tendermintPath, "node");
+        }
+
+        private bool PatchTendermintValidatorKey()
+        {
+            var keyFile = Path.Combine(_tendermintHome, "config/priv_validator_key.json");
+
+            if (!File.Exists(keyFile))
+            {
                 return false;
             }
 
-            var launchArgs = new[]
+            var lines = File.ReadAllLines(keyFile);
+
+            var bytes = _nodeKeys.Address.ToByteArray()[2..][..20];
+            var pubKey = Base16.Encode(bytes);
+
+            lines[1] = $"\t\"address\": \"{_nodeKeys.Address.TendermintAddress}\",";
+            lines[4] = $"\t\"value\": \"{pubKey}\"";
+            lines[8] = $"\t\"value\": \"{Settings.Instance.Node.TendermintKey}\"";
+
+            File.WriteAllLines(keyFile, lines);
+
+            return true;
+        }
+
+        private bool PatchTendermintConfigToml()
+        {
+            var keyFile = Path.Combine(_tendermintHome, "config/config.toml");
+
+            if (!File.Exists(keyFile))
             {
-                "start",
-            };
+                _patchError = "Could not find file: " + keyFile;
+                return false;
+            }
+
+            var isMainnet = Settings.Instance.Node.NexusName == DomainSettings.NexusMainnet;
+
+            var lines = File.ReadAllLines(keyFile);
+
+            if (string.IsNullOrEmpty(_tendermint_RPC_URL))
+            {
+                _patchError = "Tenderming RPC URL is not set or is invalid";
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(_tendermint_Proxy_URL))
+            {
+                _patchError = "Tendermint proxy URL is not set or is invalid";
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(Settings.Instance.Node.TendermintPeers))
+            {
+                _patchError = "tendermint.peers is not set or is invalid";
+                return false;
+            }
+
+
+            if (!PatchLine(lines, "laddr", $"\"tcp://{StripURL(_tendermint_RPC_URL)}\""))
+            {
+                return false;
+            }
+
+            if (!PatchLine(lines, "proxy_app", $"\"tcp://{StripURL(_tendermint_Proxy_URL)}\""))
+            {
+                return false;
+            }
+
+            if (!PatchLine(lines, "abci", "\"grpc\""))
+            {
+                return false;
+            }
+
+            if (!PatchLine(lines, "addr_book_strict", isMainnet ? "true" : "false"))
+            {
+                return false;
+            }
+
+            if (!PatchLine(lines, "allow_duplicate_ip", isMainnet ? "false" : "true"))
+            {
+                return false;
+            }
+
+            if (!PatchLine(lines, "create_empty_blocks", "false"))
+            {
+                return false;
+            }
+
+            var peers = Settings.Instance.Node.TendermintPeers;
+            if (!PatchLine(lines, "persistent_peers", $"\"{peers}\""))
+            {
+                return false;
+            }
+
+            File.WriteAllLines(keyFile, lines);
+
+            return true;
+        }
+
+        // TODO rewrite this method using proper JSON manipulation, this is just a temp hack
+        private bool PatchTendermintGenesis()
+        {
+            var genesisFile = Path.Combine(_tendermintHome, "config/genesis.json");
+
+            if (!File.Exists(genesisFile))
+            {
+                _patchError = "Could not find file: " + genesisFile;
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(Settings.Instance.Node.TendermintChainID))
+            {
+                _patchError = "tendermint.chainid is not set or invalid";
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(Settings.Instance.Node.TendermintGenesis))
+            {
+                _patchError = "tendermint.genesis is not set or invalid";
+                return false;
+            }
+
+            var lines = new List<string>();
+            lines.Add("{");
+            lines.Add($"\t\"genesis_time\": \"{Settings.Instance.Node.TendermintGenesis}\",");
+            lines.Add($"\t\"chain_id\": \"{Settings.Instance.Node.TendermintChainID}\",");
+            lines.Add(
+$@"  ""initial_height"": ""0"",
+  ""consensus_params"": {{
+    ""block"": {{
+      ""max_bytes"": ""22020096"",
+      ""max_gas"": ""-1"",
+      ""time_iota_ms"" : ""1000""
+    }},
+    ""evidence"": {{
+      ""max_age_num_blocks"": ""100000"",
+      ""max_age_duration"": ""172800000000000"",
+      ""max_bytes"": ""1048576""
+    }},
+    ""validator"": {{
+      ""pub_key_types"": [
+        ""ed25519""
+      ]
+    }},
+    ""version"": {{
+      ""app_version"": ""0""
+    }}
+  }},
+  ""validators"": [");
+
+            int idx = 0;
+            var validators = Settings.Instance.Node.SeedValidators;
+
+            if (validators.Count < 3)
+            {
+                _patchError = "Validators array is not set or invalid";
+                return false;
+            }
+
+            foreach (var validator in validators)
+            {
+                var name = "node" + idx;
+
+                idx++;
+
+                var pubKey = validator.ToByteArray()[2..];
+                var encodedPubKey = Convert.ToBase64String(pubKey);
+
+                lines.Add("\t{");
+                lines.Add($"\t\t\"address\": \"{validator.TendermintAddress}\",");
+                lines.Add("\t\t\"pub_key\": {");
+                lines.Add("\t\t\t\"type\": \"tendermint/PubKeyEd25519\",");
+                lines.Add($"\t\t\t\"value\": \"{encodedPubKey}\"");
+                lines.Add("\t\t},");
+                lines.Add("\t\t\"power\": \"1\",");
+                lines.Add($"\t\t\"name\": \"{name}\"");
+                lines.Add(idx == validators.Count ? "\t}" : "\t},");
+            }
+
+            lines.Add("  ],");
+            lines.Add("  \"app_hash\": \"\"");
+            lines.Add("}");
+            File.WriteAllLines(genesisFile, lines);
+
+            return true;
+        }
+
+        private static string StripURL(string url)
+        {
+            return url.Replace("http://", "", StringComparison.OrdinalIgnoreCase).Replace("https://", "", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private string _patchError = "generic patch error";
+        private bool PatchLine(string[] lines, string setting, string newValue)
+        {
+            var expectedLineStart = setting + " = ";
+
+            for (int i=0; i<lines.Length; i++)
+            {
+                if (lines[i].Trim().StartsWith(expectedLineStart, StringComparison.OrdinalIgnoreCase))
+                {
+                    lines[i] = expectedLineStart + newValue;
+                    return true;
+                }
+            }
+
+            _patchError = "Could not patch setting: " + setting;
+            return false;
+        }
+
+        private void StopTendermint()
+        {
+            if (_tendermintProcess != null)
+            {
+                if (!_tendermintProcess.HasExited)
+                {
+                    Log.Warning("Stopping Tendermint process");
+                    _tendermintProcess.Kill();
+                }
+            }
+        }
+
+        private bool RunTendermint(string tendermintPath, string launchArgs)
+        {
+            StopTendermint();
+
+            launchArgs = $"--home \"{_tendermintHome}\" {launchArgs}";
 
             _tendermintProcess = new Process();
             _tendermintProcess.StartInfo = new ProcessStartInfo
             {
                 FileName = tendermintPath,
-                Arguments = string.Join(' ', launchArgs),
+                Arguments = launchArgs,
+                UseShellExecute = false,
+                CreateNoWindow = true,
                 RedirectStandardError = true,
                 RedirectStandardOutput = true
             };
-            _tendermintProcess.OutputDataReceived += (sender, a) =>
-                Console.WriteLine(a.Data);
-            _tendermintProcess.Start();
-            _tendermintProcess.BeginOutputReadLine();
 
-            return true;
-        }*/
+            var result = _tendermintProcess.Start();
+
+            new Thread(() =>
+            {
+                DumpStream(_tendermintProcess.StandardOutput);
+            }).Start();
+
+            DumpStream(_tendermintProcess.StandardError);
+
+            return result;
+        }
+
+        private void DumpStream(StreamReader stream)
+        {
+            while (!stream.EndOfStream)
+            {
+                string line = stream.ReadLine();
+
+                lock (this)
+                {
+                    var tmp = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine(line);
+                    Console.ForegroundColor = tmp;
+                }
+            }
+        }
 
         private bool SetupNexus()
         {
@@ -258,7 +605,6 @@ namespace Phantasma.Node
             var storagePath = Settings.Instance.Node.StoragePath;
             var oraclePath = Settings.Instance.Node.OraclePath;
             var nexusName = Settings.Instance.Node.NexusName;
-            var rpcUrl = Settings.Instance.Node.TendermintRPCHost+ ":" + Settings.Instance.Node.TendermintRPCPort;
 
             switch (Settings.Instance.Node.StorageBackend)
             {
@@ -275,7 +621,7 @@ namespace Phantasma.Node
                     throw new Exception("Backend has to be set to either \"db\" or \"file\"");
             }
 
-            NexusAPI.TRPC = new NodeRpcClient(rpcUrl);
+            NexusAPI.TRPC = new NodeRpcClient(_tendermint_RPC_URL);
 
             Log.Information("Nexus is set");
 
@@ -347,6 +693,8 @@ namespace Phantasma.Node
         protected override void OnStop()
         {
             Log.Information("Termination started...");
+
+            StopTendermint();
 
             //if (_node != null && _node.IsRunning)
             //{
