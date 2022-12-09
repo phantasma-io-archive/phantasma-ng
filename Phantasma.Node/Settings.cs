@@ -503,6 +503,10 @@ namespace Phantasma.Node
             Webhook.Token = Token; 
             Webhook.Channel = Channel; 
             Webhook.Prefix = Prefix; 
+            Log.Logger.Information($"Webhook settings loaded");
+            Log.Logger.Information($"Webhook Token {Webhook.Token}");
+            Log.Logger.Information($"Webhook Channel {Webhook.Channel}");
+            Log.Logger.Information($"Webhook Prefix {Webhook.Prefix}");
         }
     }
 
