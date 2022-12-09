@@ -17,6 +17,43 @@ namespace Phantasma.Business.Tests.Blockchain;
 public class TokenTests
 {
     [Fact]
+    public void SimpleTokenTransfer()
+    {
+        var owner = PhantasmaKeys.Generate();
+
+        var simulator = new NexusSimulator(owner);
+        var nexus = simulator.Nexus;
+
+        var testUserA = PhantasmaKeys.Generate();
+        var testUserB = PhantasmaKeys.Generate();
+
+        var fuelAmount = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
+        var transferAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
+
+        simulator.BeginBlock();
+        var txA = simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
+        var txB = simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        // Send from user A to user B
+        simulator.BeginBlock();
+        var txC = simulator.GenerateTransfer(testUserA, testUserB.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        var hashes = simulator.Nexus.RootChain.GetTransactionHashesForAddress(testUserA.Address);
+        Assert.True(hashes.Length == 3);
+        Assert.True(hashes.Any(x => x == txA.Hash));
+        Assert.True(hashes.Any(x => x == txB.Hash));
+        Assert.True(hashes.Any(x => x == txC.Hash));
+
+        var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
+        var finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserB.Address);
+        Assert.True(finalBalance == transferAmount);
+    }
+
+    [Fact]
     public void FuelTokenTransfer()
     {
         var owner = PhantasmaKeys.Generate();
@@ -126,7 +163,15 @@ public class TokenTests
 
         simulator.BeginBlock();
         simulator.GenerateToken(owner, symbol, $"{symbol}Token", 1000000000, 3, flags/*, script, labels*/);
-        var tx = simulator.MintTokens(owner, owner.Address, symbol, 1000);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        simulator.BeginBlock();
+        simulator.MintTokens(owner, owner.Address, symbol, 1000);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        simulator.BeginBlock();
         simulator.GenerateTransfer(owner, target.Address, simulator.Nexus.RootChain as Chain, symbol, 10);
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
