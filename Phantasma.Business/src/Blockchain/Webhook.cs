@@ -1,3 +1,4 @@
+using System;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,8 +10,6 @@ using Serilog;
 namespace Phantasma.Business.Blockchain;
 
 public static class Webhook
-
-    
 {
     private const string WebhookUrl = "https://discordapp.com/api/webhooks";
     public static string Prefix { get; set; } // For example testnet / mainnet
@@ -25,19 +24,30 @@ public static class Webhook
             return;
         }
         var client = new HttpClient();
-        var msgContent = "{\"content\": \"@everyone Chain Warning ( "+Prefix+" ) -- {"+message+"}\"," +
+        client.DefaultRequestHeaders.TryAddWithoutValidation("Content-Type", "application/json");
+        var url = $"{WebhookUrl}/{Channel}/{Token}";
+        var myMessaContent = "@everyone Chain Warning ( " + Prefix + " ) -- {" + message + "}";
+        
+        // Calculate the number of chunks we need
+        int chunkCount = (int)Math.Ceiling((double)myMessaContent.Length / 2000);
+
+        string[] messages = new string[chunkCount];
+        
+        // Split the message into chunks
+        for (int i = 0; i < chunkCount; i++)
+        {
+            messages[i] = myMessaContent.Substring(i * 2000, Math.Min(2000, myMessaContent.Length - i * 2000));
+            
+            var msgContent = "{\"content\": \""+messages[i]+" \"," +
                              "\"username\": \"Chain Notify\"," +
                              "\"allowed_mentions\": {" +
-                                 "\"parse\": [\"everyone\"]," +
-                                 "\"users\": []" +
+                             "\"parse\": [\"everyone\"]," +
+                             "\"users\": []" +
                              "}" +
-                         "}";
-        
-        var url = $"{WebhookUrl}/{Channel}/{Token}";
-        
-        client.DefaultRequestHeaders.TryAddWithoutValidation("Content-Type", "application/json");
-        var content = new StringContent(msgContent, Encoding.UTF8, "application/json");
-        var response = client.PostAsync(url, content).GetAwaiter().GetResult();
+                             "}";
+            var content = new StringContent(msgContent, Encoding.UTF8, "application/json");
+            var response = client.PostAsync(url, content).GetAwaiter().GetResult();
+        }
         return;
     }
 }
