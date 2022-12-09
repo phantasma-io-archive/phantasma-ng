@@ -65,7 +65,7 @@ namespace Phantasma.Node
 
         public Node()
         {
-            this.ABCIConnector = new ABCIConnector(Settings.Default.Node.SeedValidators, Settings.Default.Node.MinimumFee);
+            this.ABCIConnector = new ABCIConnector(Settings.Instance.Node.SeedValidators, Settings.Instance.Node.MinimumFee);
         }
 
         protected override void OnStart()
@@ -94,7 +94,7 @@ namespace Phantasma.Node
                 return;
             }
 
-            var rpcUrl = Settings.Default.Node.TendermintRPCHost+ ":" + Settings.Default.Node.TendermintRPCPort;
+            var rpcUrl = Settings.Instance.Node.TendermintRPCHost+ ":" + Settings.Instance.Node.TendermintRPCPort;
 
             this.ABCIConnector.SetNodeInfo(NexusAPI.Nexus, rpcUrl, _nodeKeys);
 
@@ -104,7 +104,7 @@ namespace Phantasma.Node
 
             var server = new Server(options)
             {
-                Ports = { new ServerPort(Settings.Default.Node.TendermintProxyHost, Settings.Default.Node.TendermintProxyPort
+                Ports = { new ServerPort(Settings.Instance.Node.TendermintProxyHost, Settings.Instance.Node.TendermintProxyPort
                         , ServerCredentials.Insecure) },
                 Services = { ABCIApplication.BindService(this.ABCIConnector) },
             };
@@ -134,9 +134,9 @@ namespace Phantasma.Node
 
         public TokenSwapper StartTokenSwapper()
         {
-            var platforms = Settings.Default.Oracle.Swaps.Split(',');
-            var minimumFee = Settings.Default.Node.MinimumFee;
-            var oracleSettings = Settings.Default.Oracle;
+            var platforms = Settings.Instance.Oracle.Swaps.Split(',');
+            var minimumFee = Settings.Instance.Node.MinimumFee;
+            var oracleSettings = Settings.Instance.Oracle;
             var tokenSwapper = new TokenSwapper(this, _nodeKeys, _neoAPI, _ethAPI, minimumFee, platforms);
             NexusAPI.TokenSwapper = tokenSwapper;
 
@@ -161,13 +161,6 @@ namespace Phantasma.Node
 
         private String prompt { get; set; } = "Node> ";
 
-        public void MakeReady()
-        {
-            var nodeMode = Settings.Default.Node.Mode;
-            Log.Information($"Node is now running in {nodeMode.ToString().ToLower()} mode!");
-            _nodeReady = true;
-        }
-
         private string PromptGenerator()
         {
             var height = NexusAPI.Nexus.RootChain.Height.ToString();
@@ -176,20 +169,20 @@ namespace Phantasma.Node
 
         private void SetupOracleApis()
         {
-            var neoScanURL = Settings.Default.Oracle.NeoscanUrl;
+            var neoScanURL = Settings.Instance.Oracle.NeoscanUrl;
 
-            var neoRpcList = Settings.Default.Oracle.NeoRpcNodes;
+            var neoRpcList = Settings.Instance.Oracle.NeoRpcNodes;
             this._neoAPI = new RemoteRPCNode(neoScanURL, neoRpcList.ToArray());
             this._neoAPI.SetLogger((s) => Log.Information(s));
 
-            var ethRpcList = Settings.Default.Oracle.EthRpcNodes;
+            var ethRpcList = Settings.Instance.Oracle.EthRpcNodes;
             
-            var ethWIF = Settings.Default.GetInteropWif(_nodeKeys, EthereumWallet.EthereumPlatform);
+            var ethWIF = Settings.Instance.GetInteropWif(_nodeKeys, EthereumWallet.EthereumPlatform);
             //TODO
             var ethKeys = PhantasmaKeys.FromWIF("L4GcHJVrUPz6nW2EKJJGV2yxfa5UoaG8nfnaTAgzmWyuAmt3BYKg");
 
             this._ethAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()));
-            this._cryptoCompareAPIKey = Settings.Default.Oracle.CryptoCompareAPIKey;
+            this._cryptoCompareAPIKey = Settings.Instance.Oracle.CryptoCompareAPIKey;
             if (!string.IsNullOrEmpty(this._cryptoCompareAPIKey))
             {
                 Log.Information($"CryptoCompare API enabled.");
@@ -213,7 +206,7 @@ namespace Phantasma.Node
 
             if (nodeKeys is null)
             {
-                nodeKeys = new PhantasmaKeys(Convert.FromBase64String(Settings.Default.Node.TendermintKey));
+                nodeKeys = new PhantasmaKeys(Convert.FromBase64String(Settings.Instance.Node.TendermintKey));
             }
 
             //if (nodeKeys is null)
@@ -262,12 +255,12 @@ namespace Phantasma.Node
         private bool SetupNexus()
         {
             Log.Information("Setting up nexus...");
-            var storagePath = Settings.Default.Node.StoragePath;
-            var oraclePath = Settings.Default.Node.OraclePath;
-            var nexusName = Settings.Default.Node.NexusName;
-            var rpcUrl = Settings.Default.Node.TendermintRPCHost+ ":" + Settings.Default.Node.TendermintRPCPort;
+            var storagePath = Settings.Instance.Node.StoragePath;
+            var oraclePath = Settings.Instance.Node.OraclePath;
+            var nexusName = Settings.Instance.Node.NexusName;
+            var rpcUrl = Settings.Instance.Node.TendermintRPCHost+ ":" + Settings.Instance.Node.TendermintRPCPort;
 
-            switch (Settings.Default.Node.StorageBackend)
+            switch (Settings.Instance.Node.StorageBackend)
             {
                 case StorageBackendType.CSV:
                     Log.Information("Setting CSV nexus...");
@@ -295,7 +288,7 @@ namespace Phantasma.Node
         {
             Log.Information($"Initializing nexus API...");
 
-            NexusAPI.ApiLog = Settings.Default.Node.ApiLog;
+            NexusAPI.ApiLog = Settings.Instance.Node.ApiLog;
         }
 
         private static JsonSerializerOptions GetDefaultSerializerOptions()
@@ -310,36 +303,10 @@ namespace Phantasma.Node
 
         private void ValidateConfig()
         {
-            if (Settings.Default.Node.ApiProxyUrl != null)
-            {
-                if (!Settings.Default.Node.ApiCache)
-                {
-                    throw new Exception("A proxy node must have api cache enabled.");
-                }
-
-                // TEMP commented for now, "Normal" node needs a proxy url to relay transactions to the BPs
-                //if (Settings.Node.Mode != NodeMode.Proxy)
-                //{
-                //    throw new Exception($"A {Settings.Node.Mode.ToString().ToLower()} node cannot have a proxy url specified.");
-                //}
-
-                if (!Settings.Default.Node.HasRpc && !Settings.Default.Node.HasRest)
-                {
-                    throw new Exception("API proxy must have REST or RPC enabled.");
-                }
-            }
-            else
-            {
-                if (Settings.Default.Node.Mode == NodeMode.Proxy)
-                {
-                    throw new Exception($"A {Settings.Default.Node.Mode.ToString().ToLower()} node must have a proxy url specified.");
-                }
-            }
-
-            if (!Settings.Default.Node.IsValidator && !string.IsNullOrEmpty(Settings.Default.Oracle.Swaps))
+            /*if (!Settings.Default.Node.IsValidator && !string.IsNullOrEmpty(Settings.Default.Oracle.Swaps))
             {
                     throw new Exception("Non-validator nodes cannot have swaps enabled");
-            }
+            }*/
 
 
             // TODO to be continued...
@@ -349,16 +316,16 @@ namespace Phantasma.Node
         protected override bool Run()
         {
 
-            if (Settings.Default.App.UseShell)
+            if (Settings.Instance.App.UseShell)
             {
                 List<string> completionList = new List<string>();
 
-                if (!string.IsNullOrEmpty(Settings.Default.App.Prompt))
+                if (!string.IsNullOrEmpty(Settings.Instance.App.Prompt))
                 {
-                    prompt = Settings.Default.App.Prompt;
+                    prompt = Settings.Instance.App.Prompt;
                 }
 
-                var startupMsg = "Nodeshell " + Version + "\nLogs are stored in " + Settings.Default.Log.LogPath + "\nTo exit use <ctrl-c> or \"exit\"!\n";
+                var startupMsg = "Nodeshell " + Version + "\nLogs are stored in " + Settings.Instance.Log.LogPath + "\nTo exit use <ctrl-c> or \"exit\"!\n";
 
                 Prompt.Run(
                     ((command, listCmd, list) =>
@@ -366,7 +333,7 @@ namespace Phantasma.Node
                         string command_main = command.Trim().Split(new char[] { ' ' }).First();
 
                         return "";
-                    }), prompt, PromptGenerator, startupMsg, Path.GetTempPath() + Settings.Default.App.History, null);
+                    }), prompt, PromptGenerator, startupMsg, Path.GetTempPath() + Settings.Instance.App.History, null);
             }
             else
             {

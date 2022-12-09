@@ -112,7 +112,7 @@ namespace Phantasma.Node
 
         public string _configFile;
 
-        public static Settings Default { get; private set; }
+        public static Settings Instance { get; private set; }
 
         private Settings(string[] args, IConfigurationSection section)
         {
@@ -154,17 +154,6 @@ namespace Phantasma.Node
                 this.Log = new LogSettings(section.GetSection("Log"));
                 this.RPC = new RPCSettings(section.GetSection("RPC"));
                 this.PerformanceMetrics = section.GetSection("PerformanceMetrics").Get<PerformanceMetricsSettings>();
-
-                var usedPorts = new HashSet<int>();
-                int expected = 0;
-                usedPorts.Add(this.Node.NodePort); expected++;
-                usedPorts.Add(this.Node.RestPort); expected++;
-                usedPorts.Add(this.Node.RpcPort); expected++;
-
-                if (usedPorts.Count != expected)
-                {
-                    throw new Exception("One or more ports are being re-used for different services, check the config");
-                }
             }
             catch (Exception e)
             {
@@ -175,7 +164,7 @@ namespace Phantasma.Node
 
         public static void Load(string[] args, IConfigurationSection section)
         {
-            Default = new Settings(args, section);
+            Instance = new Settings(args, section);
         }
 
         public string GetInteropWif(PhantasmaKeys nodeKeys, string platformName)
@@ -229,12 +218,8 @@ namespace Phantasma.Node
 
     public class NodeSettings
     {
-        public string ApiProxyUrl { get; }
         public string NexusName { get; }
         public string ProfilerPath { get; }
-        public NodeMode Mode { get; }
-        public string NodeWif { get; }
-
         public string StoragePath { get; }
         public string OraclePath { get; }
         public StorageBackendType StorageBackend;
@@ -244,23 +229,14 @@ namespace Phantasma.Node
 
         public bool RandomSwapData { get; } = false;
 
-        public int NodePort { get; }
-        public string NodeHost { get; }
-
-        public bool IsValidator => Mode == NodeMode.Validator;
-
         public bool HasSync { get; }
         public bool HasMempool { get; }
         public bool MempoolLog { get; }
         public bool HasEvents { get; }
         public bool HasRelay { get; }
         public bool HasArchive { get; }
-        public bool HasRpc { get; }
-        public int RpcPort { get; } = 7077;
         public List<Address> SeedValidators { get; }
-
-        public bool HasRest { get; }
-        public int RestPort { get; } = 7078;
+        public string APIURL { get; } = "http://localhost:5101";
 
         public bool NexusBootstrap { get; }
         public uint GenesisTimestampUint { get; }
@@ -310,31 +286,14 @@ namespace Phantasma.Node
                 throw new Exception("Proof-Of-Work difficulty has to be between 1 and 5");
             }
 
-            this.ApiProxyUrl = section.GetString("api.proxy.url");
-
-            if (string.IsNullOrEmpty(this.ApiProxyUrl))
-            {
-                this.ApiProxyUrl = null;
-            }
-
             this.SeedValidators = section.GetSection("seed.validators").AsEnumerable()
                 .Where(p => p.Value != null)
                 .Select(p => Address.FromText(p.Value))
                 .ToList();
 
-            this.Mode = section.GetValueEx<NodeMode>("node.mode", NodeMode.Invalid);
-            if (this.Mode == NodeMode.Invalid)
-            {
-                throw new Exception("Unknown node mode specified");
-            }
-
             this.NexusName = section.GetString("nexus.name");
-            this.NodeWif = section.GetString("node.wif");
             this.StorageConversion = section.GetValueEx<bool>("convert.storage");
             this.ApiLog = section.GetValueEx<bool>("api.log");
-
-            this.NodePort = section.GetValueEx<Int32>("node.port");
-            this.NodeHost = section.GetString("node.host", "localhost");
 
             this.ProfilerPath = section.GetString("profiler.path");
             if (string.IsNullOrEmpty(this.ProfilerPath)) this.ProfilerPath = null;
@@ -346,10 +305,7 @@ namespace Phantasma.Node
             this.HasRelay = section.GetValueEx<bool>("has.relay");
             this.HasArchive = section.GetValueEx<bool>("has.archive");
 
-            this.HasRpc = section.GetValueEx<bool>("has.rpc");
-            this.RpcPort = section.GetValueEx<Int32>("rpc.port");
-            this.HasRest = section.GetValueEx<bool>("has.rest");
-            this.RestPort = section.GetValueEx<Int32>("rest.port");
+            this.APIURL = section.GetString("api.url");
 
             this.NexusBootstrap = section.GetValueEx<bool>("nexus.bootstrap");
             this.GenesisTimestampUint = section.GetValueEx<UInt32>("genesis.timestamp");
