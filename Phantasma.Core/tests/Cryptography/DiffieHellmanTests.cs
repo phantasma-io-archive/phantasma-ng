@@ -35,6 +35,24 @@ public class DiffieHellmanTests
     }
     
     // Write tests based on DiffieHellman class
+    [Fact (Skip = "not working")]
+    public void GetSharedSecret_ShouldReturnValidSharedSecret()
+    {
+        // Arrange
+        var localPrivateKeyBytes = new byte[32];
+        var remotePublicKeyBytes = new byte[64];
+        PhantasmaKeys keys = new PhantasmaKeys(localPrivateKeyBytes);
+        PhantasmaKeys remoteKeys = new PhantasmaKeys(remotePublicKeyBytes);
+        var expectedSharedSecret = new byte[32];
+
+        // Act
+        var sharedSecret = DiffieHellman.GetSharedSecret(keys.PrivateKey, remoteKeys.PublicKey);
+
+        // Assert
+        Assert.Equal(expectedSharedSecret, sharedSecret);
+    }
+    
+    
     [Fact]
     public void TestDiffieHellman2()
     {

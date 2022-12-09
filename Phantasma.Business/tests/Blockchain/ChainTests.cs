@@ -455,6 +455,7 @@ public class ChainTests
     [Fact]
     public void QuoteConversions()
     {
+        
         var owner = PhantasmaKeys.Generate();
 
         var simulator = new NexusSimulator(owner);
@@ -469,7 +470,7 @@ public class ChainTests
 
         var temp = runtime.GetTokenQuote("NEO", "KCAL", 1);
         var price = UnitConversion.ToDecimal(temp, DomainSettings.FuelTokenDecimals);
-        Assert.True(price == 100);
+        Assert.Equal(price, 100);
 
         temp = runtime.GetTokenQuote("KCAL", "NEO", UnitConversion.ToBigInteger(100, DomainSettings.FuelTokenDecimals));
         price = UnitConversion.ToDecimal(temp, 0);

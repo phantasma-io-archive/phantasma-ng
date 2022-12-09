@@ -17,6 +17,7 @@ using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 using Serilog;
+using Serilog.Core;
 
 namespace Phantasma.Business.Blockchain
 {
@@ -218,8 +219,29 @@ namespace Phantasma.Business.Blockchain
                 }*/
                 
                 var whitelisted = TransactionExtensions.IsWhitelisted(methods);
-
-                if (!whitelisted)
+                if (whitelisted)
+                {
+                    if (methods.Any(x => x.MethodName.Equals(nameof(SwapContract.SwapFee)) || x.MethodName.Equals(nameof(ExchangeContract.SwapFee))))
+                    {
+                        var existsLPToken = Nexus.TokenExists(Storage, DomainSettings.LiquidityTokenSymbol);
+                        if (existsLPToken) // Check for the Exchange contract
+                        {
+                            var exchangePot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Exchange));
+                            if (exchangePot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
+                                return (CodeType.Error, $"Empty pot Exchange");
+                            }
+                        }
+                        else
+                        {
+                            // Run the Swap contract
+                            var pot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Swap));
+                            if (pot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
+                                return (CodeType.Error, $"Empty pot Swap");
+                            }
+                        }
+                    }
+                }
+                else
                 {
                     var minFee = Nexus.GetGovernanceValue(Nexus.RootStorage, GovernanceContract.GasMinimumFeeTag);
                     if (gasPrice < minFee)
@@ -246,7 +268,6 @@ namespace Phantasma.Business.Blockchain
                         }
                     }
                 }
-
             }
 
             if (tx.Script.Length == 0)
