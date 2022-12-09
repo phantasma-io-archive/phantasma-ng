@@ -174,21 +174,21 @@ namespace Phantasma.Node.Oracles
                     {
                         if ((Timestamp.Now - fee.Time) < 60)
                         {
-                            var logMessage = $"PullFee({platform}): Cached fee pulled: {fee.Value}, GAS limit: {Settings.Default.Oracle.EthGasLimit}, calculated fee: {fee.Value * Settings.Default.Oracle.EthGasLimit}";
+                            var logMessage = $"PullFee({platform}): Cached fee pulled: {fee.Value}, GAS limit: {Settings.Instance.Oracle.EthGasLimit}, calculated fee: {fee.Value * Settings.Instance.Oracle.EthGasLimit}";
                             Log.Debug(logMessage);
 
-                            return fee.Value * Settings.Default.Oracle.EthGasLimit;
+                            return fee.Value * Settings.Instance.Oracle.EthGasLimit;
                         }
                     }
 
-                    var newFee = EthereumInterop.GetNormalizedFee(Settings.Default.Oracle.EthFeeURLs.ToArray());
+                    var newFee = EthereumInterop.GetNormalizedFee(Settings.Instance.Oracle.EthFeeURLs.ToArray());
                     fee = new CachedFee(Timestamp.Now, UnitConversion.ToBigInteger(newFee, 9)); // 9 for GWEI
                     _feeCache[platform] = fee;
 
-                    var logMessage2 = $"PullFee({platform}): New fee pulled: {fee.Value}, GAS limit: {Settings.Default.Oracle.EthGasLimit}, calculated fee: {fee.Value * Settings.Default.Oracle.EthGasLimit}";
+                    var logMessage2 = $"PullFee({platform}): New fee pulled: {fee.Value}, GAS limit: {Settings.Instance.Oracle.EthGasLimit}, calculated fee: {fee.Value * Settings.Instance.Oracle.EthGasLimit}";
                     Log.Debug(logMessage2);
 
-                    return fee.Value * Settings.Default.Oracle.EthGasLimit;
+                    return fee.Value * Settings.Instance.Oracle.EthGasLimit;
 
                 default:
                     throw new OracleException($"Support for {platform} fee not implemented in this node");
@@ -198,8 +198,8 @@ namespace Phantasma.Node.Oracles
         protected override decimal PullPrice(Timestamp time, string symbol)
         {
             var apiKey = _cli.CryptoCompareAPIKey;
-            var pricerCGEnabled = Settings.Default.Oracle.PricerCoinGeckoEnabled;
-            var pricerSupportedTokens = Settings.Default.Oracle.PricerSupportedTokens.ToArray();
+            var pricerCGEnabled = Settings.Instance.Oracle.PricerCoinGeckoEnabled;
+            var pricerSupportedTokens = Settings.Instance.Oracle.PricerSupportedTokens.ToArray();
 
             if (symbol == DomainSettings.FuelTokenSymbol)
             {
@@ -249,7 +249,7 @@ namespace Phantasma.Node.Oracles
                         throw new OracleException($"Neo block is null");
                     }
 
-                    var coldStorage = Settings.Default.Oracle.SwapColdStorageNeo;
+                    var coldStorage = Settings.Instance.Oracle.SwapColdStorageNeo;
                     interopTuple = NeoInterop.MakeInteropBlock(neoBlock, _cli.NeoAPI,
                             ((TokenSwapper)tokenSwapper).SwapAddresses[platformName], coldStorage);
                     break;
@@ -258,7 +258,7 @@ namespace Phantasma.Node.Oracles
                         .Select(x => x.ToString().Substring(0, 40)).ToArray();
                 
                     interopTuple = EthereumInterop.MakeInteropBlock(nexus, _cli.EthAPI, height,
-                            hashes, Settings.Default.Oracle.EthConfirmations, ((TokenSwapper)tokenSwapper).SwapAddresses[platformName]);
+                            hashes, Settings.Instance.Oracle.EthConfirmations, ((TokenSwapper)tokenSwapper).SwapAddresses[platformName]);
                     break;
 
                 default:
@@ -310,7 +310,7 @@ namespace Phantasma.Node.Oracles
                     NeoTx neoTx;
                     UInt256 uHash = new UInt256(NeoUtils.ReverseHex(hash.ToString()).HexToBytes());
                     neoTx = _cli.NeoAPI.GetTransaction(uHash);
-                    var coldStorage = Settings.Default.Oracle.SwapColdStorageNeo;
+                    var coldStorage = Settings.Instance.Oracle.SwapColdStorageNeo;
                     tx = NeoInterop.MakeInteropTx(neoTx, _cli.NeoAPI, ((TokenSwapper)tokenSwapper).SwapAddresses[platformName], coldStorage);
                     break;
                 case EthereumWallet.EthereumPlatform:
