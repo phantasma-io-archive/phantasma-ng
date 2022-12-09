@@ -28,6 +28,12 @@ public class SharedArchiveEncryptionTests
             Assert.Equal(data, decrypted);
         });
         
+        Assert.Throws<ChainException>(() =>
+        {
+            var decrypted = archive.Decrypt(data, user);
+            Assert.Equal(data, decrypted);
+        });
+        
     }
     
     [Fact]
@@ -46,6 +52,12 @@ public class SharedArchiveEncryptionTests
             var decrypted = archive.DecryptName(encrypted, user);
             Assert.Equal(data, decrypted);
         });
-        
+
+        Assert.Throws<NotImplementedException>(() =>
+        {
+            var decrypted = archive.DecryptName(data, user);
+            Assert.NotNull(decrypted);
+        });
+
     }
 }

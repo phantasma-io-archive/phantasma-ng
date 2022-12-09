@@ -31,12 +31,15 @@ public class FilterTests
         var sender = owner;
 
         simulator.BeginBlock();
-        simulator.GenerateTransfer(sender, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
+        simulator.GenerateTransfer(sender, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol,
+            fuelAmount);
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
 
         var oracle = nexus.GetOracleReader();
-        var price = UnitConversion.ToDecimal(oracle.ReadPrice(simulator.CurrentTime, DomainSettings.StakingTokenSymbol), DomainSettings.StakingTokenDecimals);
+        var price = UnitConversion.ToDecimal(
+            oracle.ReadPrice(simulator.CurrentTime, DomainSettings.StakingTokenSymbol),
+            DomainSettings.StakingTokenDecimals);
         Assert.True(price > 0);
 
         var total = (int)(Filter.Quota / price) + 1;
@@ -44,15 +47,18 @@ public class FilterTests
         Assert.True(transferAmount > 0);
 
         simulator.BeginBlock();
-        simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
+        simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol,
+            transferAmount);
         simulator.EndBlock();
         Assert.False(simulator.LastBlockWasSuccessful());
 
         var hashes = simulator.Nexus.RootChain.GetTransactionHashesForAddress(testUser.Address);
         Assert.True(hashes.Length == 1);
 
-        var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
-        var finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
+        var stakeToken =
+            simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
+        var finalBalance =
+            simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         Assert.True(finalBalance == 0);
 
         Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));

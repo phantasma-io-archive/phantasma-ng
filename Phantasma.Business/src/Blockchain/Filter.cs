@@ -113,6 +113,7 @@ namespace Phantasma.Business.Blockchain
 
         public static void AddRedFilteredAddress(StorageContext context, Address address)
         {
+            Webhook.Notify($"Address filtered {address.Text}");
             AddFilteredAddress(context, address, FilterRedStorage);
         }
 

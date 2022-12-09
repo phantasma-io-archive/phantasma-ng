@@ -80,4 +80,36 @@ public class BigIntegerExtensionTests
         var result = value.IsParsable();
         result.ShouldBeFalse();
     }
+    
+    [Fact]
+    public void test_getBitLength()
+    {
+        BigInteger value = 31;
+        var result = value.GetBitLength();
+        result.ShouldBe(5);
+    }
+    
+    [Fact]
+    public void test_getLowestSetBit()
+    {
+        BigInteger value = 32;
+        var result = value.GetLowestSetBit();
+        result.ShouldBe(5);
+    }
+    
+    [Fact]
+    public void test_toUsignedByteArray()
+    {
+        BigInteger value = 32;
+        var result = value.ToUnsignedByteArray();
+        result.ShouldBe(new byte[] {32});
+        
+        value = BigInteger.Zero;
+        result = value.ToUnsignedByteArray();
+        result.ShouldBe( new byte[0]);
+        
+        value = new BigInteger(-10);
+        result = value.ToUnsignedByteArray();
+        result.ShouldBe(new byte[] {10});
+    }
 }

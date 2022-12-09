@@ -200,8 +200,55 @@ public class SwapContractTest
         Assert.False(currentSoulBalance < startingSoulBalance, $"{currentSoulBalance} < {startingSoulBalance}");
         Assert.False(currentKcalBalance > startingKcalBalance, $"{currentKcalBalance} > {startingKcalBalance}");
     }
-    
-    
+
+    [Fact]
+    public void TestCosmicSwapsWithoutFunds()
+    {
+        var testUser = PhantasmaKeys.Generate();
+
+        var soulAmount = UnitConversion.ToBigInteger(1000, 8);
+        var soulUserAmount = UnitConversion.ToBigInteger(10, 8);
+        var kcalAmount = UnitConversion.ToBigInteger(1000, 10);
+
+        simulator.BeginBlock();
+        
+        simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol,
+            soulUserAmount);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        var fuelToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
+        var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
+
+        var startingSoulBalance =
+            simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
+        var startingKcalBalance =
+            simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+
+        BigInteger swapAmount = UnitConversion.ToBigInteger(0.5m, 8);
+
+        // Should fail -> Order of scripts
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapFee), testUser.Address,
+                    DomainSettings.StakingTokenSymbol, swapAmount)
+                .AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .SpendGas(testUser.Address)
+                .EndScript()); 
+        
+        Assert.Throws<ChainException>(() => {simulator.EndBlock(); });
+        Assert.True(simulator.LastBlockWasSuccessful()); // this regarding the first transaction not this one.
+        
+
+        var currentSoulBalance =
+            simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
+        var currentKcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
+
+        Assert.False(currentSoulBalance < startingSoulBalance, $"{currentSoulBalance} < {startingSoulBalance}");
+        Assert.False(currentKcalBalance > startingKcalBalance, $"{currentKcalBalance} > {startingKcalBalance}");
+    }
+
     /*
         [Fact]
         public void GetRatesForSwap()
