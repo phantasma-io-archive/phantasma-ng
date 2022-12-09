@@ -637,10 +637,27 @@ public class Nexus : INexus
         throw new ChainException($"Token does not exist ({symbol})");
     }
 
+    private bool IsDangerousSymbol(string symbol)
+    {
+        return (symbol == DomainSettings.StakingTokenSymbol || symbol == "ETH" || symbol == "GAS" || symbol == "NEO" || symbol == "BNB" || symbol == "USD" || symbol == "USDT" || symbol == "USDC" || symbol == "DAI" || symbol == "BTC");
+    }
+
     public void MintTokens(IRuntime Runtime, IToken token, Address source, Address destination, string sourceChain, BigInteger amount)
     {
         Runtime.Expect(token.IsFungible(), "must be fungible");
         Runtime.Expect(amount > 0, "invalid amount");
+
+        if (Runtime.HasGenesis)
+        {
+            if (token.Symbol == DomainSettings.FuelTokenSymbol)
+            {
+                Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via claiming", source);
+            }
+            else
+            {
+                Runtime.ExpectFiltered(!IsDangerousSymbol(token.Symbol), $"minting of {token.Symbol} failed", source);
+            }
+        }
 
         var isSettlement = sourceChain != Runtime.Chain.Name;
 
@@ -912,6 +929,25 @@ public class Nexus : INexus
         {
             var destName = Runtime.Chain.GetNameFromAddress(Runtime.Storage, destination, Runtime.Time);
             Runtime.Expect(destName != ValidationUtils.ANONYMOUS_NAME, "anonymous system address as destination");
+        }
+
+        if (source.IsSystem)
+        {
+            var org = GetOrganizationByAddress(Runtime.RootStorage, source);
+            Runtime.ExpectFiltered(org == null, "moving funds from orgs not possible", source);
+        }
+
+        if (Runtime.HasGenesis)
+        {
+            var isSystemDestination = destination.IsSystem && NativeContract.GetNativeContractByAddress(destination) != null;
+
+            if (!isSystemDestination)
+            {
+                var price = UnitConversion.ToDecimal(Runtime.GetTokenPrice(token.Symbol), DomainSettings.FiatTokenDecimals);
+                var total = UnitConversion.ToDecimal(amount, token.Decimals);
+                var worth = price * total;
+                Runtime.ExpectFiltered(worth <= Filter.Quota, "funds transfer quota exceeded", source);
+            }
         }
 
         bool allowed;

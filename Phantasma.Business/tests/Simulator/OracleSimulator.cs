@@ -160,7 +160,7 @@ public class OracleSimulator : OracleReader
         switch (baseSymbol)                                                              
         {                                                                                
             case "SOUL": 
-                price = 100; 
+                price = 150; 
                 break;                                             
             case "KCAL": 
                 price = 20; 

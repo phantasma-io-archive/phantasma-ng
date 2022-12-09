@@ -15,14 +15,11 @@ using Phantasma.Business.VM;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Infrastructure.Pay.Chains;
-using System.Runtime.InteropServices;
-using Akka.Util;
-using Phantasma.Core.Storage.Context;
-using Phantasma.Node.Chains.Ethereum;
-using Phantasma.Node.Chains.Neo2;
 using VMType = Phantasma.Core.Domain.VMType;
 
 using Xunit;
+using Phantasma.Node.Chains.Ethereum;
+using Phantasma.Node.Chains.Neo2;
 
 namespace Phantasma.Business.Tests.Simulator;
 
@@ -1338,6 +1335,21 @@ public class NexusSimulator
         var txCost = Nexus.RootChain.GetTransactionFee(tx);
 
         return blocks.First();
+    }
+    public void WriteArchive(Hash hash, int blockIndex, byte[] bytes)
+    {
+        var archive = Nexus.GetArchive(Nexus.RootStorage, hash);
+        if (archive == null)
+        {
+            throw new ChainException("archive not found");
+        }
+
+        if (blockIndex < 0 || blockIndex >= archive.BlockCount)
+        {
+            throw new ChainException("invalid block index");
+        }
+
+        Nexus.WriteArchiveBlock(archive, blockIndex, bytes);
     }
 
     public bool LastBlockWasSuccessful()

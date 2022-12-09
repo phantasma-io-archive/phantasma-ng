@@ -218,8 +218,14 @@ namespace Phantasma.Business.Blockchain.Contracts
             {
                 var hash = hashes[i];
                 var archive = Runtime.GetArchive(hash);
-                Runtime.Expect(archive != null, "missing archive");
-                usedSize += archive.Size;
+
+                // NOTE not throwing here allows accounts with this issue to still function
+                //Runtime.Expect(archive != null, "missing archive");
+
+                if (archive != null)
+                {
+                    usedSize += archive.Size;
+                }
             }
 
             var usedQuota = GetUsedDataQuota(from);
