@@ -73,6 +73,8 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public void SettleTransaction(Address from, string platform, string chain, Hash hash)
         {
+            Runtime.Expect(!Filter.Enabled, "swap settlements disabled");
+
             PlatformSwapAddress[] swapAddresses;
 
             if (platform != DomainSettings.PlatformName)
@@ -202,6 +204,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         // send to external chain
         public void WithdrawTokens(Address from, Address to, string symbol, BigInteger value)
         {
+            Runtime.Expect(!Filter.Enabled, "swap withdraws disabled");
+
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
             Runtime.Expect(from.IsUser, "source must be user address");

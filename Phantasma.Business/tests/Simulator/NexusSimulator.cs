@@ -15,14 +15,11 @@ using Phantasma.Business.VM;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Infrastructure.Pay.Chains;
-using System.Runtime.InteropServices;
-using Akka.Util;
-using Phantasma.Core.Storage.Context;
-using Phantasma.Node.Chains.Ethereum;
-using Phantasma.Node.Chains.Neo2;
 using VMType = Phantasma.Core.Domain.VMType;
 
 using Xunit;
+using Phantasma.Node.Chains.Ethereum;
+using Phantasma.Node.Chains.Neo2;
 
 namespace Phantasma.Business.Tests.Simulator;
 

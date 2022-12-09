@@ -193,13 +193,16 @@ namespace Phantasma.Core.Storage.Context
             return list.IndexOf(obj) >= 0;
         }
 
-        public static void Remove<T>(this StorageList list, T obj)
+        public static bool Remove<T>(this StorageList list, T obj)
         {
             var index = list.IndexOf(obj);
             if (index >= 0)
             {
                 list.RemoveAt(index);
+                return true;
             }
+
+            return false;
         }
 
         public static BigInteger IndexOf<T>(this StorageList list, T obj)

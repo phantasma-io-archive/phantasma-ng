@@ -133,7 +133,8 @@ namespace Phantasma.Business.Blockchain
 
             if (this.IsRoot)
             {
-                var inflationReady = NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
+                var inflationReady = Filter.Enabled ? false : NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
+
                 if (inflationReady)
                 {
                     var senderAddress = this.CurrentBlock.Validator;
@@ -374,9 +375,21 @@ namespace Phantasma.Business.Blockchain
                 result.Codespace = e.Message;
                 result.State = ExecutionState.Fault;
                 this.CurrentBlock.SetStateForHash(tx.Hash, result.State);
+
+                ProcessFilteredExceptions(e.Message);
             }
 
             return result;
+        }
+
+        private void ProcessFilteredExceptions(string exceptionMessage)
+        {
+            var filteredAddress = Filter.ExtractFilteredAddress(exceptionMessage);
+
+            if (!filteredAddress.IsNull)
+            {
+                Filter.AddRedFilteredAddress(Nexus.RootStorage, filteredAddress);
+            }
         }
 
         public byte[] Commit()
@@ -523,6 +536,7 @@ namespace Phantasma.Business.Blockchain
             {
                 result.Code = 1;
                 result.Codespace = runtime.ExceptionMessage ?? "Execution Unsuccessful";
+                ProcessFilteredExceptions(result.Codespace);
                 return result;
             }
 
