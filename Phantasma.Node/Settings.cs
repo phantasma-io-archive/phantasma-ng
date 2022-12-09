@@ -106,6 +106,7 @@ namespace Phantasma.Node
         public NodeSettings Node { get; }
         public AppSettings App { get; }
         public LogSettings Log { get; }
+        public WebhookSettings WebhookSetting { get; }
         public OracleSettings Oracle { get; }
         public SimulatorSettings Simulator { get; }
         public PerformanceMetricsSettings PerformanceMetrics { get; }
@@ -153,6 +154,7 @@ namespace Phantasma.Node
                 this.App = new AppSettings(section.GetSection("App"));
                 this.Log = new LogSettings(section.GetSection("Log"));
                 this.RPC = new RPCSettings(section.GetSection("RPC"));
+                this.WebhookSetting = new WebhookSettings(section.GetSection("Webhook"));
                 this.PerformanceMetrics = section.GetSection("PerformanceMetrics").Get<PerformanceMetricsSettings>();
             }
             catch (Exception e)
@@ -487,6 +489,28 @@ namespace Phantasma.Node
             this.History = section.GetString("history");
             this.Config = section.GetString("config");
             this.Prompt = section.GetString("prompt");
+        }
+    }
+
+    public class WebhookSettings
+    {
+        public string Token { get; }
+        public string Channel { get; }
+        public string Prefix { get; }
+        
+        public WebhookSettings(IConfigurationSection section)
+        {
+            this.Token = section.GetString("webhook.token");
+            this.Channel = section.GetString("webhook.channel");
+            this.Prefix = section.GetString("webhook.prefix");
+            
+            Webhook.Token = Token; 
+            Webhook.Channel = Channel; 
+            Webhook.Prefix = Prefix; 
+            Log.Logger.Information($"Webhook settings loaded");
+            Log.Logger.Information($"Webhook Token {Webhook.Token}");
+            Log.Logger.Information($"Webhook Channel {Webhook.Channel}");
+            Log.Logger.Information($"Webhook Prefix {Webhook.Prefix}");
         }
     }
 

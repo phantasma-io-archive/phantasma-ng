@@ -16,6 +16,7 @@
       "node.mode": "validator",
       "node.wif": "KwUb9DN5gV4bE4W1XgRAMP2bw7GzZWdH3SAU2dvT31EjWgJtJssu",
       "api.log": false,
+      "api.url": "http://*:5103",
       "node.port": 7777,
       "profiler.path": "",
       "has.sync": false,
@@ -223,6 +224,12 @@
     "RPC": {
       "rpc.address": "127.0.0.1",
       "rpc.port": 7654
+    },
+
+    "Webhook" : {
+      "webhook.token": "",
+      "webhook.channel": "",
+      "webhook.prefix": "testnet"
     }
   }
 }

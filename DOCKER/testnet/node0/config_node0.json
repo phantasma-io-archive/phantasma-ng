@@ -217,6 +217,12 @@
     "RPC": {
       "rpc.address": "localhost",
       "rpc.port": 7654
+    },
+
+    "Webhook" : {
+      "webhook.token": "",
+      "webhook.channel": "",
+      "webhook.prefix": "testnet"
     }
   }
 }

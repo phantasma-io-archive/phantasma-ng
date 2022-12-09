@@ -112,4 +112,32 @@ public class TimestampTests
         var timestamp = (Timestamp) dateTimeOffset.DateTime;
         Assert.Equal((uint)1234567890, timestamp.Value);
     }
+    
+    [Fact]
+    public void TestTimetampUsingEquals()
+    {
+        var timestamp = new Timestamp(1234567890);
+        Assert.True(timestamp.Equals((Timestamp) 1234567890));
+    }
+    
+    [Fact]
+    public void TestTimestampUsingEqualsOperator()
+    {
+        var timestamp = new Timestamp(1234567890);
+        Assert.True(timestamp == (Timestamp) 1234567890);
+    }
+    
+    [Fact]
+    public void TestTimestampGetSize()
+    {
+        var timestamp = new Timestamp(1234567890);
+        Assert.Equal(4, timestamp.GetSize());
+    }
+    
+    [Fact]
+    public void TestTimestampGetHashCode()
+    {
+        var timestamp = new Timestamp(1234567890);
+        Assert.Equal(1234567890, timestamp.GetHashCode());
+    }
 }
