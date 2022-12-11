@@ -2,10 +2,7 @@
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Phantasma.Business.Blockchain
 {
@@ -18,7 +15,17 @@ namespace Phantasma.Business.Blockchain
         public static bool Enabled = true;
         public static decimal Quota = 10000;
 
-        public static readonly object Lock = new object();
+        private static readonly object Lock = new object();
+
+        public static void Test(Action callback)
+        {
+            lock (Lock)
+            {
+                Enabled = false;
+                callback();
+                Enabled = true;
+            }
+        }
 
         public static void ExpectFiltered(this IRuntime runtime, bool condition, string msg, Address address)
         {

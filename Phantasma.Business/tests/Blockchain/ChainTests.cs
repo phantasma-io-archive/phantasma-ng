@@ -224,10 +224,8 @@ public class ChainTests
     [Fact]
     public void GenesisMigration()
     {
-        lock (Filter.Lock)
+        Filter.Test(() =>
         {
-            Filter.Enabled = false;
-
             var firstOwner = PhantasmaKeys.Generate();
 
             var simulator = new NexusSimulator(firstOwner);
@@ -300,7 +298,7 @@ public class ChainTests
             simulator.GenerateTransfer(thirdOwner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
             simulator.EndBlock();
             Assert.True(simulator.LastBlockWasSuccessful());
-        }
+        });
     }
 
     [Fact]
@@ -710,9 +708,8 @@ public class ChainTests
     [Fact]
     public void NoGasSameChainTransfer()
     {
-        lock (Filter.Lock)
+        Filter.Test(() =>
         {
-            Filter.Enabled = false;
             var owner = PhantasmaKeys.Generate();
 
             var simulator = new NexusSimulator(owner);
@@ -766,7 +763,7 @@ public class ChainTests
             // verify balances, receiver should have 0 balance
             transferBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, receiver.Address);
             Assert.True(transferBalance == 0, "Transaction failed completely as expected");
-        }
+        });
     }
 
     [Fact(Skip = "Sidechains not in use ")]
@@ -1389,9 +1386,8 @@ public class ChainTests
     [Fact]
     public void Inflation()
     {
-        lock (Filter.Lock)
+        Filter.Test(() =>
         {
-            Filter.Enabled = false;
             var owner = PhantasmaKeys.Generate();
 
             var simulator = new NexusSimulator(owner);
@@ -1417,6 +1413,6 @@ public class ChainTests
             }
 
             Assert.True(inflation);
-        }
+        });
     }
 }

@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using Phantasma.Business.Blockchain;
@@ -66,45 +65,22 @@ namespace Phantasma.Business.VM.Utils
             }
         }
 
+        private readonly static Dictionary<string, int> _defaultDisasmTable = GetDefaultDisasmTable();
+
+
         public static Dictionary<string, int> GetDefaultDisasmTable()
         {
+            if (_defaultDisasmTable != null)
+            {
+                return _defaultDisasmTable;
+            }
+
             var table = new Dictionary<string, int>();
 
-            table["ABI()"] = 1;
-            table["Address()"] = 1;
-            table["Hash()"] = 1;
-            table["Timestamp()"] = 1;
-
-            table["Runtime.Log"] = 1;
-            table["Runtime.Notify"] = 3;
-            table["Runtime.IsWitness"] = 1;
-            table["Runtime.IsTrigger"] = 0;
-            table["Runtime.TransferBalance"] = 3;
-            table["Runtime.MintTokens"] = 4;
-            table["Runtime.BurnTokens"] = 3;
-            table["Runtime.SwapTokens"] = 5;
-            table["Runtime.TransferTokens"] = 4;
-            table["Runtime.TransferToken"] = 4;
-            table["Runtime.MintToken"] = 4;
-            table["Runtime.BurnToken"] = 3;
-            table["Runtime.InfuseToken"] = 5;
-            table["Runtime.DeployContract"] = 4;
-            table["Runtime.UpgradeContract"] = 4;
-            table["Runtime.KillContract"] = 2;
-
-            table["Nexus.CreateToken"] = 3;
-            table["Nexus.CreateTokenSeries"] = 7;
-            table["Nexus.CreateOrganization"] = 4;
-            //table["Nexus.CreatePlatform"] = 4;
-            table["Nexus.BeginInit"] = 1;
-            table["Nexus.EndInit"] = 1;
-            table["Nexus.GetGovernanceValue"] = 1;
-
-            table["Organization.AddMember"] = 3;
-
-            table["Oracle.Read"] = 1;
-            table["Oracle.Price"] = 1;
-            table["Oracle.Quote"] = 3;
+            ExtCalls.IterateExtcalls((methodName, argCount, method) =>
+            {
+                table[methodName] = argCount;
+            });
 
             var nativeContracts = Enum.GetValues<NativeContractKind>();
             foreach (var kind in nativeContracts)
@@ -118,7 +94,6 @@ namespace Phantasma.Business.VM.Utils
                 table.AddContractToTable(contract);
             }
 
-            // TODO add more here
             return table;
         }
 
@@ -201,13 +176,11 @@ namespace Phantasma.Business.VM.Utils
             return ExtractContractNames(disassembler);
         }
 
-        private readonly static Dictionary<string, int> _defaultDisasmTable = GetDefaultDisasmTable();
-
         public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(Disassembler disassembler, Dictionary<string, int> methodArgumentCountTable = null)
         {
             if (methodArgumentCountTable == null)
             {
-                methodArgumentCountTable = _defaultDisasmTable;
+                methodArgumentCountTable = GetDefaultDisasmTable();
             }
 
             var instructions = disassembler.Instructions.ToArray();

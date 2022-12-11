@@ -210,14 +210,6 @@ namespace Phantasma.Node
         RocksDB,
     }
 
-    public enum NodeMode
-    {
-        Invalid,
-        Normal,
-        Proxy,
-        Validator,
-    }
-
     public class NodeSettings
     {
         public string NexusName { get; }
@@ -241,8 +233,6 @@ namespace Phantasma.Node
         public string APIURL { get; } = "http://localhost:5101";
 
         public bool NexusBootstrap { get; }
-        public uint GenesisTimestampUint { get; }
-        public Timestamp GenesisTimestamp { get; }
         public bool ApiCache { get; }
         public bool ApiLog { get; }
 
@@ -257,17 +247,28 @@ namespace Phantasma.Node
 
         public bool WebLogs { get; }
 
+        public string TendermintPath { get; }
+        public string TendermintHome { get; }
+        public string TendermintGenesis { get; }
+        public string TendermintChainID { get; }
+        public string TendermintPeers { get; }
+
         public string TendermintProxyHost { get; }
         public int TendermintProxyPort { get; }
 
         public string TendermintRPCHost { get; }
         public int TendermintRPCPort { get; }
-
         public string TendermintKey { get; }
 
         public NodeSettings(IConfigurationSection section)
         {
             this.WebLogs = section.GetValueEx<bool>("web.logs");
+
+            this.TendermintPath = section.GetString("tendermint.path", "");
+            this.TendermintHome = section.GetString("tendermint.home", "");
+            this.TendermintGenesis = section.GetString("tendermint.genesis", "");
+            this.TendermintChainID = section.GetString("tendermint.chainid", "");
+            this.TendermintPeers = section.GetString("tendermint.peers", "");
 
             this.TendermintRPCPort = section.GetValueEx<Int32>("tendermint.rpc.port");
             this.TendermintRPCHost = section.GetString("tendermint.rpc.host");
@@ -293,6 +294,11 @@ namespace Phantasma.Node
                 .Select(p => Address.FromText(p.Value))
                 .ToList();
 
+            if (this.SeedValidators.Count < 3)
+            {
+                throw new Exception("Seed.validators list not set or too small");
+            }
+
             this.NexusName = section.GetString("nexus.name");
             this.StorageConversion = section.GetValueEx<bool>("convert.storage");
             this.ApiLog = section.GetValueEx<bool>("api.log");
@@ -310,8 +316,6 @@ namespace Phantasma.Node
             this.APIURL = section.GetString("api.url");
 
             this.NexusBootstrap = section.GetValueEx<bool>("nexus.bootstrap");
-            this.GenesisTimestampUint = section.GetValueEx<UInt32>("genesis.timestamp");
-            this.GenesisTimestamp = new Timestamp((this.GenesisTimestampUint == 0) ? Timestamp.Now.Value : this.GenesisTimestampUint);
             this.ApiCache = section.GetValueEx<bool>("api.cache");
 
             this.SenderHost = section.GetString("sender.host");
