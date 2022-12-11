@@ -2087,6 +2087,7 @@ namespace Phantasma.Business.Blockchain
         }
         #endregion
 
+        /*
         #region ALLOWANCE
         public struct AllowanceEntry
         {
@@ -2203,6 +2204,7 @@ namespace Phantasma.Business.Blockchain
         }
 
         #endregion
+        */
 
         #region Expect
         private void ExpectAddressSize(Address address, string name, string prefix = "") =>

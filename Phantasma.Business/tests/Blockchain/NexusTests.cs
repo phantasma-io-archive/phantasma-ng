@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -951,8 +951,7 @@ public class NexusTests : IDisposable
         runtimeMoq.Setup(r => r.GetToken(It.IsAny<string>())).Returns(NonFungibleToken);
 
         // setup allowance
-        runtimeMoq.Setup(r => r.SubtractAllowance(It.IsAny<Address>(), It.IsAny<string>(), It.IsAny<BigInteger>()))
-            .Returns(allowance);
+        //runtimeMoq.Setup(r => r.SubtractAllowance(It.IsAny<Address>(), It.IsAny<string>(), It.IsAny<BigInteger>())).Returns(allowance);
 
         // setup witness 
         runtimeMoq.Setup(r => r.IsWitness(It.IsAny<Address>())).Returns(isWitness);
