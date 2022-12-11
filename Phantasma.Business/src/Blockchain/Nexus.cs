@@ -946,11 +946,35 @@ public class Nexus : INexus
             else
             if (source == DomainSettings.InfusionAddress)
             {
-                Runtime.Expect(_infusionOperation, "infusion address is currently locked");
+                Runtime.Expect(!_infusionOperationAddress.IsNull, "infusion address is currently locked");
+                Runtime.Expect(destination == _infusionOperationAddress, "not valid target for infusion address transfer");
             }
             else
             {
                 Runtime.Expect(Runtime.CurrentContext.Name != VirtualMachine.EntryContextName, "moving funds from system address if forbidden");
+
+                var sourceContract = Runtime.Chain.GetContractByAddress(Runtime.Storage, source);
+                Runtime.Expect(sourceContract != null, "cannot find matching contract for address: " + source);
+
+                var isKnownExceptionToRule = false;
+
+                if (Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName())
+                {
+                    if (IsNativeContract(sourceContract.Name))
+                    {
+                        isKnownExceptionToRule = true;
+                    }
+                    else
+                    if (TokenExists(Runtime.RootStorage, sourceContract.Name))
+                    {
+                        isKnownExceptionToRule = true;
+                    }
+                }
+
+                if (!isKnownExceptionToRule)
+                {
+                    Runtime.Expect(Runtime.CurrentContext.Name == sourceContract.Name, "moving funds from a contract is forbidden if not made by the contract itself");
+                }
             }
         }
 
@@ -984,6 +1008,11 @@ public class Nexus : INexus
             allowed = Runtime.SubtractAllowance(source, token.Symbol, amount);
         }
 #endif
+
+        if (!allowed && source == DomainSettings.InfusionAddress && destination == _infusionOperationAddress)
+        {
+            allowed = true;
+        }
 
         Runtime.Expect(allowed, "invalid witness or allowance");
 
@@ -1215,13 +1244,13 @@ public class Nexus : INexus
         return content.TokenID;
     }
 
-    private bool _infusionOperation = false;
+    private Address _infusionOperationAddress = Address.Null;
 
-    private void DoInfusionOperation(Action callback)
+    private void DoInfusionOperation(Address targetAdress, Action callback)
     {
-        _infusionOperation = true;
+        _infusionOperationAddress = targetAdress;
         callback();
-        _infusionOperation = false;
+        _infusionOperationAddress = Address.Null;
     }
 
 
@@ -1229,18 +1258,18 @@ public class Nexus : INexus
     {
         var infusionAddress = DomainSettings.InfusionAddress;
 
-        DoInfusionOperation(() =>
-        {
-            var tokenContent = ReadNFT(Runtime, symbol, tokenID);
+        var tokenContent = ReadNFT(Runtime, symbol, tokenID);
 
-            foreach (var asset in tokenContent.Infusion)
-            {
-                var assetInfo = this.GetTokenInfo(Runtime.RootStorage, asset.Symbol);
+        foreach (var asset in tokenContent.Infusion)
+        {
+            var assetInfo = this.GetTokenInfo(Runtime.RootStorage, asset.Symbol);
 
 #if ALLOWANCE_OPERATIONS
-                Runtime.AddAllowance(infusionAddress, asset.Symbol, asset.Value);
+            Runtime.AddAllowance(infusionAddress, asset.Symbol, asset.Value);
 #endif
 
+            DoInfusionOperation(target, () =>
+            {
                 if (assetInfo.IsFungible())
                 {
                     this.TransferTokens(Runtime, assetInfo, infusionAddress, target, asset.Value, true);
@@ -1249,19 +1278,19 @@ public class Nexus : INexus
                 {
                     this.TransferToken(Runtime, assetInfo, infusionAddress, target, asset.Value, true);
                 }
+            });
 
 #if ALLOWANCE_OPERATIONS
-                Runtime.RemoveAllowance(infusionAddress, asset.Symbol);
+            Runtime.RemoveAllowance(infusionAddress, asset.Symbol);
 #endif
-            }
+        }
 
-            var token = Runtime.GetToken(symbol);
-            var contractAddress = token.GetContractAddress();
+        var token = Runtime.GetToken(symbol);
+        var contractAddress = token.GetContractAddress();
 
-            var tokenKey = GetKeyForNFT(symbol, tokenID);
+        var tokenKey = GetKeyForNFT(symbol, tokenID);
 
-            Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.DeleteData), contractAddress, tokenKey);
-        });
+        Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.DeleteData), contractAddress, tokenKey);
     }
 
     public void WriteNFT(IRuntime Runtime, string symbol, BigInteger tokenID, string chainName, Address creator,
