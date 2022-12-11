@@ -1,3 +1,5 @@
+//#define ALLOWANCE_OPERATIONS
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +8,7 @@ using System.Text;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.VM;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
@@ -774,10 +777,12 @@ public class Nexus : INexus
 
         var allowed = Runtime.IsWitness(source);
 
+#if ALLOWANCE_OPERATIONS
         if (!allowed)
         {
             allowed = Runtime.SubtractAllowance(source, token.Symbol, amount);
         }
+#endif
 
         Runtime.Expect(allowed, "invalid witness or allowance");
 
@@ -934,7 +939,19 @@ public class Nexus : INexus
         if (source.IsSystem)
         {
             var org = GetOrganizationByAddress(Runtime.RootStorage, source);
-            Runtime.ExpectFiltered(org == null, "moving funds from orgs not possible", source);
+            if (org != null)
+            {
+                Runtime.ExpectFiltered(org == null, "moving funds from orgs currently not possible", source);
+            }
+            else
+            if (source == DomainSettings.InfusionAddress)
+            {
+                Runtime.Expect(_infusionOperation, "infusion address is currently locked");
+            }
+            else
+            {
+                Runtime.Expect(Runtime.CurrentContext.Name != VirtualMachine.EntryContextName, "moving funds from system address if forbidden");
+            }
         }
 
         if (Runtime.HasGenesis)
@@ -961,10 +978,12 @@ public class Nexus : INexus
             allowed = Runtime.IsPrimaryValidator(source);
         }
 
+#if ALLOWANCE_OPERATIONS
         if (!allowed)
         {
             allowed = Runtime.SubtractAllowance(source, token.Symbol, amount);
         }
+#endif
 
         Runtime.Expect(allowed, "invalid witness or allowance");
 
@@ -972,7 +991,9 @@ public class Nexus : INexus
         Runtime.Expect(balances.Subtract(Runtime.Storage, source, amount), $"{token.Symbol} balance subtract failed from {source.Text}");
         Runtime.Expect(balances.Add(Runtime.Storage, destination, amount), $"{token.Symbol} balance add failed to {destination.Text}");
 
+#if ALLOWANCE_OPERATIONS
         Runtime.AddAllowance(destination, token.Symbol, amount);
+#endif
 
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnSend, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token onSend trigger failed");
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnReceive, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token onReceive trigger failed");
@@ -980,7 +1001,9 @@ public class Nexus : INexus
         Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, source, AccountTrigger.OnSend, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account onSend trigger failed");
         Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, AccountTrigger.OnReceive, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account onReceive trigger failed");
 
+#if ALLOWANCE_OPERATIONS
         Runtime.RemoveAllowance(destination, token.Symbol);
+#endif
 
         if (destination.IsSystem && (destination == Runtime.CurrentContext.Address || isInfusion))
         {
@@ -1192,36 +1215,53 @@ public class Nexus : INexus
         return content.TokenID;
     }
 
+    private bool _infusionOperation = false;
+
+    private void DoInfusionOperation(Action callback)
+    {
+        _infusionOperation = true;
+        callback();
+        _infusionOperation = false;
+    }
+
+
     public void DestroyNFT(IRuntime Runtime, string symbol, BigInteger tokenID, Address target)
     {
         var infusionAddress = DomainSettings.InfusionAddress;
 
-        var tokenContent = ReadNFT(Runtime, symbol, tokenID);
-
-        foreach (var asset in tokenContent.Infusion)
+        DoInfusionOperation(() =>
         {
-            var assetInfo = this.GetTokenInfo(Runtime.RootStorage, asset.Symbol);
+            var tokenContent = ReadNFT(Runtime, symbol, tokenID);
 
-            Runtime.AddAllowance(infusionAddress, asset.Symbol, asset.Value);
-
-            if (assetInfo.IsFungible())
+            foreach (var asset in tokenContent.Infusion)
             {
-                this.TransferTokens(Runtime, assetInfo, infusionAddress, target, asset.Value, true);
+                var assetInfo = this.GetTokenInfo(Runtime.RootStorage, asset.Symbol);
+
+#if ALLOWANCE_OPERATIONS
+                Runtime.AddAllowance(infusionAddress, asset.Symbol, asset.Value);
+#endif
+
+                if (assetInfo.IsFungible())
+                {
+                    this.TransferTokens(Runtime, assetInfo, infusionAddress, target, asset.Value, true);
+                }
+                else
+                {
+                    this.TransferToken(Runtime, assetInfo, infusionAddress, target, asset.Value, true);
+                }
+
+#if ALLOWANCE_OPERATIONS
+                Runtime.RemoveAllowance(infusionAddress, asset.Symbol);
+#endif
             }
-            else
-            {
-                this.TransferToken(Runtime, assetInfo, infusionAddress, target, asset.Value, true);
-            }
 
-            Runtime.RemoveAllowance(infusionAddress, asset.Symbol);
-        }
+            var token = Runtime.GetToken(symbol);
+            var contractAddress = token.GetContractAddress();
 
-        var token = Runtime.GetToken(symbol);
-        var contractAddress = token.GetContractAddress();
+            var tokenKey = GetKeyForNFT(symbol, tokenID);
 
-        var tokenKey = GetKeyForNFT(symbol, tokenID);
-
-        Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.DeleteData), contractAddress, tokenKey);
+            Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.DeleteData), contractAddress, tokenKey);
+        });
     }
 
     public void WriteNFT(IRuntime Runtime, string symbol, BigInteger tokenID, string chainName, Address creator,
