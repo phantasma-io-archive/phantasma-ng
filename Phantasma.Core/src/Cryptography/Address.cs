@@ -44,7 +44,7 @@ namespace Phantasma.Core.Cryptography
         {
             get
             {
-                if (_bytes == null)
+                if (_bytes == null || _bytes.Length == 0)
                 {
                     return true;
                 }
@@ -56,6 +56,7 @@ namespace Phantasma.Core.Cryptography
                         return false;
                     }
                 }
+
                 return true;
             }
         }

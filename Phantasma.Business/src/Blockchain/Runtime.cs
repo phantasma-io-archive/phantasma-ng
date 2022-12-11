@@ -109,6 +109,8 @@ namespace Phantasma.Business.Blockchain
 
         Transaction IRuntime.Transaction => this.Transaction;
 
+        private Dictionary<string, int> _registedCallArgCounts = new Dictionary<string, int>();
+
         public StorageContext Storage => this.changeSet;
 
         public override string ToString()
@@ -116,12 +118,25 @@ namespace Phantasma.Business.Blockchain
             return $"Runtime.Context={CurrentContext}";
         }
 
-        internal void RegisterMethod(string name, Func<RuntimeVM, ExecutionState> handler)
+        internal void RegisterMethod(string name, int argCount, ExtcallDelegate handler)
         {
-            handlers[name] = handler;
+            _registedCallArgCounts[name] = argCount;
+            _handlers[name] = handler;
         }
 
-        private Dictionary<string, Func<RuntimeVM, ExecutionState>> handlers = new Dictionary<string, Func<RuntimeVM, ExecutionState>>(StringComparer.OrdinalIgnoreCase);
+        internal int GetArgumentCountForMethod(string name)
+        {
+            if (_registedCallArgCounts.ContainsKey(name))
+            {
+                return _registedCallArgCounts[name];
+            }
+
+            return -1;
+        }
+
+        public IEnumerable<string> RegisteredMethodNames => _handlers.Keys;
+
+        private Dictionary<string, ExtcallDelegate> _handlers = new Dictionary<string, ExtcallDelegate>(StringComparer.OrdinalIgnoreCase);
 
         public override ExecutionState ExecuteInterop(string method)
         {
@@ -129,9 +144,13 @@ namespace Phantasma.Business.Blockchain
 
             if (result == ExecutionState.Running)
             {
-                if (handlers.ContainsKey(method))
+                if (_handlers.ContainsKey(method))
                 {
-                    return handlers[method](this);
+                    var argCount = GetArgumentCountForMethod(method);
+                    Expect(argCount >= 0, "invalid arg count for method: " + method);
+                    this.ExpectStackSize(argCount);
+
+                    return _handlers[method](this);
                 }
             }
 
@@ -802,8 +821,6 @@ namespace Phantasma.Business.Blockchain
         }
         #endregion
 
-        private HashSet<Address> validatedWitnesses = new HashSet<Address>();
-
         public bool IsWitness(Address address)
         {
             ExpectAddressSize(address, nameof(address));
@@ -813,7 +830,7 @@ namespace Phantasma.Business.Blockchain
                 return false;
             }
 
-            if (address == Address.Null)
+            if (address.IsNull)
             {
                 return false;
             }
@@ -821,11 +838,6 @@ namespace Phantasma.Business.Blockchain
             if (address == this.Chain.Address /*|| address == this.Address*/)
             {
                 return false;
-            }
-
-            if (validatedWitnesses.Contains(address))
-            {
-                return true;
             }
 
             if (address.IsSystem)
@@ -842,19 +854,12 @@ namespace Phantasma.Business.Blockchain
                 if (org != null)
                 {
                     ConsumeGas(10000);
-                    var result = org.IsWitness(Transaction);
-
-                    if (result)
-                    {
-                        validatedWitnesses.Add(address);
-                    }
-
-                    return result;
+                    return org.IsWitness(Transaction);
                 }
                 else
                 {
                     var owner = GetContractOwner(address);
-                    if (owner != Address.Null && owner != address)
+                    if (!owner.IsNull && owner != address)
                     {
                         return IsWitness(owner);
                     }
@@ -903,11 +908,6 @@ namespace Phantasma.Business.Blockchain
                 {
                     throw new ChainException("IsWitness is being called from some weird context, possible bug?");
                 }
-            }
-
-            if (accountResult)
-            {
-                validatedWitnesses.Add(address);
             }
 
             return accountResult;
