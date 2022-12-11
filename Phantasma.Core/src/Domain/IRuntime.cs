@@ -180,8 +180,9 @@ namespace Phantasma.Core.Domain
 
         TriggerResult InvokeTriggerOnAccount(bool allowThrow, Address address, AccountTrigger trigger, params object[] args);
         TriggerResult InvokeTriggerOnToken(bool allowThrow, IToken token, TokenTrigger trigger, params object[] args);
-        void AddAllowance(Address destination, string symbol, BigInteger amount);
+
+        /*void AddAllowance(Address destination, string symbol, BigInteger amount);
         bool SubtractAllowance(Address destination, string symbol, BigInteger amount);
-        void RemoveAllowance(Address destination, string symbol);
+        void RemoveAllowance(Address destination, string symbol);*/
     }
 }
