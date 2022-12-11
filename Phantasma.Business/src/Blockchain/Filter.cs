@@ -128,14 +128,11 @@ namespace Phantasma.Business.Blockchain
         }
         
         // This is just for warning not to stop the execution
-        public static void ExpectWithWarning(this IRuntime Runtime, bool condition, string msg, Address address ){
+        public static void Warning(this IRuntime Runtime, bool condition, string msg, Address address ){
 
             if (!condition) {
                 Webhook.Notify($"[{((DateTime) Runtime.Time).ToLongDateString()}] reason -> {msg} by [{address.Text}]");
             }
-            
-            // This is just for warning not to stop the execution
-            // Runtime.Expect(condition, msg);
         }
         
         public static void CheckFilterAmountThreshold(this IRuntime runtime, IToken token, Address from, BigInteger amount, string msg)
@@ -144,7 +141,7 @@ namespace Phantasma.Business.Blockchain
             var total = UnitConversion.ToDecimal(amount, token.Decimals);
             var worth = price * total;
             runtime.ExpectFiltered(worth <= Filter.Quota, $"{msg} quota exceeded, tried to move {total} {token.Symbol}", from);
-            runtime.ExpectWithWarning(worth <= Filter.Threshold, $"{msg} threshold reached {total} {token.Symbol}", from);
+            runtime.Warning(worth <= Filter.Threshold, $"{msg} threshold reached {total} {token.Symbol}", from);
         }
 
     }
