@@ -3,6 +3,8 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 using System;
 using System.Linq;
+using System.Numerics;
+using Phantasma.Core.Numerics;
 
 namespace Phantasma.Business.Blockchain
 {
@@ -13,7 +15,8 @@ namespace Phantasma.Business.Blockchain
         private static readonly string FilterGreenStorage = "filter.green";
 
         public static bool Enabled = true;
-        public static decimal Quota = 10000;
+        public static decimal Quota = 20000;
+        public static decimal Threshold = 5000;
 
         private static readonly object Lock = new object();
 
@@ -95,6 +98,8 @@ namespace Phantasma.Business.Blockchain
 
         public static void AddGreenFilteredAddress(StorageContext context, Address address)
         {
+            if ( IsRedFilteredAddress(context, address) )
+                RemoveRedFilteredAddress(context, address, FilterRedStorage);
             AddFilteredAddress(context, address, FilterGreenStorage);
         }
 
@@ -110,13 +115,33 @@ namespace Phantasma.Business.Blockchain
 
         public static void AddRedFilteredAddress(StorageContext context, Address address)
         {
-            Webhook.Notify($"Address filtered {address.Text}");
+            if ( IsGreenFilteredAddress(context, address) )
+                RemoveGreenFilteredAddress(context, address, FilterGreenStorage);
+            Webhook.Notify($"[{DateTime.UtcNow.ToLongDateString()}] Address added to filtered [{address.Text}]");
             AddFilteredAddress(context, address, FilterRedStorage);
         }
 
         public static bool RemoveRedFilteredAddress(StorageContext context, Address address, string tag)
         {
+            Webhook.Notify($"[{DateTime.UtcNow.ToLongDateString()}] Address removed from filtered [{address.Text}]");
             return RemoveFilteredAddress(context, address, FilterRedStorage);
+        }
+        
+        // This is just for warning not to stop the execution
+        public static void CheckWarning(this IRuntime Runtime, bool condition, string msg, Address address ){
+
+            if (!condition) {
+                Webhook.Notify($"[{((DateTime) Runtime.Time).ToLongDateString()}] reason -> {msg} by [{address.Text}]");
+            }
+        }
+        
+        public static void CheckFilterAmountThreshold(this IRuntime runtime, IToken token, Address from, BigInteger amount, string msg)
+        {
+            var price = UnitConversion.ToDecimal(runtime.GetTokenPrice(token.Symbol), DomainSettings.FiatTokenDecimals);
+            var total = UnitConversion.ToDecimal(amount, token.Decimals);
+            var worth = price * total;
+            runtime.ExpectFiltered(worth <= Filter.Quota, $"{msg} quota exceeded, tried to move {total} {token.Symbol}", from);
+            runtime.CheckWarning(worth <= Filter.Threshold, $"{msg} threshold reached {total} {token.Symbol}", from);
         }
 
     }

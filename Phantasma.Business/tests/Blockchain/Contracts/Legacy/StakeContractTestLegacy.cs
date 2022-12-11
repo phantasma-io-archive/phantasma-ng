@@ -131,6 +131,7 @@ public class StakeContractTestLegacy
                 SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var unclaimedValue = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake,
             nameof(StakeContract.GetUnclaimed), testUser.Address).AsNumber();
@@ -358,7 +359,6 @@ public class StakeContractTestLegacy
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
-        
         Assert.False(simulator.LastBlockWasSuccessful());
 
 
@@ -516,7 +516,8 @@ public class StakeContractTestLegacy
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
-
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
         BigInteger stakedAmount =
             simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetStake), testUser.Address).AsNumber();
         Assert.True(stakedAmount == desiredStake);
@@ -538,7 +539,6 @@ public class StakeContractTestLegacy
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
-            
         Assert.True(simulator.LastBlockWasSuccessful());
 
         var finalFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
