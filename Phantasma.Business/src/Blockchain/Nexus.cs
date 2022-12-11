@@ -652,7 +652,10 @@ public class Nexus : INexus
 
         if (Runtime.HasGenesis)
         {
-            if (token.Symbol == DomainSettings.FuelTokenSymbol)
+            if (token.Symbol == DomainSettings.StakingTokenSymbol)
+            {
+                Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
+            } else if (token.Symbol == DomainSettings.FuelTokenSymbol )
             {
                 Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via claiming", source);
             }

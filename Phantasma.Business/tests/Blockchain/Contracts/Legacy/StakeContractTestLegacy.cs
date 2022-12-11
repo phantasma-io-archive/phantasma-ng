@@ -1383,6 +1383,7 @@ public class StakeContractTestLegacy
                     .SpendGas(testUserA.Address)
                     .EndScript());
             simulator.EndBlock();
+            Assert.False(simulator.LastBlockWasSuccessful());
 
             var finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserA.Address);
 
@@ -1401,6 +1402,7 @@ public class StakeContractTestLegacy
                     .SpendGas(testUserA.Address)
                     .EndScript());
             simulator.EndBlock();
+            Assert.True(simulator.LastBlockWasSuccessful());
 
             isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "IsMaster", testUserA.Address).AsBool();
             Assert.True(isMaster);
@@ -1410,14 +1412,13 @@ public class StakeContractTestLegacy
             startingBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserA.Address);
 
             simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
+            simulator.GenerateCustomTransaction(testUserA, ProofOfWork.Minimal, () =>
                 ScriptUtils.BeginScript()
                     .AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, MinimumGasLimit)
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.MasterClaim), testUserA.Address)
                     .SpendGas(testUserA.Address)
                     .EndScript());
             simulator.EndBlock();
-
             Assert.False(simulator.LastBlockWasSuccessful());
 
             finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserA.Address);
@@ -1442,13 +1443,13 @@ public class StakeContractTestLegacy
             var claimMasterCount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, "GetClaimMasterCount", (Timestamp)simulator.CurrentTime).AsNumber();
 
             simulator.BeginBlock();
-            simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
+            simulator.GenerateCustomTransaction(testUserA, ProofOfWork.Minimal, () =>
                 ScriptUtils.BeginScript().AllowGas(testUserA.Address, Address.Null, simulator.MinimumFee, MinimumGasLimit)
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.MasterClaim), testUserA.Address).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
-
-
+            Assert.True(simulator.LastBlockWasSuccessful());
+            
             var expectedBalance = startingBalance + (StakeContract.MasterClaimGlobalAmount / claimMasterCount) + (StakeContract.MasterClaimGlobalAmount % claimMasterCount);
             finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserA.Address);
 
@@ -1473,6 +1474,7 @@ public class StakeContractTestLegacy
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.MasterClaim), testUserA.Address).
                     SpendGas(testUserA.Address).EndScript());
             simulator.EndBlock();
+            Assert.True(simulator.LastBlockWasSuccessful());
 
 
             expectedBalance = startingBalance + (StakeContract.MasterClaimGlobalAmount / claimMasterCount) + (StakeContract.MasterClaimGlobalAmount % claimMasterCount);
@@ -1492,7 +1494,6 @@ public class StakeContractTestLegacy
                     .SpendGas(testUserA.Address)
                     .EndScript());
             simulator.EndBlock();
-
             Assert.False(simulator.LastBlockWasSuccessful());
 
             finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserA.Address);
@@ -1511,6 +1512,7 @@ public class StakeContractTestLegacy
                     .SpendGas(testUserA.Address)
                     .EndScript());
             simulator.EndBlock();
+            Assert.True(simulator.LastBlockWasSuccessful());
 
             isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.IsMaster), testUserA.Address).AsBool();
             Assert.True(isMaster == false);
