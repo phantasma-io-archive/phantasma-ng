@@ -642,7 +642,7 @@ public class Nexus : INexus
 
     private bool IsDangerousSymbol(string symbol)
     {
-        return (symbol == DomainSettings.StakingTokenSymbol || symbol == "ETH" || symbol == "GAS" || symbol == "NEO" || symbol == "BNB" || symbol == "USD" || symbol == "USDT" || symbol == "USDC" || symbol == "DAI" || symbol == "BTC");
+        return (symbol == DomainSettings.StakingTokenSymbol || symbol == DomainSettings.FuelTokenSymbol || symbol == DomainSettings.FiatTokenSymbol || symbol == DomainSettings.RewardTokenSymbol || symbol == "ETH" || symbol == "GAS" || symbol == "NEO" || symbol == "BNB" || symbol == "USDT" || symbol == "USDC" || symbol == "DAI" || symbol == "BTC");
     }
 
     public void MintTokens(IRuntime Runtime, IToken token, Address source, Address destination, string sourceChain, BigInteger amount)
@@ -2574,6 +2574,11 @@ public class Nexus : INexus
         if (!storage.Has(key))
         {
             throw new ChainException($"Cannot upgrade non-existing token contract: {symbol}");
+        }
+
+        if (IsDangerousSymbol(symbol))
+        {
+            throw new ChainException($"Forbidden to upgrade token contract: {symbol}");
         }
 
         var bytes = storage.Get(key);
