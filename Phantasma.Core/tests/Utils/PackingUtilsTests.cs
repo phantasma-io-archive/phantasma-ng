@@ -219,6 +219,10 @@ public class PackingUtilsTests
         PackingUtils.UInt32_To_LE(20, bytesOut, 0);
         Assert.Equal(bytes, bytesOut);
         
+        var result = PackingUtils.UInt32_To_LE((uint)20);
+        Assert.Equal(bytes, result);
+
+        
         PackingUtils.UInt32_To_LE((uint)20, bytesOut, 0);
         Assert.Equal(bytes, bytesOut);
         
@@ -274,6 +278,9 @@ public class PackingUtilsTests
         var bytesOut = new byte[8];
         PackingUtils.UInt64_To_LE(30, bytesOut);
         Assert.Equal(bytes, bytesOut);
+        
+        var result = PackingUtils.UInt64_To_LE((ulong)30);
+        Assert.Equal(bytes, result);
         
         PackingUtils.UInt64_To_LE((ulong)30, bytesOut);
         Assert.Equal(bytes, bytesOut);
@@ -504,7 +511,7 @@ public class PackingUtilsTests
         var bytesValue = new byte[16];
         PackingUtils.UInt64_To_LE(ns, 0, 1, bytesValue, offset);
         Assert.Equal(bytes, bytesValue);
-        
+
         var bytesOut = new byte[16];
         PackingUtils.UInt64_To_LE(value, bytesOut, offset);
         Assert.Equal(bytes, bytesOut);

@@ -1,4 +1,7 @@
-﻿using Phantasma.Core.Utils;
+﻿using System.Buffers;
+using System.Text;
+using K4os.Compression.LZ4;
+using Phantasma.Core.Utils;
 using Shouldly;
 using Xunit;
 
@@ -32,5 +35,42 @@ public class CompressionUtilsTests
         // Assert
         result.Length.ShouldBe(16);
         result.ShouldBeEquivalentTo(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1 });
+    }
+    
+    [Fact]
+    public void CompressLz4()
+    {
+        // Arrange
+        byte[] data = Encoding.UTF8.GetBytes("Lorem ipsum dolor sit amet");
+        int expectedCompressedLength = sizeof(uint) + LZ4Codec.Encode(data, MemoryPool<byte>.Shared.Rent(LZ4Codec.MaximumOutputSize(data.Length)).Memory.Span);
+
+        // Act
+        byte[] compressedData = data.CompressLz4();
+
+        // Assert
+        Assert.NotNull(compressedData);
+        Assert.Equal(expectedCompressedLength, compressedData.Length);
+    }
+    
+    [Fact]
+    public void DecompressLz4()
+    {
+        // Arrange
+        byte[] data = Encoding.UTF8.GetBytes("Lorem ipsum dolor sit amet");
+        int maxOutput = 100;
+        byte[] compressedData = data.CompressLz4();
+
+        // Act
+        byte[] decompressedData = compressedData.DecompressLz4(maxOutput);
+
+        // Assert
+        Assert.NotNull(decompressedData);
+        Assert.Equal(data, decompressedData);
+    }
+
+    [Fact]
+    public void DecompressLz4Throws()
+    {
+        
     }
 }

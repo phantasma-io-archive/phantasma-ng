@@ -66,6 +66,21 @@ public class MemoryStorageTests
         Assert.True(storageContext.Has(key));
         Assert.Equal(value, storageContext.Get(key));
     }
+    
+    [Fact]
+    public void TestPutNull()
+    {
+        // Arrange
+        MemoryStorageContext storageContext = new MemoryStorageContext();
+        var key = new StorageKey(new byte[] { 1, 2, 3 });
+        var value = null as byte[];
+
+        // Act
+        storageContext.Put(key, value);
+
+        // Assert
+        Assert.Equal(new byte[0], storageContext.Get(key));
+    }
 
     [Fact]
     public void TestDelete()
