@@ -15,6 +15,11 @@ namespace Phantasma.Core.Types
         {
             return ((DateTime)this).ToString();
         }
+        
+        public string ToString(string format)
+        {
+            return ((DateTime)this).ToString(format);
+        }
 
         public static Timestamp Now => DateTime.UtcNow;
         public readonly static Timestamp Null = new Timestamp(0);

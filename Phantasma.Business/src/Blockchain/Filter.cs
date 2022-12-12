@@ -15,7 +15,7 @@ namespace Phantasma.Business.Blockchain
         private static readonly string FilterGreenStorage = "filter.green";
 
         public static bool Enabled = true;
-        public static decimal Quota = 20000;
+        public static decimal Quota = 10000;
         public static decimal Threshold = 5000;
 
         private static readonly object Lock = new object();
