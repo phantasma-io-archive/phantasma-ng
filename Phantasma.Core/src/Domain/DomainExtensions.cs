@@ -316,7 +316,7 @@ namespace Phantasma.Core.Domain
         }
         public static TriggerResult InvokeTrigger(this IRuntime runtime, bool allowThrow, byte[] script, NativeContractKind contextName, ContractInterface abi, string triggerName, params object[] args)
         {
-            return runtime.InvokeTrigger(allowThrow, script, contextName.ToString().ToLower(), abi, triggerName, args);
+            return runtime.InvokeTrigger(allowThrow, script, contextName.GetContractName(), abi, triggerName, args);
         }
 
         public static VMObject CallNFT(this IRuntime runtime, string symbol, BigInteger seriesID, ContractMethod method, params object[] args)
