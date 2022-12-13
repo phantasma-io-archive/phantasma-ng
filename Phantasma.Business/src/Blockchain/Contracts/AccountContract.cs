@@ -96,10 +96,12 @@ namespace Phantasma.Business.Blockchain.Contracts
             var witnessTriggerName = nameof(AccountTrigger.OnWitness);
             if (abi.HasMethod(witnessTriggerName))
             {
-                var witnessCheck = Runtime.InvokeTrigger(false, script, NativeContractKind.Account, abi, witnessTriggerName, Address.Null) != TriggerResult.Failure;
+                var contextName = target.Text;
+
+                var witnessCheck = Runtime.InvokeTrigger(false, script, contextName, abi, witnessTriggerName, Address.Null) != TriggerResult.Failure;
                 Runtime.Expect(!witnessCheck, "script does not handle OnWitness correctly, case #1");
 
-                witnessCheck = Runtime.InvokeTrigger(false, script, NativeContractKind.Account, abi, witnessTriggerName, target) != TriggerResult.Failure;
+                witnessCheck = Runtime.InvokeTrigger(false, script, contextName, abi, witnessTriggerName, target) != TriggerResult.Failure;
                 Runtime.Expect(witnessCheck, "script does not handle OnWitness correctly, case #2");
             }
 
@@ -176,6 +178,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             Runtime.Expect(target != from, "addresses must be different");
             Runtime.Expect(target.IsUser, "must be user address");
+            Runtime.Expect(from.IsUser, "must be user address");
 
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 

@@ -209,6 +209,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(Runtime.PreviousContext.Name == DesiredPreviousContext, "invalid context");
 
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(from.IsUser, "source must be user address");
             Runtime.Expect(to.IsUser, "destination must be user address");
 
             var targetStake = GetStake(to);
