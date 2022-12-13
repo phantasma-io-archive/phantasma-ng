@@ -652,7 +652,10 @@ public class Nexus : INexus
 
         if (Runtime.HasGenesis)
         {
-            if (token.Symbol == DomainSettings.FuelTokenSymbol)
+            if (token.Symbol == DomainSettings.StakingTokenSymbol)
+            {
+                Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
+            } else if (token.Symbol == DomainSettings.FuelTokenSymbol )
             {
                 Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via claiming", source);
             }
@@ -777,6 +780,8 @@ public class Nexus : INexus
 
         var allowed = Runtime.IsWitness(source);
 
+        Runtime.CheckFilterAmountThreshold(token, source, amount, "Burn Tokens");
+
 #if ALLOWANCE_OPERATIONS
         if (!allowed)
         {
@@ -880,8 +885,10 @@ public class Nexus : INexus
         var tokenTrigger = TokenTrigger.OnInfuse;
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, from, target, infuseToken.Symbol, value) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed: ");
 
+        
         if (infuseToken.IsFungible())
         {
+            Runtime.CheckFilterAmountThreshold(infuseToken, from, value, "Infuse Tokens");
             this.TransferTokens(Runtime, infuseToken, from, target, value, true);
         }
         else
@@ -984,10 +991,7 @@ public class Nexus : INexus
 
             if (!isSystemDestination)
             {
-                var price = UnitConversion.ToDecimal(Runtime.GetTokenPrice(token.Symbol), DomainSettings.FiatTokenDecimals);
-                var total = UnitConversion.ToDecimal(amount, token.Decimals);
-                var worth = price * total;
-                Runtime.ExpectFiltered(worth <= Filter.Quota, "funds transfer quota exceeded", source);
+                Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
             }
         }
 
@@ -1272,6 +1276,7 @@ public class Nexus : INexus
             {
                 if (assetInfo.IsFungible())
                 {
+                    Runtime.CheckFilterAmountThreshold(assetInfo, target, asset.Value, "Burn Token (DestroyNFT)");
                     this.TransferTokens(Runtime, assetInfo, infusionAddress, target, asset.Value, true);
                 }
                 else

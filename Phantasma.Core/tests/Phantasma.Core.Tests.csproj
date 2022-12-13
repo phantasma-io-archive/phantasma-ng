@@ -24,6 +24,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\Phantasma.Business\tests\Phantasma.Business.Tests.csproj" />
         <ProjectReference Include="..\..\Phantasma.Node\Phantasma.Node.csproj" />
         <ProjectReference Include="..\src\Phantasma.Core.csproj" />
     </ItemGroup>
