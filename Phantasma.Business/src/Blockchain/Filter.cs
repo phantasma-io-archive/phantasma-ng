@@ -126,6 +126,12 @@ namespace Phantasma.Business.Blockchain
             Webhook.Notify($"[{DateTime.UtcNow.ToLongDateString()}] Address removed from filtered [{address.Text}]");
             return RemoveFilteredAddress(context, address, FilterRedStorage);
         }
+
+        public static void ExpectWarning(this IRuntime Runtime, bool condition, string msg, Address address)
+        {
+            Runtime.CheckWarning(condition, msg, address);
+            Runtime.ExpectFiltered(condition, $"{msg} expected Warning", address);
+        }
         
         // This is just for warning not to stop the execution
         public static void CheckWarning(this IRuntime Runtime, bool condition, string msg, Address address ){
@@ -135,13 +141,13 @@ namespace Phantasma.Business.Blockchain
             }
         }
         
-        public static void CheckFilterAmountThreshold(this IRuntime runtime, IToken token, Address from, BigInteger amount, string msg)
+        public static void CheckFilterAmountThreshold(this IRuntime Runtime, IToken token, Address from, BigInteger amount, string msg)
         {
-            var price = UnitConversion.ToDecimal(runtime.GetTokenPrice(token.Symbol), DomainSettings.FiatTokenDecimals);
+            var price = UnitConversion.ToDecimal(Runtime.GetTokenPrice(token.Symbol), DomainSettings.FiatTokenDecimals);
             var total = UnitConversion.ToDecimal(amount, token.Decimals);
             var worth = price * total;
-            runtime.ExpectFiltered(worth <= Filter.Quota, $"{msg} quota exceeded, tried to move {total} {token.Symbol}", from);
-            runtime.CheckWarning(worth <= Filter.Threshold, $"{msg} threshold reached {total} {token.Symbol}", from);
+            Runtime.CheckWarning(worth <= Filter.Threshold, $"{msg} threshold reached {total} {token.Symbol}", from);
+            Runtime.ExpectFiltered(worth <= Filter.Quota, $"{msg} quota exceeded, tried to move {total} {token.Symbol}", from);
         }
 
     }

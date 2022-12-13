@@ -1368,12 +1368,11 @@ namespace Phantasma.Business.Blockchain
 
             var contractAddress = SmartContract.GetAddressFromContractName(contractName);
             var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
-
-            vm.Expect(!deployed, $"{contractName} is already deployed");
+            vm.ExpectWarning(!deployed, $"{contractName} is already deployed", from);
             
             // check if exists token with same name
             var tokenExists = vm.TokenExists(contractName.ToUpper());
-            vm.Expect(!tokenExists, $"token with name {contractName} already exists");
+            vm.ExpectWarning(!tokenExists, $"token with name {contractName} already exists", from);
 
             byte[] script;
             ContractInterface abi;
@@ -1415,7 +1414,7 @@ namespace Phantasma.Business.Blockchain
                     isReserved = false;
                 }*/
 
-                vm.Expect(!isReserved, $"name '{contractName}' reserved by system");
+                vm.ExpectWarning(!isReserved, $"name '{contractName}' reserved by system", from);
 
                 abi = ContractInterface.FromBytes(abiBytes);
 
@@ -1462,7 +1461,7 @@ namespace Phantasma.Business.Blockchain
 
             vm.Expect(vm.IsStakeMaster(from), "needs to be master");
 
-            vm.Expect(vm.IsWitness(from), "invalid witness");
+            vm.ExpectWarning(vm.IsWitness(from), "invalid witness", from);
 
             var contractName = vm.PopString("contractName");
 
@@ -1475,7 +1474,7 @@ namespace Phantasma.Business.Blockchain
             ContractInterface abi;
 
             bool isNative = Nexus.IsNativeContractStatic(contractName);
-            vm.Expect(!isNative, "cannot upgrade native contract");
+            vm.ExpectWarning(!isNative, "cannot upgrade native contract", from);
 
             bool isToken = ValidationUtils.IsValidTicker(contractName);
 
@@ -1542,7 +1541,7 @@ namespace Phantasma.Business.Blockchain
             vm.Expect(deployed, $"{contractName} does not exist");
 
             bool isNative = Nexus.IsNativeContractStatic(contractName);
-            vm.Expect(!isNative, "cannot kill native contract");
+            vm.ExpectWarning(!isNative, "cannot kill native contract", from);
 
             bool isToken = ValidationUtils.IsValidTicker(contractName);
             vm.Expect(!isToken, "cannot kill token contract");
@@ -1706,8 +1705,7 @@ namespace Phantasma.Business.Blockchain
             // check if contract already exists
             var contractAddress = SmartContract.GetAddressFromContractName(symbol.ToLower());
             var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
-            vm.Expect(!deployed, $"{symbol} already exists");
-
+            vm.ExpectWarning(!deployed, $"{symbol} already exists", owner);
             vm.Expect(ValidationUtils.IsValidTicker(symbol), "missing or invalid token symbol");
             vm.Expect(!string.IsNullOrEmpty(name), "missing or invalid token name");
             vm.Expect(maxSupply >= 0, "missing or invalid token supply");
