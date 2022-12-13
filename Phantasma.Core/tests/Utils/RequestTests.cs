@@ -27,11 +27,21 @@ public class RequestTests
     [Fact]
     public void TestRequestWithParams()
     {
-        var request = RequestUtils.RPCRequest("http://testnet.phantasma.io:5101/rpc", "GetBlockHeight", out string myResponse, 0, 1, "main");
+        var request = RequestUtils.RPCRequest("http://testnet.phantasma.io:5101/rpc", "GetBlockHeight", out string myResponse, 0, 2, "main");
         
         Assert.NotNull(myResponse);
         // tests
         Assert.True(request.RootElement.GetRawText() != null);
+    }
+    
+    [Fact]
+    public void TestRequestTimePOST()
+    {
+        var postParms = "";
+        var request = RequestUtils.Request<string>(RequestType.POST, "https://reqbin.com/sample/post/json", out string myResponse, 0 , 2);
+        Assert.True(myResponse != null);
+        Assert.True(request != null);
+        Assert.NotEqual(request, "1");
     }
     
     [Fact]
@@ -85,6 +95,16 @@ public class RequestTests
         Assert.True(request != null);
         Assert.Equal(block.hash, "92A8515F09674AB14279FC9CD0B41F3A80EE84DEAF531EFB6E3EABF9E121E0F5");
         Assert.Equal(block.timestamp, (Timestamp)1669136164);
+    }
+    
+    [Fact]
+    public void TestRequestAsyncPost()
+    {
+        var postParms = "";
+        var urlRequest = "https://reqbin.com/sample/post/json";
+        var request = RequestUtils.RequestAsync<JsonDocument>(RequestType.POST, urlRequest, 0, 2);
+
+        Assert.True(request != null);
     }
     
     [Fact]
