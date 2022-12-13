@@ -760,14 +760,14 @@ namespace Phantasma.Business.Blockchain.Contracts
             return votingPower;
         }
 
-        public void UpdateRate(BigInteger rate)
+        /*public void UpdateRate(BigInteger rate)
         {
             var bombAddress = GetAddressFromContractName("bomb");
             Runtime.Expect(Runtime.IsWitness(bombAddress), "must be called from bomb address");
 
             Runtime.Expect(rate > 0, "invalid rate");
             _currentEnergyRatioDivisor = rate;
-        }
+        }*/
 
         public BigInteger GetRate()
         {

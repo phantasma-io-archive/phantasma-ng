@@ -47,6 +47,9 @@ public class KeyStoreTests
         store.SetValue(key, value);
         Assert.True(store.ContainsKey(key));
         
+        // Count
+        Assert.Equal((uint)1, store.Count);
+        
         // read the key/value pair
         byte[] result = store.GetValue(key);
         Assert.Equal(value, result);
@@ -66,6 +69,7 @@ public class KeyStoreTests
         }, 1, key);
         
         // close the store
+        store.Flush();
     }
 
     [Fact]

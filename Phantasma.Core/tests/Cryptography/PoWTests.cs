@@ -4,6 +4,7 @@ using Xunit;
 
 using Phantasma.Core.Cryptography;
 
+[Collection("PowTests")]
 public class PoWTests
 {
     
@@ -106,7 +107,7 @@ public class PoWTests
         Assert.Equal((int)ProofOfWork.Hard, nonce);
     }
     
-    [Fact]
+    [Fact (Skip = "Takes to much time...")]
     public void TestPoWHeavy()
     {
         var data = new byte[] {0x01, 0x10, 0x13, 0x13, 0x13};

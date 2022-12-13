@@ -80,7 +80,7 @@ public class StorageSetTests
         set.Add(3);
 
         // Act
-        var values = set.AllValues<int>();
+        var values = SetUtils.AllValues<int>(set);
 
         // Assert
         Assert.Equal(new int[] { 1, 2, 3 }, values);
