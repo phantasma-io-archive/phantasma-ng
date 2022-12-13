@@ -1370,6 +1370,10 @@ namespace Phantasma.Business.Blockchain
             var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
 
             vm.Expect(!deployed, $"{contractName} is already deployed");
+            
+            // check if exists token with same name
+            var tokenExists = vm.TokenExists(contractName.ToUpper());
+            vm.Expect(!tokenExists, $"token with name {contractName} already exists");
 
             byte[] script;
             ContractInterface abi;
@@ -1698,6 +1702,11 @@ namespace Phantasma.Business.Blockchain
             {
                 decimals = 0;
             }
+            
+            // check if contract already exists
+            var contractAddress = SmartContract.GetAddressFromContractName(symbol.ToLower());
+            var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
+            vm.Expect(!deployed, $"{symbol} already exists");
 
             vm.Expect(ValidationUtils.IsValidTicker(symbol), "missing or invalid token symbol");
             vm.Expect(!string.IsNullOrEmpty(name), "missing or invalid token name");
