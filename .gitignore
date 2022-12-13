@@ -408,12 +408,25 @@ DOCKER/testnet/node*/data/*
 DOCKER/testnet/node*/config/write-file-*
 DOCKER/testnet/node*/config/addrbook.json
 
+# Tendermint
 testnet/tendermint.exe
-
 testnet/node0/tendermint.exe
+tendermint
 
 Phantasma.Node/Properties/launchSettings.json
 DOCKER/Storage/
 Phantasma.Node/testnet/
 
 testnet/temp/
+
+# Contracts
+*.pvm
+*.pvm.hex
+*.abi
+*.abi.hex
+*.asm
+*.debug
+
+# Vscode
+.vscode/
+
