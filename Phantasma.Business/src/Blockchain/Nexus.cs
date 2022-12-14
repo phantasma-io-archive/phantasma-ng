@@ -640,9 +640,46 @@ public class Nexus : INexus
         throw new ChainException($"Token does not exist ({symbol})");
     }
 
-    private bool IsDangerousSymbol(string symbol)
+    private static readonly string[] _dangerousSymbols = new[]
     {
-        return (symbol == DomainSettings.StakingTokenSymbol || symbol == DomainSettings.FuelTokenSymbol || symbol == DomainSettings.FiatTokenSymbol || symbol == DomainSettings.RewardTokenSymbol || symbol == "ETH" || symbol == "GAS" || symbol == "NEO" || symbol == "BNB" || symbol == "USDT" || symbol == "USDC" || symbol == "DAI" || symbol == "BTC");
+        DomainSettings.StakingTokenSymbol ,
+        DomainSettings.FuelTokenSymbol,
+        DomainSettings.FiatTokenSymbol,
+        DomainSettings.RewardTokenSymbol,
+        "ETH" , "GAS" , "NEO" , "BNB" , "USDT" , "USDC" , "DAI" , "BTC"
+    }; 
+
+    public static bool IsDangerousSymbol(string symbol)
+    {
+        return _dangerousSymbols.Any(x => x.Equals(symbol, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public static bool IsDangerousAddress(Address address, params Address[] ignoredAddresses)
+    {
+        foreach (var excludedAddress in ignoredAddresses)
+        {
+            if (excludedAddress == address)
+            {
+                return false;
+            }
+        }
+
+        var nativeContract = NativeContract.GetNativeContractByAddress(address);
+        if (nativeContract != null)
+        {
+            return true;
+        }
+
+        foreach (var symbol in _dangerousSymbols)
+        {
+            var tokenAddress = TokenUtils.GetContractAddress(symbol);
+            if (tokenAddress == address)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public void MintTokens(IRuntime Runtime, IToken token, Address source, Address destination, string sourceChain, BigInteger amount)
@@ -2113,13 +2150,7 @@ public class Nexus : INexus
         storage.Put(key, bytes);
     }*/
 
-    public static bool IsNativeContractStatic(string name)
-    {
-        NativeContractKind kind;
-        return Enum.TryParse<NativeContractKind>(name, true, out kind);
-    }
-
-    public bool IsNativeContract(string name)
+    public static bool IsNativeContract(string name)
     {
         NativeContractKind kind;
         return Enum.TryParse<NativeContractKind>(name, true, out kind);

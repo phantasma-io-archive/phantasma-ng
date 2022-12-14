@@ -1381,7 +1381,7 @@ namespace Phantasma.Business.Blockchain
 
             var abiBytes = vm.PopBytes("contractABI");
 
-            bool isNative = Nexus.IsNativeContractStatic(contractName);
+            bool isNative = Nexus.IsNativeContract(contractName);
             if (isNative)
             {
                 /*if (contractName == "validator" && vm.GenesisAddress == Address.Null)
@@ -1473,7 +1473,7 @@ namespace Phantasma.Business.Blockchain
             byte[] script;
             ContractInterface abi;
 
-            bool isNative = Nexus.IsNativeContractStatic(contractName);
+            bool isNative = Nexus.IsNativeContract(contractName);
             vm.ExpectWarning(!isNative, "cannot upgrade native contract", from);
 
             bool isToken = ValidationUtils.IsValidTicker(contractName);
@@ -1540,7 +1540,7 @@ namespace Phantasma.Business.Blockchain
 
             vm.Expect(deployed, $"{contractName} does not exist");
 
-            bool isNative = Nexus.IsNativeContractStatic(contractName);
+            bool isNative = Nexus.IsNativeContract(contractName);
             vm.ExpectWarning(!isNative, "cannot kill native contract", from);
 
             bool isToken = ValidationUtils.IsValidTicker(contractName);

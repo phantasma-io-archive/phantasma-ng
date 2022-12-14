@@ -179,6 +179,8 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(target.IsUser, "must be user address");
             Runtime.Expect(type == ValidatorType.Primary || type == ValidatorType.Secondary, "invalid validator type");
 
+            Runtime.Expect(!Nexus.IsDangerousAddress(target), "this address can't be used as source");
+
             var currentType = GetValidatorType(target);
             Runtime.Expect(currentType != type, $"Already a {type} validator");
 

@@ -869,7 +869,7 @@ namespace Phantasma.Business.Blockchain
 
         public SmartContract GetContractByName(StorageContext storage, string name)
         {
-            if (Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
+            if (Blockchain.Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
             {
                 return Nexus.GetContractByName(storage, name);
             }
@@ -892,7 +892,7 @@ namespace Phantasma.Business.Blockchain
 
         public void UpgradeContract(StorageContext storage, string name, byte[] script, ContractInterface abi)
         {
-            if (Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
+            if (Blockchain.Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
             {
                 throw new ChainException($"Cannot upgrade this type of contract: {name}");
             }
@@ -916,7 +916,7 @@ namespace Phantasma.Business.Blockchain
 
         public void KillContract(StorageContext storage, string name)
         {
-            if (Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
+            if (Blockchain.Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
             {
                 throw new ChainException($"Cannot kill this type of contract: {name}");
             }
