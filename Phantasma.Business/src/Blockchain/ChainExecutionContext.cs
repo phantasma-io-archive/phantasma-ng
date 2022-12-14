@@ -40,7 +40,7 @@ namespace Phantasma.Business.Blockchain
             {
                 BigInteger usedQuota;
                 
-                if (Nexus.IsNativeContractStatic(Contract.Name)) 
+                if (Blockchain.Nexus.IsNativeContract(Contract.Name)) 
                 {
                     usedQuota = 1024; // does not matter what number, just than its greater than 0
                 }
