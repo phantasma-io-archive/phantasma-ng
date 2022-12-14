@@ -91,5 +91,23 @@ public class PlatformInfoTests
         Assert.Equal(platformInfo.InteropAddresses, unserializedPlatformInfo.InteropAddresses);
     }
     
+    [Fact]
+    public void TestAddAddress()
+    {
+        // Arrange
+        var name = "TestPlatform";
+        var symbol = "TP";
+        var interopAddresses = new List<PlatformSwapAddress>();
+        var newInteropAddress = new PlatformSwapAddress { ExternalAddress = "0x1234567890", LocalAddress = PhantasmaKeys.Generate().Address };
+        var platformInfo = new PlatformInfo(name, symbol, interopAddresses);
+
+        // Act
+        platformInfo.AddAddress(newInteropAddress);
+
+        // Assert
+        Assert.Equal(1, platformInfo.InteropAddresses.Length);
+        Assert.Equal(newInteropAddress, platformInfo.InteropAddresses[0]);
+    }
+    
 
 }
