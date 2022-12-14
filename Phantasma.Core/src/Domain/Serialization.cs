@@ -93,6 +93,10 @@ namespace Phantasma.Core.Domain
             {
                 writer.Write((byte)obj);
             }
+            else if (type == typeof(short))
+            {
+                writer.Write((short)obj);
+            }
             else if (type == typeof(long))
             {
                 writer.Write((long)obj);
