@@ -10,6 +10,14 @@ namespace Phantasma.Core.Tests.Domain;
 
 public class VMObjectTests
 {
+    [Fact]
+    public void TestConstructorVMObject()
+    {
+        var vmObject = new VMObject();
+        Assert.NotNull(vmObject);
+        Assert.Equal(VMType.None, vmObject.Type);
+        Assert.Equal(null, vmObject.Data);
+    }
     
     [Fact]
     public void UnserializeData_SetsExpectedProperties_ForBoolType()
