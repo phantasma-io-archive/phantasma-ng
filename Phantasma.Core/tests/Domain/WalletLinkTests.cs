@@ -487,6 +487,69 @@ public class WalletLinkTests
         Assert.Equal((uint)1623432423, account.files[0].date);
         Assert.Equal("abc123", account.files[0].hash);
     }
+    
+    [Fact]
+    public void TestConnection()
+    {
+        var token = "saiduhasdasd";
+        var version = 10;
+        var connection = new WalletLink.Connection(token, version);
+        
+        Assert.Equal(token, connection.Token);
+        Assert.Equal(version, connection.Version);
+    }
+    
+    [Fact]
+    public void ResultProperty_IsCorrectlySet_WhenConstructed()
+    {
+        // Arrange
+        var expectedResult = "test result";
+
+        // Act
+        var invocation = new WalletLink.Invocation() { result = expectedResult };
+
+        // Assert
+        Assert.Equal(expectedResult, invocation.result);
+    }
+    
+    [Fact]
+    public void HashProperty_IsCorrectlySet_WhenConstructed()
+    {
+        // Arrange
+        var expectedHash = "test hash";
+
+        // Act
+        var transaction = new WalletLink.Transaction() { hash = expectedHash };
+
+        // Assert
+        Assert.Equal(expectedHash, transaction.hash);
+    }
+    
+    [Fact]
+    public void SignatureProperty_IsCorrectlySet_WhenConstructed()
+    {
+        // Arrange
+        var expectedSignature = "test signature";
+
+        // Act
+        var signature = new WalletLink.Signature() { signature = expectedSignature };
+
+        // Assert
+        Assert.Equal(expectedSignature, signature.signature);
+    }
+
+    [Fact]
+    public void RandomProperty_IsCorrectlySet_WhenConstructed()
+    {
+        // Arrange
+        var expectedRandom = "test random value";
+
+        // Act
+        var signature = new WalletLink.Signature() { random = expectedRandom };
+
+        // Assert
+        Assert.Equal(expectedRandom, signature.random);
+    }
 
 
 }
