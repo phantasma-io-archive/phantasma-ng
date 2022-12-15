@@ -240,7 +240,7 @@ public class OrganizationTests : IDisposable
         runtimeMoq.Setup( r => r.GetChainByName(It.IsAny<string>())).Returns(this.Chain);
 
         // setup allowance
-        runtimeMoq.Setup( r => r.SubtractAllowance(It.IsAny<Address>(), It.IsAny<string>(), It.IsAny<BigInteger>())).Returns(allowance);
+        //runtimeMoq.Setup( r => r.SubtractAllowance(It.IsAny<Address>(), It.IsAny<string>(), It.IsAny<BigInteger>())).Returns(allowance);
 
         // setup witness 
         runtimeMoq.Setup(r => r.IsWitness(It.IsAny<Address>())).Returns(isWitness);

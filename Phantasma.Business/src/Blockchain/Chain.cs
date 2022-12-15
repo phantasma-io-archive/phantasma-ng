@@ -17,6 +17,7 @@ using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 using Serilog;
+using Serilog.Core;
 
 namespace Phantasma.Business.Blockchain
 {
@@ -133,7 +134,8 @@ namespace Phantasma.Business.Blockchain
 
             if (this.IsRoot)
             {
-                var inflationReady = NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
+                var inflationReady = Filter.Enabled ? false : NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
+
                 if (inflationReady)
                 {
                     var senderAddress = this.CurrentBlock.Validator;
@@ -217,8 +219,29 @@ namespace Phantasma.Business.Blockchain
                 }*/
                 
                 var whitelisted = TransactionExtensions.IsWhitelisted(methods);
-
-                if (!whitelisted)
+                if (whitelisted)
+                {
+                    if (methods.Any(x => x.MethodName.Equals(nameof(SwapContract.SwapFee)) || x.MethodName.Equals(nameof(ExchangeContract.SwapFee))))
+                    {
+                        var existsLPToken = Nexus.TokenExists(Storage, DomainSettings.LiquidityTokenSymbol);
+                        if (existsLPToken) // Check for the Exchange contract
+                        {
+                            var exchangePot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Exchange));
+                            if (exchangePot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
+                                return (CodeType.Error, $"Empty pot Exchange");
+                            }
+                        }
+                        else
+                        {
+                            // Run the Swap contract
+                            var pot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Swap));
+                            if (pot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
+                                return (CodeType.Error, $"Empty pot Swap");
+                            }
+                        }
+                    }
+                }
+                else
                 {
                     var minFee = Nexus.GetGovernanceValue(Nexus.RootStorage, GovernanceContract.GasMinimumFeeTag);
                     if (gasPrice < minFee)
@@ -245,7 +268,6 @@ namespace Phantasma.Business.Blockchain
                         }
                     }
                 }
-
             }
 
             if (tx.Script.Length == 0)
@@ -374,9 +396,21 @@ namespace Phantasma.Business.Blockchain
                 result.Codespace = e.Message;
                 result.State = ExecutionState.Fault;
                 this.CurrentBlock.SetStateForHash(tx.Hash, result.State);
+
+                ProcessFilteredExceptions(e.Message);
             }
 
             return result;
+        }
+
+        private void ProcessFilteredExceptions(string exceptionMessage)
+        {
+            var filteredAddress = Filter.ExtractFilteredAddress(exceptionMessage);
+
+            if (!filteredAddress.IsNull)
+            {
+                Filter.AddRedFilteredAddress(Nexus.RootStorage, filteredAddress);
+            }
         }
 
         public byte[] Commit()
@@ -523,6 +557,7 @@ namespace Phantasma.Business.Blockchain
             {
                 result.Code = 1;
                 result.Codespace = runtime.ExceptionMessage ?? "Execution Unsuccessful";
+                ProcessFilteredExceptions(result.Codespace);
                 return result;
             }
 
@@ -834,7 +869,7 @@ namespace Phantasma.Business.Blockchain
 
         public SmartContract GetContractByName(StorageContext storage, string name)
         {
-            if (Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
+            if (Blockchain.Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
             {
                 return Nexus.GetContractByName(storage, name);
             }
@@ -857,7 +892,7 @@ namespace Phantasma.Business.Blockchain
 
         public void UpgradeContract(StorageContext storage, string name, byte[] script, ContractInterface abi)
         {
-            if (Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
+            if (Blockchain.Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
             {
                 throw new ChainException($"Cannot upgrade this type of contract: {name}");
             }
@@ -881,7 +916,7 @@ namespace Phantasma.Business.Blockchain
 
         public void KillContract(StorageContext storage, string name)
         {
-            if (Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
+            if (Blockchain.Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
             {
                 throw new ChainException($"Cannot kill this type of contract: {name}");
             }

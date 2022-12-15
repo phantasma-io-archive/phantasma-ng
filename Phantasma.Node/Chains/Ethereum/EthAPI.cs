@@ -64,7 +64,7 @@ namespace Phantasma.Node.Chains.Ethereum
         {
             this._account = account;
 
-            this.urls = Settings.Default.Oracle.EthRpcNodes;
+            this.urls = Settings.Instance.Oracle.EthRpcNodes;
             if (this.urls.Count == 0)
             {
                 throw new ArgumentNullException("Need at least one RPC node");
@@ -146,10 +146,10 @@ namespace Phantasma.Node.Chains.Ethereum
             {
                 var bytes = nexus.GetOracleReader().Read<byte[]>(DateTime.Now, DomainExtensions.GetOracleFeeURL("ethereum"));
                 var fees = new BigInteger(bytes);
-                var gasPrice = UnitConversion.ToDecimal(fees / Settings.Default.Oracle.EthGasLimit, 9);
+                var gasPrice = UnitConversion.ToDecimal(fees / Settings.Instance.Oracle.EthGasLimit, 9);
 
                 result = EthUtils.RunSync(() => GetWeb3Client().Eth.GetEtherTransferService()
-                        .TransferEtherAsync(toAddress, amount, gasPrice, Settings.Default.Oracle.EthGasLimit));
+                        .TransferEtherAsync(toAddress, amount, gasPrice, Settings.Instance.Oracle.EthGasLimit));
 
                 return EthTransferResult.Success;
             }
@@ -188,7 +188,7 @@ namespace Phantasma.Node.Chains.Ethereum
 
                     var swapInHandler = GetWeb3Client().Eth.GetContractTransactionHandler<SwapInFunction>();
 
-                    swapIn.Gas = Settings.Default.Oracle.EthGasLimit;
+                    swapIn.Gas = Settings.Instance.Oracle.EthGasLimit;
                     var bytes = nexus.GetOracleReader().Read<byte[]>(DateTime.Now, DomainExtensions.GetOracleFeeURL("ethereum"));
                     var fees = new BigInteger(bytes);
                     swapIn.GasPrice = BigInteger.Parse(fees.ToString()) / swapIn.Gas;

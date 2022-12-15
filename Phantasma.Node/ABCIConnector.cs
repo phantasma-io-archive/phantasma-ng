@@ -194,6 +194,13 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             //response.ConsensusParamUpdates = ???
             //response.Events = ???
 
+
+            if (chain.Height == 1 && _nexus.Name != "mainnet")
+            {
+                Console.WriteLine("NODE ADDRESS: " + _owner.Address);
+                Console.WriteLine("NODE WIF: " + _owner.ToWIF());
+            }
+
             return Task.FromResult(response);
         }
         catch (Exception e)

@@ -106,13 +106,14 @@ namespace Phantasma.Node
         public NodeSettings Node { get; }
         public AppSettings App { get; }
         public LogSettings Log { get; }
+        public WebhookSettings WebhookSetting { get; }
         public OracleSettings Oracle { get; }
         public SimulatorSettings Simulator { get; }
         public PerformanceMetricsSettings PerformanceMetrics { get; }
 
         public string _configFile;
 
-        public static Settings Default { get; private set; }
+        public static Settings Instance { get; private set; }
 
         private Settings(string[] args, IConfigurationSection section)
         {
@@ -153,18 +154,8 @@ namespace Phantasma.Node
                 this.App = new AppSettings(section.GetSection("App"));
                 this.Log = new LogSettings(section.GetSection("Log"));
                 this.RPC = new RPCSettings(section.GetSection("RPC"));
+                this.WebhookSetting = new WebhookSettings(section.GetSection("Webhook"));
                 this.PerformanceMetrics = section.GetSection("PerformanceMetrics").Get<PerformanceMetricsSettings>();
-
-                var usedPorts = new HashSet<int>();
-                int expected = 0;
-                usedPorts.Add(this.Node.NodePort); expected++;
-                usedPorts.Add(this.Node.RestPort); expected++;
-                usedPorts.Add(this.Node.RpcPort); expected++;
-
-                if (usedPorts.Count != expected)
-                {
-                    throw new Exception("One or more ports are being re-used for different services, check the config");
-                }
             }
             catch (Exception e)
             {
@@ -175,7 +166,7 @@ namespace Phantasma.Node
 
         public static void Load(string[] args, IConfigurationSection section)
         {
-            Default = new Settings(args, section);
+            Instance = new Settings(args, section);
         }
 
         public string GetInteropWif(PhantasmaKeys nodeKeys, string platformName)
@@ -219,22 +210,10 @@ namespace Phantasma.Node
         RocksDB,
     }
 
-    public enum NodeMode
-    {
-        Invalid,
-        Normal,
-        Proxy,
-        Validator,
-    }
-
     public class NodeSettings
     {
-        public string ApiProxyUrl { get; }
         public string NexusName { get; }
         public string ProfilerPath { get; }
-        public NodeMode Mode { get; }
-        public string NodeWif { get; }
-
         public string StoragePath { get; }
         public string OraclePath { get; }
         public StorageBackendType StorageBackend;
@@ -244,27 +223,16 @@ namespace Phantasma.Node
 
         public bool RandomSwapData { get; } = false;
 
-        public int NodePort { get; }
-        public string NodeHost { get; }
-
-        public bool IsValidator => Mode == NodeMode.Validator;
-
         public bool HasSync { get; }
         public bool HasMempool { get; }
         public bool MempoolLog { get; }
         public bool HasEvents { get; }
         public bool HasRelay { get; }
         public bool HasArchive { get; }
-        public bool HasRpc { get; }
-        public int RpcPort { get; } = 7077;
         public List<Address> SeedValidators { get; }
-
-        public bool HasRest { get; }
-        public int RestPort { get; } = 7078;
+        public string APIURL { get; } = "http://localhost:5101";
 
         public bool NexusBootstrap { get; }
-        public uint GenesisTimestampUint { get; }
-        public Timestamp GenesisTimestamp { get; }
         public bool ApiCache { get; }
         public bool ApiLog { get; }
 
@@ -279,17 +247,28 @@ namespace Phantasma.Node
 
         public bool WebLogs { get; }
 
+        public string TendermintPath { get; }
+        public string TendermintHome { get; }
+        public string TendermintGenesis { get; }
+        public string TendermintChainID { get; }
+        public string TendermintPeers { get; }
+
         public string TendermintProxyHost { get; }
         public int TendermintProxyPort { get; }
 
         public string TendermintRPCHost { get; }
         public int TendermintRPCPort { get; }
-
         public string TendermintKey { get; }
 
         public NodeSettings(IConfigurationSection section)
         {
             this.WebLogs = section.GetValueEx<bool>("web.logs");
+
+            this.TendermintPath = section.GetString("tendermint.path", "");
+            this.TendermintHome = section.GetString("tendermint.home", "");
+            this.TendermintGenesis = section.GetString("tendermint.genesis", "");
+            this.TendermintChainID = section.GetString("tendermint.chainid", "");
+            this.TendermintPeers = section.GetString("tendermint.peers", "");
 
             this.TendermintRPCPort = section.GetValueEx<Int32>("tendermint.rpc.port");
             this.TendermintRPCHost = section.GetString("tendermint.rpc.host");
@@ -310,31 +289,19 @@ namespace Phantasma.Node
                 throw new Exception("Proof-Of-Work difficulty has to be between 1 and 5");
             }
 
-            this.ApiProxyUrl = section.GetString("api.proxy.url");
-
-            if (string.IsNullOrEmpty(this.ApiProxyUrl))
-            {
-                this.ApiProxyUrl = null;
-            }
-
             this.SeedValidators = section.GetSection("seed.validators").AsEnumerable()
                 .Where(p => p.Value != null)
                 .Select(p => Address.FromText(p.Value))
                 .ToList();
 
-            this.Mode = section.GetValueEx<NodeMode>("node.mode", NodeMode.Invalid);
-            if (this.Mode == NodeMode.Invalid)
+            if (this.SeedValidators.Count < 3)
             {
-                throw new Exception("Unknown node mode specified");
+                throw new Exception("Seed.validators list not set or too small");
             }
 
             this.NexusName = section.GetString("nexus.name");
-            this.NodeWif = section.GetString("node.wif");
             this.StorageConversion = section.GetValueEx<bool>("convert.storage");
             this.ApiLog = section.GetValueEx<bool>("api.log");
-
-            this.NodePort = section.GetValueEx<Int32>("node.port");
-            this.NodeHost = section.GetString("node.host", "localhost");
 
             this.ProfilerPath = section.GetString("profiler.path");
             if (string.IsNullOrEmpty(this.ProfilerPath)) this.ProfilerPath = null;
@@ -346,14 +313,9 @@ namespace Phantasma.Node
             this.HasRelay = section.GetValueEx<bool>("has.relay");
             this.HasArchive = section.GetValueEx<bool>("has.archive");
 
-            this.HasRpc = section.GetValueEx<bool>("has.rpc");
-            this.RpcPort = section.GetValueEx<Int32>("rpc.port");
-            this.HasRest = section.GetValueEx<bool>("has.rest");
-            this.RestPort = section.GetValueEx<Int32>("rest.port");
+            this.APIURL = section.GetString("api.url");
 
             this.NexusBootstrap = section.GetValueEx<bool>("nexus.bootstrap");
-            this.GenesisTimestampUint = section.GetValueEx<UInt32>("genesis.timestamp");
-            this.GenesisTimestamp = new Timestamp((this.GenesisTimestampUint == 0) ? Timestamp.Now.Value : this.GenesisTimestampUint);
             this.ApiCache = section.GetValueEx<bool>("api.cache");
 
             this.SenderHost = section.GetString("sender.host");
@@ -527,6 +489,28 @@ namespace Phantasma.Node
             this.History = section.GetString("history");
             this.Config = section.GetString("config");
             this.Prompt = section.GetString("prompt");
+        }
+    }
+
+    public class WebhookSettings
+    {
+        public string Token { get; }
+        public string Channel { get; }
+        public string Prefix { get; }
+        
+        public WebhookSettings(IConfigurationSection section)
+        {
+            this.Token = section.GetString("webhook.token");
+            this.Channel = section.GetString("webhook.channel");
+            this.Prefix = section.GetString("webhook.prefix");
+            
+            Webhook.Token = Token; 
+            Webhook.Channel = Channel; 
+            Webhook.Prefix = Prefix; 
+            Log.Logger.Information($"Webhook settings loaded");
+            Log.Logger.Information($"Webhook Token {Webhook.Token}");
+            Log.Logger.Information($"Webhook Channel {Webhook.Channel}");
+            Log.Logger.Information($"Webhook Prefix {Webhook.Prefix}");
         }
     }
 

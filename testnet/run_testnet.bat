@@ -1,7 +1,7 @@
 @echo off
 
 REM Set debug_mode to true if you want to run your own instance of node0 inside Visual Studio
-set DEBUG_MODE=false
+set DEBUG_MODE=true
 set TOTAL_NODES=4
 set CODE_PATH=..\Phantasma.Node
 set DOCKER_PATH=..\DOCKER\testnet
@@ -34,7 +34,7 @@ Robocopy %DOCKER_PATH%\node%NODE_INDEX% %NODE_ROOT% /E > NUL
 IF %ERRORLEVEL% GEQ 7 goto :FailedCopy
 
 REM if running in debug mode, skip install/run of node0
-if %NODE_INDEX% == 0 ( if "%DEBUG_MODE%" == "true" goto :SkipDebugNode)
+if %NODE_INDEX% == 0 ( if "%DEBUG_MODE%" == "true" goto :LaunchDebugMode)
 
 REM Copy published dotnet files
 echo Copying publish files for node %NODE_INDEX%
@@ -61,6 +61,13 @@ SET URLS="http://localhost:510%PORT_ID%"
 start "Phantasma node %NODE_INDEX%" cmd /K "cd %NODE_ROOT%\publish & dotnet phantasma-node.dll --urls %URLS%"
 cd %~dp0
 
+goto :SkipDebugNode
+
+:LaunchDebugMode
+echo Launch your debug node (eg: inside Visual Studio) then press enter to continue
+PAUSE
+goto :SkipTendermintLaunch
+
 :SkipDebugNode
 
 REM Init tendermint 
@@ -74,10 +81,7 @@ If not Exist "%NODE_ROOT%\data" (%NODE_ROOT%\tendermint.exe unsafe-reset-all)
 echo Launching tendermint instance #%NODE_INDEX%
 start "Tendermint %NODE_INDEX%" cmd /K  "SET TMHOME=%NODE_ROOT%& cd %NODE_ROOT%& tendermint.exe node"
 
-if %NODE_INDEX% == 0 ( if "%DEBUG_MODE%" == "true" (
-PAUSE
-))
-
+:SkipTendermintLaunch
 
 set /A NODE_INDEX+=1
 if not %NODE_INDEX% == %TOTAL_NODES% goto :CopyLoop

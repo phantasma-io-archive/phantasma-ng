@@ -43,6 +43,8 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public void CreateFile(Address target, string fileName, BigInteger fileSize, byte[] contentMerkle, byte[] encryptionContent)
         {
+            Runtime.Expect(!Nexus.IsDangerousAddress(target), "this address can't be used as source");
+
             Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
             Runtime.Expect(target.IsUser, "destination address must be user address");
             Runtime.Expect(fileSize >= DomainSettings.ArchiveMinSize, "file too small");

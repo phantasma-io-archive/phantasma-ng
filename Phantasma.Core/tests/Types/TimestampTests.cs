@@ -14,7 +14,6 @@ public class TimestampTests
     {
         var timestamp = new Timestamp(1234567890);
         Assert.Equal((uint)1234567890, timestamp.Value);
-        //Assert.Equal("13/02/2009 23:31:30", timestamp.ToString());
     }
     
     [Fact]
@@ -111,5 +110,92 @@ public class TimestampTests
         var dateTimeOffset = new DateTimeOffset (2009, 02, 13, 23, 31, 30, TimeSpan.Zero);
         var timestamp = (Timestamp) dateTimeOffset.DateTime;
         Assert.Equal((uint)1234567890, timestamp.Value);
+    }
+    
+    [Fact]
+    public void TestTimetampUsingEquals()
+    {
+        var timestamp = new Timestamp(1234567890);
+        Assert.True(timestamp.Equals((Timestamp) 1234567890));
+    }
+    
+    [Fact]
+    public void TestTimestampUsingEqualsToNull()
+    {
+        var timestamp = new Timestamp(1234567890);
+        Assert.False(timestamp.Equals(null));
+    }
+    
+    [Fact]
+    public void TestTimestampUsingEqualsOperator()
+    {
+        var timestamp = new Timestamp(1234567890);
+        Assert.True(timestamp == (Timestamp) 1234567890);
+    }
+    
+    [Fact]
+    public void TestTimestampGetSize()
+    {
+        var timestamp = new Timestamp(1234567890);
+        Assert.Equal(4, timestamp.GetSize());
+    }
+    
+    [Fact]
+    public void TestTimestampGetHashCode()
+    {
+        var timestamp = new Timestamp(1234567890);
+        Assert.Equal(1234567890, timestamp.GetHashCode());
+    }
+
+    [Fact]
+    public void TestTimestampCompareTo()
+    {
+        var timestamp = new Timestamp(1234567890);
+        Assert.Equal(0, timestamp.CompareTo((Timestamp) 1234567890));
+        Assert.Equal(-1, timestamp.CompareTo((Timestamp) 1234567891));
+        Assert.Equal(1, timestamp.CompareTo((Timestamp) 1234567889));
+    }
+    
+   [Fact]
+    public void TestTimestampToString()
+    {
+        var timestamp = new Timestamp(1234567890);
+        var expected = ((DateTime)timestamp).ToString();
+        Assert.Equal(expected, timestamp.ToString());
+    }
+    
+    [Fact]
+    public void TestTimestampToStringWithFormat()
+    {
+        var timestamp = new Timestamp(1234567890);
+        Assert.Equal("13/02/2009 23:31:30", ((DateTime)timestamp).ToString("dd/MM/yyyy HH:mm:ss"));
+    }
+    
+    [Fact]
+    public void TestTimestampToStringFormat()
+    {
+        var timestamp = new Timestamp(1234567890);
+        Assert.Equal("13/02/2009 23:31:30", timestamp.ToString("dd/MM/yyyy HH:mm:ss"));
+    }
+    
+    [Fact]
+    public void TestTimestampSubtraction()
+    {
+        var timestamp1 = new Timestamp(1234567890);
+        var timestamp2 = new Timestamp(1234567880);
+        var timestamp3 = timestamp1 - TimeSpan.FromSeconds(1234567880);
+        var expected = new Timestamp(10);
+        
+        Assert.Equal(expected, timestamp1 - timestamp2);
+        Assert.Equal(expected, timestamp3);
+    }
+    
+    [Fact]
+    public void TestTimestampAddition()
+    {
+        var timestamp1 = new Timestamp(1234567890);
+        var expected = new Timestamp(1234740690);
+        
+        Assert.Equal(expected, timestamp1 + TimeSpan.FromDays(2));
     }
 }

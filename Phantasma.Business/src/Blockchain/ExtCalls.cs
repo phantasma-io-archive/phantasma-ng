@@ -15,103 +15,113 @@ using Phantasma.Core.Types;
 
 namespace Phantasma.Business.Blockchain
 {
+    public delegate ExecutionState ExtcallDelegate(RuntimeVM vm);
+
     public static class ExtCalls
     {
         // naming scheme should be "namespace.methodName" for methods, and "type()" for constructors
         internal static void RegisterWithRuntime(RuntimeVM vm)
         {
-            vm.RegisterMethod("Runtime.TransactionHash", Runtime_TransactionHash); // --> done
-            vm.RegisterMethod("Runtime.Time", Runtime_Time);
-            vm.RegisterMethod("Runtime.Version", Runtime_Version);
-            vm.RegisterMethod("Runtime.GasTarget", Runtime_GasTarget);
-            vm.RegisterMethod("Runtime.Validator", Runtime_Validator);
-            vm.RegisterMethod("Runtime.Context", Runtime_Context);
-            vm.RegisterMethod("Runtime.PreviousContext", Runtime_PreviousContext);
-            vm.RegisterMethod("Runtime.GenerateUID", Runtime_GenerateUID);
-            vm.RegisterMethod("Runtime.Random", Runtime_Random);            
-            vm.RegisterMethod("Runtime.SetSeed", Runtime_SetSeed);
-            vm.RegisterMethod("Runtime.IsWitness", Runtime_IsWitness);
-            vm.RegisterMethod("Runtime.IsTrigger", Runtime_IsTrigger);
-            vm.RegisterMethod("Runtime.IsMinter", Runtime_IsMinter);
-            vm.RegisterMethod("Runtime.Log", Runtime_Log);
-            vm.RegisterMethod("Runtime.Notify", Runtime_Notify);
-            vm.RegisterMethod("Runtime.DeployContract", Runtime_DeployContract);
-            vm.RegisterMethod("Runtime.UpgradeContract", Runtime_UpgradeContract);
-            vm.RegisterMethod("Runtime.KillContract", Runtime_KillContract);
-            vm.RegisterMethod("Runtime.GetBalance", Runtime_GetBalance);
-            vm.RegisterMethod("Runtime.TransferTokens", Runtime_TransferTokens);
-            vm.RegisterMethod("Runtime.TransferBalance", Runtime_TransferBalance);
-            vm.RegisterMethod("Runtime.MintTokens", Runtime_MintTokens);
-            vm.RegisterMethod("Runtime.BurnTokens", Runtime_BurnTokens);
-            vm.RegisterMethod("Runtime.SwapTokens", Runtime_SwapTokens);
-            vm.RegisterMethod("Runtime.TransferToken", Runtime_TransferToken);
-            vm.RegisterMethod("Runtime.MintToken", Runtime_MintToken);
-            vm.RegisterMethod("Runtime.BurnToken", Runtime_BurnToken);
-            vm.RegisterMethod("Runtime.InfuseToken", Runtime_InfuseToken);
-            vm.RegisterMethod("Runtime.ReadTokenROM", Runtime_ReadTokenROM);
-            vm.RegisterMethod("Runtime.ReadTokenRAM", Runtime_ReadTokenRAM);
-            vm.RegisterMethod("Runtime.ReadToken", Runtime_ReadToken);
-            vm.RegisterMethod("Runtime.WriteToken", Runtime_WriteToken);
-            vm.RegisterMethod("Runtime.TokenExists", Runtime_TokenExists);
-            vm.RegisterMethod("Runtime.GetTokenDecimals", Runtime_TokenGetDecimals);
-            vm.RegisterMethod("Runtime.GetTokenFlags", Runtime_TokenGetFlags);
+            IterateExtcalls((name, argCount, method) =>
+            {
+                vm.RegisterMethod(name, argCount, method);
+            });
+        }
 
-            vm.RegisterMethod("Nexus.GetGovernanceValue", Nexus_GetGovernanceValue);
-            vm.RegisterMethod("Nexus.BeginInit", Nexus_BeginInit);
-            vm.RegisterMethod("Nexus.EndInit", Nexus_EndInit);
+        internal static void IterateExtcalls(Action<string, int,ExtcallDelegate> callback)
+        {
+            callback("Runtime.TransactionHash", 0, Runtime_TransactionHash); // --> done
+            callback("Runtime.Time", 0, Runtime_Time);
+            callback("Runtime.Version", 0, Runtime_Version);
+            callback("Runtime.GasTarget", 0, Runtime_GasTarget);
+            callback("Runtime.Validator", 0, Runtime_Validator);
+            callback("Runtime.Context", 0, Runtime_Context);
+            callback("Runtime.PreviousContext", 0, Runtime_PreviousContext);
+            callback("Runtime.GenerateUID", 0, Runtime_GenerateUID);
+            callback("Runtime.Random", 0, Runtime_Random);
+            callback("Runtime.SetSeed", 1, Runtime_SetSeed);
+            callback("Runtime.IsWitness", 1, Runtime_IsWitness);
+            callback("Runtime.IsTrigger", 0, Runtime_IsTrigger);
+            callback("Runtime.IsMinter", 2, Runtime_IsMinter);
+            callback("Runtime.Log", 1, Runtime_Log);
+            callback("Runtime.Notify", 3, Runtime_Notify);
+            callback("Runtime.DeployContract", 4, Runtime_DeployContract);
+            callback("Runtime.UpgradeContract", 3, Runtime_UpgradeContract);
+            callback("Runtime.KillContract", 2, Runtime_KillContract);
+            callback("Runtime.GetBalance", 2, Runtime_GetBalance);
+            callback("Runtime.TransferTokens", 4, Runtime_TransferTokens);
+            callback("Runtime.TransferBalance", 3, Runtime_TransferBalance);
+            callback("Runtime.MintTokens", 4, Runtime_MintTokens);
+            callback("Runtime.BurnTokens", 3, Runtime_BurnTokens);
+            callback("Runtime.SwapTokens", 5, Runtime_SwapTokens);
+            callback("Runtime.TransferToken", 4, Runtime_TransferToken);
+            callback("Runtime.MintToken", 6, Runtime_MintToken);
+            callback("Runtime.BurnToken", 3, Runtime_BurnToken);
+            callback("Runtime.InfuseToken", 5, Runtime_InfuseToken);
+            callback("Runtime.ReadTokenROM", 2, Runtime_ReadTokenROM);
+            callback("Runtime.ReadTokenRAM", 2, Runtime_ReadTokenRAM);
+            callback("Runtime.ReadToken", 2, Runtime_ReadToken);
+            callback("Runtime.WriteToken", 4, Runtime_WriteToken);
+            callback("Runtime.TokenExists", 1, Runtime_TokenExists);
+            callback("Runtime.GetTokenDecimals", 1, Runtime_TokenGetDecimals);
+            callback("Runtime.GetTokenFlags", 1, Runtime_TokenGetFlags);
 
-            vm.RegisterMethod("Nexus.CreateToken", Nexus_CreateToken);
-            vm.RegisterMethod("Nexus.CreateTokenSeries", Nexus_CreateTokenSeries);
-            //vm.RegisterMethod("Nexus.CreateChain", Nexus_CreateChain); // currently unused
-            //vm.RegisterMethod("Nexus.CreatePlatform", Nexus_CreatePlatform); // to remove
-            vm.RegisterMethod("Nexus.CreateOrganization", Nexus_CreateOrganization);
-            //vm.RegisterMethod("Nexus.SetPlatformTokenHash", Nexus_SetPlatformTokenHash); // to remove
+            callback("Nexus.GetGovernanceValue", 1, Nexus_GetGovernanceValue);
+            callback("Nexus.BeginInit", 1, Nexus_BeginInit);
+            callback("Nexus.EndInit", 1, Nexus_EndInit);
 
-            vm.RegisterMethod("Organization.AddMember", Organization_AddMember);
+            callback("Nexus.CreateToken", 3, Nexus_CreateToken);
+            callback("Nexus.CreateTokenSeries", 7, Nexus_CreateTokenSeries);
+            //callback("Nexus.CreateChain", Nexus_CreateChain); // currently unused
+            //callback("Nexus.CreatePlatform", Nexus_CreatePlatform); // to remove
+            callback("Nexus.CreateOrganization", 4, Nexus_CreateOrganization);
+            //callback("Nexus.SetPlatformTokenHash", Nexus_SetPlatformTokenHash); // to remove
 
-            //vm.RegisterMethod("Task.Start", Task_Start); currently unused, needs tests
-            //vm.RegisterMethod("Task.Stop", Task_Stop);
-            //vm.RegisterMethod("Task.Get", Task_Get);
-            //vm.RegisterMethod("Task.Current", Task_Current);
+            callback("Organization.AddMember", 3, Organization_AddMember);
 
-            vm.RegisterMethod("Data.Get", Data_Get);
-            vm.RegisterMethod("Data.Set", Data_Set);
-            vm.RegisterMethod("Data.Delete", Data_Delete);
+            //callback("Task.Start", Task_Start); currently unused, needs tests
+            //callback("Task.Stop", Task_Stop);
+            //callback("Task.Get", Task_Get);
+            //callback("Task.Current", Task_Current);
 
-            vm.RegisterMethod("Map.Has", Map_Has);
-            vm.RegisterMethod("Map.Get", Map_Get);
-            vm.RegisterMethod("Map.Set", Map_Set);
-            vm.RegisterMethod("Map.Remove", Map_Remove);
-            vm.RegisterMethod("Map.Count", Map_Count);
-            vm.RegisterMethod("Map.Clear", Map_Clear);
-            vm.RegisterMethod("Map.Keys", Map_Keys);
+            callback("Data.Get", 3, Data_Get);
+            callback("Data.Set", 2, Data_Set);
+            callback("Data.Delete", 1, Data_Delete);
 
-            vm.RegisterMethod("List.Get", List_Get);
-            vm.RegisterMethod("List.Add", List_Add);
-            vm.RegisterMethod("List.Replace", List_Replace);
-            //vm.RegisterMethod("List.Remove", List_Remove); TODO implement later, remove by value instead of index
-            vm.RegisterMethod("List.RemoveAt", List_RemoveAt);
-            vm.RegisterMethod("List.Count", List_Count);
-            vm.RegisterMethod("List.Clear", List_Clear);
+            callback("Map.Has", 4, Map_Has);
+            callback("Map.Get", 4, Map_Get);
+            callback("Map.Set", 3, Map_Set);
+            callback("Map.Remove", 2, Map_Remove);
+            callback("Map.Count", 2, Map_Count);
+            callback("Map.Clear", 1, Map_Clear);
+            callback("Map.Keys", 2, Map_Keys);
 
-            vm.RegisterMethod("Account.Name", Account_Name);
-            vm.RegisterMethod("Account.LastActivity", Account_Activity);
-            vm.RegisterMethod("Account.Transactions", Account_Transactions);
+            callback("List.Get", 4, List_Get);
+            callback("List.Add", 2, List_Add);
+            callback("List.Replace", 3, List_Replace);
+            //callback("List.Remove", List_Remove); TODO implement later, remove by value instead of index
+            callback("List.RemoveAt", 2, List_RemoveAt);
+            callback("List.Count", 2, List_Count);
+            callback("List.Clear", 1, List_Clear);
 
-            vm.RegisterMethod("Oracle.Read", Oracle_Read);
-            vm.RegisterMethod("Oracle.Price", Oracle_Price);
-            vm.RegisterMethod("Oracle.Quote", Oracle_Quote);
+            callback("Account.Name", 1, Account_Name);
+            callback("Account.LastActivity", 1, Account_Activity);
+            callback("Account.Transactions", 1, Account_Transactions);
+
+            callback("Oracle.Read", 1, Oracle_Read);
+            callback("Oracle.Price", 1, Oracle_Price);
+            callback("Oracle.Quote", 3, Oracle_Quote);
             // TODO
-            //vm.RegisterMethod("Oracle.Block", Oracle_Block);
-            //vm.RegisterMethod("Oracle.Transaction", Oracle_Transaction);
-            /*vm.RegisterMethod("Oracle.Register", Oracle_Register);
-            vm.RegisterMethod("Oracle.List", Oracle_List);
+            //callback("Oracle.Block", Oracle_Block);
+            //callback("Oracle.Transaction", Oracle_Transaction);
+            /*callback("Oracle.Register", Oracle_Register);
+            callback("Oracle.List", Oracle_List);
             */
 
-            vm.RegisterMethod("ABI()", Constructor_ABI);
-            vm.RegisterMethod("Address()", Constructor_AddressV2);
-            vm.RegisterMethod("Hash()", Constructor_Hash);
-            vm.RegisterMethod("Timestamp()", Constructor_Timestamp);
+            callback("ABI()", 1, Constructor_ABI);
+            callback("Address()", 1, Constructor_AddressV2);
+            callback("Hash()", 1, Constructor_Hash);
+            callback("Timestamp()", 1, Constructor_Timestamp);
         }
 
         private static ExecutionState Constructor_Object<IN, OUT>(VirtualMachine vm, Func<IN, OUT> loader)
@@ -1358,8 +1368,11 @@ namespace Phantasma.Business.Blockchain
 
             var contractAddress = SmartContract.GetAddressFromContractName(contractName);
             var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
-
-            vm.Expect(!deployed, $"{contractName} is already deployed");
+            vm.ExpectWarning(!deployed, $"{contractName} is already deployed", from);
+            
+            // check if exists token with same name
+            var tokenExists = vm.TokenExists(contractName.ToUpper());
+            vm.ExpectWarning(!tokenExists, $"token with name {contractName} already exists", from);
 
             byte[] script;
             ContractInterface abi;
@@ -1368,7 +1381,7 @@ namespace Phantasma.Business.Blockchain
 
             var abiBytes = vm.PopBytes("contractABI");
 
-            bool isNative = Nexus.IsNativeContractStatic(contractName);
+            bool isNative = Nexus.IsNativeContract(contractName);
             if (isNative)
             {
                 /*if (contractName == "validator" && vm.GenesisAddress == Address.Null)
@@ -1401,7 +1414,7 @@ namespace Phantasma.Business.Blockchain
                     isReserved = false;
                 }*/
 
-                vm.Expect(!isReserved, $"name '{contractName}' reserved by system");
+                vm.ExpectWarning(!isReserved, $"name '{contractName}' reserved by system", from);
 
                 abi = ContractInterface.FromBytes(abiBytes);
 
@@ -1448,7 +1461,7 @@ namespace Phantasma.Business.Blockchain
 
             vm.Expect(vm.IsStakeMaster(from), "needs to be master");
 
-            vm.Expect(vm.IsWitness(from), "invalid witness");
+            vm.ExpectWarning(vm.IsWitness(from), "invalid witness", from);
 
             var contractName = vm.PopString("contractName");
 
@@ -1460,8 +1473,8 @@ namespace Phantasma.Business.Blockchain
             byte[] script;
             ContractInterface abi;
 
-            bool isNative = Nexus.IsNativeContractStatic(contractName);
-            vm.Expect(!isNative, "cannot upgrade native contract");
+            bool isNative = Nexus.IsNativeContract(contractName);
+            vm.ExpectWarning(!isNative, "cannot upgrade native contract", from);
 
             bool isToken = ValidationUtils.IsValidTicker(contractName);
 
@@ -1527,8 +1540,8 @@ namespace Phantasma.Business.Blockchain
 
             vm.Expect(deployed, $"{contractName} does not exist");
 
-            bool isNative = Nexus.IsNativeContractStatic(contractName);
-            vm.Expect(!isNative, "cannot kill native contract");
+            bool isNative = Nexus.IsNativeContract(contractName);
+            vm.ExpectWarning(!isNative, "cannot kill native contract", from);
 
             bool isToken = ValidationUtils.IsValidTicker(contractName);
             vm.Expect(!isToken, "cannot kill token contract");
@@ -1688,7 +1701,11 @@ namespace Phantasma.Business.Blockchain
             {
                 decimals = 0;
             }
-
+            
+            // check if contract already exists
+            var contractAddress = SmartContract.GetAddressFromContractName(symbol.ToLower());
+            var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
+            vm.ExpectWarning(!deployed, $"{symbol} already exists", owner);
             vm.Expect(ValidationUtils.IsValidTicker(symbol), "missing or invalid token symbol");
             vm.Expect(!string.IsNullOrEmpty(name), "missing or invalid token name");
             vm.Expect(maxSupply >= 0, "missing or invalid token supply");

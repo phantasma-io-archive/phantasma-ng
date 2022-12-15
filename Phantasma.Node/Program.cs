@@ -35,8 +35,14 @@ public class Program
 
             Settings.Load(args, Configuration.GetSection("ApplicationConfiguration"));
 
-            Log.Information("Starting host");
-            await CreateHostBuilder(args).Build().RunAsync().ConfigureAwait(false);
+            var API_URL = Settings.Instance.Node.APIURL;
+
+            if (string.IsNullOrEmpty(API_URL) || !API_URL.Contains("http")) {
+                throw new Exception("Invalid or missing api.url setting in config.json");   
+            }
+
+            Log.Information("Starting API: " + API_URL);
+            await CreateHostBuilder(API_URL, args).Build().RunAsync().ConfigureAwait(false);
 
             return 0;
         }
@@ -52,7 +58,7 @@ public class Program
         }
     }
 
-    public static IHostBuilder CreateHostBuilder(
+    public static IHostBuilder CreateHostBuilder(string url,
         string[] args
     )
     {
@@ -62,6 +68,7 @@ public class Program
                 _,
                 configuration
             ) => configuration.ReadFrom.Configuration(Configuration.GetSection("ApplicationConfiguration")), true)
-            .ConfigureWebHostDefaults(webBuilder => webBuilder.UseConfiguration(Configuration).UseStartup<Startup>());
+            .ConfigureWebHostDefaults(webBuilder => webBuilder.UseConfiguration(Configuration).UseStartup<Startup>()
+            .UseUrls(new string[] { url}));
     }
 }

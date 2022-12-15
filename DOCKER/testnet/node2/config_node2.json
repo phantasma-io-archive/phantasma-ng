@@ -12,11 +12,8 @@
       "minimum.fee": 100000,
       "minimum.pow": 0,
       "api.proxy.url": "",
-      "nexus.name": "simnet",
-      "node.mode": "validator",
-      "node.wif": "KwUb9DN5gV4bE4W1XgRAMP2bw7GzZWdH3SAU2dvT31EjWgJtJssu",
+      "nexus.name": "testnet",
       "api.log": false,
-      "node.port": 7777,
       "profiler.path": "",
       "has.sync": false,
       "has.mempool": true,
@@ -24,10 +21,7 @@
       "has.events": false,
       "has.relay": false,
       "has.archive": false,
-      "has.rpc": true,
-      "has.rest": true,
-      "rpc.port": 7077,
-      "rest.port": 7078,
+      "api.url": "http://localhost:5102",
       "nexus.bootstrap": true,
       "genesis.timestamp": 0,
       "api.cache": true,
@@ -223,6 +217,12 @@
     "RPC": {
       "rpc.address": "127.0.0.1",
       "rpc.port": 7654
+    },
+
+    "Webhook" : {
+      "webhook.token": "",
+      "webhook.channel": "",
+      "webhook.prefix": "testnet"
     }
   }
 }

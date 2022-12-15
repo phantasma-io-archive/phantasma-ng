@@ -1,3 +1,5 @@
+//#define ALLOWANCE_OPERATIONS
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +8,7 @@ using System.Text;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.VM;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
@@ -637,10 +640,67 @@ public class Nexus : INexus
         throw new ChainException($"Token does not exist ({symbol})");
     }
 
+    private static readonly string[] _dangerousSymbols = new[]
+    {
+        DomainSettings.StakingTokenSymbol ,
+        DomainSettings.FuelTokenSymbol,
+        DomainSettings.FiatTokenSymbol,
+        DomainSettings.RewardTokenSymbol,
+        "ETH" , "GAS" , "NEO" , "BNB" , "USDT" , "USDC" , "DAI" , "BTC"
+    }; 
+
+    public static bool IsDangerousSymbol(string symbol)
+    {
+        return _dangerousSymbols.Any(x => x.Equals(symbol, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public static bool IsDangerousAddress(Address address, params Address[] ignoredAddresses)
+    {
+        foreach (var excludedAddress in ignoredAddresses)
+        {
+            if (excludedAddress == address)
+            {
+                return false;
+            }
+        }
+
+        var nativeContract = NativeContract.GetNativeContractByAddress(address);
+        if (nativeContract != null)
+        {
+            return true;
+        }
+
+        foreach (var symbol in _dangerousSymbols)
+        {
+            var tokenAddress = TokenUtils.GetContractAddress(symbol);
+            if (tokenAddress == address)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public void MintTokens(IRuntime Runtime, IToken token, Address source, Address destination, string sourceChain, BigInteger amount)
     {
         Runtime.Expect(token.IsFungible(), "must be fungible");
         Runtime.Expect(amount > 0, "invalid amount");
+
+        if (Runtime.HasGenesis)
+        {
+            if (token.Symbol == DomainSettings.StakingTokenSymbol)
+            {
+                Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
+            } else if (token.Symbol == DomainSettings.FuelTokenSymbol )
+            {
+                Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via claiming", source);
+            }
+            else
+            {
+                Runtime.ExpectFiltered(!IsDangerousSymbol(token.Symbol), $"minting of {token.Symbol} failed", source);
+            }
+        }
 
         var isSettlement = sourceChain != Runtime.Chain.Name;
 
@@ -757,10 +817,14 @@ public class Nexus : INexus
 
         var allowed = Runtime.IsWitness(source);
 
+        Runtime.CheckFilterAmountThreshold(token, source, amount, "Burn Tokens");
+
+#if ALLOWANCE_OPERATIONS
         if (!allowed)
         {
             allowed = Runtime.SubtractAllowance(source, token.Symbol, amount);
         }
+#endif
 
         Runtime.Expect(allowed, "invalid witness or allowance");
 
@@ -858,8 +922,10 @@ public class Nexus : INexus
         var tokenTrigger = TokenTrigger.OnInfuse;
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, from, target, infuseToken.Symbol, value) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed: ");
 
+        
         if (infuseToken.IsFungible())
         {
+            Runtime.CheckFilterAmountThreshold(infuseToken, from, value, "Infuse Tokens");
             this.TransferTokens(Runtime, infuseToken, from, target, value, true);
         }
         else
@@ -914,6 +980,58 @@ public class Nexus : INexus
             Runtime.Expect(destName != ValidationUtils.ANONYMOUS_NAME, "anonymous system address as destination");
         }
 
+        if (source.IsSystem)
+        {
+            var org = GetOrganizationByAddress(Runtime.RootStorage, source);
+            if (org != null)
+            {
+                Runtime.ExpectFiltered(org == null, "moving funds from orgs currently not possible", source);
+            }
+            else
+            if (source == DomainSettings.InfusionAddress)
+            {
+                Runtime.Expect(!_infusionOperationAddress.IsNull, "infusion address is currently locked");
+                Runtime.Expect(destination == _infusionOperationAddress, "not valid target for infusion address transfer");
+            }
+            else
+            {
+                Runtime.Expect(Runtime.CurrentContext.Name != VirtualMachine.EntryContextName, "moving funds from system address if forbidden");
+
+                var sourceContract = Runtime.Chain.GetContractByAddress(Runtime.Storage, source);
+                Runtime.Expect(sourceContract != null, "cannot find matching contract for address: " + source);
+
+                var isKnownExceptionToRule = false;
+
+                if (Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName())
+                {
+                    if (IsNativeContract(sourceContract.Name))
+                    {
+                        isKnownExceptionToRule = true;
+                    }
+                    else
+                    if (TokenExists(Runtime.RootStorage, sourceContract.Name))
+                    {
+                        isKnownExceptionToRule = true;
+                    }
+                }
+
+                if (!isKnownExceptionToRule)
+                {
+                    Runtime.Expect(Runtime.CurrentContext.Name == sourceContract.Name, "moving funds from a contract is forbidden if not made by the contract itself");
+                }
+            }
+        }
+
+        if (Runtime.HasGenesis)
+        {
+            var isSystemDestination = destination.IsSystem && NativeContract.GetNativeContractByAddress(destination) != null;
+
+            if (!isSystemDestination)
+            {
+                Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+            }
+        }
+
         bool allowed;
 
         if (Runtime.HasGenesis)
@@ -925,9 +1043,16 @@ public class Nexus : INexus
             allowed = Runtime.IsPrimaryValidator(source);
         }
 
+#if ALLOWANCE_OPERATIONS
         if (!allowed)
         {
             allowed = Runtime.SubtractAllowance(source, token.Symbol, amount);
+        }
+#endif
+
+        if (!allowed && source == DomainSettings.InfusionAddress && destination == _infusionOperationAddress)
+        {
+            allowed = true;
         }
 
         Runtime.Expect(allowed, "invalid witness or allowance");
@@ -936,7 +1061,9 @@ public class Nexus : INexus
         Runtime.Expect(balances.Subtract(Runtime.Storage, source, amount), $"{token.Symbol} balance subtract failed from {source.Text}");
         Runtime.Expect(balances.Add(Runtime.Storage, destination, amount), $"{token.Symbol} balance add failed to {destination.Text}");
 
+#if ALLOWANCE_OPERATIONS
         Runtime.AddAllowance(destination, token.Symbol, amount);
+#endif
 
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnSend, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token onSend trigger failed");
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnReceive, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token onReceive trigger failed");
@@ -944,7 +1071,9 @@ public class Nexus : INexus
         Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, source, AccountTrigger.OnSend, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account onSend trigger failed");
         Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, AccountTrigger.OnReceive, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account onReceive trigger failed");
 
+#if ALLOWANCE_OPERATIONS
         Runtime.RemoveAllowance(destination, token.Symbol);
+#endif
 
         if (destination.IsSystem && (destination == Runtime.CurrentContext.Address || isInfusion))
         {
@@ -1156,6 +1285,16 @@ public class Nexus : INexus
         return content.TokenID;
     }
 
+    private Address _infusionOperationAddress = Address.Null;
+
+    private void DoInfusionOperation(Address targetAdress, Action callback)
+    {
+        _infusionOperationAddress = targetAdress;
+        callback();
+        _infusionOperationAddress = Address.Null;
+    }
+
+
     public void DestroyNFT(IRuntime Runtime, string symbol, BigInteger tokenID, Address target)
     {
         var infusionAddress = DomainSettings.InfusionAddress;
@@ -1166,18 +1305,26 @@ public class Nexus : INexus
         {
             var assetInfo = this.GetTokenInfo(Runtime.RootStorage, asset.Symbol);
 
+#if ALLOWANCE_OPERATIONS
             Runtime.AddAllowance(infusionAddress, asset.Symbol, asset.Value);
+#endif
 
-            if (assetInfo.IsFungible())
+            DoInfusionOperation(target, () =>
             {
-                this.TransferTokens(Runtime, assetInfo, infusionAddress, target, asset.Value, true);
-            }
-            else
-            {
-                this.TransferToken(Runtime, assetInfo, infusionAddress, target, asset.Value, true);
-            }
+                if (assetInfo.IsFungible())
+                {
+                    Runtime.CheckFilterAmountThreshold(assetInfo, target, asset.Value, "Burn Token (DestroyNFT)");
+                    this.TransferTokens(Runtime, assetInfo, infusionAddress, target, asset.Value, true);
+                }
+                else
+                {
+                    this.TransferToken(Runtime, assetInfo, infusionAddress, target, asset.Value, true);
+                }
+            });
 
+#if ALLOWANCE_OPERATIONS
             Runtime.RemoveAllowance(infusionAddress, asset.Symbol);
+#endif
         }
 
         var token = Runtime.GetToken(symbol);
@@ -2003,13 +2150,7 @@ public class Nexus : INexus
         storage.Put(key, bytes);
     }*/
 
-    public static bool IsNativeContractStatic(string name)
-    {
-        NativeContractKind kind;
-        return Enum.TryParse<NativeContractKind>(name, true, out kind);
-    }
-
-    public bool IsNativeContract(string name)
+    public static bool IsNativeContract(string name)
     {
         NativeContractKind kind;
         return Enum.TryParse<NativeContractKind>(name, true, out kind);
@@ -2469,6 +2610,11 @@ public class Nexus : INexus
         if (!storage.Has(key))
         {
             throw new ChainException($"Cannot upgrade non-existing token contract: {symbol}");
+        }
+
+        if (IsDangerousSymbol(symbol))
+        {
+            throw new ChainException($"Forbidden to upgrade token contract: {symbol}");
         }
 
         var bytes = storage.Get(key);
