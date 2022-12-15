@@ -1,4 +1,5 @@
 using System.Numerics;
+using Org.BouncyCastle.Asn1.X509;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
@@ -135,6 +136,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void CreateValue(Address from,  string name, BigInteger initial, byte[] serializedConstraints)
         {
             Runtime.Expect(!HasName(name), "name already exists");
+
+            Runtime.Expect(!Nexus.IsDangerousAddress(from), "this address can't be used as source");
 
             Runtime.Expect(Runtime.IsPrimaryValidator(from), $"{from.TendermintAddress} is not a validator address");
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Numerics;
+using Org.BouncyCastle.Asn1.X509;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
@@ -209,7 +210,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(Runtime.PreviousContext.Name == DesiredPreviousContext, "invalid context");
 
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
-            Runtime.Expect(from.IsUser, "source must be user address");
+            Runtime.Expect(!Nexus.IsDangerousAddress(from), "this address can't be used as source");
             Runtime.Expect(to.IsUser, "destination must be user address");
 
             var targetStake = GetStake(to);
@@ -285,6 +286,9 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             Runtime.Expect(stakeAmount >= MinimumValidStake, "invalid amount");
 
+            var crownAddress = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
+            Runtime.Expect(!Nexus.IsDangerousAddress(from, crownAddress), "this address can't be used as source");
+
             if (Runtime.HasGenesis)
             {
                 Runtime.Expect(Runtime.IsWitness(from), "witness failed");
@@ -357,6 +361,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
             Runtime.Expect(unstakeAmount >= MinimumValidStake, "invalid amount");
+
+            Runtime.Expect(!Nexus.IsDangerousAddress(from), "this address can't be used as source");
 
             Runtime.Expect(_stakeMap.ContainsKey<Address>(from), "nothing to unstake");
 

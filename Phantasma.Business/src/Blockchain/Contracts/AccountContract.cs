@@ -35,6 +35,8 @@ namespace Phantasma.Business.Blockchain.Contracts
             var stake = Runtime.GetStake(target);
             Runtime.Expect(stake >= UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals), "must have something staked");
 
+            Runtime.Expect(!Nexus.IsDangerousAddress(target), "this address can't be used as source");
+
             Runtime.Expect(name != Runtime.NexusName, "name already used for nexus");
             Runtime.Expect(!Runtime.ChainExists(name), "name already used for a chain");
             Runtime.Expect(!Runtime.PlatformExists(name), "name already used for a platform");
@@ -69,6 +71,8 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(target.IsUser, "must be user address");
             Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
 
+            Runtime.Expect(!Nexus.IsDangerousAddress(target), "this address can't be used as source");
+
             Runtime.Expect(_addressMap.ContainsKey(target), "address doest not have a name yet");
 
             var name = _addressMap.Get<Address, string>(target);
@@ -82,6 +86,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             Runtime.Expect(target.IsUser, "must be user address");
             Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
+
+            Runtime.Expect(!Nexus.IsDangerousAddress(target), "this address can't be used as source");
 
             var stake = Runtime.GetStake(target);
             Runtime.Expect(stake >= UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals), "must have something staked");
@@ -178,7 +184,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             Runtime.Expect(target != from, "addresses must be different");
             Runtime.Expect(target.IsUser, "must be user address");
-            Runtime.Expect(from.IsUser, "must be user address");
+
+            Runtime.Expect(!Nexus.IsDangerousAddress(from), "this address can't be used as source");
 
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
