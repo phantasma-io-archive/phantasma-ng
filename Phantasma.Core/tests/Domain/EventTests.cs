@@ -2,6 +2,7 @@ using System.IO;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Types;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Domain;
@@ -45,6 +46,7 @@ public class EventTests
         Assert.Equal(_event.Contract, _event2.Contract);
         Assert.Equal(_event.Data, _event2.Data);
         Assert.Equal(_event.Kind, _event2.Kind);
+        Assert.Equal(_event.ToString(), _event2.ToString());
     }
     
     [Fact]
@@ -89,5 +91,49 @@ public class EventTests
         Assert.Equal(fusionEventData.TokenID, tokenID);
         Assert.Equal(fusionEventData.InfusedValue, infusionID);
         Assert.Equal(fusionEventData.ChainName, chainName);
+    }
+    
+    [Fact]
+    //string symbol, BigInteger value, string chainName, Timestamp claimDate
+    public void TestMasterEventData()
+    {
+        var symbol = "SOUL";
+        BigInteger value = 1;
+        var chainName = "test";
+        var claimDate = Timestamp.Now;
+        var masterEventData = new MasterEventData(symbol, value, chainName, claimDate);
+        
+        // Assert
+        Assert.Equal(masterEventData.Symbol, symbol);
+        Assert.Equal(masterEventData.Value, value);
+        Assert.Equal(masterEventData.ChainName, chainName);
+        Assert.Equal(masterEventData.ClaimDate, claimDate);
+    }
+
+    [Fact]
+    //OrganizationEventData(string organization, Address memberAddress)
+    public void TestOrganizationEventData()
+    {
+        var organization = "test";
+        var memberAddress = Address.Null;
+        var organizationEventData = new OrganizationEventData(organization, memberAddress);
+
+        // Assert
+        Assert.Equal(organizationEventData.Organization, organization);
+        Assert.Equal(organizationEventData.MemberAddress, memberAddress);
+    }
+    
+    [Fact]
+    public void TestTokenEventData()
+    {
+        var symbol = "SOUL";
+        BigInteger value = 1;
+        var chainName = "test";
+        var tokenEventData = new TokenEventData(symbol, value, chainName);
+        
+        // Assert
+        Assert.Equal(tokenEventData.Symbol, symbol);
+        Assert.Equal(tokenEventData.Value, value);
+        Assert.Equal(tokenEventData.ChainName, chainName);
     }
 }
