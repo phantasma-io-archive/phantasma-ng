@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Text.Json.Nodes;
 using Neo.Wallets;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Tests.Simulator;
@@ -35,16 +36,17 @@ public class WalletLinkTests
         private string _name;
         private MyAccount _account;
 
-        public LinkSimulator(Nexus Nexus, string name, MyAccount account)
+        public LinkSimulator(Nexus Nexus, string name, MyAccount account) : base()
         {
             this._nexus = Nexus;
             this._name = name;
             this._account = account;
+            
         }
 
-        public override string Nexus => _name;
+        public override string Nexus => _nexus.Name;
 
-        public override string Name => _nexus.Name;
+        public override string Name => _name;
 
         protected override WalletStatus Status => WalletStatus.Ready;
 
@@ -169,8 +171,7 @@ public class WalletLinkTests
 
             callback(hexSig, hexRand, null);
         }
-
-
+        
         public void forceSignData(string platform, SignatureKind kind, byte[] data, int id, Action<string, string, string> callback)
         {
             SignData(platform, kind, data, id, callback);
@@ -201,7 +202,74 @@ public class WalletLinkTests
             }
         }
     }
-    
+
+    [Fact]
+    public void TestWalletLinkConstructor()
+    {
+        var owner = PhantasmaKeys.Generate();
+        
+        var simulator = new NexusSimulator(owner);
+        var nexus = simulator.Nexus;
+        
+        var testUser1 = PhantasmaKeys.Generate();
+        var account1 = new LinkSimulator.MyAccount(testUser1, LinkSimulator.PlatformKind.Phantasma);
+        LinkSimulator link1 = new LinkSimulator(nexus, "Ac1", account1);
+        
+        Assert.Equal("simnet", link1.Nexus);
+        Assert.Equal("Ac1", link1.Name);
+    }
+
+    [Fact]
+    public void TestWalletLinkExecute_Authorize()
+    {
+        var owner = PhantasmaKeys.Generate();
+
+        var simulator = new NexusSimulator(owner);
+        var nexus = simulator.Nexus;
+
+        var testUser1 = PhantasmaKeys.Generate();
+        var account1 = new LinkSimulator.MyAccount(testUser1, LinkSimulator.PlatformKind.Phantasma);
+        LinkSimulator link1 = new LinkSimulator(nexus, "Ac1", account1);
+
+        link1.Execute("authorize", ((id, node, sucess) =>
+        {
+            Assert.Equal(0, id);
+            Assert.Equal("{\"message\":\"Invalid request id\"}", node.ToJsonString());
+            Assert.False(sucess);
+        }));
+        
+        link1.Execute("1,authorize,2", ((id, node, sucess) =>
+        {
+            Assert.Equal(1, id);
+            Assert.Equal("{\"message\":\"Malformed request\"}", node.ToJsonString());
+            Assert.False(sucess);
+        }));
+        
+        link1.Execute("1,authorize", ((id, node, sucess) =>
+        {
+            Assert.Equal(1, id);
+            Assert.Equal("{\"message\":\"authorize: Invalid amount of arguments: 0\"}", node.ToJsonString());
+            Assert.False(sucess);
+        }));
+        
+        link1.Execute("1,authorize/testDapp/x", ((id, node, sucess) =>
+        {
+            Assert.Equal(1, id);
+            Assert.Equal("{\"message\":\"authorize: Invalid version: x\"}", node.ToJsonString());
+            Assert.False(sucess);
+        }));
+        
+        link1.Execute("1,authorize/testDapp/1", ((id, node, sucess) =>
+        {
+            // Get Token from node
+            var token = node["token"].AsValue();
+            var expexted = APIUtils.FromAPIResult(new WalletLink.Authorization() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
+            Assert.Equal(1, id);
+            Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
+            Assert.True(sucess);
+        }));
+    }
+
     [Fact (Skip = "Until sorted out")]
     public void SignWithPhantasma()
     {
@@ -329,4 +397,96 @@ public class WalletLinkTests
             Assert.True(result, "Not Valid");
         });
     }
+    
+    [Fact]
+    public void TestErrorMessageProperty()
+    {
+        var error = new WalletLink.Error();
+        error.message = "This is an error message";
+        Assert.Equal("This is an error message", error.message);
+    }
+    
+    [Fact]
+    public void TestAuthorizationProperties()
+    {
+        var authorization = new WalletLink.Authorization
+        {
+            wallet = "MyWallet",
+            nexus = "MyNexus",
+            dapp = "MyDapp",
+            token = "MyToken",
+            version = 1
+        };
+
+        Assert.Equal("MyWallet", authorization.wallet);
+        Assert.Equal("MyNexus", authorization.nexus);
+        Assert.Equal("MyDapp", authorization.dapp);
+        Assert.Equal("MyToken", authorization.token);
+        Assert.Equal(1, authorization.version);
+    }
+    
+    [Fact]
+    public void TestBalanceProperties()
+    {
+        var balance = new WalletLink.Balance
+        {
+            symbol = "USD",
+            value = "100.00",
+            decimals = 2
+        };
+
+        Assert.Equal("USD", balance.symbol);
+        Assert.Equal("100.00", balance.value);
+        Assert.Equal(2, balance.decimals);
+    }
+    
+    [Fact]
+    public void TestFileProperties()
+    {
+        var file = new WalletLink.File
+        {
+            name = "myfile.txt",
+            size = 1024,
+            date = 1623432423,
+            hash = "abc123"
+        };
+
+        Assert.Equal("myfile.txt", file.name);
+        Assert.Equal(1024, file.size);
+        Assert.Equal((uint)1623432423, file.date);
+        Assert.Equal("abc123", file.hash);
+    }
+
+    [Fact]
+    public void TestAccountProperties()
+    {
+        var account = new WalletLink.Account
+        {
+            alias = "myalias",
+            address = "myaddress",
+            name = "MyName",
+            avatar = "myavatar.png",
+            platform = "MyPlatform",
+            external = "myexternal",
+            balances = new[] { new WalletLink.Balance { symbol = "USD", value = "100.00", decimals = 2 } },
+            files = new[]
+                { new WalletLink.File { name = "myfile.txt", size = 1024, date = 1623432423, hash = "abc123" } }
+        };
+
+        Assert.Equal("myalias", account.alias);
+        Assert.Equal("myaddress", account.address);
+        Assert.Equal("MyName", account.name);
+        Assert.Equal("myavatar.png", account.avatar);
+        Assert.Equal("MyPlatform", account.platform);
+        Assert.Equal("myexternal", account.external);
+        Assert.Equal("USD", account.balances[0].symbol);
+        Assert.Equal("100.00", account.balances[0].value);
+        Assert.Equal(2, account.balances[0].decimals);
+        Assert.Equal("myfile.txt", account.files[0].name);
+        Assert.Equal(1024, account.files[0].size);
+        Assert.Equal((uint)1623432423, account.files[0].date);
+        Assert.Equal("abc123", account.files[0].hash);
+    }
+
+
 }

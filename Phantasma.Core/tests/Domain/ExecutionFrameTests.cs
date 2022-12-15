@@ -51,7 +51,7 @@ public class ExecutionFrameTests
     }
 
     [ExcludeFromCodeCoverage]
-    private class TestVm : IVirtualMachine
+    public class TestVm : IVirtualMachine
     {
         public Stack<VMObject> Stack { get; } = new();
         public byte[] EntryScript { get; } = { 0 };
