@@ -26,6 +26,7 @@ public class StorageContractTest
 
     private Address sysAddress;
     private PhantasmaKeys user;
+    private PhantasmaKeys user2;
     private PhantasmaKeys owner;
     private Nexus nexus;
     private NexusSimulator simulator;
@@ -45,11 +46,12 @@ public class StorageContractTest
     {
         sysAddress = SmartContract.GetAddressForNative(NativeContractKind.Friends);
         user = PhantasmaKeys.Generate();
+        user2 = PhantasmaKeys.Generate();
         owner = PhantasmaKeys.Generate();
         amountRequested = 100000000;
         gas = 99999;
-        initialAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
-        initialFuel = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
+        initialAmount = UnitConversion.ToBigInteger(2000, DomainSettings.StakingTokenDecimals);
+        initialFuel = UnitConversion.ToBigInteger(1000, DomainSettings.FuelTokenDecimals);
         reward = new StakeReward(user.Address, Timestamp.Now);
         InitializeSimulator();
 
@@ -61,7 +63,9 @@ public class StorageContractTest
         simulator = new NexusSimulator(owner);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
+        simulator.GetFundsInTheFuture(owner);
         SetInitialBalance(user.Address);
+        SetInitialBalance(user2.Address);
     }
 
     protected void SetInitialBalance(Address address)
@@ -105,11 +109,13 @@ public class StorageContractTest
         simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
         ScriptUtils.BeginScript()
         .AllowGas(target, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
-            .CallContract(NativeContractKind.Storage, "CreateFile", target, newFileName, fileSize, merkleBytes, archiveEncryption)
+            .CallContract(NativeContractKind.Storage, nameof(StorageContract.CreateFile), target, newFileName, fileSize, merkleBytes, archiveEncryption)
             .SpendGas(target)
             .EndScript());
         var uploadBlock = simulator.EndBlock().FirstOrDefault();
+        Assert.True(simulator.LastBlockWasSuccessful());
 
+        
         var totalChunks = MerkleTree.GetChunkCountForSize((uint)content.Length);
 
         for (int i=0; i<totalChunks; i++)
@@ -142,7 +148,8 @@ public class StorageContractTest
     public void AvatarUpload()
     {
         BigInteger stakeAmount =  UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
-
+        var filename = "avatar";
+        
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
             ScriptUtils.BeginScript()
@@ -151,14 +158,15 @@ public class StorageContractTest
                 .SpendGas(user.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var bytes = Encoding.UTF8.GetBytes(testAvatarData);
-        var avatarHash = UploadArchive(user, "avatar", bytes, false);
+        var avatarHash = UploadArchive(user, filename, bytes, false);
         Assert.False(avatarHash.IsNull);
 
         var avatarArchive = simulator.Nexus.GetArchive(simulator.Nexus.RootStorage, avatarHash);
         Assert.NotNull(avatarArchive);
-        Assert.True(avatarArchive.Name == "avatar");
+        Assert.True(avatarArchive.Name == filename);
         Assert.True(avatarArchive.Size == bytes.Length);
         Assert.True(avatarArchive.BlockCount == 1);
 
@@ -166,5 +174,177 @@ public class StorageContractTest
         Assert.NotNull(chunk);
         Assert.True(chunk.Length == bytes.Length);
         Assert.True(ByteArrayUtils.CompareBytes(chunk, bytes));
+    }
+
+    [Fact]
+    public void TestPermissions()
+    {
+        BigInteger stakeAmount =  UnitConversion.ToBigInteger(1000, DomainSettings.StakingTokenDecimals);
+        var filename = "avatar";
+        
+        // Stake to have storage space
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), user.Address, stakeAmount)
+                .SpendGas(user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        // Test upload
+        var bytes = Encoding.UTF8.GetBytes(testAvatarData);
+        var avatarHash = UploadArchive(user, filename, bytes, false);
+        Assert.False(avatarHash.IsNull);
+
+        var avatarArchive = simulator.Nexus.GetArchive(simulator.Nexus.RootStorage, avatarHash);
+        Assert.NotNull(avatarArchive);
+        Assert.True(avatarArchive.Name == filename);
+        Assert.True(avatarArchive.Size == bytes.Length);
+        Assert.True(avatarArchive.BlockCount == 1);
+        
+        var hasPermission = simulator.InvokeContract(NativeContractKind.Storage, nameof(StorageContract.HasPermission), user.Address, user.Address).AsBool();
+        Assert.True(hasPermission);
+        
+        var hasPermissionUser2 = simulator.InvokeContract(NativeContractKind.Storage, nameof(StorageContract.HasPermission), user2.Address, user.Address).AsBool();
+        Assert.False(hasPermissionUser2);
+        
+        // Give Permission
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Storage, nameof(StorageContract.AddPermission), user.Address, user2.Address)
+                .SpendGas(user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        hasPermissionUser2 = simulator.InvokeContract(NativeContractKind.Storage, nameof(StorageContract.HasPermission), user2.Address, user.Address).AsBool();
+        Assert.True(hasPermissionUser2);
+        
+        // Remove Permission
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Storage, nameof(StorageContract.DeletePermission), user.Address, user2.Address)
+                .SpendGas(user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        hasPermissionUser2 = simulator.InvokeContract(NativeContractKind.Storage, nameof(StorageContract.HasPermission), user2.Address, user.Address).AsBool();
+        Assert.False(hasPermissionUser2);
+        
+        // Re add Permission
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Storage, nameof(StorageContract.AddPermission), user.Address, user2.Address)
+                .SpendGas(user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        // Migrate to new address
+        var newAddress = PhantasmaKeys.Generate();
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Storage, nameof(StorageContract.MigratePermission), user.Address, user.Address, newAddress.Address)
+                .SpendGas(user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        // Migrate again
+        var newAddress2 = PhantasmaKeys.Generate();
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(user2, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(user2.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Storage, nameof(StorageContract.MigratePermission), user.Address, user2.Address, newAddress2.Address)
+                .SpendGas(user2.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+    }
+
+    [Fact]
+    public void TestFiles()
+    {
+        BigInteger stakeAmount =  UnitConversion.ToBigInteger(1000, DomainSettings.StakingTokenDecimals);
+        var filename = "avatar";
+        
+        // Stake to have storage space
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), user.Address, stakeAmount)
+                .SpendGas(user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        // Test upload
+        var bytes = Encoding.UTF8.GetBytes(testAvatarData);
+        var avatarHash = UploadArchive(user, filename, bytes, false);
+        Assert.False(avatarHash.IsNull);
+
+        var avatarArchive = simulator.Nexus.GetArchive(simulator.Nexus.RootStorage, avatarHash);
+        Assert.NotNull(avatarArchive);
+        Assert.True(avatarArchive.Name == filename);
+        Assert.True(avatarArchive.Size == bytes.Length);
+        Assert.True(avatarArchive.BlockCount == 1);
+
+        // Check files
+        var files = simulator.InvokeContract(NativeContractKind.Storage, nameof(StorageContract.GetFiles), user.Address).AsStruct<Hash[]>();
+        Assert.True(files.Length == 1);
+
+        var hasFile = simulator.InvokeContract(NativeContractKind.Storage, nameof(StorageContract.HasFile), user.Address, files.First()).AsBool();
+        Assert.True(hasFile);
+        
+        // Add permission
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Storage, nameof(StorageContract.AddPermission), user.Address, user2.Address)
+                .SpendGas(user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        // Add File
+        var filename2 = "avatar2";
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(user2, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(user2.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Storage, nameof(StorageContract.AddFile), user2.Address, user.Address, avatarHash)
+                .SpendGas(user2.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        files = simulator.InvokeContract(NativeContractKind.Storage, nameof(StorageContract.GetFiles), user.Address).AsStruct<Hash[]>();
+        Assert.True(files.Length == 2);
+
+        hasFile = simulator.InvokeContract(NativeContractKind.Storage, nameof(StorageContract.HasFile), user.Address, files.Last()).AsBool();
+        Assert.True(hasFile);
+    }
+
+    public void TestStorageExploit()
+    {
+        // Try to upload file from another user to a different address
+        // Give Permission 
+        // Migrate
+        // Migrate Permissions
+        // And manipulate it.
     }
 }

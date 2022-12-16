@@ -517,6 +517,10 @@ public class MarketContractTestLegacy
         auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
         Assert.True(auctions.Length == previousAuctionCount + 1, "auction ids should not be empty at this point");
 
+        // Has Auction
+        var hasAuction = simulator.InvokeContract(NativeContractKind.Market, nameof(MarketContract.HasAuction), token.Symbol, tokenID).AsBool();
+        Assert.True(hasAuction, "auction should still be there");
+        
         // move time post end date
         simulator.TimeSkipDays(2);
 
@@ -648,7 +652,16 @@ public class MarketContractTestLegacy
         // verify auction is here
         auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
         Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
-
+        
+        var hasAuction = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.HasAuction), token.Symbol, tokenID).AsBool();
+        Assert.True(hasAuction, "auction missing");
+        
+        var isSeller = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.IsSeller), testUser.Address).AsBool();
+        Assert.True(isSeller, "seller missing");
+        
+        isSeller = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.IsSeller), testUser2.Address).AsBool();
+        Assert.False(isSeller, "seller should not be here");
+        
         // move time post auction end date
         simulator.TimeSkipDays(4);
 
