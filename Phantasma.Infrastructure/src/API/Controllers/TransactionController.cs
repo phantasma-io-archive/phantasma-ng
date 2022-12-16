@@ -154,7 +154,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             return count;
         }
         
-        [APIInfo(typeof(string), "Allows to broadcast a signed operation on the network, but it's required to build it manually.", false, 0, true)]
+        [APIInfo(typeof(string), "Allows to broadcast a signed operation on the network, but it's required to build it manually.", false, 0, false)]
         [APIFailCase("script is invalid", "")]
         [APIFailCase("failed to decoded transaction", "0000")]
         [HttpGet("SendRawTransaction")]
@@ -182,17 +182,17 @@ namespace Phantasma.Infrastructure.API.Controllers
             {
                 return "Unserializing tx failed";
             }
-
+            
             var res = NexusAPI.TRPC.BroadcastTxSync(txData);
             if (res.Code != 0)
             {
-                return $"CheckTx returned code {res.Code} {res.Log}");
+                return $"CheckTx returned code {res.Code} {res.Log}";
             }
             
             return tx.Hash.ToString();
         }
 
-        [APIInfo(typeof(ScriptResult), "Allows to invoke script based on network state, without state changes.", false, 5, true)]
+        [APIInfo(typeof(ScriptResult), "Allows to invoke script based on network state, without state changes.", false, 5, false)]
         [APIFailCase("script is invalid", "")]
         [APIFailCase("failed to decoded script", "0000")]
         [HttpGet("InvokeRawScript")]
@@ -291,7 +291,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             return new ScriptResult { results = resultArray, result = resultArray.FirstOrDefault(), events = evts, oracles = oracleReads };
         }
 
-        [APIInfo(typeof(TransactionResult), "Returns information about a transaction by hash.", false, -1, true)]
+        [APIInfo(typeof(TransactionResult), "Returns information about a transaction by hash.", false, -1, false)]
         [APIFailCase("hash is invalid", "43242342")]
         [HttpGet("GetTransaction")]
         public TransactionResult GetTransaction([APIParameter("Hash of transaction", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText)

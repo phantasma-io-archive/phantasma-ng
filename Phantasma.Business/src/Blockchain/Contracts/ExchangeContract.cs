@@ -116,7 +116,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         }
     }
     
-     public struct Pool: ISerializable
+    public struct Pool: ISerializable
     {
         public string Symbol0; // Symbol
         public string Symbol1; // Pair
@@ -216,6 +216,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             ClaimedSymbol1 = reader.ReadBigInteger();
         }
     }
+    
     public enum ExchangeOrderSide
     {
         Buy,
@@ -274,7 +275,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             Amount = newOrderSize;
             BaseSymbol = order.BaseSymbol;
 
-            Price = newOrderSize;
+            Price = newPrice;
             QuoteSymbol = order.QuoteSymbol;
 
             Side = order.Side;

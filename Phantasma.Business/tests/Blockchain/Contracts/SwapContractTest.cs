@@ -249,6 +249,40 @@ public class SwapContractTest
         Assert.False(currentKcalBalance > startingKcalBalance, $"{currentKcalBalance} > {startingKcalBalance}");
     }
 
+    [Fact]
+    public void NoTokensInSwap()
+    {
+        var amount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
+        var testUser = PhantasmaKeys.Generate();
+        var feeAmount = UnitConversion.ToBigInteger(0.5m, DomainSettings.FuelTokenDecimals);
+
+        
+        simulator.BeginBlock();
+        simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, amount);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        // Add Random transaction just to accumulate fees
+        simulator.BeginBlock();
+        simulator.GenerateTransfer(owner, SmartContract.GetAddressForNative(NativeContractKind.Gas), nexus.RootChain, DomainSettings.FuelTokenSymbol, feeAmount*2);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+
+        // Swap Fee
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapFee), testUser.Address, DomainSettings.StakingTokenSymbol, feeAmount)
+                .AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .SpendGas(testUser.Address)
+                .EndScript());
+        simulator.EndBlock();
+        
+        // This is because the pot is empty
+        Assert.Throws<ChainException>(() => {simulator.EndBlock(); });
+    }
+
     /*
         [Fact]
         public void GetRatesForSwap()
