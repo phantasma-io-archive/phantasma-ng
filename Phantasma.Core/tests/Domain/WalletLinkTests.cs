@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Text.Json.Nodes;
+using System.Threading;
 using Neo.Wallets;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Tests.Simulator;
@@ -98,7 +99,7 @@ public class WalletLinkTests
 
         protected override void GetAccount(string platform, Action<Account, string> callback)
         {
-            throw new NotImplementedException();
+            callback(new Account(), null);
         }
 
         protected override void InvokeScript(string chain, byte[] script, int id, Action<byte[], string> callback)
@@ -265,6 +266,101 @@ public class WalletLinkTests
             var token = node["token"].AsValue();
             var expexted = APIUtils.FromAPIResult(new WalletLink.Authorization() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
             Assert.Equal(1, id);
+            Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
+            Assert.True(sucess);
+        }));
+
+        link1.Execute("2,authorize/testDapp/2", ((id, node, sucess) =>
+        {
+            Assert.Equal(2, id);
+            var token = node["token"].AsValue();
+            var expexted = APIUtils.FromAPIResult(new WalletLink.Authorization() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 1 });
+            Assert.Equal(2, id);
+            Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
+            Assert.True(sucess);
+        }));
+        
+        // Fail
+        link1.Execute("3,authorize/testDapp/4", ((id, node, sucess) =>
+        {
+            Assert.Equal(3, id);
+            var token = node["token"].AsValue();
+            var expexted = APIUtils.FromAPIResult(new WalletLink.Authorization() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 1 });
+            Assert.Equal(3, id);
+            Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
+            Assert.True(sucess);
+        }));
+    }
+
+    [Fact]
+    public void TestAuthorizeFail()
+    {
+        var owner = PhantasmaKeys.Generate();
+
+        var simulator = new NexusSimulator(owner);
+        var nexus = simulator.Nexus;
+
+        var testUser1 = PhantasmaKeys.Generate();
+        var account1 = new LinkSimulator.MyAccount(testUser1, LinkSimulator.PlatformKind.Phantasma);
+        LinkSimulator link1 = new LinkSimulator(nexus, "Ac1", account1);
+        
+        
+        link1.Execute("1,authorize/testDapp/4", ((id, node, sucess) =>
+        {
+            Assert.Equal(1, id);
+            Assert.Equal("{\"message\":\"unknown Phantasma Link version 4\"}", node.ToJsonString());
+            Assert.False(sucess);
+        }));
+    }
+
+    [Fact]
+    public void TestGetAccount()
+    {
+        var owner = PhantasmaKeys.Generate();
+
+        var simulator = new NexusSimulator(owner);
+        var nexus = simulator.Nexus;
+
+        var testUser1 = PhantasmaKeys.Generate();
+        var account1 = new LinkSimulator.MyAccount(testUser1, LinkSimulator.PlatformKind.Phantasma);
+        LinkSimulator link1 = new LinkSimulator(nexus, "Ac1", account1);
+        string token = "";
+        link1.Execute("1,authorize/testDapp/1", ((id, node, sucess) =>
+        {
+            // Get Token from node
+            token = node["token"].AsValue().ToString();
+            var expexted = APIUtils.FromAPIResult(new WalletLink.Authorization() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
+            Assert.Equal(1, id);
+            Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
+            Assert.True(sucess);
+            link1.Execute("2,getAccount", ((id, node, sucess) =>
+            {
+                Assert.Equal(2, id);
+                Assert.Equal("{\"message\":\"A previous request is still pending\"}", node.ToJsonString());
+                Assert.False(sucess);
+            }));
+        }));
+
+        link1.Execute($"2,getAccount", ((id, node, sucess) =>
+        {
+            Assert.Equal(2, id);
+            Assert.Equal("{\"message\":\"Invalid or missing API token\"}", node.ToJsonString());
+            Assert.False(sucess);
+        }));
+        
+        link1.Execute($"2,testDapp,{token},getAccount", ((id, node, sucess) =>
+        {
+            Assert.Equal(2, id);
+            Assert.Equal("{\"message\":\"Malformed request\"}", node.ToJsonString());
+            Assert.False(sucess);
+        }));
+
+        
+        Thread.Sleep(2000);
+        link1.Execute($"2,getAccount/testDapp/{token}", ((id, node, sucess) =>
+        {
+            Assert.Equal(2, id);
+            var expexted = APIUtils.FromAPIResult(new WalletLink.Account());
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.True(sucess);
         }));

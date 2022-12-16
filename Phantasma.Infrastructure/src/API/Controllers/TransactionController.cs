@@ -194,7 +194,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                 Log.Error("Unserializing tx failed");
                 return Hash.Null.ToString();
             }
-
+            
             var res = NexusAPI.TRPC.BroadcastTxSync(txData);
             if (res.Code != 0)
             {
