@@ -277,8 +277,6 @@ public class SwapContractTest
                 .AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
                 .SpendGas(testUser.Address)
                 .EndScript());
-        simulator.EndBlock();
-        
         // This is because the pot is empty
         Assert.Throws<ChainException>(() => {simulator.EndBlock(); });
     }
