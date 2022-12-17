@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Business.Blockchain
 {
@@ -13,10 +14,11 @@ namespace Phantasma.Business.Blockchain
         public static readonly string FilterTag = "$!";
         private static readonly string FilterRedStorage = "filter.red";
         private static readonly string FilterGreenStorage = "filter.green";
+        private static readonly string FilterQuota = "filter.quota.";
 
         public static bool Enabled = true;
-        public static decimal Quota = 10000;
-        public static decimal Threshold = 5000;
+        public static decimal Quota = 50000;
+        public static decimal Threshold = 10000;
 
         private static readonly object Lock = new object();
 
@@ -140,14 +142,64 @@ namespace Phantasma.Business.Blockchain
                 Webhook.Notify($"[{((DateTime) Runtime.Time).ToLongDateString()}] reason -> {msg} by [{address.Text}]");
             }
         }
-        
+
+        private static decimal GetTotalForCurrentPeriod(IRuntime Runtime, Address from)
+        {
+            var tag = FilterQuota + from.Text;
+            var list = GetFilterStorageList(Runtime.RootStorage, tag);
+
+            var curTime = (DateTime)Runtime.Time;
+
+            uint idx = 0;
+            var count = list.Count();
+
+            decimal total = 0;
+
+            while (idx < count)
+            {
+                var entry = list.Get<string>(idx);
+
+                var tmp = entry.Split('|');
+                var timestamp = new Timestamp(uint.Parse(tmp[0]));
+                var amount = decimal.Parse(tmp[1]);
+
+                var diff = curTime - (DateTime)timestamp;
+
+                if (diff.TotalHours > 24)
+                {
+                    list.RemoveAt(idx);
+                    count--;
+                }
+                else
+                {
+                    total += amount;
+                    idx++;
+                }
+            }
+
+            return total;
+        }
+
+        private static void AddToQuota(IRuntime Runtime, Address from, decimal worth)
+        {
+            var str = $"{Runtime.Time.Value}|{worth}";
+            var tag = FilterQuota + from.Text;
+            var list = GetFilterStorageList(Runtime.RootStorage, tag);
+            list.Add<string>(str);
+        }
+
+
         public static void CheckFilterAmountThreshold(this IRuntime Runtime, IToken token, Address from, BigInteger amount, string msg)
         {
             var price = UnitConversion.ToDecimal(Runtime.GetTokenPrice(token.Symbol), DomainSettings.FiatTokenDecimals);
-            var total = UnitConversion.ToDecimal(amount, token.Decimals);
-            var worth = price * total;
-            Runtime.CheckWarning(worth <= Filter.Threshold, $"{msg} threshold reached {total} {token.Symbol}", from);
-            Runtime.ExpectFiltered(worth <= Filter.Quota, $"{msg} quota exceeded, tried to move {total} {token.Symbol}", from);
+            var worth = UnitConversion.ToDecimal(amount, token.Decimals);
+            worth *= price;
+            Runtime.CheckWarning(worth <= Filter.Threshold, $"{msg} over threshold: {worth} {token.Symbol}", from);
+
+            var total = GetTotalForCurrentPeriod(Runtime, from) + worth;
+            Runtime.ExpectFiltered(total <= Filter.Quota, $"{msg} quota exceeded, tried to move {total} {token.Symbol} over last 24h", from);
+
+            AddToQuota(Runtime, from, worth);
         }
 
     }

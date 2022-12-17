@@ -24,6 +24,8 @@ public class OracleSimulator : OracleReader
 {
     private static List<SimulatorChainSwap> _swaps = new List<SimulatorChainSwap>();
 
+    private Dictionary<string, decimal> _tokenPrices = new Dictionary<string, decimal>();
+
     public OracleSimulator(Nexus nexus) : base(nexus)
     {
 
@@ -154,52 +156,69 @@ public class OracleSimulator : OracleReader
 
     protected override decimal PullPrice(Timestamp time, string baseSymbol)
     {
-        // some dummy values, only really used in the test suite ...                     
-        // TODO, remove that, use random data, oracle prices are not fixed in the real world....
-        decimal price;                                                                   
-        switch (baseSymbol)                                                              
-        {                                                                                
-            case "SOUL": 
-                price = 100; 
-                break;                                             
-            case "KCAL": 
-                price = 20; 
-                break;                                              
-            case "NEO": 
-                price = 2000; 
-                break;                                             
-            case "GAS": 
-                price = 500; 
-                break;                                              
-            case "ETH": 
-                price = 40000; 
-                break;                                            
-            case "BTC": 
-                price = 800000; 
-                break;       
-            case "COOL": 
-                price = 300; 
-                break;   
-            case "PETH": 
-                price =  10000;
-                break;
-            case "PBNB": 
-                price = 3000;
-                break;
-            case "PNEO": 
-                price = 500;
-                break;
-            case "PGAS": 
-                price = 50;
-                break;                                       
-            default: 
-                price = 0;
-                break;      
-        }                                                                                
-                                                                                         
-        price /= 1000m;                                                                  
+        if (_tokenPrices.ContainsKey(baseSymbol))
+        {
+            return _tokenPrices[baseSymbol];
+        }
+
+        var price = GetDefaultPriceForToken(baseSymbol);                                                                                         
         return price;
     }
+
+    public void UpdatePrice(string symbol, decimal price)
+    {
+        _tokenPrices[symbol] = price;
+    }
+    
+    private static decimal GetDefaultPriceForToken(string symbol)
+    {
+        // some dummy values, only really used in the test suite ...                     
+        // TODO, remove that, use random data, oracle prices are not fixed in the real world....
+        decimal price;
+        switch (symbol)
+        {
+            case "SOUL":
+                price = 100;
+                break;
+            case "KCAL":
+                price = 20;
+                break;
+            case "NEO":
+                price = 2000;
+                break;
+            case "GAS":
+                price = 500;
+                break;
+            case "ETH":
+                price = 40000;
+                break;
+            case "BTC":
+                price = 800000;
+                break;
+            case "COOL":
+                price = 300;
+                break;
+            case "PETH":
+                price = 10000;
+                break;
+            case "PBNB":
+                price = 3000;
+                break;
+            case "PNEO":
+                price = 500;
+                break;
+            case "PGAS":
+                price = 50;
+                break;
+            default:
+                price = 0;
+                break;
+        }
+
+        price /= 1000m;
+        return price;
+    }
+
 
     //protected override decimal PullPrice(Timestamp time, string baseSymbol)
     //{
