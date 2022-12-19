@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using System.Text;
 using Phantasma.Business.Blockchain;
@@ -5,17 +6,21 @@ using Phantasma.Business.Tests.Simulator;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
+using Phantasma.Node.Oracles;
 using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class NexusTestsSimulator
 {
     
     Address sysAddress;
     PhantasmaKeys user;
     PhantasmaKeys owner;
+    PhantasmaKeys owner2;
     Nexus nexus;
     NexusSimulator simulator;
     int amountRequested;
@@ -35,6 +40,7 @@ public class NexusTestsSimulator
         sysAddress = SmartContract.GetAddressForNative(NativeContractKind.Friends);
         user = PhantasmaKeys.Generate();
         owner = PhantasmaKeys.Generate();
+        owner2 = PhantasmaKeys.Generate();
         amountRequested = 100000000;
         gas = 99999;
         initialAmount = UnitConversion.ToBigInteger(50000, DomainSettings.StakingTokenDecimals);
@@ -46,7 +52,7 @@ public class NexusTestsSimulator
         
     protected void InitializeSimulator()
     {
-        simulator = new NexusSimulator(owner);
+        simulator = new NexusSimulator(new []{owner, owner2});
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
         SetInitialBalance(user.Address);
@@ -65,12 +71,18 @@ public class NexusTestsSimulator
     public void TestGetTokenContract()
     {
         var soulAddress = SmartContract.GetAddressFromContractName("SOUL");
+        var nullAddress = Address.Null;
         var contract = nexus.GetTokenContract(nexus.RootStorage, "SOUL");
+        var contractByAddress = nexus.GetTokenContract(nexus.RootStorage, soulAddress);
+        var nullContractByAddress = nexus.GetTokenContract(nexus.RootStorage, nullAddress);
         
         // Assert
         Assert.NotNull(contract);
         Assert.Equal(soulAddress, contract.Address);
         Assert.Equal("SOUL", contract.Name);
+        Assert.Equal(contract.Name, contractByAddress.Name);
+        Assert.Null(nullContractByAddress);
+        
     }
 
     [Fact]
@@ -216,7 +228,7 @@ public class NexusTestsSimulator
         //var hasArchive = nexus.HasArchiveBlock(, 0);
     }
     
-    [Fact]
+    [Fact (Skip = "Implement later")]
     public void TestGetArchiveBlock()
     {
         //var block = nexus.GetArchiveBlock(0);
@@ -224,5 +236,234 @@ public class NexusTestsSimulator
         // Assert
         //Assert.Null(block);
     }
+
+    [Fact]
+    public void TestGetValidatorByIndex()
+    {
+        var validator = nexus.GetValidatorByIndex(0, simulator.CurrentTime);
+        
+        // Assert
+        Assert.NotNull(validator);
+        Assert.Equal(owner.Address, validator.address);
+    }
+
+    [Fact]
+    public void TestGetIndexOfValidator()
+    {
+        var index = nexus.GetIndexOfValidator(owner.Address, simulator.CurrentTime);
+        
+        // Assert
+        Assert.NotNull(index);
+        Assert.Equal(0, index);
+    }
+
+    [Fact]
+    public void TestGetStakeTimestampOfAddress()
+    {
+        var time = nexus.GetStakeTimestampOfAddress(nexus.RootStorage, owner.Address, simulator.CurrentTime);
+        
+        // Assert
+        Assert.NotNull(time);
+        Assert.True((Timestamp)simulator.CurrentTime > time);
+    }
+
+    [Fact]
+    public void TestGetUnclaimedFuelFromAddress()
+    {
+        var fuel = nexus.GetUnclaimedFuelFromAddress(nexus.RootStorage, owner.Address, simulator.CurrentTime);
+        
+        // Assert
+        Assert.NotNull(fuel);
+        Assert.True(fuel > 0);
+    }
+
+    [Fact]
+    public void TestIsSecondaryValidator()
+    {
+        var secondary = nexus.IsSecondaryValidator(owner2.Address, simulator.CurrentTime);
+        
+        // Assert
+        Assert.False(secondary);
+    }
     
+    [Fact]
+    public void TestGetScondaryValidatorCount()
+    {
+        var count = nexus.GetSecondaryValidatorCount(simulator.CurrentTime);
+        
+        // Assert
+        Assert.NotNull(count);
+        Assert.Equal(2, count);
+    }
+
+    [Fact]
+    public void TestGetPrimaryValidatorCount()
+    {
+        var count = nexus.GetPrimaryValidatorCount(simulator.CurrentTime);
+        
+        // Assert
+        Assert.NotNull(count);
+        Assert.Equal(2, count);
+    }
+
+    [Fact]
+    public void TestGetValidators()
+    {
+        var validators = nexus.GetValidators(simulator.CurrentTime);
+        
+        // Assert
+        Assert.NotNull(validators);
+        Assert.Equal(2, validators.Length);
+    }
+
+    [Fact]
+    public void TestGetValidatorLastActivity()
+    {
+        Assert.Throws<NotImplementedException>(() => nexus.GetValidatorLastActivity(owner.Address));
+        /*var activity = nexus.GetValidatorLastActivity(owner.Address);
+        
+        // Assert
+        Assert.NotNull(activity);
+        Assert.Equal((Timestamp)simulator.CurrentTime, activity);*/
+    }
+
+    [Fact]
+    public void TestHasNFT()
+    {
+        var nft = nexus.HasNFT(nexus.RootStorage, "CROWN", 0);
+        
+        // Assert
+        Assert.False(nft);
+    }
+
+    [Fact]
+    public void TestGetFeedInfo()
+    {
+        Assert.Throws<ChainException>(() => nexus.GetFeedInfo(nexus.RootStorage, "price://soul/usd"));
+        
+        // Assert
+        
+    }
+    
+    [Fact]
+    public void TestCreateFeed()
+    {
+        var created = nexus.CreateFeed(nexus.RootStorage, owner.Address, "price://soul/usd", FeedMode.Last);
+        
+        var info = nexus.GetFeedInfo(nexus.RootStorage, "price://soul/usd");
+        
+        // Assert
+        Assert.True(created);
+        Assert.NotNull(info);
+        Assert.Equal("price://soul/usd", info.Name);
+        Assert.Equal(FeedMode.Last, info.Mode);
+        
+        // Change it
+        created = nexus.CreateFeed(nexus.RootStorage, owner.Address, "price://soul/usd", FeedMode.Max);
+        Assert.False(created);
+        
+        created = nexus.CreateFeed(nexus.RootStorage, owner.Address, null, FeedMode.Max);
+        Assert.False(created);
+    }
+
+    [Fact]
+    public void TestGetChildChainsByName()
+    {
+        var chain = nexus.GetChildChainsByName(nexus.RootStorage, "main");
+        
+        // Assert
+        Assert.NotNull(chain);
+    }
+    
+    [Fact]
+    public void TestGetChildChainsByAddress()
+    {
+        var chain = nexus.GetChildChainsByAddress(nexus.RootStorage, owner.Address);
+        
+        // Assert
+        Assert.Null(chain);
+    }
+
+    [Fact]
+    public void TestGetChainOrganization()
+    {
+        var chain = nexus.GetChainOrganization("main");
+        
+        // Assert
+        Assert.NotNull(chain);
+    }
+
+    [Fact]
+    public void TestGetParentChainByAddress()
+    {
+        var chain = nexus.GetParentChainByAddress(owner.Address);
+        
+        // Assert
+        Assert.Null(chain);
+    }
+
+    [Fact]
+    public void TestFindTransactionByHash()
+    {
+        simulator.BeginBlock();
+        var tx = simulator.GenerateTransfer(owner, user.Address, simulator.Nexus.RootChain, "SOUL", 10000000000);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        var transaction = nexus.FindTransactionByHash(tx.Hash);
+        
+        // Assert
+        Assert.NotNull(transaction);
+        Assert.Equal(tx.Payload, transaction.Payload);
+
+    }
+    
+    [Fact]
+    public void TestHasAddressScript()
+    {
+        var script = nexus.HasAddressScript(nexus.RootStorage, owner.Address, simulator.CurrentTime);
+        
+        // Assert
+        Assert.False(script);
+    }
+    
+    [Fact]
+    public void TestLookUpAddressScript()
+    {
+        var script = nexus.LookUpAddressScript(nexus.RootStorage, owner.Address, simulator.CurrentTime);
+        
+        // Assert
+        Assert.Equal(new byte[0], script);
+    }
+
+    [Fact]
+    public void TestLoadNexus()
+    {
+        var _nexus = nexus.LoadNexus(nexus.RootStorage);
+        
+        // Assert
+        Assert.NotNull(_nexus);
+    }
+
+    [Fact]
+    public void TestAttach()
+    {
+        var oracle = new TestOracleObserver();
+        nexus.Attach(oracle);
+        nexus.Detach(oracle);
+        
+        // Assert
+        Assert.NotNull(oracle);
+    }
+
+    
+    
+    private class TestOracleObserver : IOracleObserver
+    {
+
+        public void Update(INexus nexus, StorageContext storage)
+        {
+            // Do nothing
+        }
+    }
+
 }
