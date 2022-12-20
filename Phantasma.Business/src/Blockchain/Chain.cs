@@ -95,8 +95,9 @@ namespace Phantasma.Business.Blockchain
             var lastBlockHash = this.GetLastBlockHash();
             var lastBlock = this.GetBlockByHash(lastBlockHash);
             var isFirstBlock = lastBlock == null;
-
-            var protocol = Nexus.GetProtocolVersion(Nexus.RootStorage);
+            uint protocol = DomainSettings.Phantasma30Protocol;
+            if (lastBlockHash != Hash.Null)
+                protocol = Nexus.GetProtocolVersion(Nexus.RootStorage);
             this.CurrentProposer = proposerAddress;
             var validator = Nexus.GetValidator(this.Storage, this.CurrentProposer);
 
