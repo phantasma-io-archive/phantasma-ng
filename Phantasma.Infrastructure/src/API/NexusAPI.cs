@@ -29,6 +29,9 @@ public static class NexusAPI
 
     public const int PaginationMaxResults = 99999;
 
+    // HACK make this cleaner code later
+    public static Func<Hash, bool> isTransactionPending = null;
+
     public static string ExternalHashToString(string platform, Hash hash, string symbol)
     {
         var result = hash.ToString();
@@ -63,6 +66,7 @@ public static class NexusAPI
         if (!Nexus.HasGenesis()) throw new APIException("Nexus genesis is not setuped.");
 
     }
+    
     public static void RequireTokenSwapper()
     {
         if (TokenSwapper == null)
@@ -77,6 +81,7 @@ public static class NexusAPI
 
         return Nexus;
     }
+    
     public static ITokenSwapper GetTokenSwapper()
     {
         RequireTokenSwapper();

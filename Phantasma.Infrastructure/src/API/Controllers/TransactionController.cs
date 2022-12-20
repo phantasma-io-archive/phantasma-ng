@@ -153,17 +153,8 @@ namespace Phantasma.Infrastructure.API.Controllers
 
             return count;
         }
-
-        [APIInfo(typeof(string), "Allows to broadcast a signed operation on the network, but it's required to build it manually. Does not wait on CheckTx or DeliverTx, returns instant", false, 0, true)]
-        [APIFailCase("script is invalid", "")]
-        [APIFailCase("failed to decoded transaction", "0000")]
-        [HttpGet("SendRawTransactionAsync")]
-        public string SendRawTransactionAsync([APIParameter("Serialized transaction bytes, in hexadecimal format", "0000000000")] string txData)
-        {
-            return "";
-        }
         
-        [APIInfo(typeof(string), "Allows to broadcast a signed operation on the network, but it's required to build it manually.", false, 0, true)]
+        [APIInfo(typeof(string), "Allows to broadcast a signed operation on the network, but it's required to build it manually.", false, 0, false)]
         [APIFailCase("script is invalid", "")]
         [APIFailCase("failed to decoded transaction", "0000")]
         [HttpGet("SendRawTransaction")]
@@ -177,35 +168,31 @@ namespace Phantasma.Infrastructure.API.Controllers
             }
             catch
             {
-                Log.Error("Error while decoding the transaction.");
-                return Hash.Null.ToString();
+                return "Error while decoding the transaction.";
             }
             
             if (bytes.Length == 0)
             {
-                Log.Error("Transaction length is equal to 0.");
-                return Hash.Null.ToString();
+                return "Transaction length is equal to 0.";
             }
             
             // TODO store deserialized tx to save some time later on
             var tx = Transaction.Unserialize(bytes);
             if (tx == null)
             {
-                Log.Error("Unserializing tx failed");
-                return Hash.Null.ToString();
+                return "Unserializing tx failed";
             }
-
+            
             var res = NexusAPI.TRPC.BroadcastTxSync(txData);
             if (res.Code != 0)
             {
-                Log.Error("CheckTx returned code {code} {log}", res.Code, res.Log);
-                return Hash.Null.ToString();
+                return $"CheckTx returned code {res.Code} {res.Log}";
             }
             
             return tx.Hash.ToString();
         }
 
-        [APIInfo(typeof(ScriptResult), "Allows to invoke script based on network state, without state changes.", false, 5, true)]
+        [APIInfo(typeof(ScriptResult), "Allows to invoke script based on network state, without state changes.", false, 5, false)]
         [APIFailCase("script is invalid", "")]
         [APIFailCase("failed to decoded script", "0000")]
         [HttpGet("InvokeRawScript")]
@@ -304,7 +291,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             return new ScriptResult { results = resultArray, result = resultArray.FirstOrDefault(), events = evts, oracles = oracleReads };
         }
 
-        [APIInfo(typeof(TransactionResult), "Returns information about a transaction by hash.", false, -1, true)]
+        [APIInfo(typeof(TransactionResult), "Returns information about a transaction by hash.", false, -1, false)]
         [APIFailCase("hash is invalid", "43242342")]
         [HttpGet("GetTransaction")]
         public TransactionResult GetTransaction([APIParameter("Hash of transaction", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText)
@@ -324,6 +311,15 @@ namespace Phantasma.Infrastructure.API.Controllers
                 throw new APIException("Transaction not found");
             }
 
+            if (NexusAPI.isTransactionPending != null)
+            {
+                var pending = NexusAPI.isTransactionPending(hash);
+                if (pending)
+                {
+                    throw new APIException("pending");
+                }
+            }
+                
             return NexusAPI.FillTransaction(tx);
         }
     }

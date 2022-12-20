@@ -1394,4 +1394,10 @@ public class NexusSimulator
         return this.Nexus.RootChain.InvokeScript(Nexus.RootStorage, script, CurrentTime);
     }
 
+    public void UpdateOraclePrice(string symbol, decimal price)
+    {
+        var oracle = this.Nexus.GetOracleReader() as OracleSimulator;
+        oracle?.UpdatePrice(symbol, price); 
+    }
+
 }

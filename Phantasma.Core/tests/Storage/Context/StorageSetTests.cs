@@ -1,4 +1,11 @@
+using System.Linq;
+using System.Numerics;
+using System.Text;
+using Microsoft.AspNetCore.Mvc.Diagnostics;
+using Neo.VM.Types;
+using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Utils;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Storage.Context;
@@ -69,20 +76,28 @@ public class StorageSetTests
         Assert.Equal(2, count);
     }
 
-    [Fact (Skip = "This test needs fixing")]
+    [Fact]
     public void TestAllValues()
     {
         // Arrange
         var storage = new MemoryStorageContext();
         var set = new StorageSet(new byte[] { 1, 2, 3 }, storage);
-        set.Add(1);
-        set.Add(2);
-        set.Add(3);
-
+        /*var storageData = new StorageSet(new byte[]{4,5,6}, storage);*/
+        var key = new byte[] { 1, 2, 3 };
+        var myKey = ByteArrayUtils.ConcatBytes(key, Encoding.UTF8.GetBytes("MyKey"));
+        ByteArrayUtils.ConcatBytes(key, new BigInteger(200).ToByteArray());
+        //var StorageKey = new StorageKey(key + Encoding.UTF8.GetBytes("MyKey"));
+        set.Context.Put(key, (int) 100);
+        
+        //set.Add((BigInteger) 100);
+        //set.Add((BigInteger) 200);
+        
         // Act
         var values = SetUtils.AllValues<int>(set);
 
         // Assert
-        Assert.Equal(new int[] { 1, 2, 3 }, values);
+        Assert.Equal(1, values.Length);
+        Assert.Equal(100, values[0]);
+        
     }
 }

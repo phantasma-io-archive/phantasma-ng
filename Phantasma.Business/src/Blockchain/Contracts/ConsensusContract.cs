@@ -26,6 +26,11 @@ namespace Phantasma.Business.Blockchain.Contracts
     public struct PollChoice
     {
         public byte[] value;
+        
+        public PollChoice(byte[] value)
+        {
+            this.value = value;
+        }
     }
 
     public struct PollValue

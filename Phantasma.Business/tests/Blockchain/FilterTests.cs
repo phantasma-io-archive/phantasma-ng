@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Xml.Linq;
+using System.Numerics;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Tests.Simulator;
@@ -203,4 +204,153 @@ public class FilterTests
         
         Assert.Equal(initialBalance - smallAmount, finalBalance);
     }
+
+    [Fact]
+    public void FilterQuotaReached()
+    {
+        var owner = PhantasmaKeys.Generate();
+
+        var simulator = new NexusSimulator(owner);
+        var nexus = simulator.Nexus;
+
+        var testUser = PhantasmaKeys.Generate();
+
+        var fuelAmount = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
+
+        var sender = owner;
+
+        simulator.BeginBlock();
+        simulator.GenerateTransfer(sender, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol,
+            fuelAmount);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        var oracle = nexus.GetOracleReader();
+        var price = UnitConversion.ToDecimal(
+            oracle.ReadPrice(simulator.CurrentTime, DomainSettings.StakingTokenSymbol),
+            DomainSettings.StakingTokenDecimals);
+        Assert.True(price > 0);
+
+        var total = (int)(Filter.Quota / price);
+
+        var totalSplits = 5;
+
+        var split = total / totalSplits;
+
+        for (int i=0; i < totalSplits; i++)
+        {
+            BigInteger transferAmount = split;
+
+            if (i == totalSplits - 1)
+            {
+                transferAmount++; // in the last one we try to go over the quota by transfering 1 token more
+            }
+
+            transferAmount *= UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
+            Assert.True(transferAmount > 0);
+
+            simulator.BeginBlock();
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol,
+                transferAmount);
+            simulator.EndBlock();
+
+            if (i == totalSplits - 1) // only last is expected to fail
+            {
+                Assert.False(simulator.LastBlockWasSuccessful());
+            }
+            else
+            {
+                Assert.True(simulator.LastBlockWasSuccessful());
+            }
+        }
+
+        var hashes = simulator.Nexus.RootChain.GetTransactionHashesForAddress(testUser.Address);
+        Assert.True(hashes.Length == totalSplits);
+
+        BigInteger expectedBalance = split * (totalSplits - 1); // last one is supposed to fail
+        expectedBalance *= UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
+
+        var stakeToken =
+            simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
+        var finalBalance =
+            simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
+        Assert.True(finalBalance == expectedBalance);
+
+        Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
+        Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+    }
+
+    [Fact]
+    public void FilterQuotaNotReached()
+    {
+        var owner = PhantasmaKeys.Generate();
+
+        var simulator = new NexusSimulator(owner);
+        var nexus = simulator.Nexus;
+
+        // set the price of SOUL temporarily to 3 dollars
+        simulator.UpdateOraclePrice(DomainSettings.StakingTokenSymbol, 3);
+
+        var testUser = PhantasmaKeys.Generate();
+
+        var fuelAmount = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
+
+        var sender = owner;
+
+        simulator.BeginBlock();
+        simulator.GenerateTransfer(sender, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol,
+            fuelAmount);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        var oracle = nexus.GetOracleReader();
+        var price = UnitConversion.ToDecimal(
+            oracle.ReadPrice(simulator.CurrentTime, DomainSettings.StakingTokenSymbol),
+            DomainSettings.StakingTokenDecimals);
+        Assert.True(price > 0);
+
+        var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
+
+        var total = (int)(Filter.Quota / price);
+
+        var initialBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, owner.Address);
+        var initialWorth = UnitConversion.ToDecimal(initialBalance, DomainSettings.StakingTokenDecimals);
+        Assert.True(initialWorth >= total);
+
+        var totalSplits = 3;
+
+        var split = total / totalSplits;
+
+        for (int i = 0; i < totalSplits; i++)
+        {
+            BigInteger transferAmount = split;
+
+            if (i == totalSplits - 1)
+            {
+                transferAmount++; // in the last one we try to go over the quota by transfering 1 token more
+
+                simulator.TimeSkipDays(1);
+            }
+
+            transferAmount *= UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
+            Assert.True(transferAmount > 0);
+
+            simulator.BeginBlock();
+            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol,
+                transferAmount);
+            simulator.EndBlock();
+
+            Assert.True(simulator.LastBlockWasSuccessful());
+        }
+
+        BigInteger minimulExpectedBalance = split * totalSplits; // last one is not supposed to fail
+        minimulExpectedBalance *= UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
+
+        var finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
+        Assert.True(finalBalance >= minimulExpectedBalance);
+
+        Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
+        Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+    }
+
 }
