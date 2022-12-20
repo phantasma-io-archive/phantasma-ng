@@ -102,6 +102,8 @@ namespace Phantasma.Node
 
             this.ABCIConnector.SetNodeInfo(NexusAPI.Nexus, _tendermint_RPC_URL, _nodeKeys);
 
+            NexusAPI.isTransactionPending = ABCIConnector.IsTransactionPending;
+
             var options = new ChannelOption[] {
                 new ChannelOption(ChannelOptions.MaxReceiveMessageLength, 1500*1024*1024)
             };

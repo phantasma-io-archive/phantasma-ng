@@ -311,6 +311,15 @@ namespace Phantasma.Infrastructure.API.Controllers
                 throw new APIException("Transaction not found");
             }
 
+            if (NexusAPI.isTransactionPending != null)
+            {
+                var pending = NexusAPI.isTransactionPending(hash);
+                if (pending)
+                {
+                    throw new APIException("pending");
+                }
+            }
+                
             return NexusAPI.FillTransaction(tx);
         }
     }
