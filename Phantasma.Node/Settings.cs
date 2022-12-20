@@ -148,7 +148,7 @@ namespace Phantasma.Node
 
             try
             {
-                this.Node = new NodeSettings(section.GetSection("Node"));
+                this.Node = new NodeSettings(args, section.GetSection("Node"));
                 this.Simulator = new SimulatorSettings(section.GetSection("Simulator"));
                 this.Oracle = new OracleSettings(section.GetSection("Oracle"));
                 this.App = new AppSettings(section.GetSection("App"));
@@ -260,7 +260,7 @@ namespace Phantasma.Node
         public int TendermintRPCPort { get; }
         public string TendermintKey { get; }
 
-        public NodeSettings(IConfigurationSection section)
+        public NodeSettings(string[] args, IConfigurationSection section)
         {
             this.WebLogs = section.GetValueEx<bool>("web.logs");
 
@@ -277,6 +277,13 @@ namespace Phantasma.Node
             this.TendermintProxyHost = section.GetString("tendermint.proxy.host");
 
             this.TendermintKey = section.GetString("tendermint.key");
+
+            var keyTag = "--tendermint.key=";
+            var keyOverride = args.FirstOrDefault(x => x.StartsWith(keyTag));
+            if (!string.IsNullOrEmpty(keyOverride))
+            {
+                this.TendermintKey = keyOverride.Substring(keyTag.Length);
+            }
 
             this.BlockTime = section.GetValueEx<Int32>("block.time");
             this.MinimumFee = section.GetValueEx<Int32>("minimum.fee");
