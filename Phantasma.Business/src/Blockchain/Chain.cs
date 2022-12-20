@@ -103,8 +103,7 @@ namespace Phantasma.Business.Blockchain
             }
             catch (Exception e)
             {
-                Log.Information("check tx 2 " + lastBlockHash);
-                protocol = DomainSettings.Phantasma30Protocol;
+                Log.Information("Error getting info {Exception}", e);
             }
             
             this.CurrentProposer = proposerAddress;
