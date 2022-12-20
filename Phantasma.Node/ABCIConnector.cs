@@ -45,6 +45,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     }
 
+    public bool IsTransactionPending(Hash hash)
+    {
+        return _pendingTxs.Any(tx => tx.Hash == hash);
+    }
+
     public override Task<ResponseBeginBlock> BeginBlock(RequestBeginBlock request, ServerCallContext context)
     {
         Log.Information("Begin block {Height}", request.Header.Height);

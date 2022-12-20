@@ -29,6 +29,9 @@ public static class NexusAPI
 
     public const int PaginationMaxResults = 99999;
 
+    // HACK make this cleaner code later
+    public static Func<Hash, bool> isTransactionPending = null;
+
     public static string ExternalHashToString(string platform, Hash hash, string symbol)
     {
         var result = hash.ToString();
