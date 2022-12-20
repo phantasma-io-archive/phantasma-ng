@@ -250,13 +250,19 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         Block lastBlock = null;
         Log.Information($"ABCI Connector - Info");
 
-        uint version = 0;
+        uint version = DomainSettings.Phantasma30Protocol;
 
         try 
         {
             lastBlockHash = _nexus.RootChain.GetLastBlockHash();
             lastBlock = _nexus.RootChain.GetBlockByHash(lastBlockHash);
-            version = _nexus.GetProtocolVersion(_nexus.RootStorage);
+            try
+            {
+                version = _nexus.GetProtocolVersion(_nexus.RootStorage);
+            }catch(Exception e)
+            {
+                Log.Information("Error getting info {Exception}", e);
+            }
         }
         catch (Exception e)
         {
