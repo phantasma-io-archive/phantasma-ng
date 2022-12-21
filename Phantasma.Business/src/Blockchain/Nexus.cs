@@ -1610,9 +1610,9 @@ public class Nexus : INexus
 
                  {
                      ValidatorContract.ValidatorSlotsTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
-                         ValidatorContract.ValidatorSlotsDefault, new ChainConstraint[]
+                         DomainSettings.InitialValidatorCount, new ChainConstraint[]
                      {
-                         new ChainConstraint() { Kind = ConstraintKind.MustIncrease, Value = DomainSettings.InitialValidatorCount}
+                         new ChainConstraint() { Kind = ConstraintKind.MustIncrease}
                      })
                  },
 
