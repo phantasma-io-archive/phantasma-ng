@@ -11,7 +11,6 @@ namespace Phantasma.Business.Blockchain.Contracts
         public override NativeContractKind Kind => NativeContractKind.Validator;
 
         public const string ValidatorSlotsTag = "validator.slots";
-        public static readonly BigInteger ValidatorSlotsDefault = 5;
         
         public const string ValidatorRotationTimeTag = "validator.rotation.time";
         public static readonly BigInteger ValidatorRotationTimeDefault = 120;
@@ -24,7 +23,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         private StorageList _validators; // <ValidatorInfo>
 #pragma warning restore 0649
 
-        private int _initialValidatorCount => (int)ValidatorSlotsDefault;
+        private int _initialValidatorCount => DomainSettings.InitialValidatorCount;
 
         public ValidatorContract() : base()
         {
