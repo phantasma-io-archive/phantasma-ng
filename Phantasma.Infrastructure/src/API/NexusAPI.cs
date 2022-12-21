@@ -66,6 +66,7 @@ public static class NexusAPI
         if (!Nexus.HasGenesis()) throw new APIException("Nexus genesis is not setuped.");
 
     }
+    
     public static void RequireTokenSwapper()
     {
         if (TokenSwapper == null)
@@ -80,6 +81,7 @@ public static class NexusAPI
 
         return Nexus;
     }
+    
     public static ITokenSwapper GetTokenSwapper()
     {
         RequireTokenSwapper();

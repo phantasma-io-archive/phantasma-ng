@@ -161,7 +161,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 return _abiMap.Get<Address, byte[]>(target);
             }
 
-            return null;
+            return System.Array.Empty<byte>();
         }
 
         public Address LookUpName(string name)

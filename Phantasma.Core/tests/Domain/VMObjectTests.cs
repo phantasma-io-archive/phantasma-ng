@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 using Xunit;
 
@@ -10,6 +13,14 @@ namespace Phantasma.Core.Tests.Domain;
 
 public class VMObjectTests
 {
+    [Fact]
+    public void TestConstructorVMObject()
+    {
+        var vmObject = new VMObject();
+        Assert.NotNull(vmObject);
+        Assert.Equal(VMType.None, vmObject.Type);
+        Assert.Equal(null, vmObject.Data);
+    }
     
     [Fact]
     public void UnserializeData_SetsExpectedProperties_ForBoolType()
@@ -256,16 +267,195 @@ public class VMObjectTests
     public void AsByteArray_ReturnsExpectedResult_ForBoolType()
     {
         // Arrange
-        /*var data = true;
+        var data = true;
         
         var myClass = new VMObject();
-        myClass.Type = VMType.Bool;
-        myClass.Data = data;
+        myClass.SetDefaultValue(VMType.Bool);
+        myClass.SetValue(data);
         
         // Act
         var result = myClass.AsByteArray();
 
         // Assert
-        Assert.Equal(new byte[] { 0x01 }, result);*/
+        Assert.Equal(new byte[] { 0x01 }, result);
     }
+    
+    [Fact]
+    public void TestAsNumber()
+    {
+        var vmObject = new VMObject();
+        vmObject.SetDefaultValue(VMType.Number);
+        vmObject.SetValue(new BigInteger(12345));
+
+        var result = vmObject.AsNumber();
+
+        Assert.Equal(12345, result);
+    }
+    
+    [Fact]
+    public void TestAsTimestamp()
+    {
+        var vmObject = new VMObject();
+        vmObject.SetDefaultValue(VMType.Timestamp);
+        vmObject.SetValue(new Timestamp(12345));
+        
+
+        var result = vmObject.AsTimestamp();
+
+        Assert.Equal(new Timestamp(12345), result);
+    }
+    
+    [Fact]
+    public void TestAsDateTime()
+    {
+        var vmObject = new VMObject();
+        vmObject.SetDefaultValue(VMType.Timestamp);
+        vmObject.SetValue((DateTime)new Timestamp(12345));
+        
+
+        var result = vmObject.AsTimestamp();
+
+        Assert.Equal(new Timestamp(12345), result);
+    }
+
+    [Fact]
+    public void TestAsType()
+    {
+        var expected = new BigInteger(12345);
+        var vmObject = new VMObject();
+        vmObject.SetDefaultValue(VMType.Number);
+        vmObject.SetValue(expected);
+
+        var result = vmObject.AsType(VMType.Number);
+
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void TestAsEnum()
+    {
+        var vmObject = new VMObject();
+        vmObject.SetDefaultValue(VMType.Enum);
+        vmObject.SetValue(TestEnum.TestEnumValue);
+
+        var result = vmObject.AsEnum<TestEnum>();
+
+        Assert.Equal(TestEnum.TestEnumValue, result);
+    }
+
+    [Fact]
+    public void TestAsBool()
+    {
+        var vmObject = new VMObject();
+        vmObject.SetDefaultValue(VMType.Bool);
+        vmObject.SetValue(true);
+        
+        var result = vmObject.AsBool();
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void TestAsByteArray()
+    {
+        var vmObject = new VMObject();
+        vmObject.SetDefaultValue(VMType.Bytes);
+        vmObject.SetValue(new byte[] { 0x01, 0x02, 0x03 });
+        
+        var result = vmObject.AsByteArray();
+
+        Assert.Equal(new byte[] { 0x01, 0x02, 0x03 }, result);
+    }
+
+    [Fact]
+    public void TestSize()
+    {
+        var obj1 = new VMObject().SetDefaultValue(VMType.Number).SetValue((int)new BigInteger(123));
+        var obj2 = new VMObject().SetDefaultValue(VMType.Number).SetValue((int)new BigInteger(456));
+        var obj3 = new VMObject().SetDefaultValue(VMType.Number).SetValue((int)new BigInteger(789));
+        var obj4 = new VMObject().SetDefaultValue(VMType.Number).SetValue((int)new BigInteger(101112));
+        var dictObject = new Dictionary<VMObject, VMObject>
+        {
+            { obj1, obj2 },
+            { obj3, obj4 }
+        };
+        
+        var vmObject = new VMObject();
+        vmObject.SetDefaultValue(VMType.Object);
+        vmObject.SetValue(dictObject);
+
+        var result = vmObject.Size;
+
+        Assert.Equal(4, result);
+    }
+
+    [Fact]
+    public void TestAsArray()
+    {
+        var obj1 = new VMObject().SetDefaultValue(VMType.Number).SetValue((int)new BigInteger(0));
+        var obj2 = new VMObject().SetDefaultValue(VMType.String).SetValue("tests my string");
+        var obj3 = new VMObject().SetDefaultValue(VMType.Number).SetValue((int)new BigInteger(1));
+        var obj4 = new VMObject().SetDefaultValue(VMType.String).SetValue("test it as you can");
+        var dictObject = new Dictionary<VMObject, VMObject>
+        {
+            { obj1, obj2 },
+            { obj3, obj4 }
+        };
+        
+        var vmObject = new VMObject();
+        vmObject.SetValue(dictObject);
+        
+        var result = vmObject.AsArray(VMType.Struct);
+        
+        Assert.Equal(obj2.AsString(), result[0].AsString());
+        Assert.Equal(obj4.AsString(), result[1].AsString());
+    }
+    
+    [Fact] 
+    public void TestAsArrayNull()
+    {
+        var obj1 = new VMObject().SetDefaultValue(VMType.Number).SetValue((int)new BigInteger(0));
+        var obj2 = new VMObject().SetDefaultValue(VMType.String).SetValue("tests my string");
+        var obj3 = new VMObject().SetDefaultValue(VMType.Number).SetValue((int)new BigInteger(1));
+        var obj4 = new VMObject().SetDefaultValue(VMType.String).SetValue("test it as you can");
+        var dictObject = new Dictionary<VMObject, VMObject>();
+        var vmObject = new VMObject();
+        vmObject.SetValue(dictObject);
+        
+        // Just for the error 
+        vmObject.SetDefaultValue(VMType.Number);
+        Assert.Throws<Exception>(() => vmObject.AsArray(VMType.Number));
+        
+        // real values
+        vmObject.SetValue(dictObject);
+        var result = vmObject.AsArray(VMType.Struct);
+        Assert.Equal(new VMObject[0], result);
+        
+        
+    }
+    
+    [Fact]
+    public void TestAsNull()
+    {
+        var listObjs = new BigInteger[] { 1, 2, 3, 4, 5 };
+        var vmObject = new VMObject();
+        Assert.Null(vmObject.Data);
+        Assert.Throws<Exception>(() => vmObject.AsArray(VMType.Struct));
+    }
+
+
+    [Fact]
+    public void TestIsVMType()
+    {
+        Assert.True(VMObject.IsVMType(typeof(TestEnum)));
+        Assert.True(VMObject.IsVMType(typeof(BigInteger)));
+        
+
+    }
+    
+    public enum TestEnum
+    {
+        TestEnumValue
+    }
+
 }

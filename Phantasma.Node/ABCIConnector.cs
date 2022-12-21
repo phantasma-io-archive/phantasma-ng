@@ -130,7 +130,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     public override Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
     {
         Log.Information($"ABCI Connector - Deliver Tx");
-
+        
         var chain = _nexus.RootChain as Chain;
 
         var txString = request.Tx.ToStringUtf8();
@@ -148,27 +148,29 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             Data = ByteString.CopyFrom(bytes),
         };
 
-        if (result.Events.Count() > 0)
-        {
-            var newEvents = new List<Tendermint.Abci.Event>();
-            foreach (var evt in result.Events)
+        // Fix for null transaction that crashed the chain to many times!
+        if ( result.Events != null) // Yes it was just a null check that was missing!
+            if (result.Events.Count() > 0)
             {
-                var newEvent = new Tendermint.Abci.Event();
-                var attributes = new EventAttribute[]
+                var newEvents = new List<Tendermint.Abci.Event>();
+                foreach (var evt in result.Events)
                 {
-                    // Value cannot be null!
-                    new EventAttribute() { Key = "address", Value = evt.Address.ToString() },
-                    new EventAttribute() { Key = "contract", Value = evt.Contract },
-                    new EventAttribute() { Key = "data", Value = Base16.Encode(evt.Data) },
-                };
+                    var newEvent = new Tendermint.Abci.Event();
+                    var attributes = new EventAttribute[]
+                    {
+                        // Value cannot be null!
+                        new EventAttribute() { Key = "address", Value = evt.Address.ToString() },
+                        new EventAttribute() { Key = "contract", Value = evt.Contract },
+                        new EventAttribute() { Key = "data", Value = Base16.Encode(evt.Data) },
+                    };
 
-                newEvent.Type = evt.Kind.ToString();
-                newEvent.Attributes.AddRange(attributes);
+                    newEvent.Type = evt.Kind.ToString();
+                    newEvent.Attributes.AddRange(attributes);
 
-                newEvents.Add(newEvent);
+                    newEvents.Add(newEvent);
+                }
+                response.Events.AddRange(newEvents);
             }
-            response.Events.AddRange(newEvents);
-        }
 
         // check if a system tx was executed, if yes, remove it
         for (var i = 0; i < _pendingTxs.Count; i++)
@@ -248,13 +250,19 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         Block lastBlock = null;
         Log.Information($"ABCI Connector - Info");
 
-        uint version = 0;
+        uint version = DomainSettings.Phantasma30Protocol;
 
         try 
         {
             lastBlockHash = _nexus.RootChain.GetLastBlockHash();
             lastBlock = _nexus.RootChain.GetBlockByHash(lastBlockHash);
-            version = _nexus.GetProtocolVersion(_nexus.RootStorage);
+            try
+            {
+                version = _nexus.GetProtocolVersion(_nexus.RootStorage);
+            }catch(Exception e)
+            {
+                Log.Information("Error getting info {Exception}", e);
+            }
         }
         catch (Exception e)
         {
