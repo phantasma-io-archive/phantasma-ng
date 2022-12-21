@@ -2030,8 +2030,44 @@ public class ExchangeContractTests
         Assert.True(price == 5);
     }*/
 
-        
 
+    [Fact]
+    public void TXShouldNotCrash()
+    {
+        CoreClass core = new CoreClass();
+        
+        // Setup symbols
+        var baseSymbol = DomainSettings.StakingTokenSymbol;
+        var quoteSymbol = DomainSettings.FuelTokenSymbol;
+
+        core.InitFunds();
+        
+        // Create users
+        var poolOwner = new ExchangeUser(baseSymbol, quoteSymbol, core);
+        var user = PhantasmaKeys.Generate();
+        
+        // Give Users tokens
+        core.simulator.BeginBlock();
+        core.simulator.GenerateTransfer(core.owner, user.Address, core.simulator.Nexus.RootChain, neo.Symbol, UnitConversion.ToBigInteger(100m, neo.Decimals));
+        core.simulator.GenerateTransfer(core.owner, SmartContract.GetAddressForNative(NativeContractKind.Swap), core.simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100m, kcal.Decimals));
+        core.simulator.EndBlock();
+        Assert.True(core.simulator.LastBlockWasSuccessful());
+        
+        
+        
+        // SwapFee
+        core.simulator.BeginBlock();
+        core.simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
+             ScriptUtils.BeginScript()
+                 .CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapFee), user.Address, neo.Symbol, UnitConversion.ToBigInteger(0.5m, neo.Decimals))
+                 .AllowGas(user.Address, Address.Null, 1, 9999)
+                .SpendGas(user.Address)
+                .EndScript()
+        );
+        core.simulator.EndBlock();
+        Assert.False(core.simulator.LastBlockWasSuccessful());
+
+    }
     
 
     #endregion
@@ -2092,8 +2128,7 @@ public class ExchangeContractTests
             var owner1 = PhantasmaKeys.Generate();
             var owner2 = PhantasmaKeys.Generate();
             var owner3 = PhantasmaKeys.Generate();
-            var owner4  = PhantasmaKeys.Generate();
-            simulator = new NexusSimulator(new []{owner, owner1, owner2, owner3, owner4});
+            simulator = new NexusSimulator(new []{owner, owner1, owner2, owner3});
             nexus = simulator.Nexus;
             
             simulator.BeginBlock();

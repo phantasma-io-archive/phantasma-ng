@@ -293,7 +293,7 @@ public class NexusTestsSimulator
         
         // Assert
         Assert.NotNull(count);
-        Assert.Equal(2, count);
+        Assert.Equal(1, count);
     }
 
     [Fact]
@@ -303,7 +303,7 @@ public class NexusTestsSimulator
         
         // Assert
         Assert.NotNull(count);
-        Assert.Equal(2, count);
+        Assert.Equal(1, count);
     }
 
     [Fact]
