@@ -115,6 +115,8 @@ public class TokenTests
 
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
+        
+        simulator.GetFundsInTheFuture(owner);
 
         /*string message = "customEvent";
         var addressStr = Base16.Encode(owner.Address.ToByteArray());
@@ -206,6 +208,8 @@ public class TokenTests
 
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
+        
+        simulator.GetFundsInTheFuture(owner);
 
         string message = "customEvent";
         var addressStr = Base16.Encode(owner.Address.ToByteArray());

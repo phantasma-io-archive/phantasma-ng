@@ -2130,16 +2130,19 @@ public class ExchangeContractTests
             var owner3 = PhantasmaKeys.Generate();
             simulator = new NexusSimulator(new []{owner, owner1, owner2, owner3});
             nexus = simulator.Nexus;
+            simulator.GetFundsInTheFuture(owner);
+
             
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, soul.Symbol, UnitConversion.ToBigInteger(50, soul.Decimals));
-            simulator.GenerateCustomTransaction(owner, ProofOfWork.Minimal,
+            /*simulator.GenerateCustomTransaction(owner, ProofOfWork.Minimal,
                 () => ScriptUtils.BeginScript()
                     .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
                     .CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), ExchangeAddress,  UnitConversion.ToBigInteger(50, soul.Decimals))
                     .SpendGas(owner.Address)
-                    .EndScript());
+                    .EndScript());*/
             simulator.EndBlock();
+            Assert.True(simulator.LastBlockWasSuccessful());
             
             var balanceBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol, owner.Address);
             simulator.GetFundsInTheFuture(owner);
@@ -2202,6 +2205,8 @@ public class ExchangeContractTests
             }
             simulator.EndBlock();
             
+            simulator.GetFundsInTheFuture(owner);
+            
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, soul.Symbol, poolAmount0*2);
             simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, kcal.Symbol, poolAmount1*2);
@@ -2253,17 +2258,28 @@ public class ExchangeContractTests
         
         public void Migrate()
         {
-            DeployLPToken();
-            return;
+            //DeployLPToken();
             // Migrate Call Old Way
+            Address LPAddress = SmartContract.GetAddressFromContractName(DomainSettings.LiquidityTokenSymbol);
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.Minimal,
+                () => ScriptUtils.BeginScript()
+                    .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                    .CallContract("LP", "SendFundsAndStake", owner.Address, UnitConversion.ToBigInteger(50, DomainSettings.StakingTokenDecimals))
+                    .SpendGas(owner.Address)
+                    .EndScript());
+            simulator.EndBlock();
+            Assert.True(simulator.LastBlockWasSuccessful(), "Stake LP Contract Failed");
+            
             simulator.BeginBlock();
             var tx = simulator.GenerateCustomTransaction(owner, ProofOfWork.Minimal, () =>
                 ScriptUtils
                     .BeginScript()
                     .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
-                    .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.MigrateToV3))
+                    .CallContract("LP", "upgradeToDex", owner.Address)
                     .SpendGas(owner.Address)
                     .EndScript());
+            
             var block = simulator.EndBlock().First();
             Assert.True(simulator.LastBlockWasSuccessful(), "Migrate Call failed");
             var resultBytes = block.GetResultForTransaction(tx.Hash);

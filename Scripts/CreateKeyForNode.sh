@@ -10,7 +10,7 @@ iv=$(openssl rand -hex 16)
 passphrase=$1
 
 # Encrypt the address key using the passphrase and IV
-openssl enc -aes-256-cbc -e -in keystore -out keystore.enc -pass "pass:$passphrase" -iv $iv
+openssl enc -md sha512 -pbkdf2 -iter 50000 -e -in keystore.key -out keystore.enc -pass "pass:$passphrase" -iv $iv
 
 # Save the IV to a file
 echo $iv > iv.txt

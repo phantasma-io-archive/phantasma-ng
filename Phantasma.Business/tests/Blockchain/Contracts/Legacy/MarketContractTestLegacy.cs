@@ -54,6 +54,8 @@ public class MarketContractTestLegacy
         simulator = new NexusSimulator(owner);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
+        simulator.GetFundsInTheFuture(owner);
+        simulator.GetFundsInTheFuture(owner);
         SetInitialBalance(user.Address);
     }
 
@@ -288,6 +290,8 @@ public class MarketContractTestLegacy
 
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
+        
+        simulator.GetFundsInTheFuture(owner);
 
         var chain = nexus.RootChain;
 
@@ -561,6 +565,8 @@ public class MarketContractTestLegacy
 
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
+        
+        simulator.GetFundsInTheFuture(owner);
 
         var chain = nexus.RootChain;
 
