@@ -49,7 +49,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         public BigInteger GetRate(string fromSymbol, string toSymbol, BigInteger amount)
         {
             var existsLP = Runtime.TokenExists(DomainSettings.LiquidityTokenSymbol);
-            if (existsLP)
+            var exchangeVersion = Runtime.InvokeContractAtTimestamp(NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVerion)).AsNumber();
+            if (existsLP && exchangeVersion >= 1)
             {
                 return  Runtime.CallNativeContext(NativeContractKind.Exchange, nameof(ExchangeContract.GetRate), fromSymbol,
                     toSymbol, amount).AsNumber();
@@ -116,7 +117,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void SwapFee(Address from, string fromSymbol, BigInteger feeAmount)
         {
             var existsLP = Runtime.TokenExists(DomainSettings.LiquidityTokenSymbol);
-            if (existsLP)
+            var exchangeVersion = Runtime.InvokeContractAtTimestamp(NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVerion)).AsNumber();
+            if (existsLP && exchangeVersion >= 1)
             {
                 Runtime.CallNativeContext(NativeContractKind.Exchange, nameof(ExchangeContract.SwapFee), from,
                     fromSymbol, feeAmount);
@@ -191,7 +193,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void SwapReverse(Address from, string fromSymbol, string toSymbol, BigInteger total)
         {
             var existsLP = Runtime.TokenExists(DomainSettings.LiquidityTokenSymbol);
-            if (existsLP)
+            var exchangeVersion = Runtime.InvokeContractAtTimestamp(NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVerion)).AsNumber();
+            if (existsLP && exchangeVersion >= 1)
             {
                 Runtime.CallNativeContext(NativeContractKind.Exchange, nameof(ExchangeContract.SwapReverse), from,
                     fromSymbol, toSymbol, total);
@@ -215,7 +218,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void SwapTokens(Address from, string fromSymbol, string toSymbol, BigInteger amount)
         {
             var existsLP = Runtime.TokenExists(DomainSettings.LiquidityTokenSymbol);
-            if (existsLP)
+            var exchangeVersion = Runtime.InvokeContractAtTimestamp(NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVerion)).AsNumber();
+            if (existsLP && exchangeVersion >= 1)
             {
                 Runtime.CallNativeContext(NativeContractKind.Exchange, nameof(ExchangeContract.SwapTokens), from,
                     fromSymbol, toSymbol, amount);

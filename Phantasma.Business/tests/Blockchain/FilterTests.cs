@@ -3,6 +3,7 @@ using System.Linq;
 using System.Xml.Linq;
 using System.Numerics;
 using Phantasma.Business.Blockchain;
+using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
@@ -287,7 +288,20 @@ public class FilterTests
 
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
-
+        
+        simulator.GetFundsInTheFuture(owner);
+        simulator.GetFundsInTheFuture(owner);
+        
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 9999)
+                .CallContract(NativeContractKind.Stake, nameof(StakeContract.MasterClaim), owner.Address)
+                .SpendGas(owner.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
         // set the price of SOUL temporarily to 3 dollars
         simulator.UpdateOraclePrice(DomainSettings.StakingTokenSymbol, 3);
 

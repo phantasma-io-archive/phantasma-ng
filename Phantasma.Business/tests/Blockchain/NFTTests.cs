@@ -52,6 +52,7 @@ public class NFTTests
         simulator = new NexusSimulator(owner);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
+        simulator.GetFundsInTheFuture(owner);
         SetInitialBalance(user.Address);
     }
 

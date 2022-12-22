@@ -64,6 +64,7 @@ public class StorageContractTest
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
         simulator.GetFundsInTheFuture(owner);
+        simulator.GetFundsInTheFuture(owner);
         SetInitialBalance(user.Address);
         SetInitialBalance(user2.Address);
     }
