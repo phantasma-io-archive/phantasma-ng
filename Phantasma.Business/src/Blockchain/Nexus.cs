@@ -1550,7 +1550,7 @@ public class Nexus : INexus
         }
         
         // Deploy LP Contract
-        DeployNativeToken(sb, owner, "LP", Base16.Decode(LP_ContractCompiled_PVM),  Base16.Decode(LP_ContractCompiled_ABI));
+        sb.CallInterop("Nexus.CreateToken", owner.Address, Base16.Decode(LP_ContractCompiled_PVM),  Base16.Decode(LP_ContractCompiled_ABI));
 
         sb.CallInterop("Nexus.EndInit", owner.Address);
 
