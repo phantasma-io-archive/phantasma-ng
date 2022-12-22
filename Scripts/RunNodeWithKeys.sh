@@ -1,7 +1,7 @@
 #!/bin/bash
 # To create an env variable temporarly, use:
 # export PASSPHRASE=YOUR_PASSPHRASE
-# export IV=YOUR_IV
+# export IV=/path/to/YOUR_IV
 # To create an env variable permanently, use:
 # echo "export PASSPHRASE=YOUR_PASSPHRASE" >> ~/.bashrc
 # source ~/.bashrc
@@ -15,14 +15,14 @@
 # printenv
 # Read the passphrase and IV from environment variables
 passphrase=$PASSPHRASE
-iv=$IV
+iv=`cat $IV`
 
 # Decrypt the keystore file using the passphrase and IV
-openssl enc -aes-256-cbc -d -in keystore.enc -out keystore -pass "pass:$passphrase" -iv $iv
+openssl enc -md sha512 -pbkdf2 -iter 50000 -d -in keystore.enc -out keystore.key -pass "pass:$passphrase" -iv $iv
 LOCALKEY=$(<keystore)
 
 # Delete the decrypted keystore file
-rm keystore
+rm keystore.key
 
 # Start the node using the decrypted keystore file
 dotnet Phantasma.Node.dll --tendermint.key="$LOCALKEY"

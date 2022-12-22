@@ -345,17 +345,17 @@ public class ExchangeContractStructsTests
     public void LPHolderInfo_TestConstructor()
     {
         // Arrange
-        var address = PhantasmaKeys.Generate().Address;
+        var nftID = new BigInteger(12903102312);
         var unclaimedSymbol0 = new BigInteger(100);
         var unclaimedSymbol1 = new BigInteger(200);
         var claimedSymbol0 = new BigInteger(300);
         var claimedSymbol1 = new BigInteger(400);
 
         // Act
-        var holderInfo = new LPHolderInfo(address, unclaimedSymbol0, unclaimedSymbol1, claimedSymbol0, claimedSymbol1);
+        var holderInfo = new LPHolderInfo(nftID, unclaimedSymbol0, unclaimedSymbol1, claimedSymbol0, claimedSymbol1);
 
         // Assert
-        Assert.Equal(address, holderInfo.Address);
+        Assert.Equal(nftID, holderInfo.NFTID);
         Assert.Equal(unclaimedSymbol0, holderInfo.UnclaimedSymbol0);
         Assert.Equal(unclaimedSymbol1, holderInfo.UnclaimedSymbol1);
         Assert.Equal(claimedSymbol0, holderInfo.ClaimedSymbol0);
@@ -366,12 +366,12 @@ public class ExchangeContractStructsTests
     public void LPHolderInfo_TestSerializeData()
     {
         // Arrange
-        var address = PhantasmaKeys.Generate().Address;
+        var NFTID = new BigInteger(12903102312);
         var unclaimedSymbol0 = new BigInteger(100);
         var unclaimedSymbol1 = new BigInteger(200);
         var claimedSymbol0 = new BigInteger(300);
         var claimedSymbol1 = new BigInteger(400);
-        var holderInfo = new LPHolderInfo(address, unclaimedSymbol0, unclaimedSymbol1, claimedSymbol0, claimedSymbol1);
+        var holderInfo = new LPHolderInfo(NFTID, unclaimedSymbol0, unclaimedSymbol1, claimedSymbol0, claimedSymbol1);
 
         var bytes = new byte[512];
         var stream = new MemoryStream(bytes);
@@ -385,7 +385,7 @@ public class ExchangeContractStructsTests
         result.UnserializeData(reader);
 
         // Assert
-        Assert.Equal(address, result.Address);
+        Assert.Equal(NFTID, result.NFTID);
         Assert.Equal(unclaimedSymbol0, result.UnclaimedSymbol0);
         Assert.Equal(unclaimedSymbol1, result.UnclaimedSymbol1);
         Assert.Equal(claimedSymbol0, result.ClaimedSymbol0);
@@ -396,13 +396,13 @@ public class ExchangeContractStructsTests
     public void LPHolderInfo_TestUnserializeData()
     {
         // Arrange
-        var address = PhantasmaKeys.Generate().Address;
+        var NFTID = new BigInteger(12903102312);
         var unclaimedSymbol0 = new BigInteger(100);
         var unclaimedSymbol1 = new BigInteger(200);
         var claimedSymbol0 = new BigInteger(300);
         var claimedSymbol1 = new BigInteger(400);
         
-        var holderInfoSerialize = new LPHolderInfo(address, unclaimedSymbol0, unclaimedSymbol1, claimedSymbol0, claimedSymbol1);
+        var holderInfoSerialize = new LPHolderInfo(NFTID, unclaimedSymbol0, unclaimedSymbol1, claimedSymbol0, claimedSymbol1);
         var data = holderInfoSerialize.Serialize();
         
         var stream = new MemoryStream(data);
@@ -413,7 +413,7 @@ public class ExchangeContractStructsTests
         holderInfo.UnserializeData(reader);
         
         // Assert
-        Assert.Equal(address, holderInfo.Address);
+        Assert.Equal(NFTID, holderInfo.NFTID);
         Assert.Equal(unclaimedSymbol0, holderInfo.UnclaimedSymbol0);
         Assert.Equal(unclaimedSymbol1, holderInfo.UnclaimedSymbol1);
         Assert.Equal(claimedSymbol0, holderInfo.ClaimedSymbol0);

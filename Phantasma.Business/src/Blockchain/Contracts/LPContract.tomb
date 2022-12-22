@@ -21,6 +21,8 @@ token LP {
 	import NFT;
 	import Call;
 	import Address;
+	import Token;
+	import Stake;
 	
 	global _owner:address;
 	global _changed:bool;
@@ -57,13 +59,18 @@ token LP {
 		_owner = contractOwner;
 		_changed = false;
 		NFT.createSeries(_owner, $THIS_SYMBOL, 0, 0, TokenSeries.Unique, LPNFT);
-		Call.contract<none>("exchange", "MigrateToV3");
 	}
 	
 	public Mint(from:address, rom:LPTokenContentROM, ram:LPTokenContentRAM ):number {
 	    Runtime.expect(Runtime.isWitness(_owner), "witness failed");
 	    local id : number = NFT.mint($THIS_ADDRESS, from, $THIS_SYMBOL, rom, ram, LP_SERIES);
 	    return id;
+	}
+	
+	public SendFundsAndStake(from:address, amount:number){
+        Runtime.expect(Runtime.isWitness(from), "witness failed");
+        Token.transfer(from, $THIS_ADDRESS, "SOUL", amount);
+        Stake.stake($THIS_ADDRESS, amount);
 	}
 	
 	public ChangeOwner(from:address){
@@ -74,10 +81,9 @@ token LP {
 	    _changed = true;
 	}
 	
-	public testContext(): string{
-        local context:string = Runtime.context();
-        local previousContext:string = Runtime.previousContext();
-		return "c: " + context + " || p: " + previousContext;
+	public upgradeToDex(from: address){
+        Runtime.expect(Runtime.isWitness(_owner), "witness failed");
+        Call.contract<none>("exchange", "MigrateToV3");
 	}
 	
 	trigger onUpgrade(from:address) 
@@ -89,14 +95,7 @@ token LP {
     }
 	
 	trigger onMigrate(from:address, to:address) {
-        Runtime.expect(!_changed, "Owner was already changed");
-	    Runtime.expect(Runtime.isWitness(_owner), "witness failed");
-		Runtime.expect(Address.isSystem(to), "the new address is not a system address");
-
-		if (from == _owner) {
-			_owner = to;
-            _changed = true;
-		}
+	    Runtime.expect(Runtime.isWitness(from), "witness failed");
 	}
 	
 	trigger onMint(from:address, to:address, symbol:string, tokenID:number) 
