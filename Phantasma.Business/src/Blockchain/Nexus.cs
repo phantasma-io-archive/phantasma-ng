@@ -1454,16 +1454,6 @@ public class Nexus : INexus
 
         sb.CallInterop("Runtime.DeployContract", owner.Address, contractName, script, abi);
     }
-    
-    private void DeployNativeToken(ScriptBuilder sb, PhantasmaKeys owner, string contractName, byte[] script, byte[] abi)
-    {
-        if (string.IsNullOrEmpty(contractName))
-        {
-            throw new ChainException("Invalid native contract: ");
-        }
-
-        sb.CallInterop("Nexus.CreateToken", owner.Address, script, abi);
-    }
 
     private Transaction NexusCreateTx(PhantasmaKeys owner, Timestamp genesisTime)
     {
