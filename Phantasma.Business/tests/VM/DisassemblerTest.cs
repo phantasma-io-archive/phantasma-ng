@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Numerics;
+using System.Text;
 using Phantasma.Business.VM;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Domain;
@@ -52,9 +54,9 @@ public class DisassemblerTest
     [InlineData(new byte[] { (int)Opcode.PUSH, 1 }, "000: PUSH r1")]
     [InlineData(new byte[] { (int)Opcode.POP, 1 }, "000: POP r1")]
     [InlineData(new byte[] { (int)Opcode.SWAP, 1, 2 }, "000: SWAP r1, r2")]
-    //[InlineData(new byte[] { (int)Opcode.CALL, 1, 1, 1 }, "000: CALL r1, 257")] // Needs validation
-    //[InlineData(new byte[] { (int)Opcode.EXTCALL }, "000: EXTCALL \"Test()\"")]
-    //[InlineData(new byte[] { (int)Opcode.JMP, 1, 1 }, "000: JMP r1")]
+    [InlineData(new byte[] { (int)Opcode.CALL, 1, 1, 1 }, "000: CALL r1, 257")] // Needs validation
+    [InlineData(new byte[] { (int)Opcode.EXTCALL, 1 }, "000: EXTCALL r1")]
+    [InlineData(new byte[] { (int)Opcode.JMP, 1, 2 }, "000: JMP")]
     //[InlineData(new byte[] { (int)Opcode.JMPIF }, "000: JMPIF r1, @label")]
     //[InlineData(new byte[] { (int)Opcode.JMPNOT }, "000: JMPNOT r1, @label")]
     [InlineData(new byte[] { (int)Opcode.RET }, "000: RET")]
@@ -133,6 +135,51 @@ public class DisassemblerTest
     {
         // Arrange
         var sut = new Disassembler(ScriptUtils.BeginScript().EmitLoad(1, new byte[length]).EmitPush(1).EndScript());
+
+        // Act
+        var result = Should.NotThrow(() => sut.ToString());
+
+        // Assert
+        result.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Test_JMP()
+    {
+        // create a var bytes for the string Test()
+        //sb.EmitLoad(src_reg, contractName);
+        var script = ScriptUtils.BeginScript()
+                .EmitLoad(1, new BigInteger(10))
+                .Emit(Opcode.JMP, new byte[] { 1, 2 })
+                .EndScript();
+        var sut = new Disassembler(script);
+        
+        Assert.Equal("000: LOAD r1, 10\n005: JMP\n008: RET", sut.ToString());
+        
+        script = ScriptUtils.BeginScript()
+            .EmitLoad(1, new BigInteger(10))
+            .Emit(Opcode.JMPNOT, new byte[] { 1, 32, 1 })
+            .EndScript();
+        
+        sut = new Disassembler(script);
+        
+        Assert.Equal("000: LOAD r1, 10\n005: JMPNOT\n009: RET", sut.ToString());
+    }
+
+    [Fact]
+    public void ReadVar_internal_should_read_32_and_64()
+    {
+        // Arrange
+        ulong value = 0xFF34567890ABCDEF;
+        ulong value2 = 0xFF34567890ABCDFF;
+        var bytes = new byte[] { (int)Opcode.RANGE, 1, 2, 0, 1 };
+        var script = ScriptUtils.BeginScript()
+            .EmitRaw(new byte[]{ (int)Opcode.RIGHT, 0, 5, 0xFF, 1, 1, 0, 0, 0, 0, 0, 0})
+            .EmitRaw(new byte[]{ (int)Opcode.RIGHT, 6, 11, 0xFE, 1, 1, 0, 0})
+            //.EmitVarBytes(10)
+            //.Emit(Opcode.RIGHT, new byte[] { 1, 5 })
+            .EndScript();
+        var sut = new Disassembler(script);
 
         // Act
         var result = Should.NotThrow(() => sut.ToString());
