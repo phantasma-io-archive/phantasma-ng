@@ -317,6 +317,63 @@ public class ExtensionMethodsTests
         dictionary2.ShouldContainKeyAndValue("key3", "value3");
         dictionary2.ShouldContainKeyAndValue("key4", "value4");
     }
+    
+    [Fact]
+    public void ContainsBy_should_dictionaries()
+    {
+        // Arrange
+        var myList = new List<string> {  "key1", "key2", "key3" };
+        
+        // Act
+
+        // Assert
+        Assert.True(myList.ContainsBy("key1", s => s == "key1"));
+    }
+    
+    [Fact]
+    public void AddDistinctBy_should_dictionaries()
+    {
+        // Arrange
+        var myList = new List<string> {  "key1", "key2", "key3" };
+        
+        // Act
+        myList.AddDistinctBy("key4", s => s == "key4");
+        
+        // Assert
+        Assert.True(myList.ContainsBy("key4", s => s == "key4"));
+    }
+    
+    [Fact]
+    public void AddRangeDistinctBy_should_dictionaries()
+    {
+        // Arrange
+        var myList = new List<string> {  "key1", "key2", "key3" };
+        
+        // Act
+        myList.AddRangeDistinctBy(new List<string> { "key4", "key5" }, (src, succes) =>
+        {
+             return (src.Contains("key4"));
+        });
+        
+        // Assert
+        Assert.True(myList.ContainsBy("key4", s => s == "key4"));
+    }
+    
+    [Fact]
+    public void None_should_dictionaries()
+    {
+        // Arrange
+        var myList = new List<string> {  "key1", "key2", "key3" };
+        
+        // Act
+        myList.None((src) =>
+        {
+            return (src.Contains("key34"));
+        });
+        
+        // Assert
+        Assert.True(myList.ContainsBy("key3", s => s == "key3"));
+    }
 
     [Theory]
     [InlineData(new[] { "test1" }, false)]
