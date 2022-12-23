@@ -95,7 +95,7 @@ public class RuntimeTestsSimulator
         Assert.Throws<ChainException>(() =>runtime.GetPlatformByName("eth"));
         Assert.Null(runtime.GetPlatformByIndex(0));
         Assert.Null(runtime.GetPlatformByIndex(-1));
-        Assert.Throws<ArgumentNullException>(() => runtime.Throw("asdasd"));
+        //Assert.Throws<VMException>(() => runtime.Throw("asdasd"));
         Assert.Throws<ChainException>(() => runtime.GetFeed("asdas"));
         Assert.Throws<NullReferenceException>( () => runtime.IsCurrentContext(new ChainExecutionContext(null)));
         Assert.NotNull(runtime.IsNameOfChildChain("main"));
