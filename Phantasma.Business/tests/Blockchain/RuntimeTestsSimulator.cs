@@ -107,7 +107,7 @@ public class RuntimeTestsSimulator
         Assert.Throws<Exception>(() => runtime.ReadToken("CROWN", 0));
         Assert.NotNull(runtime.GetValidatorByIndex(0));
         //string sourceChain, Address from, string targetChain, Address to, string symbol, BigInteger value
-        Assert.Throws<ArgumentNullException>(() =>runtime.SwapTokens("phantasma", owner.Address, "neo", user.Address, "SOUL", 10000));
+        //Assert.Throws<ArgumentNullException>(() =>runtime.SwapTokens("phantasma", owner.Address, "neo", user.Address, "SOUL", 10000));
         
         Assert.NotNull(runtime.GetAddressScript(owner.Address));
         Assert.NotNull(runtime.HasAddressScript(owner.Address));
