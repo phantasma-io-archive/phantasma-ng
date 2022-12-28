@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
+using System.Security.Cryptography;
+
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
 
@@ -86,7 +88,7 @@ namespace Phantasma.Core.Domain
             }
         }
 
-        private Random rnd = new Random();
+        private RandomNumberGenerator rnd = RandomNumberGenerator.Create();
 
         private Dictionary<string, Connection> _connections = new Dictionary<string, Connection>();
 
@@ -669,7 +671,9 @@ namespace Phantasma.Core.Domain
                             else
                             {
                                 var bytes = new byte[32];
-                                rnd.NextBytes(bytes);
+
+                                rnd.GetBytes(bytes);
+
                                 token = Base16.Encode(bytes);
 
                                 this.Authorize(dapp, token, version, (authorized, error) =>
