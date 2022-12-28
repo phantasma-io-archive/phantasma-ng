@@ -119,6 +119,9 @@ public class ChainTests
         var owner = PhantasmaKeys.Generate();
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
+        
+        simulator.GetFundsInTheFuture(owner);
+
 
         var accountChain = nexus.GetChainByName("account");
         var symbol = "BLA";
@@ -185,6 +188,8 @@ public class ChainTests
 
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
+        
+        simulator.GetFundsInTheFuture(owner);
 
         var symbol = "BLA";
 
@@ -230,6 +235,8 @@ public class ChainTests
 
             var simulator = new NexusSimulator(firstOwner);
             var nexus = simulator.Nexus;
+            
+            simulator.GetFundsInTheFuture(firstOwner);
 
             var secondOwner = PhantasmaKeys.Generate();
             var testUser = PhantasmaKeys.Generate();
@@ -278,7 +285,7 @@ public class ChainTests
             Assert.True(crownBalance == 0);
 
             crownBalance = nexus.RootChain.GetTokenBalance(nexus.RootStorage, DomainSettings.RewardTokenSymbol, secondOwner.Address);
-            Assert.True(crownBalance == 1);
+            Assert.True(crownBalance == 21);
 
             var thirdOwner = PhantasmaKeys.Generate();
 
@@ -1283,6 +1290,9 @@ public class ChainTests
 
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
+        
+        simulator.GetFundsInTheFuture(owner);
+
 
         simulator.blockTimeSkip = TimeSpan.FromSeconds(5);
 
@@ -1295,6 +1305,7 @@ public class ChainTests
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, stakeAmount);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
@@ -1302,6 +1313,7 @@ public class ChainTests
                 .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, stakeAmount).
                 SpendGas(testUser.Address).EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         string[] scriptString;
 

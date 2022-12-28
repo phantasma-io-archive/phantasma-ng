@@ -183,15 +183,15 @@ namespace Phantasma.Business.Blockchain.Contracts
 
     public struct LPHolderInfo : ISerializable
     {
-        public Address Address;
+        public BigInteger NFTID;
         public BigInteger UnclaimedSymbol0;
         public BigInteger UnclaimedSymbol1;
         public BigInteger ClaimedSymbol0;
         public BigInteger ClaimedSymbol1;
 
-        public LPHolderInfo(Address address, BigInteger unclaimedSymbol0, BigInteger unclaimedSymbol1,  BigInteger claimedSymbol0, BigInteger claimedSymbol1)
+        public LPHolderInfo(BigInteger NFTID, BigInteger unclaimedSymbol0, BigInteger unclaimedSymbol1,  BigInteger claimedSymbol0, BigInteger claimedSymbol1)
         {
-            this.Address = address;
+            this.NFTID = NFTID;
             this.UnclaimedSymbol0 = unclaimedSymbol0;
             this.UnclaimedSymbol1 = unclaimedSymbol1;
             this.ClaimedSymbol0 = claimedSymbol0;
@@ -200,7 +200,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public void SerializeData(BinaryWriter writer)
         {
-            writer.WriteAddress(Address);
+            writer.WriteBigInteger(NFTID);
             writer.WriteBigInteger(UnclaimedSymbol0);
             writer.WriteBigInteger(UnclaimedSymbol1);
             writer.WriteBigInteger(ClaimedSymbol0);
@@ -209,7 +209,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public void UnserializeData(BinaryReader reader)
         {
-            Address = reader.ReadAddress();
+            NFTID = reader.ReadBigInteger();
             UnclaimedSymbol0 = reader.ReadBigInteger();
             UnclaimedSymbol1 = reader.ReadBigInteger();
             ClaimedSymbol0 = reader.ReadBigInteger();
@@ -1050,6 +1050,11 @@ namespace Phantasma.Business.Blockchain.Contracts
         
         internal BigInteger _DEXversion;
         
+        public BigInteger GetDexVerion()
+        {
+            return _DEXversion;
+        }
+        
         /// <summary>
         /// Check if a Token is supported
         /// </summary>
@@ -1386,9 +1391,12 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void MigrateToV3()
         {
             Runtime.Expect(_DEXversion == 0, "Migration failed, wrong version");
-
+            
             var existsLP = Runtime.TokenExists(DomainSettings.LiquidityTokenSymbol);
             Runtime.Expect(existsLP, "LP token doesn't exist!");
+            
+            Runtime.Expect(Runtime.PreviousContext.Name.ToLower() == "lp", "Migration failed, wrong context");
+            Runtime.Expect(Runtime.IsWitness(SmartContract.GetAddressFromContractName("LP")), "Only LP can migrate");
 
             // check how much SOUL we have here
             var soulTotal = Runtime.GetBalance(DomainSettings.StakingTokenSymbol, this.Address);
@@ -1538,8 +1546,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         // value in "per thousands"
         private const int DEXSeriesID = 0; 
         internal StorageMap _pools;
-        internal StorageMap _lp_tokens; // <string, BigInteger>
-        internal StorageMap _lp_holders; // <string, storage_list<Address>> |-> string : $"symbol0_symbol1" |-> Address[] : key to the list 
+        //internal StorageMap _lp_tokens; // <string, BigInteger>
+        internal StorageMap _lp_holders; // <string, storage_list<LPHolderInfo>> |-> string : $"symbol0_symbol1" |-> LPHolderInfo[] : key to the list 
         internal StorageMap _trading_volume; // <string, stoage_map<uint,TradingVolume>> |-> string : $"symbol0_symbol1" |-> TradingVolume[] : key to the list 
 
         //Runtime.GetGovernanceValue(ValidatorSlotsTag);
@@ -1661,12 +1669,16 @@ namespace Phantasma.Business.Blockchain.Contracts
             var token1Info = Runtime.GetToken(symbol1);
             Runtime.Expect(IsSupportedToken(symbol1), "destination token is unsupported");
             // Check if a pool exist (token0 - Token 1) and (token 1 - token 0)
-
-            if (_lp_tokens.ContainsKey(GetLPTokensKey(from, symbol0, symbol1)) || _lp_tokens.ContainsKey(GetLPTokensKey(from, symbol1, symbol0)))
+            var nfts =  Runtime.GetOwnerships(DomainSettings.LiquidityTokenSymbol, from);
+            for (int i = 0; i < nfts.Length; i++)
             {
-                return true;
+                var nftID = nfts[i];
+                var nft = Runtime.ReadToken(DomainSettings.LiquidityTokenSymbol, nftID);
+                LPTokenContentROM nftROM = VMObject.FromBytes(nft.ROM).AsStruct<LPTokenContentROM>();
+                if (nftROM.Symbol0 == symbol0 && nftROM.Symbol1 == symbol1 || nftROM.Symbol0 == symbol1 && nftROM.Symbol1 == symbol0)
+                    return true;
             }
-
+            
             return false;
         }
 
@@ -1679,7 +1691,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         /// <returns></returns>
         private LPHolderInfo GetLPHolder(Address from, string symbol0, string symbol1)
         {
-            Runtime.Expect(CheckHolderIsThePool(from, symbol0, symbol1), "User is not on the list.");
+            var nftID = GetMyNFTID(from, symbol0, symbol1);
+            Runtime.Expect(CheckHolderIsThePool(nftID, symbol0, symbol1), "User is not on the list.");
             var holdersList = GetHolderList(symbol0, symbol1);
             var index = 0;
             var count = holdersList.Count();
@@ -1687,7 +1700,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             while (index < count)
             {
                 tempHolder = holdersList.Get<LPHolderInfo>(index);
-                if (tempHolder.Address == from)
+                if (tempHolder.NFTID == nftID)
                     return tempHolder;
 
                 index++;
@@ -1698,11 +1711,11 @@ namespace Phantasma.Business.Blockchain.Contracts
         /// <summary>
         /// Check if the holder is on the pool for the fees.
         /// </summary>
-        /// <param name="from"></param>
+        /// <param name="NFTID"></param>
         /// <param name="symbol0"></param>
         /// <param name="symbol1"></param>
         /// <returns></returns>
-        private bool CheckHolderIsThePool(Address from, string symbol0, string symbol1)
+        private bool CheckHolderIsThePool(BigInteger nftID, string symbol0, string symbol1)
         {
             var holdersList = GetHolderList(symbol0, symbol1);
             var index = 0;
@@ -1711,7 +1724,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             while ( index < count)
             {
                 tempHolder = holdersList.Get<LPHolderInfo>(index);
-                if (tempHolder.Address == from)
+                if (tempHolder.NFTID == nftID)
                     return true;
 
                 index++;
@@ -1725,11 +1738,11 @@ namespace Phantasma.Business.Blockchain.Contracts
         /// <param name="from"></param>
         /// <param name="symbol0"></param>
         /// <param name="symbol1"></param>
-        private void AddToLPHolders(Address from, string symbol0, string symbol1)
+        private void AddToLPHolders(Address from, BigInteger NFTID, string symbol0, string symbol1)
         {
-            Runtime.Expect(!CheckHolderIsThePool(from, symbol0, symbol1), "User is already on the list.");
+            Runtime.Expect(!CheckHolderIsThePool(NFTID, symbol0, symbol1), "User is already on the list.");
             var holdersList = GetHolderList(symbol0, symbol1);
-            var lpHolderInfo = new LPHolderInfo(from, 0, 0, 0, 0);
+            var lpHolderInfo = new LPHolderInfo(NFTID, 0, 0, 0, 0);
             holdersList.Add<LPHolderInfo>(lpHolderInfo);
             _lp_holders.Set<string, StorageList>($"{symbol0}_{symbol1}", holdersList);
         }
@@ -1742,7 +1755,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         /// <param name="symbol1"></param>
         private void UpdateLPHolders(LPHolderInfo holder, string symbol0, string symbol1)
         {
-            Runtime.Expect(CheckHolderIsThePool(holder.Address, symbol0, symbol1), "User is not on the list.");
+            Runtime.Expect(CheckHolderIsThePool(holder.NFTID, symbol0, symbol1), "User is not on the list.");
             var holdersList = GetHolderList(symbol0, symbol1);
             var index = 0;
             var count = holdersList.Count();
@@ -1751,7 +1764,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             while (index < count)
             {
                 tempHolder = holdersList.Get<LPHolderInfo>(index);
-                if (tempHolder.Address == holder.Address)
+                if (tempHolder.NFTID == holder.NFTID)
                 {
                     holdersList.Replace<LPHolderInfo>(index, holder);
                     _lp_holders.Set<string, StorageList>($"{symbol0}_{symbol1}", holdersList);
@@ -1769,7 +1782,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         /// <param name="symbol1"></param>
         private void RemoveFromLPHolders(Address from, string symbol0, string symbol1)
         {
-            Runtime.Expect(CheckHolderIsThePool(from, symbol0, symbol1), "User is not on the list.");
+            var nftID = GetMyNFTID(from, symbol0, symbol1);
+            Runtime.Expect(CheckHolderIsThePool(nftID, symbol0, symbol1), "User is not on the list.");
             var holdersList = GetHolderList(symbol0, symbol1);
             var index = 0;
             var count = holdersList.Count();
@@ -1778,7 +1792,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             while (index < count)
             {
                 lpHolderInfo = holdersList.Get<LPHolderInfo>(index);
-                if (lpHolderInfo.Address == from)
+                if (lpHolderInfo.NFTID == nftID)
                 {
                     holdersList.RemoveAt(index);
                     _lp_holders.Set<string, StorageList>($"{symbol0}_{symbol1}", holdersList);
@@ -1797,9 +1811,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         /// <param name="symbol1">Symbol of 2nd Token</param>
         private void AddToLPTokens(Address from, BigInteger NFTID, string symbol0, string symbol1)
         {
-            var lptokenKey = GetLPTokensKey(from, symbol0, symbol1);
-            _lp_tokens.Set<string, BigInteger>(lptokenKey, NFTID);
-            AddToLPHolders(from, symbol0, symbol1);
+            AddToLPHolders(from, NFTID, symbol0, symbol1);
         }
 
         /// <summary>
@@ -1815,9 +1827,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(PoolExists(symbol0, symbol1), $"Pool {symbol0}/{symbol1} already exists.");
             Pool pool = GetPool(symbol0, symbol1);
             Runtime.Expect(UserHasLP(from, pool.Symbol0, pool.Symbol1), $"User doesn't have LP");
-            var lpKey = GetLPTokensKey(from, pool.Symbol0, pool.Symbol1);
-            Runtime.Expect(_lp_tokens.ContainsKey(lpKey), "Doesn't contain");
-            var nftID = _lp_tokens.Get<string, BigInteger>(lpKey);
+            var nftID = GetMyNFTID(from, pool.Symbol0, pool.Symbol1);
             var ram = GetMyPoolRAM(from, pool.Symbol0, pool.Symbol1);
             ram.ClaimedFeesSymbol0 += claimedAmountSymbol0;
             ram.ClaimedFeesSymbol1 += claimedAmountSymbol1;
@@ -1834,9 +1844,6 @@ namespace Phantasma.Business.Blockchain.Contracts
         /// <param name="symbol1"></param>
         private void RemoveFromLPTokens(Address from, BigInteger NFTID, string symbol0, string symbol1)
         {
-            var lptokenKey = GetLPTokensKey(from, symbol0, symbol1);
-            Runtime.Expect(_lp_tokens.ContainsKey<string>(lptokenKey), "The user is not on the list.");
-            _lp_tokens.Remove<string>(lptokenKey);
             RemoveFromLPHolders(from, symbol0, symbol1);
         }
         #endregion
@@ -1852,18 +1859,47 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             return symbol0 == DomainSettings.StakingTokenSymbol || symbol1 == DomainSettings.StakingTokenSymbol;
         }
+        
+        public BigInteger GetMyNFTID(Address from, string symbol0, string symbol1)
+        {
+            var nfts = Runtime.GetOwnerships(DomainSettings.LiquidityTokenSymbol, from);
+            BigInteger id = 0;
+            for(int i = 0; i < nfts.Length; i++)
+            {
+                var nftID = nfts[i];
+                var nft = Runtime.ReadToken(DomainSettings.LiquidityTokenSymbol, nftID);
+                LPTokenContentROM nftROM = VMObject.FromBytes(nft.ROM).AsStruct<LPTokenContentROM>();
+                if (nftROM.Symbol0 == symbol0 && nftROM.Symbol1 == symbol1)
+                {
+                    id = nftID;
+                    break;
+                }
+            }
+            
+            return id;
+        }
 
         public LPTokenContentRAM GetMyPoolRAM(Address from, string symbol0, string symbol1)
         {
             Runtime.Expect(PoolExists(symbol0, symbol1), $"Pool {symbol0}/{symbol1} already exists.");
             Pool pool = GetPool(symbol0, symbol1);
             Runtime.Expect(UserHasLP(from, pool.Symbol0, pool.Symbol1), $"User doesn't have LP");
-            var lpKey = GetLPTokensKey(from, pool.Symbol0, pool.Symbol1);
-            Runtime.Expect(_lp_tokens.ContainsKey(lpKey), "Doesn't contain");
-            var nftID = _lp_tokens.Get<string, BigInteger>(lpKey);
-            var nft = Runtime.ReadToken(DomainSettings.LiquidityTokenSymbol, nftID);
-            LPTokenContentRAM nftRAM = VMObject.FromBytes(nft.RAM).AsStruct<LPTokenContentRAM>();
-            return nftRAM;
+            var nfts = Runtime.GetOwnerships(DomainSettings.LiquidityTokenSymbol, from);
+            LPTokenContentRAM ram = new LPTokenContentRAM();
+            for(int i = 0; i < nfts.Length; i++)
+            {
+                var nftID = nfts[i];
+                var nft = Runtime.ReadToken(DomainSettings.LiquidityTokenSymbol, nftID);
+                LPTokenContentROM nftROM = VMObject.FromBytes(nft.ROM).AsStruct<LPTokenContentROM>();
+                LPTokenContentRAM nftRAM = VMObject.FromBytes(nft.RAM).AsStruct<LPTokenContentRAM>();
+                if (nftROM.Symbol0 == symbol0 && nftROM.Symbol1 == symbol1)
+                {
+                    ram = nftRAM;
+                    break;
+                }
+            }
+            
+            return ram;
         }
 
         /// <summary>
@@ -2138,8 +2174,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             if (UserHasLP(from, pool.Symbol0, pool.Symbol1))
             {
                 // Update the NFT VALUES
-                var lpKey = GetLPTokensKey(from, pool.Symbol0, pool.Symbol1);
-                nftID = _lp_tokens.Get<string, BigInteger>(lpKey);
+                nftID = GetMyNFTID(from, symbol0, symbol1);
                 var nft = Runtime.ReadToken(DomainSettings.LiquidityTokenSymbol, nftID);
                 nftRAM = VMObject.FromBytes(nft.RAM).AsStruct<LPTokenContentRAM>();
 
@@ -2269,10 +2304,12 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(ValidateRatio(sameDecimalsAmount0, sameDecimalsAmount1, poolRatio), $"ratio is not true. {poolRatio}, new {sameDecimalsAmount0} {sameDecimalsAmount1} {sameDecimalsAmount0 / sameDecimalsAmount1} {amount0 / UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals)}");
 
             // Update the user NFT
-            var lpKey = GetLPTokensKey(from, pool.Symbol0, pool.Symbol1);
-            var nftID = _lp_tokens.Get<string, BigInteger>(lpKey);
-            var nft = Runtime.ReadToken(DomainSettings.LiquidityTokenSymbol, nftID);
-            LPTokenContentRAM nftRAM = VMObject.FromBytes(nft.RAM).AsStruct<LPTokenContentRAM>();
+            var nfts = Runtime.GetOwnerships(DomainSettings.LiquidityTokenSymbol, from);
+           
+            TokenContent nft;
+            var nftID = GetMyNFTID(from, symbol0, symbol1);
+            LPTokenContentRAM nftRAM = GetMyPoolRAM(from, symbol0, symbol1);
+            
             BigInteger oldAmount0 = nftRAM.Liquidity * pool.Amount0 / pool.TotalLiquidity;
             BigInteger oldAmount1 = nftRAM.Liquidity * pool.Amount1 / pool.TotalLiquidity;
             BigInteger newAmount0 = oldAmount0 - amount0;
@@ -2467,10 +2504,11 @@ namespace Phantasma.Business.Blockchain.Contracts
             while (index < count)
             {
                 holder = holdersList.Get<LPHolderInfo>(index);
-                nftRAM = GetMyPoolRAM(holder.Address, pool.Symbol0, pool.Symbol1);
+                var nft = Runtime.ReadToken(DomainSettings.LiquidityTokenSymbol, holder.NFTID);
+                nftRAM = GetMyPoolRAM(nft.CurrentOwner, pool.Symbol0, pool.Symbol1);
                 amount = CalculateFeeForUser(totalFeeAmount, nftRAM.Liquidity, pool.TotalLiquidity);
-                if ( holder.Address != this.Address)
-                    Runtime.Expect(amount > 0, $"Amount failed for user: {holder.Address}, amount:{amount}, feeAmount:{feeAmount}, feeTotal:{totalFeeAmount}");
+                if ( nft.CurrentOwner != this.Address)
+                    Runtime.Expect(amount > 0, $"Amount failed for user: {nft.CurrentOwner}, amount:{amount}, feeAmount:{feeAmount}, feeTotal:{totalFeeAmount}");
                 
                 feeAmount -= amount;
                 if (pool.Symbol0 == symbolDistribute)
@@ -2563,6 +2601,8 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             return root;
         }
+
+        
         #endregion
         
         // Helpers
@@ -2571,6 +2611,17 @@ namespace Phantasma.Business.Blockchain.Contracts
         // Runtime.GetBalance(symbol, this.Address);
         #endregion
         
+        #endregion
+
+        #region  Migrate
+        // TODO: This when back
+        public void OnMigrate(Address from, Address to)
+        {
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(to != Address.Null, "invalid address");
+            Runtime.Expect(to != this.Address, "invalid address");
+            //MigrateHolder(from, to);
+        }
         #endregion
     }
 }

@@ -51,6 +51,16 @@ public class SwapContractTest
         simulator = new NexusSimulator(owner);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
+        simulator.GetFundsInTheFuture(owner);
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 9999)
+                .CallContract(NativeContractKind.Stake, nameof(StakeContract.MasterClaim), owner.Address)
+                .SpendGas(owner.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
         SetInitialBalance(user.Address);
     }
 

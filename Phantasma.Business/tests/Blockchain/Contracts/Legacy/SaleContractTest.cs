@@ -61,6 +61,7 @@ public class SaleContractTest
         simulator = new NexusSimulator(owner);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
+        simulator.GetFundsInTheFuture(owner);
         SetInitialBalance(user.Address);
     }
 
@@ -117,6 +118,7 @@ public class SaleContractTest
                 .CallContract(NativeContractKind.Sale, nameof(SaleContract.CreateSale), saleUser.Address, "Dank pre-sale", SaleFlags.Whitelist, (Timestamp) simulator.CurrentTime, (Timestamp)( simulator.CurrentTime + TimeSpan.FromDays(2)), saleSymbol, "SOUL", saleRate, 0, supply, 0, UnitConversion.ToBigInteger(1500/saleRate, decimals)).
                 SpendGas(saleUser.Address).EndScript());
         var block = simulator.EndBlock().First();
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var resultBytes = block.GetResultForTransaction(tx.Hash);
         var resultObj = Serialization.Unserialize<VMObject>(resultBytes);

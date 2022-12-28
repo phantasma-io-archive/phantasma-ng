@@ -233,7 +233,8 @@ namespace Phantasma.Business.Blockchain
                     if (methods.Any(x => x.MethodName.Equals(nameof(SwapContract.SwapFee)) || x.MethodName.Equals(nameof(ExchangeContract.SwapFee))))
                     {
                         var existsLPToken = Nexus.TokenExists(Storage, DomainSettings.LiquidityTokenSymbol);
-                        if (existsLPToken) // Check for the Exchange contract
+                        var exchangeVersion = this.InvokeContractAtTimestamp(Storage, CurrentBlock.Timestamp, NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVerion)).AsNumber();
+                        if (existsLPToken && exchangeVersion >= 1) // Check for the Exchange contract
                         {
                             var exchangePot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Exchange));
                             if (exchangePot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
@@ -321,7 +322,7 @@ namespace Phantasma.Business.Blockchain
             var tokens = this.Nexus.GetTokens(Nexus.RootStorage);
             foreach (var symbol in tokens)
             {
-                if (Nexus.IsSystemToken(symbol))
+                if (Nexus.IsSystemToken(symbol) && symbol != DomainSettings.LiquidityTokenSymbol)
                 {
                     continue;
                 }
