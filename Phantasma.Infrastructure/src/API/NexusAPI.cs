@@ -113,7 +113,7 @@ public static class NexusAPI
                         currentSupply = series.MintCount.ToString(),
                         maxSupply = series.MaxSupply.ToString(),
                         burnedSupply = Nexus.GetBurnedTokenSupplyForSeries(Nexus.RootStorage, tokenSymbol, ID).ToString(),
-                        mode = series.Mode,
+                        mode = series.Mode.ToString(),
                         script = Base16.Encode(series.Script),
                         methods = extended ? FillMethods(series.ABI.Methods) : new ABIMethodResult[0]
                     }); ;
