@@ -598,7 +598,7 @@ namespace Phantasma.Business.Blockchain
         #region MAP
         private static ExecutionState Map_Has(RuntimeVM vm)
         {
-            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
+            //vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
 
             vm.ExpectStackSize(4);
 
@@ -627,7 +627,7 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Map_Get(RuntimeVM vm)
         {
-            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
+            //vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
 
             vm.ExpectStackSize(4);
 
@@ -754,7 +754,7 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState Map_Count(RuntimeVM vm)
         {
-            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
+            //vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
 
             vm.ExpectStackSize(2);
 
@@ -776,7 +776,7 @@ namespace Phantasma.Business.Blockchain
         #region LIST
         private static ExecutionState List_Get(RuntimeVM vm)
         {
-            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
+            //vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
 
             vm.ExpectStackSize(4);
 
@@ -904,7 +904,7 @@ namespace Phantasma.Business.Blockchain
 
         private static ExecutionState List_Count(RuntimeVM vm)
         {
-            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
+            //vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
 
             vm.ExpectStackSize(2);
 
