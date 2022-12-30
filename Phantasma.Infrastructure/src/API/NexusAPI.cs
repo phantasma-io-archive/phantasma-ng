@@ -273,39 +273,6 @@ public static class NexusAPI
             currentWinner = auction.CurrentBidWinner == Address.Null ? "" : auction.CurrentBidWinner.Text
         };
     }
-    
-    private static Dictionary<string, int> GenerateMethodTable()
-    {
-        var table = DisasmUtils.GetDefaultDisasmTable();
-
-        var contracts = Nexus.RootChain.GetContracts(Nexus.RootStorage);
-
-        foreach (var contract in contracts)
-        {
-            var nativeKind = contract.Name.FindNativeContractKindByName();
-            if (nativeKind != NativeContractKind.Unknown)
-            {
-                continue; // we skip native contracts as those are already in the dictionary from GetDefaultDisasmTable()
-            }
-
-            table.AddContractToTable(contract);
-        }
-
-        var tokens = Nexus.GetTokens(Nexus.RootStorage);
-        foreach (var symbol in tokens)
-        {
-            if (Nexus.IsSystemToken(symbol) && symbol != DomainSettings.LiquidityTokenSymbol)
-            {
-                continue;
-            }
-
-            var token = Nexus.GetTokenInfo(Nexus.RootStorage, symbol);
-            table.AddTokenToTable(token);
-        }
-
-        _methodTable = table;
-        return table;
-    }
 
     public static TransactionResult FillTransaction(Transaction tx)
     {
@@ -316,6 +283,10 @@ public static class NexusAPI
 
         Address from, target;
         BigInteger gasPrice, gasLimit;
+        if (_methodTable == null)
+        {
+            _methodTable = (Nexus.RootChain as Chain).GenerateMethodTable();
+        }
         TransactionExtensions.ExtractGasDetailsFromScript(tx.Script, out from, out target, out gasPrice, out gasLimit, _methodTable);
 
         var result = new TransactionResult
@@ -393,7 +364,7 @@ public static class NexusAPI
     {
         RequireNexus();
 
-        _methodTable = GenerateMethodTable();
+        _methodTable = (Nexus.RootChain as Chain).GenerateMethodTable();
 
         var result = new BlockResult
         {
