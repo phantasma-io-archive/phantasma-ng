@@ -9,6 +9,7 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.VM.Utils;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
@@ -31,6 +32,8 @@ public static class NexusAPI
 
     // HACK make this cleaner code later
     public static Func<Hash, bool> isTransactionPending = null;
+
+    private static Dictionary<string, int> _methodTable = null;
 
     public static string ExternalHashToString(string platform, Hash hash, string symbol)
     {
@@ -270,6 +273,39 @@ public static class NexusAPI
             currentWinner = auction.CurrentBidWinner == Address.Null ? "" : auction.CurrentBidWinner.Text
         };
     }
+    
+    private static Dictionary<string, int> GenerateMethodTable()
+    {
+        var table = DisasmUtils.GetDefaultDisasmTable();
+
+        var contracts = Nexus.RootChain.GetContracts(Nexus.RootStorage);
+
+        foreach (var contract in contracts)
+        {
+            var nativeKind = contract.Name.FindNativeContractKindByName();
+            if (nativeKind != NativeContractKind.Unknown)
+            {
+                continue; // we skip native contracts as those are already in the dictionary from GetDefaultDisasmTable()
+            }
+
+            table.AddContractToTable(contract);
+        }
+
+        var tokens = Nexus.GetTokens(Nexus.RootStorage);
+        foreach (var symbol in tokens)
+        {
+            if (Nexus.IsSystemToken(symbol) && symbol != DomainSettings.LiquidityTokenSymbol)
+            {
+                continue;
+            }
+
+            var token = Nexus.GetTokenInfo(Nexus.RootStorage, symbol);
+            table.AddTokenToTable(token);
+        }
+
+        _methodTable = table;
+        return table;
+    }
 
     public static TransactionResult FillTransaction(Transaction tx)
     {
@@ -280,7 +316,7 @@ public static class NexusAPI
 
         Address from, target;
         BigInteger gasPrice, gasLimit;
-        TransactionExtensions.ExtractGasDetailsFromScript(tx.Script, out from, out target, out gasPrice, out gasLimit);
+        TransactionExtensions.ExtractGasDetailsFromScript(tx.Script, out from, out target, out gasPrice, out gasLimit, _methodTable);
 
         var result = new TransactionResult
         {
@@ -356,6 +392,8 @@ public static class NexusAPI
     public static BlockResult FillBlock(Block block, IChain chain)
     {
         RequireNexus();
+
+        _methodTable = GenerateMethodTable();
 
         var result = new BlockResult
         {
