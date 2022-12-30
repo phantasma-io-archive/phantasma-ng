@@ -9,6 +9,7 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.VM.Utils;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
@@ -31,6 +32,8 @@ public static class NexusAPI
 
     // HACK make this cleaner code later
     public static Func<Hash, bool> isTransactionPending = null;
+
+    private static Dictionary<string, int> _methodTable = null;
 
     public static string ExternalHashToString(string platform, Hash hash, string symbol)
     {
@@ -280,7 +283,11 @@ public static class NexusAPI
 
         Address from, target;
         BigInteger gasPrice, gasLimit;
-        TransactionExtensions.ExtractGasDetailsFromScript(tx.Script, out from, out target, out gasPrice, out gasLimit);
+        if (_methodTable == null)
+        {
+            _methodTable = (Nexus.RootChain as Chain).GenerateMethodTable();
+        }
+        TransactionExtensions.ExtractGasDetailsFromScript(tx.Script, out from, out target, out gasPrice, out gasLimit, _methodTable);
 
         var result = new TransactionResult
         {
@@ -356,6 +363,8 @@ public static class NexusAPI
     public static BlockResult FillBlock(Block block, IChain chain)
     {
         RequireNexus();
+
+        _methodTable = (Nexus.RootChain as Chain).GenerateMethodTable();
 
         var result = new BlockResult
         {

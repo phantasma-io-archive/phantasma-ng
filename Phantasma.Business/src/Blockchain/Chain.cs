@@ -302,7 +302,7 @@ namespace Phantasma.Business.Blockchain
             _methodTableForGasExtraction = null;
         }
 
-        private Dictionary<string, int> GenerateMethodTable()
+        public Dictionary<string, int> GenerateMethodTable()
         {
             var table = DisasmUtils.GetDefaultDisasmTable();
 
