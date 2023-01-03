@@ -1137,9 +1137,9 @@ namespace Phantasma.Business.Blockchain
 
             var tokenContext = vm.FindContext(symbol);
 
-            if (vm.GetGovernanceValue(Nexus.NexusProtocolVersionTag) <= 8 && vm.NexusName == DomainSettings.NexusMainnet)
+            if (vm.GetGovernanceValue(Nexus.NexusProtocolVersionTag) <= 8)
             {
-                if (tokenContext.Name != vm.CurrentContext.Name)
+                if (tokenContext.Name != vm.CurrentContext.Name && vm.NexusName == DomainSettings.NexusMainnet)
                 {
                     throw new VMException(vm, $"Burning token {symbol} not allowed from this context");
                 }
