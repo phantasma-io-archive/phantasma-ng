@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Security.Cryptography;
 using System.Text;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Storage;
@@ -568,6 +569,7 @@ namespace Phantasma.Business.Blockchain
 
         public BigInteger GenerateRandomNumber()
         {
+            // Consider implenting this -> var x = RandomNumberGenerator.Create();
             if (_randomSeed == 0 && Transaction != null)
             {
                 SetRandomSeed(Transaction.Hash);
@@ -1792,6 +1794,7 @@ namespace Phantasma.Business.Blockchain
             var nft = ReadToken(tokenSymbol, tokenID);
             var token = GetToken(tokenSymbol);
 
+            // If trigger is missing the code will be executed
             Expect(InvokeTriggerOnToken(true, token, TokenTrigger.OnWrite, from, ram, tokenID) != TriggerResult.Failure, "token write trigger failed");
 
             Nexus.WriteNFT(this, tokenSymbol, tokenID, nft.CurrentChain, nft.Creator, nft.CurrentOwner, nft.ROM, ram,

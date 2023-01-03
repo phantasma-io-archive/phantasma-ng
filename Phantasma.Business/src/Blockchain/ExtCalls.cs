@@ -1051,9 +1051,12 @@ namespace Phantasma.Business.Blockchain
             {
                 var tokenContext = vm.FindContext(symbol);
 
-                if (tokenContext.Name != vm.CurrentContext.Name) 
+                if (vm.GetGovernanceValue(Nexus.NexusProtocolVersionTag) <= 8)
                 {
-                    throw new VMException(vm, $"Burning token {symbol} not allowed from this context");
+                    if (tokenContext.Name != vm.CurrentContext.Name) 
+                    {
+                        throw new VMException(vm, $"Burning token {symbol} not allowed from this context");
+                    }
                 }
             }
 
@@ -1134,12 +1137,14 @@ namespace Phantasma.Business.Blockchain
 
             var tokenContext = vm.FindContext(symbol);
 
-            // TODO review this
-            if (tokenContext.Name != vm.CurrentContext.Name && vm.NexusName == DomainSettings.NexusMainnet)
+            if (vm.GetGovernanceValue(Nexus.NexusProtocolVersionTag) <= 8)
             {
-                throw new VMException(vm, $"Burning token {symbol} not allowed from this context");
+                if (tokenContext.Name != vm.CurrentContext.Name)
+                {
+                    throw new VMException(vm, $"Burning token {symbol} not allowed from this context");
+                }
             }
-
+            
             vm.BurnToken(symbol, source, tokenID);
 
             return ExecutionState.Running;
@@ -1245,6 +1250,11 @@ namespace Phantasma.Business.Blockchain
             var symbol = vm.PopString("symbol");
             var tokenID = vm.PopNumber("token ID");
             var ram = vm.PopBytes("ram");
+            
+            /*if (symbol != vm.CurrentContext.Name)
+            {
+                throw new VMException(vm, $"Write token {symbol} not allowed from this context");
+            }*/
 
             vm.WriteToken(from, symbol, tokenID, ram);
 
@@ -1275,6 +1285,11 @@ namespace Phantasma.Business.Blockchain
             var mode = vm.PopEnum<TokenSeriesMode>("mode");
             var script = vm.PopBytes("script");
             var abiBytes = vm.PopBytes("abi bytes");
+            
+            /*if (symbol != vm.CurrentContext.Name)
+            {
+                throw new VMException(vm, $"Creating token series {symbol} not allowed from this context");
+            }*/
 
             var abi = ContractInterface.FromBytes(abiBytes);
 
