@@ -150,7 +150,9 @@ namespace Phantasma.Business.Blockchain
                     var senderAddress = this.CurrentBlock.Validator;
 
                     // NOTE inflation is a expensive transaction so it requires a larger gas limit compared to other transactions
-                    var requiredGasLimit = Transaction.DefaultGasLimit * 4;
+                    int requiredGasLimit = Transaction.DefaultGasLimit * 50;
+                    if ( Nexus.GetGovernanceValue(Storage,  Phantasma.Business.Blockchain.Nexus.NexusProtocolVersionTag) <= 8)
+                        requiredGasLimit = Transaction.DefaultGasLimit * 4;
 
                     var script = new ScriptBuilder()
                         .AllowGas(senderAddress, Address.Null, minimumFee, requiredGasLimit)

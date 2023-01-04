@@ -209,8 +209,7 @@ namespace Phantasma.Core.Domain
 
         public void Serialize(BinaryWriter writer)
         {
-            var n = (int)(object)this.Kind; // TODO is this the most clean way to do this?
-            writer.Write((byte)n);
+            writer.Write((byte)this.Kind);
             writer.WriteAddress(this.Address);
             writer.WriteVarString(this.Contract);
             writer.WriteByteArray(this.Data);

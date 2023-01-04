@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Numerics;
 using System.Collections.Generic;
-
 using Phantasma.Core;
 using Phantasma.Core.Types;
 using Phantasma.Business.Blockchain;
@@ -20,6 +19,7 @@ using VMType = Phantasma.Core.Domain.VMType;
 using Xunit;
 using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Node.Chains.Neo2;
+using Tendermint.Abci;
 
 namespace Phantasma.Business.Tests.Simulator;
 
@@ -525,6 +525,46 @@ public class NexusSimulator
                             }
 
                             var result = chain.DeliverTx(tx);
+
+                            
+                           /* try
+                            {
+                                var bytes = Serialization.Serialize(result.Result);
+                                
+                                var response = new ResponseDeliverTx()
+                                {
+                                    Code = result.Code,
+                                    // Codespace cannot be null!
+                                    Codespace = result.Codespace,
+                                    Data = ByteString.CopyFrom(bytes),
+                                };
+                                
+                                if (result.Events.Count() > 0)
+                                {
+                                    var newEvents = new List<Tendermint.Abci.Event>();
+                                    foreach (var evt in result.Events)
+                                    {
+                                        var newEvent = new Tendermint.Abci.Event();
+                                        var attributes = new EventAttribute[]
+                                        {
+                                            // Value cannot be null!
+                                            new EventAttribute() { Key = "address", Value = evt.Address.ToString() },
+                                            new EventAttribute() { Key = "contract", Value = evt.Contract },
+                                            new EventAttribute() { Key = "data", Value = Base16.Encode(evt.Data) },
+                                        };
+
+                                        newEvent.Type = evt.Kind.ToString();
+                                        newEvent.Attributes.AddRange(attributes);
+
+                                        newEvents.Add(newEvent);
+                                    }
+                                    response.Events.AddRange(newEvents);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine("Entered here... with exception: " + e.Message);
+                            }*/
 
                             if (result.State != ExecutionState.Halt)
                             {

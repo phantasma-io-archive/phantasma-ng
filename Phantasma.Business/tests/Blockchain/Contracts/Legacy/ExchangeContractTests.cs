@@ -1171,6 +1171,63 @@ public class ExchangeContractTests
         Assert.True(_amount0 + UnitConversion.ToBigInteger(0.00000001m, 8)  >= nftRAMBefore.Amount0, $"Amount0 not calculated properly | {_amount0} != {nftRAMBefore.Amount0}");
         Assert.True(_amount1 + UnitConversion.ToBigInteger(0.00000001m, 10) >= nftRAMBefore.Amount1, $"Amount1 not calculated properly | {_amount1} != {nftRAMBefore.Amount1}");
     }
+    
+    [Fact]
+    public void RemoveLiquidityByBurning()
+    {
+        CoreClass core = new CoreClass();
+        
+        // Setup symbols
+        var baseSymbol = DomainSettings.StakingTokenSymbol;
+        var quoteSymbol = DomainSettings.FuelTokenSymbol;
+
+        core.InitFunds();
+        core.Migrate();
+        
+        // Create users
+        var poolOwner = new ExchangeUser(baseSymbol, quoteSymbol, core);
+        
+        // Give Users tokens
+        poolOwner.FundUser(soul: 50000, kcal: 100);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
+        poolOwner.Fund(neo.Symbol, poolAmount4);
+        poolOwner.Fund(gas.Symbol, poolAmount5);
+        
+        
+        // Get Initial Pool State the Liquidity
+        var pool = poolOwner.GetPool(soul.Symbol, eth.Symbol);
+
+        BigInteger poolRatio = UnitConversion.ConvertDecimals(pool.Amount0, 8, DomainSettings.FiatTokenDecimals) / UnitConversion.ConvertDecimals(pool.Amount1, 18, DomainSettings.FiatTokenDecimals);
+        var amount0 = UnitConversion.ToBigInteger(5000, soul.Decimals);
+        var amount1 = UnitConversion.ConvertDecimals((amount0 / poolRatio), DomainSettings.FiatTokenDecimals, 18);
+
+        BigInteger totalAm0 = pool.Amount0;
+        BigInteger totalAm1 = pool.Amount1;
+        BigInteger totalLiquidity = pool.TotalLiquidity;
+
+        // Add Liquidity to the pool
+        poolOwner.AddLiquidity(soul.Symbol, amount0, eth.Symbol, 0);
+        Assert.True(core.simulator.LastBlockWasSuccessful());
+
+        var lpAdded = (amount0 * totalLiquidity) / totalAm0;
+        totalLiquidity += lpAdded;
+        totalAm0 += amount0;
+
+        var poolBefore = poolOwner.GetPool(soul.Symbol, eth.Symbol);
+
+        var nftRAMBefore = poolOwner.GetPoolRAM(soul.Symbol, eth.Symbol);
+
+        var _amount0 = (nftRAMBefore.Liquidity) * poolBefore.Amount0 / poolBefore.TotalLiquidity;
+        var _amount1 = (nftRAMBefore.Liquidity) * poolBefore.Amount1 / poolBefore.TotalLiquidity;
+
+
+        var nftID = poolOwner.GetNFTID(DomainSettings.LiquidityTokenSymbol);
+        poolOwner.BurnNFT(DomainSettings.LiquidityTokenSymbol, nftID[0]);
+        Assert.True(core.simulator.LastBlockWasSuccessful());
+        
+        Assert.True(_amount0 + UnitConversion.ToBigInteger(0.00000001m, 8)  >= nftRAMBefore.Amount0, $"Amount0 not calculated properly | {_amount0} != {nftRAMBefore.Amount0}");
+        Assert.True(_amount1 + UnitConversion.ToBigInteger(0.00000001m, 10) >= nftRAMBefore.Amount1, $"Amount1 not calculated properly | {_amount1} != {nftRAMBefore.Amount1}");
+    }
 
     [Fact]
     public void RemoveLiquidityToVirtualPool()
@@ -2989,6 +3046,13 @@ public class ExchangeContractTests
             var nftRAM = result.AsStruct<LPTokenContentRAM>();
             return nftRAM;
         }
+        
+        public BigInteger[] GetNFTID(string symbol)
+        {
+            var result = nexus.RootChain.GetOwnedTokens(nexus.RootStorage, symbol, user.Address);
+            if (result == null) return new BigInteger[0];
+            return result;
+        }
 
         public (BigInteger, BigInteger) GetUnclaimedFees(string symbol0, string symbol1)
         {
@@ -3011,6 +3075,25 @@ public class ExchangeContractTests
 
             var rate = result.AsNumber();
             return rate;
+        }
+        
+        public BigInteger BurnNFT(string baseSymbol, BigInteger nftID)
+        {
+            // Add Liquidity to the pool
+            simulator.BeginBlock();
+            var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
+                ScriptUtils
+                    .BeginScript()
+                    .AllowGas(user.Address, Address.Null, core.simulator.MinimumFee, core.simulator.MinimumGasLimit)
+                    .CallInterop("Runtime.BurnToken", user.Address, baseSymbol, nftID)
+                    .SpendGas(user.Address)
+                    .EndScript()
+            );
+            var block = simulator.EndBlock().First();
+
+            // Get Tx Cost
+            var txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
+            return txCost;
         }
 
         #endregion

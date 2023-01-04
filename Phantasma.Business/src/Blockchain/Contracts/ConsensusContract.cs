@@ -389,5 +389,25 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(_pollMap.ContainsKey<string>(subject), "invalid value");
             return -1;
         }
+
+        public ConsensusPoll GetConsensusPoll(string subject)
+        {
+            return _pollMap.Get<string, ConsensusPoll>(subject);
+        }
+        
+        public ConsensusPoll[] GetConsensusPolls()
+        {
+            var count = _pollList.Count();
+            var result = new ConsensusPoll[(int)count];
+            var pollList = _pollList.All<string>();
+            int index = 0;
+            foreach(var poll in pollList)
+            {
+                result[index] = _pollMap.Get<string, ConsensusPoll>(poll);
+                index++;
+            }
+            
+            return result;
+        }
     }
 }
