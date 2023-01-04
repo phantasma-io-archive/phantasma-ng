@@ -70,11 +70,16 @@ public class NexusSimulator
     public int MinimumFee => DomainSettings.DefaultMinimumGasFee;
     public BigInteger MinimumGasLimit => 99999;
 
-    public NexusSimulator(PhantasmaKeys owner, int seed = 1234, Nexus nexus = null) : this(new PhantasmaKeys[] { owner }, seed, nexus)
+    public NexusSimulator(PhantasmaKeys owner, int seed = 1234, Nexus nexus = null) : this(new PhantasmaKeys[] { owner }, seed, nexus, DomainSettings.LatestKnownProtocol)
     {
     }
 
-    public NexusSimulator(PhantasmaKeys[] owners, int seed = 1234, Nexus nexus = null)
+    public NexusSimulator(PhantasmaKeys[] owners, int seed = 123, Nexus nexus = null) : this(owners, seed, nexus, DomainSettings.LatestKnownProtocol)
+    {
+
+    }
+
+    public NexusSimulator(PhantasmaKeys[] owners, int seed, Nexus nexus, int protocolVersion)
     {
         _validators = owners;
         _currentValidator = owners[0];
@@ -93,7 +98,7 @@ public class NexusSimulator
 
         if (!Nexus.HasGenesis())
         {
-            InitGenesis();
+            InitGenesis(protocolVersion);
         }
         else
         {
@@ -216,9 +221,9 @@ public class NexusSimulator
         EndBlock();
     }
 
-    private void InitGenesis()
+    private void InitGenesis(int protocolVersion)
     {
-        var genesisTx = Nexus.CreateGenesisTransaction(CurrentTime, _currentValidator);
+        var genesisTx = Nexus.CreateGenesisTransaction(CurrentTime, _currentValidator, protocolVersion);
         if (genesisTx == null)
         {
             throw new ChainException("Genesis block failure");
