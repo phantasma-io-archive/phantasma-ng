@@ -618,10 +618,19 @@ namespace Phantasma.Business.Blockchain
         {
             ExpectNameLength(triggerName, nameof(triggerName));
 
-            if (_triggerGuards.Contains(triggerName))
+            if (ProtocolVersion <= DomainSettings.Phantasma30Protocol)
+            {
+                if (_triggerGuards.Contains(triggerName))
+                {
+                    throw new ChainException("trigger loop detected: " + triggerName);
+                }
+            }
+            else if (_triggerGuards.Count >= DomainSettings.MaxTriggerLoop)
             {
                 throw new ChainException("trigger loop detected: " + triggerName);
             }
+            
+            
 
             _triggerGuards.Add(triggerName);
         }

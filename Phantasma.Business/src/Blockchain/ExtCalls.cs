@@ -1136,12 +1136,28 @@ namespace Phantasma.Business.Blockchain
             var tokenID = vm.PopNumber("token ID");
 
             var tokenContext = vm.FindContext(symbol);
-
-            if (vm.GetGovernanceValue(Nexus.NexusProtocolVersionTag) <= 8 || Nexus.IsDangerousSymbol(symbol))
+            var contractAddress = SmartContract.GetAddressFromContractName(symbol);
+            var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
+            
+            if (vm.ProtocolVersion <= 8)
             {
                 if (tokenContext.Name != vm.CurrentContext.Name && vm.NexusName == DomainSettings.NexusMainnet)
                 {
-                    throw new VMException(vm, $"Burning token {symbol} not allowed from this context");
+                    vm.ExpectWarning(false, $"Tried to burn {symbol} tokens from this context {vm.CurrentContext.Name}", source);
+                }
+            }
+            else
+            {
+                vm.Expect(deployed, $"{symbol} does not exist");
+            
+                if (Nexus.IsDangerousSymbol(symbol))
+                {
+                    if (!(symbol == DomainSettings.LiquidityTokenSymbol && 
+                          (vm.CurrentContext.Name == DomainSettings.LiquidityTokenSymbol 
+                           || vm.CurrentContext.Name == NativeContractKind.Exchange.GetContractName())))
+                    {
+                        vm.ExpectWarning(false, $"Tried to burn LP tokens from this context {vm.CurrentContext.Name}", source);
+                    }
                 }
             }
             
@@ -1517,7 +1533,7 @@ namespace Phantasma.Business.Blockchain
             var triggerName = AccountTrigger.OnUpgrade.ToString();
             vm.ValidateTriggerGuard($"{contractName}.{triggerName}");
 
-            vm.Expect(vm.InvokeTrigger(false, script, contractName, abi, triggerName, from) == TriggerResult.Success, triggerName + " trigger failed");
+            vm.ExpectWarning(vm.InvokeTrigger(false, script, contractName, abi, triggerName, from) == TriggerResult.Success, triggerName + " trigger failed", from);
 
             if (isToken)
             {
@@ -1559,7 +1575,10 @@ namespace Phantasma.Business.Blockchain
             vm.ExpectWarning(!isNative, "cannot kill native contract", from);
 
             bool isToken = ValidationUtils.IsValidTicker(contractName);
-            vm.Expect(!isToken, "cannot kill token contract");
+            vm.ExpectWarning(!isToken, "cannot kill token contract", from);
+
+            var contractOwner = vm.GetContractOwner(contractAddress);
+            vm.ExpectWarning(contractOwner == from, "only contract owner can kill contract", from);
 
             SmartContract contract;
             if (isToken)
@@ -1570,6 +1589,7 @@ namespace Phantasma.Business.Blockchain
             {
                 contract = vm.Chain.GetContractByName(vm.Storage, contractName);
             }
+
             vm.Expect(contract != null, "could not fetch previous contract");
 
             var customContract = contract as CustomContract;
@@ -1580,7 +1600,16 @@ namespace Phantasma.Business.Blockchain
 
             vm.ValidateTriggerGuard($"{contractName}.{triggerName}");
 
-            vm.Expect(vm.InvokeTrigger(false, customContract.Script, contract.Name, contract.ABI, triggerName, new object[] { from }) == TriggerResult.Success, triggerName + " trigger failed");
+            var triggerResult = vm.InvokeTrigger(false, customContract.Script, contract.Name, contract.ABI, triggerName,
+                new object[] { from });
+            if ( contractName == DomainSettings.LiquidityTokenSymbol )
+            {
+                vm.ExpectWarning(triggerResult == TriggerResult.Success || triggerResult == TriggerResult.Missing, triggerName + " trigger failed", from);
+            }
+            else
+            {
+                vm.ExpectWarning(triggerResult == TriggerResult.Success, triggerName + " trigger failed", from);
+            }
 
             if (isToken)
             {
