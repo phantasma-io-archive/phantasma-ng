@@ -41,7 +41,6 @@ namespace Phantasma.Infrastructure.API.Controllers
             {
                 // TODO implement something faster and more elegant
                 NexusAPI.RequireNexus();
-                //if (!NexusAPI.Nexus.HasGenesis()) throw new APIException("Nexus genesis is not setuped.");
 
                 var controllers = Assembly.GetExecutingAssembly().GetTypes()
                     .Where(type => typeof(BaseControllerV1).IsAssignableFrom(type));
@@ -119,11 +118,12 @@ namespace Phantasma.Infrastructure.API.Controllers
             }
             catch (APIException apiException)
             {
+                Log.Error($"API - RPC Call error -> {apiException.Message}");
                 throw;
             }
             catch (Exception e)
             {
-                //Log.Error($"RPC Call error -> {e.StackTrace}");
+                Log.Error($"RPC Call error -> {e.StackTrace}");
                 throw new APIException($"RPC call exception for {req}: {e.Message}");
             }
 

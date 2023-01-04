@@ -383,7 +383,7 @@ namespace Phantasma.Infrastructure.API
         [APIDescription("Total amount of burned tokens")]
         public string burnedSupply { get; set; }
 
-        public TokenSeriesMode mode { get; set; }
+        public string mode { get; set; }
 
         public string script { get; set; }
 
