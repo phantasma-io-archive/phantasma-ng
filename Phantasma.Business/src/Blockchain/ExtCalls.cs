@@ -1137,7 +1137,7 @@ namespace Phantasma.Business.Blockchain
 
             var tokenContext = vm.FindContext(symbol);
 
-            if (vm.GetGovernanceValue(Nexus.NexusProtocolVersionTag) <= 8)
+            if (vm.GetGovernanceValue(Nexus.NexusProtocolVersionTag) <= 8 || Nexus.IsDangerousSymbol(symbol))
             {
                 if (tokenContext.Name != vm.CurrentContext.Name && vm.NexusName == DomainSettings.NexusMainnet)
                 {
