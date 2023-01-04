@@ -1459,7 +1459,7 @@ public class Nexus : INexus
         sb.CallInterop("Runtime.DeployContract", owner.Address, contractName, script, abi);
     }
 
-    private Transaction NexusCreateTx(PhantasmaKeys owner, Timestamp genesisTime)
+    private Transaction NexusCreateTx(PhantasmaKeys owner, Timestamp genesisTime, int protocolVersion)
     {
         var sb = ScriptUtils.BeginScript();
 
@@ -1482,6 +1482,11 @@ public class Nexus : INexus
             DeployNativeContract(sb, owner, NativeContractKind.Mail);
             DeployNativeContract(sb, owner, NativeContractKind.Friends);
         }
+
+        _genesisValues[NexusProtocolVersionTag] = new KeyValuePair<BigInteger, ChainConstraint[]>(protocolVersion, new ChainConstraint[]
+        {
+            new ChainConstraint() { Kind = ConstraintKind.MustIncrease}
+        });
 
         foreach (var entry in _genesisValues)
         {
@@ -1612,7 +1617,7 @@ public class Nexus : INexus
 
     private void InitGenesisValues()
     {
-        var version = GetProtocolVersion(RootStorage);
+        var version = DomainSettings.LatestKnownProtocol;
 
         _genesisValues = new Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>>() {
                  {
@@ -1781,11 +1786,17 @@ public class Nexus : INexus
 
     public Transaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner)
     {
+        var version = (int)GetProtocolVersion(RootStorage);
+        return CreateGenesisTransaction(timestamp, owner, version);
+    }
+
+    public Transaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner, int protocolVersion)
+    {
         Throw.If(HasGenesis(), "genesis block already exists");
 
         Throw.If(!_initialValidators.Any(), "initial validators have not been set");
 
-        return NexusCreateTx(owner, timestamp);
+        return NexusCreateTx(owner, timestamp, protocolVersion);
     }
 
     #endregion
