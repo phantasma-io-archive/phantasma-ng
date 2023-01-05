@@ -461,6 +461,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             var transaction = _transactionMapSigned.Get<string, Transaction>(subject);
             var addresses = _transactionMapRules.Get<string, Address[]>(subject);
             Runtime.Expect(addresses.Contains(from), "not a valid witness for the transaction");
+            Runtime.Expect(!transaction.Signatures.Contains(signature), "User already signed the transaction");
             
             var msg = transaction.ToByteArray(false);
             Runtime.Expect(signature.Verify(msg, from), "invalid signature");
