@@ -674,6 +674,11 @@ public class NexusSimulator
         return MakeTransaction(new IKeyPair[] { source }, pow, chain, script);
     }
 
+    public void SendRawTransaction(Transaction tx)
+    {
+        AddTransactionToPendingBlock(tx, Nexus.RootChain as Chain);
+    }
+
     public Transaction GenerateCustomTransaction(IKeyPair owner, ProofOfWork pow, Func<byte[]> scriptGenerator)
     {
         return GenerateCustomTransaction(owner, pow, Nexus.RootChain as Chain, scriptGenerator);
