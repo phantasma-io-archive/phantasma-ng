@@ -700,7 +700,20 @@ public class Nexus : INexus
         {
             if (token.Symbol == DomainSettings.StakingTokenSymbol)
             {
-                Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
+                var totalSupply = Runtime.GetTokenSupply(token.Symbol) + amount;
+                var maxSupply = UnitConversion.ToBigInteger(100000000, DomainSettings.StakingTokenDecimals);
+                if ( totalSupply <= maxSupply && Runtime.ProtocolVersion <= 8)
+                {
+                    Runtime.ExpectFiltered(totalSupply <= maxSupply, $"minting of {token.Symbol} can only happen if the amount is lower than 100M", source);
+                    Runtime.ExpectFiltered(Runtime.IsWitness(token.Owner), $"minting of {token.Symbol} can only happen if the owner of the contract does it.", source);
+                    Runtime.ExpectFiltered(Runtime.IsPrimaryValidator(source), $"minting of {token.Symbol} can only happen if the owner of the contract does it.", source);
+                    Runtime.ExpectFiltered(token.Owner == source, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
+                    Runtime.ExpectFiltered(Runtime.IsPrimaryValidator(destination), $"minting of {token.Symbol} can only happen if the destination is a validator.", source);
+                }
+                else
+                {
+                    Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
+                }
             } else if (token.Symbol == DomainSettings.FuelTokenSymbol )
             {
                 Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via claiming", source);
@@ -1588,9 +1601,7 @@ public class Nexus : INexus
         // Deploy LP Contract
         if (this.GetProtocolVersion(RootStorage) <= 8)
         {
-            //sb.CallInterop("Nexus.CreateToken", owner.Address, Base16.Decode(OLD_LP_CONTRACT_PVM),  Base16.Decode(OLD_LP_CONTRACT_ABI));
-            sb.CallInterop("Nexus.CreateToken", owner.Address, Base16.Decode(NEW_LP_CONTRACT_PVM),  Base16.Decode(NEW_LP_CONTRACT_ABI));
-
+            sb.CallInterop("Nexus.CreateToken", owner.Address, Base16.Decode(OLD_LP_CONTRACT_PVM),  Base16.Decode(OLD_LP_CONTRACT_ABI));
         }
         else
         {
