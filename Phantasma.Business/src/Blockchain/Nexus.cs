@@ -710,9 +710,20 @@ public class Nexus : INexus
                     Runtime.ExpectFiltered(token.Owner == source, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
                     Runtime.ExpectFiltered(Runtime.IsPrimaryValidator(destination), $"minting of {token.Symbol} can only happen if the destination is a validator.", source);
                 }
-                else
+                else if ( Runtime.ProtocolVersion <= 8 )
                 {
                     Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
+                }
+                else
+                {
+                    bool isValidContext = Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
+                                          Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName();
+                    bool isValidOrigin = source == SmartContract.GetAddressForNative(NativeContractKind.Stake) || 
+                                         source == SmartContract.GetAddressForNative(NativeContractKind.Gas);
+
+                    Runtime.ExpectFiltered(isValidContext , $"minting of {token.Symbol} can only happen via master claim", source);
+                    //Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
+                    Runtime.ExpectFiltered(isValidOrigin, $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
                 }
             } else if (token.Symbol == DomainSettings.FuelTokenSymbol )
             {

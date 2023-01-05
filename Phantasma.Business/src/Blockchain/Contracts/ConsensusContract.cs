@@ -74,6 +74,9 @@ namespace Phantasma.Business.Blockchain.Contracts
         internal StorageMap _pollMap; //<string, Poll> 
         internal StorageList _pollList; 
         internal StorageMap _presences; // address, List<PollPresence>
+        internal StorageMap _transactionMap; // string, Transaction
+        internal StorageMap _transactionMapRules; // string, List<Address>
+        internal StorageMap _transactionMapSigned; // string, Transaction
 #pragma warning restore 0649
 
         public const int MinimumPollLength = 86400;
@@ -92,7 +95,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public void Migrate(Address from, Address target)
         {
-            Runtime.Expect(Runtime.PreviousContext.Name == "account", "invalid context");
+            Runtime.Expect(Runtime.PreviousContext.Name == NativeContractKind.Account.GetContractName(), "invalid context");
 
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
@@ -409,5 +412,74 @@ namespace Phantasma.Business.Blockchain.Contracts
             
             return result;
         }
+        
+        #region Multisignature Transactions
+        /// <summary>
+        /// Gets the multisignature transaction.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="subject"></param>
+        /// <returns></returns>
+        public Transaction GetTransaction(Address from, string subject)
+        {
+            Runtime.Expect(Runtime.IsWitness(from), "not a valid witness");
+            Runtime.Expect(_transactionMap.ContainsKey<string>(subject), "transaction doesn't exist");
+
+            return _transactionMap.Get<string, Transaction>(subject);
+        }
+
+        /// <summary>
+        /// Creates a transaction to be signed by multiple parties.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="subject"></param>
+        /// <param name="transaction"></param>
+        public void CreateTransaction(Address from, string subject, Transaction transaction, Address[] listOfUsers)
+        {
+            Runtime.Expect(Runtime.IsWitness(from), "not a valid witness");
+            Runtime.Expect(!_transactionMap.ContainsKey<string>(subject), "transaction already exists");
+            Runtime.Expect(!_transactionMapSigned.ContainsKey<string>(subject), "transaction already exists");
+            
+            _transactionMap.Set<string, Transaction>(subject, transaction);
+            _transactionMapSigned.Set<string, Transaction>(subject, transaction);
+            _transactionMapRules.Set<string, Address[]>(subject, listOfUsers);
+        }
+
+        /// <summary>
+        /// Signs a transaction / Adds a signature to a transaction
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="subject"></param>
+        /// <param name="signature"></param>
+        public void AddSignatureTransaction(Address from, string subject, Signature signature)
+        {
+            Runtime.Expect(Runtime.IsWitness(from), "not a valid witness");
+            Runtime.Expect(_transactionMap.ContainsKey<string>(subject), "transaction doesn't exist");
+            Runtime.Expect(_transactionMapSigned.ContainsKey<string>(subject), "transaction doesn't exist");
+            Runtime.Expect(_transactionMapRules.ContainsKey<string>(subject), "transaction doesn't exist");
+            
+            var transaction = _transactionMapSigned.Get<string, Transaction>(subject);
+            var addresses = _transactionMapRules.Get<string, Address[]>(subject);
+            Runtime.Expect(addresses.Contains(from), "not a valid witness for the transaction");
+            
+            var msg = transaction.ToByteArray(false);
+            Runtime.Expect(signature.Verify(msg, from), "invalid signature");
+            transaction.AddSignature(signature);
+            _transactionMapSigned.Set<string, Transaction>(subject, transaction);
+        }
+        
+        /// <summary>
+        /// To execute the transaction with multiple signatures
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="subject"></param>
+        public void ExecuteTransaction(Address from, string subject)
+        {
+            Runtime.Expect(Runtime.IsWitness(from), "not a valid witness");
+            var transaction = _transactionMapSigned.Get<string, Transaction>(subject);
+            //Runtime.Chain.Nexus.
+            //Runtime.Chain.AddBlock();
+        }
+        #endregion
     }
 }

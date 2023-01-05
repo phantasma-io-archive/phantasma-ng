@@ -23,6 +23,9 @@ public class ConcensusContractTests
     PhantasmaKeys user2;
     PhantasmaKeys user3;
     PhantasmaKeys owner;
+    PhantasmaKeys owner2;
+    PhantasmaKeys owner3;
+    PhantasmaKeys owner4;
     Nexus nexus;
     NexusSimulator simulator;
     int amountRequested;
@@ -42,6 +45,9 @@ public class ConcensusContractTests
         user2 = PhantasmaKeys.Generate();
         user3 = PhantasmaKeys.Generate();
         owner = PhantasmaKeys.Generate();
+        owner2 = PhantasmaKeys.Generate();
+        owner3 = PhantasmaKeys.Generate();
+        owner4 = PhantasmaKeys.Generate();
         amountRequested = 100000000;
         gas = 99999;
         initialAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
@@ -53,7 +59,7 @@ public class ConcensusContractTests
     
     protected void InitializeSimulator()
     {
-        simulator = new NexusSimulator(owner);
+        simulator = new NexusSimulator(new []{owner, owner2, owner3, owner4});
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
         SetInitialBalance(user.Address);
@@ -178,5 +184,78 @@ public class ConcensusContractTests
 
         // Assert
         Assert.Equal(expectedValue, actualValue);
+    }
+
+    [Fact]
+    public void TestMultisignature()
+    {
+        var subject = "subject_test";
+        var nexusName = "simnet";
+        var chainName = "main";
+        var script = new byte[0]; // TODO: Change to a valid script to test if they have permission to perform this.
+        var time = simulator.CurrentTime;
+        var payload = "Consensus";
+        time.AddHours(8);
+
+        var transaction = new Transaction(nexusName, chainName, script, time, payload);
+        
+        // Create Transaction
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.CreateTransaction), owner.Address, subject, transaction)
+                .SpendGas(owner.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        var signature = transaction.GetTransactionSignature(owner2);
+        
+        // Try to Init Again to check the Fetch pool
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner2, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner2.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.AddSignatureTransaction), owner2.Address, subject, signature)
+                .SpendGas(owner2.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.False(simulator.LastBlockWasSuccessful());
+
+        simulator.TimeSkipHours(1);
+        
+        Thread.Sleep(1000);
+        
+        // Let's vote with owner
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.SingleVote), owner.Address, subject, 0)
+                .SpendGas(owner.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        Assert.Throws<ChainException>(() => simulator.InvokeContract(NativeContractKind.Consensus,
+            nameof(ConsensusContract.HasConsensus), subject, choices[0].value));
+        
+        simulator.TimeSkipDays(2);
+
+        // Check consensus it needs to be a transaction so it can alter the state of the chain
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.HasConsensus), subject, choices[0].value)
+                .SpendGas(owner.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        var hasConsensus = simulator.InvokeContract(NativeContractKind.Consensus,
+            nameof(ConsensusContract.HasConsensus), subject, choices[0].value).AsBool();
+        Assert.True(hasConsensus);
     }
 }
