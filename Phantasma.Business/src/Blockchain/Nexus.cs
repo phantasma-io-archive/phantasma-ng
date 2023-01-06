@@ -1058,7 +1058,21 @@ public class Nexus : INexus
             var org = GetOrganizationByAddress(Runtime.RootStorage, source);
             if (org != null)
             {
-                Runtime.ExpectFiltered(org == null, "moving funds from orgs currently not possible", source);
+                if ( Runtime.ProtocolVersion <= 8 )
+                    Runtime.ExpectFiltered(org == null, "moving funds from orgs currently not possible", source);
+                else
+                {
+                    Runtime.ExpectWarning(org != null, "moving funds from orgs currently not possible", source);
+                    var orgMembers = org.GetMembers();
+                    // TODO: Check if it needs to be a DAO member
+                    //Runtime.ExpectFiltered(orgMembers.Contains(destination), "destination must be a member of the org", destination);
+                    Runtime.ExpectWarning(Runtime.Transaction.Signatures.Length == orgMembers.Length, "must be signed by all org members", source);
+                    var msg = Runtime.Transaction.ToByteArray(false);
+                    foreach (var signature in Runtime.Transaction.Signatures)
+                    {
+                        Runtime.ExpectWarning(signature.Verify(msg, orgMembers), "invalid signature", source);
+                    }
+                }
             }
             else
             if (source == DomainSettings.InfusionAddress)
