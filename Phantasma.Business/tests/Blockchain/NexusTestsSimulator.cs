@@ -455,6 +455,20 @@ public class NexusTestsSimulator
         Assert.NotNull(oracle);
     }
 
+    [Fact]
+    public void TestHasArchive()
+    {
+        // TODO: Finish test
+        //nexus.HasArchiveBlock()
+    }
+
+    [Fact]
+    public void TestIArchiveComplete()
+    {
+        // TODO: Finish test
+        //nexus.IsArchiveComplete();
+    }
+
     
     
     private class TestOracleObserver : IOracleObserver

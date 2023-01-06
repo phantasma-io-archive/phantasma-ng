@@ -1,4 +1,5 @@
 
+using System;
 using System.Text;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
@@ -44,7 +45,6 @@ public class AddressTests
         Assert.Equal(address5.GetSize(), address.GetSize());
         Assert.True(address5 == address);
         Assert.True(address5.Equals(address));
-        
     }
     
     /*[Fact]

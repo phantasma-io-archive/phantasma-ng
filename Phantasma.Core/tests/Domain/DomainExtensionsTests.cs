@@ -2,8 +2,12 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
 using NSubstitute;
+using Phantasma.Business.Blockchain;
+using Phantasma.Business.Tests.Simulator;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 using Shouldly;
 using Xunit;
 
@@ -277,5 +281,7 @@ public class DomainExtensionsTests
         // Assert
         Assert.Equal("fee://myplatform", result);
     }
+    
+    
 
 }
