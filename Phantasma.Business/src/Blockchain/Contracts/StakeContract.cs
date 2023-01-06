@@ -309,6 +309,11 @@ namespace Phantasma.Business.Blockchain.Contracts
 
                     Runtime.Expect(!Nexus.IsDangerousAddress(from, validAddresses.ToArray()), "this address can't be used as source");
                 }
+                else
+                {
+                    var crownAddress = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
+                    Runtime.Expect(!Nexus.IsDangerousAddress(from, crownAddress), "this address can't be used as source");
+                }
             }
 
             if (Runtime.HasGenesis)
