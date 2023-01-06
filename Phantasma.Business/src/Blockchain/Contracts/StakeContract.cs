@@ -294,16 +294,18 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
             else
             {
-                if (Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName())
+                if (Runtime.PreviousContext.Name == NativeContractKind.Gas.GetContractName())
                 {
                     var validAddresses = new List<Address>();
-                    var cosmicAddress = SmartContract.GetAddressForNative(NativeContractKind.Swap);
+                    var swapAddress = SmartContract.GetAddressForNative(NativeContractKind.Swap);
+                    var exchangeAddress = SmartContract.GetAddressForNative(NativeContractKind.Exchange);
                     var crownAddress = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
                     var phantomOrg = Runtime.GetOrganization(DomainSettings.PhantomForceOrganizationName);
                     var bpOrg = Runtime.GetOrganization(DomainSettings.ValidatorsOrganizationName);
 
                     validAddresses.Add(crownAddress);
-                    validAddresses.Add(cosmicAddress);
+                    validAddresses.Add(swapAddress);
+                    validAddresses.Add(exchangeAddress);
                     if (phantomOrg != null) validAddresses.Add(phantomOrg.Address);
                     if (bpOrg != null) validAddresses.Add(bpOrg.Address);
 

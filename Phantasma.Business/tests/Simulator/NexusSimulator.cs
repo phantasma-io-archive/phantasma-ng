@@ -1375,7 +1375,7 @@ public class NexusSimulator
         var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
             ScriptUtils.BeginScript()
                 .AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
-                .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address)
+                .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetTimeBeforeUnstake), _currentValidator.Address)
                 .SpendGas(_currentValidator.Address)
                 .EndScript());
         
