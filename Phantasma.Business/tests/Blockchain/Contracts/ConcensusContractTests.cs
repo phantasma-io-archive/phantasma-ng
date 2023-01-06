@@ -194,10 +194,14 @@ public class ConcensusContractTests
         var subject = "subject_test";
         var nexusName = "simnet";
         var chainName = "main";
-        var script = new byte[0]; // TODO: Change to a valid script to test if they have permission to perform this.
+        var script = ScriptUtils.BeginScript()
+            .AllowGas(owner3.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+            .CallInterop("Runtime.TransferTokens", owner.Address, owner2.Address, DomainSettings.StakingTokenSymbol, amountRequested )
+            .SpendGas(owner3.Address)
+            .EndScript(); // TODO: Change to a valid script to test if they have permission to perform this.
         var time = simulator.CurrentTime;
         var payload = "Consensus";
-        time.AddHours(8);
+        time = time + TimeSpan.FromHours(12);
 
         var transaction = new Transaction(nexusName, chainName, script, time, payload);
         transaction.Sign(owner);
@@ -274,8 +278,9 @@ public class ConcensusContractTests
         var txResult = block.GetResultForTransaction(tx.Hash);
         Assert.NotNull(txResult);
 
-        // TODO: Get the data in the correct format and handle it for the tests
-        var result = Transaction.Unserialize(txResult);
+        var test = Serialization.Unserialize<VMObject>(txResult);
+        var toTransactionBytes = test.AsByteArray();
+        var result = Transaction.Unserialize(toTransactionBytes); 
         Assert.NotNull(result);
         
         Assert.Equal(transaction.Expiration, result.Expiration);
@@ -294,5 +299,30 @@ public class ConcensusContractTests
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
         
+        // Delete transaction
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner4, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner4.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.DeleteTransaction), addresses.ToArray(), subject)
+                .SpendGas(owner4.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        
+        // Validate transaction is deleted
+        // Get the transaction
+        simulator.BeginBlock();
+        tx = simulator.GenerateCustomTransaction(owner4, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner4.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.GetTransaction), owner4.Address, subject)
+                .SpendGas(owner4.Address)
+                .EndScript());
+        block = simulator.EndBlock().First();
+        Assert.False(simulator.LastBlockWasSuccessful());
+        txResult = block.GetResultForTransaction(tx.Hash);
+        Assert.Null(txResult);
     }
 }
