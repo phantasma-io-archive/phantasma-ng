@@ -46,8 +46,16 @@ public class AddressTests
         Assert.True(address5 == address);
         Assert.True(address5.Equals(address));
     }
-    
+
     /*[Fact]
+    public void TestAddress()
+    {
+        var keys = PhantasmaKeys.FromWIF("");
+        Address address = keys.Address;
+        Assert.Fail(address.Text);
+    }*/
+    
+    [Fact]
     public void TestValidateSignData()
     {
         var key = PhantasmaKeys.Generate();
@@ -60,11 +68,11 @@ public class AddressTests
         {
             mySignatureLocal = Encoding.UTF8.GetString(signatureMine);
             random = Encoding.UTF8.GetString(myRandom);
+            Assert.True(address.ValidateSignedData(mySignatureLocal, random,  text));
             return new byte[8];
         });
         
-        Assert.True(address.ValidateSignedData(mySignatureLocal, random,  text));
-    }*/
+    }
     
     
 }

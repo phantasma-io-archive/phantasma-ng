@@ -142,6 +142,13 @@ public class ConcensusContractTests
         
         Thread.Sleep(1000);
         
+        var getConsensus = simulator.InvokeContract(NativeContractKind.Consensus, nameof(ConsensusContract.GetConsensusPoll), subject).AsStruct<ConsensusPoll>();
+        Assert.Equal(subject, getConsensus.subject);
+        Assert.Equal(organization, getConsensus.organization);
+        Assert.Equal(mode, getConsensus.mode);
+        Assert.Equal(startTime, getConsensus.startTime);
+        Assert.Equal(endTime, getConsensus.endTime);
+        
         // Let's vote with owner
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
@@ -172,6 +179,16 @@ public class ConcensusContractTests
         var hasConsensus = simulator.InvokeContract(NativeContractKind.Consensus,
             nameof(ConsensusContract.HasConsensus), subject, choices[0].value).AsBool();
         Assert.True(hasConsensus);
+        
+        var allConsensus = simulator.InvokeContract(NativeContractKind.Consensus,
+            nameof(ConsensusContract.GetConsensusPolls), subject).AsStruct<ConsensusPoll[]>();
+        
+        Assert.Equal(1, allConsensus.Length);
+        Assert.Equal(subject, allConsensus[0].subject);
+        Assert.Equal(organization, allConsensus[0].organization);
+        Assert.Equal(mode, allConsensus[0].mode);
+        Assert.Equal(startTime, allConsensus[0].startTime);
+        Assert.Equal(endTime, allConsensus[0].endTime);
     }
     
     [Fact]
@@ -325,4 +342,5 @@ public class ConcensusContractTests
         txResult = block.GetResultForTransaction(tx.Hash);
         Assert.Null(txResult);
     }
+    
 }

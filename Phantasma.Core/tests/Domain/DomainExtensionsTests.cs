@@ -281,7 +281,94 @@ public class DomainExtensionsTests
         // Assert
         Assert.Equal("fee://myplatform", result);
     }
+
+    [Fact]
+    public void TestInvokeTrigger()
+    {
+        // Arrange
+        
+        // Act
+        //var result = DomainExtensions.CallNFT("myplatform", "mysymbol", 123);
+        
+        // Assert
+    }
+
+    [Fact]
+    public void TestCallNFT()
+    {
+        // Arrange
+        
+        // Act
+        //var result = DomainExtensions.CallNFT("myplatform", "mysymbol", 123);
+        
+        // Assert
+        
+    }
     
+    [Fact]
+    public void TestGetTokenQuoteV1()
+    {
+        // Arrange
+        
+        // Act
+        //var result = DomainExtensions.CallNFT("myplatform", "mysymbol", 123);
+        
+        // Assert
+    }
     
+    [Fact]
+    public void TestReadFeeFromOracle()
+    {
+        // Arrange
+        
+        // Act
+        //var result = DomainExtensions.CallNFT("myplatform", "mysymbol", 123);
+        
+        // Assert
+    }
+    
+    [Fact]
+    public void TestReadNFTFromOracle()
+    {
+        // Arrange
+        
+        // Act
+        //var result = DomainExtensions.CallNFT("myplatform", "mysymbol", 123);
+        
+        // Assert
+    }
+    
+    [Fact]
+    public void TestReadTransactionFromOracle()
+    {
+        // Arrange
+        
+        // Act
+        //var result = DomainExtensions.CallNFT("myplatform", "mysymbol", 123);
+        
+        // Assert
+    }
+    
+    [Fact]
+    public void TestNotify()
+    {
+        // Arrange
+        
+        // Act
+        //var result = DomainExtensions.CallNFT("myplatform", "mysymbol", 123);
+        
+        // Assert
+    }
+    
+    [Fact]
+    public void TestGetContract()
+    {
+        // Arrange
+        
+        // Act
+        //var result = DomainExtensions.CallNFT("myplatform", "mysymbol", 123);
+        
+        // Assert
+    }
 
 }

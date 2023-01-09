@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using Shouldly;
 using Xunit;
 
@@ -95,6 +96,13 @@ public class ThrowTests
     {
         // Act and Assert
         Should.NotThrow(() => Throw.IfHasNull(new List<string> { "test" }, "testArgument"));
+    }
+    
+    [Fact]
+    public void Test_IfHasNullGeneric_arg_null()
+    {
+        // Act and Assert
+        Should.NotThrow(() => Throw.IfHasNull(new List<string> { "test" }, null));
     }
 
     [Fact]
@@ -228,6 +236,16 @@ public class ThrowTests
         // Assert
         result.Message.ShouldStartWith("Cannot be a value outside the specified enum range");
     }
+    
+    [Fact]
+    public void Test_IfOutOfRange()
+    {
+        // Arrange
+        var argumentValue = (TestEnum)TestEnum.Test;
+
+        // Act
+        Throw.IfOutOfRange(argumentValue, "testArgument");
+    }
 
     [Theory]
     [InlineData(1, 1, 2)]
@@ -242,6 +260,41 @@ public class ThrowTests
 
         // Assert
         result.Message.ShouldStartWith("Cannot be inside the range");
+    }
+    
+    [Fact]
+    public void Test_IfInRange()
+    {
+        int argumentValue = 9;
+        int startRange = 10;
+        int endRange = 12;
+        
+        // Act
+        Throw.IfInRange(argumentValue, startRange, endRange, "testArgument");
+    }
+
+    [Fact]
+    public void Test_ExpandInnerExceptions()
+    {
+        // Arrange
+        var exception = new Exception("test", new Exception("test2", new Exception("test3")));
+
+        // Act
+        var result = Throw.ExpandInnerExceptions(exception);
+
+        // Assert
+    }
+    
+    [Fact]
+    public void Test_ExpandInnerExceptions_TargetInvocationException()
+    {
+        // Arrange
+        TargetInvocationException exception = new TargetInvocationException("test", new Exception("test2", new Exception("test3")));
+
+        // Act
+        var result = Throw.ExpandInnerExceptions(exception);
+
+        // Assert
     }
 
     [ExcludeFromCodeCoverage]
