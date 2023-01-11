@@ -700,8 +700,17 @@ public class Nexus : INexus
         {
             if (token.Symbol == DomainSettings.StakingTokenSymbol)
             {
-                var totalSupply = Runtime.GetTokenSupply(token.Symbol) + amount;
+                var currentSupply = Runtime.GetTokenSupply(token.Symbol);
+                var totalSupply = currentSupply + amount;
                 var maxSupply = UnitConversion.ToBigInteger(100000000, DomainSettings.StakingTokenDecimals);
+                int InflationPerYear = 133; 
+                
+                for(int i = 0; i < DateTime.UtcNow.Year - 2018; i++)
+                {
+                    var inflationAmount = maxSupply / InflationPerYear;
+                    maxSupply += inflationAmount;
+                }
+                
                 if (Runtime.ProtocolVersion <= 8)
                 {
                     if (Runtime.CurrentContext.Name == "entry" && Runtime.IsPrimaryValidator(source) && Runtime.IsPrimaryValidator(destination))
