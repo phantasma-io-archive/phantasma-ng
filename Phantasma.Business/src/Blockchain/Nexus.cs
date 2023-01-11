@@ -700,37 +700,44 @@ public class Nexus : INexus
         {
             if (token.Symbol == DomainSettings.StakingTokenSymbol)
             {
-                var currentSupply = Runtime.GetTokenSupply(token.Symbol);
-                var totalSupply = currentSupply + amount;
-                var maxSupply = UnitConversion.ToBigInteger(100000000, DomainSettings.StakingTokenDecimals);
-                int InflationPerYear = 133; 
-                
-                for(int i = 0; i < DateTime.UtcNow.Year - 2018; i++)
-                {
-                    var inflationAmount = maxSupply / InflationPerYear;
-                    maxSupply += inflationAmount;
-                }
-                
                 if (Runtime.ProtocolVersion <= 8)
                 {
-                    if (Runtime.CurrentContext.Name == "entry" && Runtime.IsPrimaryValidator(source) && Runtime.IsPrimaryValidator(destination))
+                    Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
+                }
+                else
+                {
+                    var currentSupply = Runtime.GetTokenSupply(token.Symbol);
+                    var totalSupply = currentSupply + amount;
+                    var maxSupply = UnitConversion.ToBigInteger(100000000, DomainSettings.StakingTokenDecimals);
+                    int InflationPerYear = 133; 
+                    maxSupply *= new BigInteger(1.03*Math.Exp(((DateTime)Runtime.Time).Year - 2018));
+                    
+                    if (Runtime.CurrentContext.Name == "entry" && Runtime.IsPrimaryValidator(source) &&
+                        Runtime.IsPrimaryValidator(destination))
                     {
                         if (totalSupply <= maxSupply)
                         {
+                            Runtime.ExpectWarning(totalSupply <= maxSupply,
+                                $"minting of {token.Symbol} can only happen if the amount is lower than 100M", source);
+                            Runtime.ExpectWarning(Runtime.IsWitness(token.Owner),
+                                $"minting of {token.Symbol} can only happen if the owner of the contract does it.",
+                                source);
+                            Runtime.ExpectWarning(Runtime.IsPrimaryValidator(source),
+                                $"minting of {token.Symbol} can only happen if the owner of the contract does it.",
+                                source);
+                            Runtime.ExpectWarning(Runtime.IsPrimaryValidator(destination),
+                                $"minting of {token.Symbol} can only happen if the destination is a validator.",
+                                source);
 
-                            Runtime.ExpectWarning(totalSupply <= maxSupply, $"minting of {token.Symbol} can only happen if the amount is lower than 100M", source);
-                            Runtime.ExpectWarning(Runtime.IsWitness(token.Owner), $"minting of {token.Symbol} can only happen if the owner of the contract does it.", source);
-                            Runtime.ExpectWarning(Runtime.IsPrimaryValidator(source), $"minting of {token.Symbol} can only happen if the owner of the contract does it.", source);
-                            Runtime.ExpectWarning(Runtime.IsPrimaryValidator(destination), $"minting of {token.Symbol} can only happen if the destination is a validator.", source);
-                            
-                            var org = GetOrganizationByAddress(Runtime.RootStorage, source);
-                            Runtime.ExpectWarning(org != null, "moving funds from null org currently not possible", source);
-                            Runtime.ExpectWarning(org.Name == DomainSettings.ValidatorsOrganizationName, "moving funds from org other than validators currently not possible", source);
-                            
+                            var org = GetOrganizationByName(Runtime.RootStorage, DomainSettings.ValidatorsOrganizationName);
+                            Runtime.ExpectWarning(org != null, "moving funds from null org currently not possible",
+                                source);
+
                             var orgMembers = org.GetMembers();
                             // TODO: Check if it needs to be a DAO member
                             //Runtime.ExpectFiltered(orgMembers.Contains(destination), "destination must be a member of the org", destination);
-                            Runtime.ExpectWarning(Runtime.Transaction.Signatures.Length == orgMembers.Length, "must be signed by all org members", source);
+                            Runtime.ExpectWarning(Runtime.Transaction.Signatures.Length == orgMembers.Length,
+                                "must be signed by all org members", source);
                             var msg = Runtime.Transaction.ToByteArray(false);
                             foreach (var signature in Runtime.Transaction.Signatures)
                             {
@@ -740,19 +747,15 @@ public class Nexus : INexus
                     }
                     else
                     {
-                        Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
-                    }
-                }
-                else
-                {
-                    bool isValidContext = Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
-                                          Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName();
-                    bool isValidOrigin = source == SmartContract.GetAddressForNative(NativeContractKind.Stake) || 
-                                         source == SmartContract.GetAddressForNative(NativeContractKind.Gas);
+                        bool isValidContext = Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
+                                              Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName();
+                        bool isValidOrigin = source == SmartContract.GetAddressForNative(NativeContractKind.Stake) || 
+                                             source == SmartContract.GetAddressForNative(NativeContractKind.Gas);
 
-                    Runtime.ExpectWarning(isValidContext , $"minting of {token.Symbol} can only happen via master claim", source);
-                    //Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
-                    Runtime.ExpectWarning(isValidOrigin, $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
+                        Runtime.ExpectWarning(isValidContext , $"minting of {token.Symbol} can only happen via master claim", source);
+                        //Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
+                        Runtime.ExpectWarning(isValidOrigin, $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
+                    }
                 }
             }
             else if (token.Symbol == DomainSettings.FuelTokenSymbol )

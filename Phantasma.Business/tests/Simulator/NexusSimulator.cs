@@ -79,6 +79,11 @@ public class NexusSimulator
 
     }
 
+    public NexusSimulator(PhantasmaKeys[] owners, int protocolVersion): this(owners, 123, null, DomainSettings.LatestKnownProtocol)
+    {
+        
+    }
+
     public NexusSimulator(PhantasmaKeys[] owners, int seed, Nexus nexus, int protocolVersion)
     {
         _validators = owners;

@@ -256,7 +256,6 @@ public class ConcensusContractTests
         signature = transaction.GetTransactionSignature(owner3);
         transaction.AddSignature(signature);
 
-
         simulator.TimeSkipHours(1);
         
         simulator.BeginBlock();

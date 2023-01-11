@@ -1523,7 +1523,8 @@ namespace Phantasma.Business.Blockchain
                     Expect(
                             ctxName == VirtualMachine.StakeContextName ||
                             ctxName == VirtualMachine.GasContextName ||
-                            ctxName == VirtualMachine.ExchangeContextName,
+                            ctxName == VirtualMachine.ExchangeContextName ||
+                            ctxName == VirtualMachine.EntryContextName,
                             $"Minting system tokens only allowed in a specific context, current {ctxName}");
                 }
             }
