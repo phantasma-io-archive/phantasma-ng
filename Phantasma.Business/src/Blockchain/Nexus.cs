@@ -704,13 +704,12 @@ public class Nexus : INexus
                 var maxSupply = UnitConversion.ToBigInteger(100000000, DomainSettings.StakingTokenDecimals);
                 if (Runtime.ProtocolVersion <= 8)
                 {
-                    Runtime.ExpectWarning(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
+                    Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
                     if (totalSupply <= maxSupply)
                     {
                         Runtime.ExpectWarning(totalSupply <= maxSupply, $"minting of {token.Symbol} can only happen if the amount is lower than 100M", source);
                         Runtime.ExpectWarning(Runtime.IsWitness(token.Owner), $"minting of {token.Symbol} can only happen if the owner of the contract does it.", source);
                         Runtime.ExpectWarning(Runtime.IsPrimaryValidator(source), $"minting of {token.Symbol} can only happen if the owner of the contract does it.", source);
-                        Runtime.ExpectWarning(token.Owner == source, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
                         Runtime.ExpectWarning(Runtime.IsPrimaryValidator(destination), $"minting of {token.Symbol} can only happen if the destination is a validator.", source);
                     }
                 }
@@ -728,11 +727,26 @@ public class Nexus : INexus
             }
             else if (token.Symbol == DomainSettings.FuelTokenSymbol )
             {
-                Runtime.ExpectWarning(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via claiming", source);
+                if (Runtime.ProtocolVersion <= 8)
+                {
+                    Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via claiming", source);
+                }
+                else
+                {
+                    Runtime.ExpectWarning(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via claiming", source);
+                }
             }
             else
             {
-                Runtime.ExpectWarning(!IsDangerousSymbol(token.Symbol), $"minting of {token.Symbol} failed", source);
+                if (Runtime.ProtocolVersion <= 8)
+                {
+                    Runtime.ExpectFiltered(!IsDangerousSymbol(token.Symbol), $"minting of {token.Symbol} failed",
+                        source);
+                }
+                else
+                {
+                    Runtime.ExpectWarning(!IsDangerousSymbol(token.Symbol), $"minting of {token.Symbol} failed", source);
+                }
             }
         }
 
