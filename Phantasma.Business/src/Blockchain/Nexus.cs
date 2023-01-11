@@ -708,10 +708,8 @@ public class Nexus : INexus
                 {
                     var currentSupply = Runtime.GetTokenSupply(token.Symbol);
                     var totalSupply = currentSupply + amount;
-                    var maxSupply = UnitConversion.ToBigInteger(100000000, DomainSettings.StakingTokenDecimals);
-                    int InflationPerYear = 133; 
-                    maxSupply *= new BigInteger(1.03*Math.Exp(((DateTime)Runtime.Time).Year - 2018));
-                    
+                    var maxSupply = UnitConversion.ToBigInteger(decimal.Parse((100000000 * Math.Pow(1.03, ((DateTime)Runtime.Time).Year - 2018)).ToString()), DomainSettings.StakingTokenDecimals);
+
                     if (Runtime.CurrentContext.Name == "entry" && Runtime.IsPrimaryValidator(source) &&
                         Runtime.IsPrimaryValidator(destination))
                     {
