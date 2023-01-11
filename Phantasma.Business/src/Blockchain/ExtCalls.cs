@@ -1011,7 +1011,14 @@ namespace Phantasma.Business.Blockchain
             {
                 if (hasGenesis)
                 {
-                    throw new VMException(vm, $"Minting system token {symbol} not allowed");
+                    if (vm.ProtocolVersion <= 8)
+                    {
+                        throw new VMException(vm, $"Minting token {symbol} not allowed from this context");
+                    }
+                    else
+                    {
+                        vm.ExpectWarning(vm.IsPrimaryValidator(source), "only primary validator can mint system tokens", source);
+                    }
                 }
             }
             else

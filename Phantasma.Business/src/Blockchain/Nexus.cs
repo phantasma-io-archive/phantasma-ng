@@ -700,38 +700,84 @@ public class Nexus : INexus
         {
             if (token.Symbol == DomainSettings.StakingTokenSymbol)
             {
-                var totalSupply = Runtime.GetTokenSupply(token.Symbol) + amount;
-                var maxSupply = UnitConversion.ToBigInteger(100000000, DomainSettings.StakingTokenDecimals);
-                if ( totalSupply <= maxSupply && Runtime.ProtocolVersion <= 8)
-                {
-                    Runtime.ExpectFiltered(totalSupply <= maxSupply, $"minting of {token.Symbol} can only happen if the amount is lower than 100M", source);
-                    Runtime.ExpectFiltered(Runtime.IsWitness(token.Owner), $"minting of {token.Symbol} can only happen if the owner of the contract does it.", source);
-                    Runtime.ExpectFiltered(Runtime.IsPrimaryValidator(source), $"minting of {token.Symbol} can only happen if the owner of the contract does it.", source);
-                    Runtime.ExpectFiltered(token.Owner == source, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
-                    Runtime.ExpectFiltered(Runtime.IsPrimaryValidator(destination), $"minting of {token.Symbol} can only happen if the destination is a validator.", source);
-                }
-                else if ( Runtime.ProtocolVersion <= 8 )
+                if (Runtime.ProtocolVersion <= 8)
                 {
                     Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
                 }
                 else
                 {
-                    bool isValidContext = Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
-                                          Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName();
-                    bool isValidOrigin = source == SmartContract.GetAddressForNative(NativeContractKind.Stake) || 
-                                         source == SmartContract.GetAddressForNative(NativeContractKind.Gas);
+                    var currentSupply = Runtime.GetTokenSupply(token.Symbol);
+                    var totalSupply = currentSupply + amount;
+                    var maxSupply = UnitConversion.ToBigInteger(decimal.Parse((100000000 * Math.Pow(1.03, ((DateTime)Runtime.Time).Year - 2018 - 1)).ToString()), DomainSettings.StakingTokenDecimals);
 
-                    Runtime.ExpectFiltered(isValidContext , $"minting of {token.Symbol} can only happen via master claim", source);
-                    //Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
-                    Runtime.ExpectFiltered(isValidOrigin, $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
+                    if (Runtime.CurrentContext.Name == "entry" && Runtime.IsPrimaryValidator(source) &&
+                        Runtime.IsPrimaryValidator(destination))
+                    {
+                        if (totalSupply <= maxSupply)
+                        {
+                            Runtime.ExpectWarning(totalSupply <= maxSupply,
+                                $"minting of {token.Symbol} can only happen if the amount is lower than 100M", source);
+                            Runtime.ExpectWarning(Runtime.IsWitness(token.Owner),
+                                $"minting of {token.Symbol} can only happen if the owner of the contract does it.",
+                                source);
+                            Runtime.ExpectWarning(Runtime.IsPrimaryValidator(source),
+                                $"minting of {token.Symbol} can only happen if the owner of the contract does it.",
+                                source);
+                            Runtime.ExpectWarning(Runtime.IsPrimaryValidator(destination),
+                                $"minting of {token.Symbol} can only happen if the destination is a validator.",
+                                source);
+
+                            var org = GetOrganizationByName(Runtime.RootStorage, DomainSettings.ValidatorsOrganizationName);
+                            Runtime.ExpectWarning(org != null, "moving funds from null org currently not possible",
+                                source);
+
+                            var orgMembers = org.GetMembers();
+                            // TODO: Check if it needs to be a DAO member
+                            //Runtime.ExpectFiltered(orgMembers.Contains(destination), "destination must be a member of the org", destination);
+                            Runtime.ExpectWarning(Runtime.Transaction.Signatures.Length == orgMembers.Length,
+                                "must be signed by all org members", source);
+                            var msg = Runtime.Transaction.ToByteArray(false);
+                            foreach (var signature in Runtime.Transaction.Signatures)
+                            {
+                                Runtime.ExpectWarning(signature.Verify(msg, orgMembers), "invalid signature", source);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        bool isValidContext = Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
+                                              Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName();
+                        bool isValidOrigin = source == SmartContract.GetAddressForNative(NativeContractKind.Stake) || 
+                                             source == SmartContract.GetAddressForNative(NativeContractKind.Gas);
+
+                        Runtime.ExpectWarning(isValidContext , $"minting of {token.Symbol} can only happen via master claim", source);
+                        //Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
+                        Runtime.ExpectWarning(isValidOrigin, $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
+                    }
                 }
-            } else if (token.Symbol == DomainSettings.FuelTokenSymbol )
+            }
+            else if (token.Symbol == DomainSettings.FuelTokenSymbol )
             {
-                Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via claiming", source);
+                if (Runtime.ProtocolVersion <= 8)
+                {
+                    Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via claiming", source);
+                }
+                else
+                {
+                    Runtime.ExpectWarning(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via claiming", source);
+                }
             }
             else
             {
-                Runtime.ExpectFiltered(!IsDangerousSymbol(token.Symbol), $"minting of {token.Symbol} failed", source);
+                if (Runtime.ProtocolVersion <= 8)
+                {
+                    Runtime.ExpectFiltered(!IsDangerousSymbol(token.Symbol), $"minting of {token.Symbol} failed",
+                        source);
+                }
+                else
+                {
+                    Runtime.ExpectWarning(!IsDangerousSymbol(token.Symbol), $"minting of {token.Symbol} failed", source);
+                }
             }
         }
 
@@ -1052,12 +1098,29 @@ public class Nexus : INexus
             Runtime.Expect(destName != ValidationUtils.ANONYMOUS_NAME, "anonymous system address as destination");
         }
 
+        bool isOrganaizationTransaction = false;
         if (source.IsSystem)
         {
             var org = GetOrganizationByAddress(Runtime.RootStorage, source);
             if (org != null)
             {
-                Runtime.ExpectFiltered(org == null, "moving funds from orgs currently not possible", source);
+                if ( Runtime.ProtocolVersion <= 8 )
+                    Runtime.ExpectFiltered(org == null, "moving funds from orgs currently not possible", source);
+                else
+                {
+                    Runtime.ExpectWarning(org != null, "moving funds from orgs currently not possible", source);
+                    var orgMembers = org.GetMembers();
+                    // TODO: Check if it needs to be a DAO member
+                    //Runtime.ExpectFiltered(orgMembers.Contains(destination), "destination must be a member of the org", destination);
+                    Runtime.ExpectWarning(Runtime.Transaction.Signatures.Length == orgMembers.Length, "must be signed by all org members", source);
+                    var msg = Runtime.Transaction.ToByteArray(false);
+                    foreach (var signature in Runtime.Transaction.Signatures)
+                    {
+                        Runtime.ExpectWarning(signature.Verify(msg, orgMembers), "invalid signature", source);
+                    }
+
+                    isOrganaizationTransaction = true;
+                }
             }
             else
             if (source == DomainSettings.InfusionAddress)
@@ -1097,10 +1160,23 @@ public class Nexus : INexus
         if (Runtime.HasGenesis)
         {
             var isSystemDestination = destination.IsSystem && NativeContract.GetNativeContractByAddress(destination) != null;
-
-            if (!isSystemDestination)
+            var isSystemSource = source.IsSystem && NativeContract.GetNativeContractByAddress(source) != null;
+            if (Runtime.ProtocolVersion <= 8)
             {
-                Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                if (!isSystemDestination)
+                {
+                    Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                }
+            }
+            else
+            {
+                if (isSystemSource && !isSystemDestination)
+                {
+                    Runtime.ExpectWarning(Runtime.IsWitness(source), "source is system address and not a witness", source);
+                }else if (!isSystemDestination)
+                {
+                    Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                }
             }
         }
 
@@ -1108,7 +1184,18 @@ public class Nexus : INexus
 
         if (Runtime.HasGenesis)
         {
-            allowed = Runtime.IsWitness(source);
+            if (Runtime.ProtocolVersion <= 8)
+            {
+                allowed = Runtime.IsWitness(source);
+            }
+            else if (isOrganaizationTransaction)
+            {
+                allowed = true;
+            }
+            else
+            {
+                allowed = Runtime.IsWitness(source);
+            }
         }
         else
         {

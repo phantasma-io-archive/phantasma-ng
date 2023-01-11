@@ -1,3 +1,4 @@
+using System;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Types;
 
@@ -127,8 +128,7 @@ namespace Phantasma.Core.Domain
             {
                 return false;
             }
-
-
+            
             int index = 0;
             while (index < name.Length)
             {
@@ -136,7 +136,6 @@ namespace Phantasma.Core.Domain
                 index++;
 
                 if (c >= 65 && c <= 90) continue; // uppercase allowed
-
                 return false;
             }
 

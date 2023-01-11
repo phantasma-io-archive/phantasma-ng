@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Tests.Simulator;
+using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
@@ -29,15 +31,15 @@ public class NexusTestsSimulator
     BigInteger initialFuel;
     BigInteger startBalance;
     StakeReward reward;
+    private int version = 9;
 
     public NexusTestsSimulator()
     {
         Initialize();
     }
-
+    
     private void Initialize()
     {
-        sysAddress = SmartContract.GetAddressForNative(NativeContractKind.Friends);
         user = PhantasmaKeys.Generate();
         owner = PhantasmaKeys.Generate();
         owner2 = PhantasmaKeys.Generate();
@@ -52,7 +54,7 @@ public class NexusTestsSimulator
         
     protected void InitializeSimulator()
     {
-        simulator = new NexusSimulator(new []{owner, owner2});
+        simulator = new NexusSimulator(new []{owner, owner2}, version);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
         SetInitialBalance(user.Address);
@@ -455,6 +457,70 @@ public class NexusTestsSimulator
         Assert.NotNull(oracle);
     }
 
+    [Fact]
+    public void TestHasArchive()
+    {
+        // TODO: Finish test
+        //nexus.HasArchiveBlock()
+    }
+
+    [Fact]
+    public void TestIArchiveComplete()
+    {
+        // TODO: Finish test
+        //nexus.IsArchiveComplete();
+    }
+
+
+    [Fact]
+    public void TestMintTokensOldVersion()
+    {
+        this.version = 8;
+        Initialize();
+        
+        //Assert.Fail( UnitConversion.ToBigInteger(decimal.Parse((100000000 * Math.Pow(1.03, ((DateTime)DateTime.UtcNow).Year - 2018 - 1)).ToString()), DomainSettings.StakingTokenDecimals).ToString());
+        var subject = "subject_test";
+        var nexusName = "simnet";
+        var chainName = "main";
+        var script = ScriptUtils.BeginScript()
+            .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+            .CallInterop("Runtime.MintTokens", owner.Address, owner.Address, DomainSettings.StakingTokenSymbol, 10000000000000 )
+            .SpendGas(owner.Address)
+            .EndScript(); // TODO: Change to a valid script to test if they have permission to perform this.
+        var time = simulator.CurrentTime;
+        var payload = "Consensus";
+        time = time + TimeSpan.FromHours(12);
+
+        var transaction = new Transaction(nexusName, chainName, script, time, payload);
+        transaction.Sign(owner);
+        
+        Signature sig = transaction.GetTransactionSignature(owner2);
+        transaction.AddSignature(sig);
+        
+        simulator.BeginBlock();
+        simulator.SendRawTransaction(transaction);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+    }
+    
+    private BigInteger MintTokens(PhantasmaKeys _user, Address gasAddress, Address fromAddress, Address toAddress, string symbol, BigInteger amount, bool shouldFail = false)
+    {
+        simulator.BeginBlock();
+        var tx = simulator.GenerateCustomTransaction(_user, ProofOfWork.Minimal, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(gasAddress, Address.Null, simulator.MinimumFee, 99999)
+                .CallInterop("Runtime.MintTokens", fromAddress, toAddress, symbol, 100000000).
+                SpendGas(gasAddress)
+                .EndScript());
+        simulator.EndBlock();
+        if (shouldFail)
+            Assert.False(simulator.LastBlockWasSuccessful());
+        else
+            Assert.True(simulator.LastBlockWasSuccessful());
+        
+        var txCost2 = simulator.Nexus.RootChain.GetTransactionFee(tx);
+        return txCost2;
+    }
     
     
     private class TestOracleObserver : IOracleObserver

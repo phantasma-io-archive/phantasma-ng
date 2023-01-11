@@ -79,6 +79,11 @@ public class NexusSimulator
 
     }
 
+    public NexusSimulator(PhantasmaKeys[] owners, int protocolVersion): this(owners, 123, null, DomainSettings.LatestKnownProtocol)
+    {
+        
+    }
+
     public NexusSimulator(PhantasmaKeys[] owners, int seed, Nexus nexus, int protocolVersion)
     {
         _validators = owners;
@@ -1375,7 +1380,7 @@ public class NexusSimulator
         var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
             ScriptUtils.BeginScript()
                 .AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
-                .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address)
+                .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetTimeBeforeUnstake), _currentValidator.Address)
                 .SpendGas(_currentValidator.Address)
                 .EndScript());
         

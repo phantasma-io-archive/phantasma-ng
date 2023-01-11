@@ -339,4 +339,7 @@ public class MailContractTests
         Assert.Equal("", userDomain);
     }
     
+    // PushMessage
+    // MigrateDomain
+    
 }
