@@ -478,6 +478,7 @@ public class NexusTestsSimulator
         this.version = 8;
         Initialize();
         
+        //Assert.Fail( UnitConversion.ToBigInteger(decimal.Parse((100000000 * Math.Pow(1.03, ((DateTime)DateTime.UtcNow).Year - 2018 - 1)).ToString()), DomainSettings.StakingTokenDecimals).ToString());
         var subject = "subject_test";
         var nexusName = "simnet";
         var chainName = "main";
