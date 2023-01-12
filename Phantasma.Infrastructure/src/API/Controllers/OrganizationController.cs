@@ -46,7 +46,7 @@ namespace Phantasma.Infrastructure.API.Controllers
         
         [APIInfo(typeof(OrganizationResult), "Returns info about all of organizations on chain.", false, 60)]
         [HttpGet("GetOrganizations")]
-        public OrganizationResult[] GetOrganizations()
+        public OrganizationResult[] GetOrganizations(bool extended = false)
         {
             var nexus = NexusAPI.GetNexus();
 
@@ -61,7 +61,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                 {
                     id = org.ID,
                     name = x,
-                    members = members.Select(y => y.Text).ToArray(),
+                    members = extended ? members.Select(y => y.Text).ToArray() : new string[0],
                 };
             }).ToArray();
         }
