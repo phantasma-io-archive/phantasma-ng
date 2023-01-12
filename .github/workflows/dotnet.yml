@@ -56,5 +56,5 @@ jobs:
         with:
           recreate: true
           path: code-coverage-results.md
-          GITHUB_TOKEN: ${{ env.PR_KEY }}
+          GITHUB_TOKEN: ${{ secrets.PR_KEY }}
           #GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
