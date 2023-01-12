@@ -26,6 +26,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     private IEnumerable<Address> _initialValidators;
     private List<Transaction> _pendingTxs = new List<Transaction>();
     private BigInteger _minimumFee;
+    private Timestamp currentBlockTime;
 
     // TODO add logger
     public ABCIConnector(IEnumerable<Address> initialValidators, BigInteger minimumFee)
@@ -52,7 +53,10 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     public override Task<ResponseBeginBlock> BeginBlock(RequestBeginBlock request, ServerCallContext context)
     {
-        Log.Information("Begin block {Height}", request.Header.Height);
+        Timestamp time = new Timestamp((uint) request.Header.Time.Seconds);
+        currentBlockTime = time;
+        Log.Information("Begin block {Height} at {time}", request.Header.Height, time);
+
         var response = new ResponseBeginBlock();
         try
         {
@@ -83,7 +87,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             var chain = _nexus.RootChain as Chain;
 
             IEnumerable<Transaction> systemTransactions;
-            systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, Timestamp.Now, this._initialValidators); 
+            systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, time, this._initialValidators); 
         }
         catch (Exception e)
         {
@@ -95,7 +99,6 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     
     public override Task<ResponseCheckTx> CheckTx(RequestCheckTx request, ServerCallContext context)
     {
-        // TODO checktx 
         Log.Information($"ABCI Connector - Check TX");
 
         try
@@ -106,8 +109,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
                 var txString = request.Tx.ToStringUtf8();
                 var tx = Transaction.Unserialize(Base16.Decode(txString));
-                
-                (CodeType code, string message) = chain.CheckTx(tx, Timestamp.Now);
+
+                (CodeType code, string message) = chain.CheckTx(tx, currentBlockTime);
 
                 var response = new ResponseCheckTx();
                 response.Code = 0;
@@ -130,7 +133,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     public override Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
     {
         Log.Information($"ABCI Connector - Deliver Tx");
-        
+
         var chain = _nexus.RootChain as Chain;
 
         var txString = request.Tx.ToStringUtf8();
