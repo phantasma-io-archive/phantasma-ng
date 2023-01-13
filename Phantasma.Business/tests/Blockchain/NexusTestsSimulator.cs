@@ -31,7 +31,7 @@ public class NexusTestsSimulator
     BigInteger initialFuel;
     BigInteger startBalance;
     StakeReward reward;
-    private int version = 9;
+    private int version = DomainSettings.LatestKnownProtocol;
 
     public NexusTestsSimulator()
     {
@@ -472,10 +472,12 @@ public class NexusTestsSimulator
     }
 
 
-    [Fact]
-    public void TestMintTokensOldVersion()
+    [Theory()]
+    [InlineData(8, false)]
+    [InlineData(9, true)]
+    public void TestMintTokensVersioned(int version, bool expected)
     {
-        this.version = 8;
+        this.version = version;
         Initialize();
         
         //Assert.Fail( UnitConversion.ToBigInteger(decimal.Parse((100000000 * Math.Pow(1.03, ((DateTime)DateTime.UtcNow).Year - 2018 - 1)).ToString()), DomainSettings.StakingTokenDecimals).ToString());
@@ -487,6 +489,58 @@ public class NexusTestsSimulator
             .CallInterop("Runtime.MintTokens", owner.Address, owner.Address, DomainSettings.StakingTokenSymbol, 10000000000000 )
             .SpendGas(owner.Address)
             .EndScript(); // TODO: Change to a valid script to test if they have permission to perform this.
+        var time = simulator.CurrentTime;
+        var payload = "Consensus";
+        time = time + TimeSpan.FromHours(12);
+
+        var transaction = new Transaction(nexusName, chainName, script, time, payload);
+        transaction.Sign(owner);
+        
+        Signature sig = transaction.GetTransactionSignature(owner2);
+        transaction.AddSignature(sig);
+        
+        simulator.BeginBlock();
+        simulator.SendRawTransaction(transaction);
+        simulator.EndBlock();
+        if (expected)
+        {
+            Assert.True(simulator.LastBlockWasSuccessful());
+        }
+        else
+        {
+            Assert.False(simulator.LastBlockWasSuccessful());
+        }
+    }
+    
+    [Fact]
+    public void TestMakeTransaferOrg()
+    {
+        this.version = 9;
+        Initialize();
+        
+        var subject = "subject_test";
+        var nexusName = "simnet";
+        var chainName = "main";
+        var amount = UnitConversion.ToBigInteger(10, 8);
+        var bpAddress = simulator.Nexus.GetOrganizationByName(simulator.Nexus.RootStorage, DomainSettings.ValidatorsOrganizationName);
+
+        simulator.GetFundsInTheFuture(owner);
+        simulator.GetFundsInTheFuture(owner);
+        simulator.TimeSkipDays(90);
+        simulator.TimeSkipDays(1);
+        
+        simulator.BeginBlock();
+        simulator.GenerateTransfer(owner, bpAddress.Address, simulator.Nexus.RootChain, DomainSettings.StakingTokenSymbol, amount * 2);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        var script = ScriptUtils.BeginScript()
+            .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+            .CallInterop("Runtime.TransferTokens", bpAddress.Address, owner.Address, DomainSettings.StakingTokenSymbol, amount )
+            .SpendGas(owner.Address)
+            .EndScript(); // TODO: Change to a valid script to test if they have permission to perform this.
+        
+        
         var time = simulator.CurrentTime;
         var payload = "Consensus";
         time = time + TimeSpan.FromHours(12);

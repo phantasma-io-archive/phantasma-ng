@@ -79,7 +79,7 @@ public class NexusSimulator
 
     }
 
-    public NexusSimulator(PhantasmaKeys[] owners, int protocolVersion): this(owners, 123, null, DomainSettings.LatestKnownProtocol)
+    public NexusSimulator(PhantasmaKeys[] owners, int protocolVersion): this(owners, 123, null, protocolVersion)
     {
         
     }
