@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.IO;
+using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.ECDsa;
@@ -6,6 +7,7 @@ using Phantasma.Core.Cryptography.EdDSA;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
+using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.Blockchain.Contracts
 {
@@ -22,7 +24,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         Inactive,
         Active,
         Consensus,
-        Failure
+        Failure,
+        Finished
     }
 
     public struct PollChoice
@@ -60,6 +63,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         public Timestamp endTime;
         public BigInteger choicesPerUser;
         public BigInteger totalVotes;
+        public Timestamp consensusTime;
     }
 
     public struct PollPresence
@@ -88,6 +92,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         public static readonly BigInteger PollVoteLimitDefault = 50000;
         public static readonly BigInteger MaxEntriesPerPollDefault = 10;
         public static readonly BigInteger MaximumPollLengthDefault = MinimumPollLength * 90;
+        public static readonly uint DefaultConsensusTime = 1296000; // 15 Days (timestamp)
 
         public const string SystemPoll = "system.";
 
@@ -179,12 +184,24 @@ namespace Phantasma.Business.Blockchain.Contracts
 
                     Runtime.Notify(EventKind.PollClosed, this.Address, subject);
                 }
+                else
+                {
+                    if (Runtime.ProtocolVersion >= 8)
+                    {
+                        if (Runtime.Time >= poll.endTime.Value + DefaultConsensusTime && poll.state == PollState.Consensus)
+                        {
+                            poll.state = PollState.Finished;
+                            _pollMap.Set<string, ConsensusPoll>(subject, poll);
+                        }
+                    }
+                }
+                
             }
 
             return poll;
         }
 
-        public void InitPoll(Address from, string subject, string organization, ConsensusMode mode, Timestamp startTime, Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser)
+        public void InitPoll(Address from, string subject, string organization, ConsensusMode mode, Timestamp startTime, Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser, Timestamp consensusTime)
         {
             Runtime.Expect(Runtime.OrganizationExists(organization), "invalid organization");
 
@@ -228,7 +245,15 @@ namespace Phantasma.Business.Blockchain.Contracts
             if (_pollMap.ContainsKey<string>(subject))
             {
                 poll = FetchPoll(subject);
-                Runtime.Expect(poll.state == PollState.Consensus || poll.state == PollState.Failure, "poll already in progress");
+                if (Runtime.ProtocolVersion <= 8)
+                {
+                    Runtime.Expect(poll.state == PollState.Consensus || poll.state == PollState.Failure, "poll already in progress");
+                }
+                else
+                {
+                    Runtime.Expect(poll.state == PollState.Consensus || poll.state == PollState.Failure || poll.state == PollState.Finished, "poll already in progress");
+                }
+                
                 poll.round += 1;
                 poll.state = PollState.Inactive;
             }
@@ -246,6 +271,10 @@ namespace Phantasma.Business.Blockchain.Contracts
             poll.state = PollState.Inactive;
             poll.choicesPerUser = votesPerUser;
             poll.totalVotes = 0;
+            if ( Runtime.ProtocolVersion >= 8 )
+            {
+                poll.consensusTime = consensusTime;
+            }
 
             var electionName = SystemPoll + ValidatorContract.ValidatorPollTag;
             if (subject == electionName)
@@ -272,6 +301,12 @@ namespace Phantasma.Business.Blockchain.Contracts
             _pollMap.Set<string, ConsensusPoll>(subject, poll);
 
             Runtime.Notify(EventKind.PollCreated, this.Address, subject);
+        }
+
+        public void InitPoll(Address from, string subject, string organization, ConsensusMode mode, Timestamp startTime,
+            Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser)
+        { 
+            this.InitPoll(from, subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser, DefaultConsensusTime);
         }
 
         public void SingleVote(Address from, string subject, BigInteger index)
