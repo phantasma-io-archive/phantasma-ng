@@ -954,8 +954,6 @@ public class Nexus : INexus
 
         Runtime.Expect(supply.Burn(Runtime.Storage, 1), "supply burning failed");
         
-
-
         if (Runtime.ProtocolVersion <= DomainSettings.Phantasma30Protocol)
         {
             DestroyNFTIfSettlement(Runtime, token, source, destination, tokenID, isSettlement);
@@ -1160,7 +1158,7 @@ public class Nexus : INexus
         if (Runtime.HasGenesis)
         {
             var isSystemDestination = destination.IsSystem && NativeContract.GetNativeContractByAddress(destination) != null;
-            var isSystemSource = source.IsSystem && NativeContract.GetNativeContractByAddress(source) != null;
+            var isSystemSource = source.IsSystem;
             if (Runtime.ProtocolVersion <= 8)
             {
                 if (!isSystemDestination)
@@ -1170,9 +1168,16 @@ public class Nexus : INexus
             }
             else
             {
-                if (isSystemSource && !isSystemDestination)
+                if ( !isSystemDestination && !isSystemSource )
                 {
-                    Runtime.ExpectWarning(Runtime.IsWitness(source), "source is system address and not a witness", source);
+                    Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                }
+                else if (isSystemSource && !isSystemDestination)
+                {
+                    if ( !isOrganaizationTransaction )
+                        Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                    else
+                        Runtime.ExpectWarning(Runtime.IsWitness(source), "source is system address and not a witness", source);
                 }else if (!isSystemDestination)
                 {
                     Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
