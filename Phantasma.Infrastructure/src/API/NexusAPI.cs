@@ -576,16 +576,16 @@ public static class NexusAPI
         result.name = Nexus.RootChain.GetNameFromAddress(Nexus.RootStorage, address, Timestamp.Now);
 
         var stake = Nexus.GetStakeFromAddress(Nexus.RootStorage, address, Timestamp.Now);
+        var unclaimed = Nexus.GetUnclaimedFuelFromAddress(Nexus.RootStorage, address, Timestamp.Now);
 
         if (stake > 0)
         {
-            var unclaimed = Nexus.GetUnclaimedFuelFromAddress(Nexus.RootStorage, address, Timestamp.Now);
             var time = Nexus.GetStakeTimestampOfAddress(Nexus.RootStorage, address, Timestamp.Now);
             result.stakes = new StakeResult() { amount = stake.ToString(), time = time.Value, unclaimed = unclaimed.ToString() };
         }
         else
         {
-            result.stakes = new StakeResult() { amount = "0", time = 0, unclaimed = "0" };
+            result.stakes = new StakeResult() { amount = "0", time = 0, unclaimed = unclaimed.ToString() };
         }
 
         result.storage = FillStorage(address);
