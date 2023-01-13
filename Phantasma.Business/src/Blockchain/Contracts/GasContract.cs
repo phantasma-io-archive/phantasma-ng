@@ -199,11 +199,26 @@ namespace Phantasma.Business.Blockchain.Contracts
             var bpOrg = Runtime.GetOrganization(DomainSettings.ValidatorsOrganizationName);
             if (bpOrg != null)
             {
-                Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, bpOrg.Address, inflationAmount);
-
-                if (bpOrg.Size == 1)
+                if (Runtime.ProtocolVersion <= 8)
                 {
-                    Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Stake), bpOrg.Address, inflationAmount);
+                    Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, bpOrg.Address, inflationAmount);
+
+                    if (bpOrg.Size == 1)
+                    {
+                        Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Stake), bpOrg.Address, inflationAmount);
+                    }
+                }
+                else
+                {
+                    // NOTE: in protocol 9, inflation is distributed to validators, not to the BP org
+                    var bpOrgMembers = bpOrg.GetMembers();
+                    var bpSize = bpOrgMembers.Length;
+                    var bpReward = inflationAmount / bpSize;
+                    foreach (var member in bpOrgMembers)
+                    {
+                        if ( !member.IsNull )
+                            Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, member, bpReward);
+                    }
                 }
             }
 
