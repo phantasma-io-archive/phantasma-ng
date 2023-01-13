@@ -201,7 +201,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             return poll;
         }
 
-        public void InitPoll(Address from, string subject, string organization, ConsensusMode mode, Timestamp startTime, Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser, Timestamp consensusTime)
+        public void InitPollV2(Address from, string subject, string organization, ConsensusMode mode, Timestamp startTime, Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser, Timestamp consensusTime)
         {
             Runtime.Expect(Runtime.OrganizationExists(organization), "invalid organization");
 
@@ -306,7 +306,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void InitPoll(Address from, string subject, string organization, ConsensusMode mode, Timestamp startTime,
             Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser)
         { 
-            this.InitPoll(from, subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser, DefaultConsensusTime);
+            this.InitPollV2(from, subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser, DefaultConsensusTime);
         }
 
         public void SingleVote(Address from, string subject, BigInteger index)
