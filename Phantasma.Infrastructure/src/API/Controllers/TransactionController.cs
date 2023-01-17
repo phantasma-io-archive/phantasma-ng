@@ -228,6 +228,9 @@ namespace Phantasma.Infrastructure.API.Controllers
                 var changeSet = new StorageChangeSetContext(chain.Storage);
                 var oracle = nexus.GetOracleReader();
                 uint offset = 0;
+                
+                // var resultInvokeScript = chain.InvokeScript(changeSet, script, Timestamp.Now);
+                
                 var vm = new RuntimeVM(-1, script, offset, chain, Address.Null, Timestamp.Now, Transaction.Null,
                     changeSet, oracle, ChainTask.Null);
 
@@ -291,6 +294,10 @@ namespace Phantasma.Infrastructure.API.Controllers
                         resultReturn.error = "\nStack is null";
                     }
                 }
+                else
+                {
+                    resultReturn.error = "\nVM is null";
+                }
                 
                 EventResult[] evts = new EventResult[0];
 
@@ -305,6 +312,10 @@ namespace Phantasma.Infrastructure.API.Controllers
                     }else {
                         resultReturn.error += "\nEvents is null";
                     }
+                }
+                else
+                {
+                    resultReturn.error += "\nVM is null";
                 }
 
                 OracleResult[] oracleReads = new OracleResult[0];
@@ -323,8 +334,12 @@ namespace Phantasma.Infrastructure.API.Controllers
                     }
                     else
                     {
-                        resultReturn.error += "\nOracle is null";
+                        resultReturn.error += "\nOracle Entries is null";
                     }
+                }
+                else
+                {
+                    resultReturn.error += "\nOracle is null";
                 }
 
                 var resultArray = results.ToArray();
