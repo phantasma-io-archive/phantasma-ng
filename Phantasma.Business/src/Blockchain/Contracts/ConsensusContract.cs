@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Text;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.ECDsa;
 using Phantasma.Core.Cryptography.EdDSA;
@@ -28,7 +29,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         Finished
     }
 
-    public struct PollChoice
+    public struct PollChoice : ISerializable
     {
         public byte[] value;
         
@@ -36,22 +37,57 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             this.value = value;
         }
+
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.Write(value);
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            value = reader.ReadByteArray();
+        }
     }
 
-    public struct PollValue
+    public struct PollValue : ISerializable
     {
         public byte[] value;
         public BigInteger ranking;
         public BigInteger votes;
+        
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.Write(value);
+            writer.WriteBigInteger(ranking);
+            writer.WriteBigInteger(votes);
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            value = reader.ReadByteArray();
+            ranking = reader.ReadBigInteger();
+            votes = reader.ReadBigInteger();
+        }
     }
 
-    public struct PollVote
+    public struct PollVote : ISerializable
     {
         public BigInteger index;
         public BigInteger percentage;
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.WriteBigInteger(index);
+            writer.WriteBigInteger(percentage);
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            index = reader.ReadBigInteger();
+            percentage = reader.ReadBigInteger();
+        }
     }
 
-    public struct ConsensusPoll
+    public struct ConsensusPoll : ISerializable
     {
         public string subject;
         public string organization;
@@ -64,12 +100,64 @@ namespace Phantasma.Business.Blockchain.Contracts
         public BigInteger choicesPerUser;
         public BigInteger totalVotes;
         public Timestamp consensusTime;
+        
+        
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.WriteVarString(subject);
+            writer.WriteVarString(organization);
+            writer.Write((byte)mode);
+            writer.Write((byte)state);
+            writer.Write(entries.Length);
+            foreach (var entry in entries)
+            {
+                entry.SerializeData(writer);
+            }
+            writer.WriteBigInteger(round);
+            writer.WriteTimestamp(startTime);
+            writer.WriteTimestamp(endTime);
+            writer.WriteBigInteger(choicesPerUser);
+            writer.WriteBigInteger(totalVotes);
+            writer.WriteTimestamp(consensusTime);
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            subject = reader.ReadVarString();
+            organization = reader.ReadVarString();
+            mode = (ConsensusMode)reader.ReadByte();
+            state = (PollState)reader.ReadByte();
+            var count = reader.ReadInt32();
+            entries = new PollValue[count];
+            for (int i = 0; i < count; i++)
+            {
+                entries[i].UnserializeData(reader);
+            }
+            round = reader.ReadBigInteger();
+            startTime = reader.ReadTimestamp();
+            endTime = reader.ReadTimestamp();
+            choicesPerUser = reader.ReadBigInteger();
+            totalVotes = reader.ReadBigInteger();
+            consensusTime = reader.ReadTimestamp();
+        }
     }
 
-    public struct PollPresence
+    public struct PollPresence : ISerializable
     {
         public string subject;
         public BigInteger round;
+        
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.WriteVarString(subject);
+            writer.WriteBigInteger(round);
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            subject = reader.ReadVarString();
+            round = reader.ReadBigInteger();
+        }
     }
 
     public sealed class ConsensusContract : NativeContract

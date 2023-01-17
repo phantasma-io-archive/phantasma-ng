@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Core.Utils
 {
@@ -43,6 +44,11 @@ namespace Phantasma.Core.Utils
             var bytes = n.ToSignedByteArray();
             writer.Write((byte)bytes.Length);
             writer.Write(bytes);
+        }
+        
+        public static void WriteTimestamp(this BinaryWriter writer, Timestamp timestamp)
+        {
+            writer.Write(timestamp.Value); // UInt32
         }
 
         public static void WriteByteArray(this BinaryWriter writer, byte[] bytes)
@@ -90,6 +96,12 @@ namespace Phantasma.Core.Utils
             var length = reader.ReadByte();
             var bytes = reader.ReadBytes(length);
             return new BigInteger(bytes);
+        }
+        
+        public static Timestamp ReadTimestamp(this BinaryReader reader)
+        {
+            var value = reader.ReadUInt32();
+            return new Timestamp(value);
         }
 
         public static byte[] ReadByteArray(this BinaryReader reader)
