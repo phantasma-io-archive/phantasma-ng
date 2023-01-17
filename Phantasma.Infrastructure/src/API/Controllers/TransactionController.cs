@@ -256,6 +256,11 @@ namespace Phantasma.Infrastructure.API.Controllers
                 {
                     if (vm.Stack != null)
                     {
+                        if (vm.Stack.Count == 0)
+                        {
+                            resultReturn.error = "\nStack is empty";
+                        }
+                        
                         while (vm.Stack.Count > 0)
                         {
                             var result = vm.Stack.Pop();
@@ -282,6 +287,25 @@ namespace Phantasma.Infrastructure.API.Controllers
                                 else
                                 {
                                     result = VMObject.CastTo(result, VMType.Struct);
+                                }
+                            }
+                            else if (result.Type == VMType.Struct)
+                            {
+                                if (result.Data.GetType().IsArray)
+                                {
+                                    var array1 = ((Array)result.Data);
+                                    var array2 = new VMObject[array1.Length];
+                                    for (int i = 0; i < array1.Length; i++)
+                                    {
+                                        var obj = array1.GetValue(i);
+
+                                        var vm_obj = VMObject.FromObject(obj);
+                                        vm_obj = VMObject.CastTo(result, VMType.Struct);
+
+                                        array2[i] = vm_obj;
+                                    }
+
+                                    result = VMObject.FromArray(array2);
                                 }
                             }
 
