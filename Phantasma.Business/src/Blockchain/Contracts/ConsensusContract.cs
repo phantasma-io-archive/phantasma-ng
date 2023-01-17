@@ -40,7 +40,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public void SerializeData(BinaryWriter writer)
         {
-            writer.Write(value);
+            writer.WriteByteArray(value);
         }
 
         public void UnserializeData(BinaryReader reader)
@@ -64,7 +64,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         
         public void SerializeData(BinaryWriter writer)
         {
-            writer.Write(value);
+            writer.WriteByteArray(value);
             writer.WriteBigInteger(ranking);
             writer.WriteBigInteger(votes);
         }
