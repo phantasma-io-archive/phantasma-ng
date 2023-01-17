@@ -55,6 +55,13 @@ namespace Phantasma.Business.Blockchain.Contracts
         public BigInteger ranking;
         public BigInteger votes;
         
+        public PollValue(byte[] value, BigInteger ranking, BigInteger votes)
+        {
+            this.value = value;
+            this.ranking = ranking;
+            this.votes = votes;
+        }
+        
         public void SerializeData(BinaryWriter writer)
         {
             writer.Write(value);
@@ -74,6 +81,13 @@ namespace Phantasma.Business.Blockchain.Contracts
     {
         public BigInteger index;
         public BigInteger percentage;
+        
+        public PollVote (BigInteger index, BigInteger percentage)
+        {
+            this.index = index;
+            this.percentage = percentage;
+        }
+        
         public void SerializeData(BinaryWriter writer)
         {
             writer.WriteBigInteger(index);
@@ -101,7 +115,21 @@ namespace Phantasma.Business.Blockchain.Contracts
         public BigInteger totalVotes;
         public Timestamp consensusTime;
         
-        
+        public ConsensusPoll (string subject, string organization, ConsensusMode mode, PollState state, PollValue[] entries, BigInteger round, Timestamp startTime, Timestamp endTime, BigInteger choicesPerUser, BigInteger totalVotes, Timestamp consensusTime)
+        {
+            this.subject = subject;
+            this.organization = organization;
+            this.mode = mode;
+            this.state = state;
+            this.entries = entries;
+            this.round = round;
+            this.startTime = startTime;
+            this.endTime = endTime;
+            this.choicesPerUser = choicesPerUser;
+            this.totalVotes = totalVotes;
+            this.consensusTime = consensusTime;
+        }
+
         public void SerializeData(BinaryWriter writer)
         {
             writer.WriteVarString(subject);
@@ -146,6 +174,12 @@ namespace Phantasma.Business.Blockchain.Contracts
     {
         public string subject;
         public BigInteger round;
+        
+        public PollPresence (string subject, BigInteger round)
+        {
+            this.subject = subject;
+            this.round = round;
+        }
         
         public void SerializeData(BinaryWriter writer)
         {
