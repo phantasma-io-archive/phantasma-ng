@@ -248,6 +248,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                 }
 
                 var results = new Stack<string>();
+                var resultReturn = new ScriptResult();
                 if (vm != null)
                 {
                     if (vm.Stack != null)
@@ -285,6 +286,10 @@ namespace Phantasma.Infrastructure.API.Controllers
                             results.Push(Base16.Encode(resultBytes));
                         }
                     }
+                    else
+                    {
+                        resultReturn.error = "\nStack is null";
+                    }
                 }
                 
                 EventResult[] evts = new EventResult[0];
@@ -296,6 +301,9 @@ namespace Phantasma.Infrastructure.API.Controllers
                         evts = vm.Events.Select(evt => new EventResult()
                                 { address = evt.Address.Text, kind = evt.Kind.ToString(), data = Base16.Encode(evt.Data) })
                             .ToArray();
+                        resultReturn.events = evts;
+                    }else {
+                        resultReturn.error += "\nEvents is null";
                     }
                 }
 
@@ -311,14 +319,18 @@ namespace Phantasma.Infrastructure.API.Controllers
                                 ? x.Content as byte[]
                                 : Serialization.Serialize(x.Content)))
                         }).ToArray();
+                        resultReturn.oracles = oracleReads;
+                    }
+                    else
+                    {
+                        resultReturn.error += "\nOracle is null";
                     }
                 }
 
                 var resultArray = results.ToArray();
-                return new ScriptResult
-                {
-                    results = resultArray, result = resultArray.FirstOrDefault(), events = evts, oracles = oracleReads
-                };
+                resultReturn.result = resultArray.FirstOrDefault();
+                resultReturn.results = resultArray;
+                return resultReturn;
             }
             catch (APIException apiException)
             {
