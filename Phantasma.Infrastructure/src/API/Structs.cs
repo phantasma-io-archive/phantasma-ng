@@ -468,6 +468,8 @@ namespace Phantasma.Infrastructure.API
         public EventResult[] events { get; set; }
 
         public string result { get; set; } // deprecated
+        
+        public string error { get; set; } // deprecated
 
         [APIDescription("Results of the transaction, if any. Serialized, in hexadecimal format")]
         public string[] results { get; set; }
