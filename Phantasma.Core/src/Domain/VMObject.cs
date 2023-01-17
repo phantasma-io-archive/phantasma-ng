@@ -1498,26 +1498,33 @@ namespace Phantasma.Core.Domain
             {
                 case VMType.Bool:
                     this.Data = Serialization.Unserialize<bool>(reader);
+                    this._localSize = 1;
                     break;
 
                 case VMType.Bytes:
                     this.Data = Serialization.Unserialize<byte[]>(reader);
+                    this._localSize = ((byte[])this.Data).Length;
                     break;
 
                 case VMType.Number:
                     this.Data = Serialization.Unserialize<BigInteger>(reader);
+                    this._localSize = 32;
                     break;
 
                 case VMType.Timestamp:
                     this.Data = Serialization.Unserialize<Timestamp>(reader);
+                    this._localSize = 8;
                     break;
 
                 case VMType.String:
                     this.Data = Serialization.Unserialize<string>(reader);
+                    this._localSize = this.Data != null ? (int)(this.Data as string).Length : 0;
+
                     break;
 
                 case VMType.Struct:
                     var childCount = reader.ReadVarInt();
+                    this._localSize = childCount != null ? (int)childCount : 0;
                     var children = new Dictionary<VMObject, VMObject>();
                     while (childCount > 0)
                     {
@@ -1534,10 +1541,12 @@ namespace Phantasma.Core.Domain
                     }
 
                     this.Data = children;
+
                     break;
 
                 case VMType.Object:
                     var bytes = reader.ReadByteArray();
+                    this._localSize = bytes != null ? bytes.Length : 0;
 
                     if (bytes.Length == 35)
                     {
@@ -1557,6 +1566,8 @@ namespace Phantasma.Core.Domain
                 case VMType.Enum:
                     this.Type = VMType.Enum;
                     this.Data = (uint)reader.ReadVarInt();
+                    this._localSize = 1;
+
                     break;
 
                 case VMType.None:
@@ -1567,6 +1578,7 @@ namespace Phantasma.Core.Domain
                 default:
                     throw new Exception($"invalid unserialize: type {this.Type}");
             }
+            
         }
     }
 

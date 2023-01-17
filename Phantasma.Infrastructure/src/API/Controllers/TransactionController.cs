@@ -199,96 +199,138 @@ namespace Phantasma.Infrastructure.API.Controllers
         public ScriptResult InvokeRawScript([APIParameter("Address or name of chain", "root")] string chainInput, [APIParameter("Serialized script bytes, in hexadecimal format", "0000000000")] string scriptData)
         {
             var chain = NexusAPI.FindChainByInput(chainInput);
-            if (chain == null)
-            {
-                throw new APIException("invalid chain");
-            }
-
-            byte[] script;
             try
             {
-                script = Base16.Decode(scriptData);
-            }
-            catch
-            {
-                throw new APIException("Failed to decode script");
-            }
-
-            if (script.Length == 0)
-            {
-                throw new APIException("Invalid transaction script");
-            }
-
-            //System.IO.File.AppendAllLines(@"c:\code\bug_vm.txt", new []{string.Join("\n", new VM.Disassembler(script).Instructions)});
-
-            var nexus = NexusAPI.GetNexus();
-
-            var changeSet = new StorageChangeSetContext(chain.Storage);
-            var oracle = nexus.GetOracleReader();
-            uint offset = 0;
-            var vm = new RuntimeVM(-1, script, offset, chain, Address.Null, Timestamp.Now, Transaction.Null, changeSet, oracle, ChainTask.Null);
-
-            string error = null;
-            ExecutionState state = ExecutionState.Fault;
-            try
-            {
-                state = vm.Execute();
-            }
-            catch (Exception e)
-            {
-                error = e.Message;
-            }
-
-            if (error != null)
-            {
-                throw new APIException($"Execution failed: {error}");
-            }
-
-            var results = new Stack<string>();
-
-            while (vm.Stack.Count > 0)
-            {
-                var result = vm.Stack.Pop();
-
-                if (result.Type == VMType.Object)
+                if (chain == null)
                 {
-                    // NOTE currently supports simple arrays of C# objects. If something more complex in ncessary later, its good idea to rewrite this a recursive method
-                    if (result.Data.GetType().IsArray)
+                    throw new APIException("invalid chain");
+                }
+
+                byte[] script;
+                try
+                {
+                    script = Base16.Decode(scriptData);
+                }
+                catch
+                {
+                    throw new APIException("Failed to decode script");
+                }
+
+                if (script.Length == 0)
+                {
+                    throw new APIException("Invalid transaction script");
+                }
+
+                //System.IO.File.AppendAllLines(@"c:\code\bug_vm.txt", new []{string.Join("\n", new VM.Disassembler(script).Instructions)});
+
+                var nexus = NexusAPI.GetNexus();
+
+                var changeSet = new StorageChangeSetContext(chain.Storage);
+                var oracle = nexus.GetOracleReader();
+                uint offset = 0;
+                var vm = new RuntimeVM(-1, script, offset, chain, Address.Null, Timestamp.Now, Transaction.Null,
+                    changeSet, oracle, ChainTask.Null);
+
+                string error = null;
+                ExecutionState state = ExecutionState.Fault;
+                try
+                {
+                    state = vm.Execute();
+                }
+                catch (Exception e)
+                {
+                    error = e.Message;
+                }
+
+                if (error != null)
+                {
+                    throw new APIException($"Execution failed: {error}");
+                }
+
+                var results = new Stack<string>();
+                if (vm != null)
+                {
+                    if (vm.Stack != null)
                     {
-                        var array1 = ((Array)result.Data);
-                        var array2 = new VMObject[array1.Length];
-                        for (int i=0; i<array1.Length; i++)
+                        while (vm.Stack.Count > 0)
                         {
-                            var obj = array1.GetValue(i);
-                    
-                            var vm_obj = VMObject.FromObject(obj);
-                            vm_obj = VMObject.CastTo(result, VMType.Struct);
-                    
-                            array2[i] = vm_obj;
+                            var result = vm.Stack.Pop();
+
+                            if (result.Type == VMType.Object)
+                            {
+                                // NOTE currently supports simple arrays of C# objects. If something more complex in ncessary later, its good idea to rewrite this a recursive method
+                                if (result.Data.GetType().IsArray)
+                                {
+                                    var array1 = ((Array)result.Data);
+                                    var array2 = new VMObject[array1.Length];
+                                    for (int i = 0; i < array1.Length; i++)
+                                    {
+                                        var obj = array1.GetValue(i);
+
+                                        var vm_obj = VMObject.FromObject(obj);
+                                        vm_obj = VMObject.CastTo(result, VMType.Struct);
+
+                                        array2[i] = vm_obj;
+                                    }
+
+                                    result = VMObject.FromArray(array2);
+                                }
+                                else
+                                {
+                                    result = VMObject.CastTo(result, VMType.Struct);
+                                }
+                            }
+
+                            var resultBytes = Serialization.Serialize(result);
+                            results.Push(Base16.Encode(resultBytes));
                         }
-                    
-                        result = VMObject.FromArray(array2);
                     }
-                    else
+                }
+                
+                EventResult[] evts = new EventResult[0];
+
+                if (vm != null)
+                {
+                    if ( vm.Events != null)
                     {
-                        result = VMObject.CastTo(result, VMType.Struct);
+                        evts = vm.Events.Select(evt => new EventResult()
+                                { address = evt.Address.Text, kind = evt.Kind.ToString(), data = Base16.Encode(evt.Data) })
+                            .ToArray();
                     }
                 }
 
-                var resultBytes = Serialization.Serialize(result);
-                results.Push(Base16.Encode(resultBytes));
+                OracleResult[] oracleReads = new OracleResult[0];
+                if (oracle != null)
+                {
+                    if (oracle.Entries != null)
+                    {
+                        oracleReads = oracle.Entries.Select(x => new OracleResult()
+                        {
+                            url = x.URL,
+                            content = Base16.Encode((x.Content.GetType() == typeof(byte[])
+                                ? x.Content as byte[]
+                                : Serialization.Serialize(x.Content)))
+                        }).ToArray();
+                    }
+                }
+
+                var resultArray = results.ToArray();
+                return new ScriptResult
+                {
+                    results = resultArray, result = resultArray.FirstOrDefault(), events = evts, oracles = oracleReads
+                };
             }
-
-            var evts = vm.Events.Select(evt => new EventResult() { address = evt.Address.Text, kind = evt.Kind.ToString(), data = Base16.Encode(evt.Data) }).ToArray();
-
-            var oracleReads = oracle.Entries.Select(x => new OracleResult()
+            catch (APIException apiException)
             {
-                url = x.URL,
-                content = Base16.Encode((x.Content.GetType() == typeof(byte[]) ? x.Content as byte[] : Serialization.Serialize(x.Content)))
-            }).ToArray();
-
-            var resultArray = results.ToArray();
-            return new ScriptResult { results = resultArray, result = resultArray.FirstOrDefault(), events = evts, oracles = oracleReads };
+                Log.Error($"API - Call error -> {apiException.Message}");
+                throw;
+            }
+            catch(Exception e)
+            {
+                var result = new ScriptResult();
+                result.error = e.Message;
+                return result;
+            }
         }
 
         [APIInfo(typeof(TransactionResult), "Returns information about a transaction by hash.", false, -1, false)]

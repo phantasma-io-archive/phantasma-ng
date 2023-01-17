@@ -437,6 +437,9 @@ namespace Phantasma.Business.Blockchain.Contracts
         
         public ConsensusPoll[] GetConsensusPolls()
         {
+            return _pollMap.AllValues<ConsensusPoll>();
+
+            /*
             var count = _pollList.Count();
             var result = new ConsensusPoll[(int)count];
             var pollList = _pollList.All<string>();
@@ -447,7 +450,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 index++;
             }
             
-            return result;
+            return result;*/
         }
         
         #region Multisignature Transactions
