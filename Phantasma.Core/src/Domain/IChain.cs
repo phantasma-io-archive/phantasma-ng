@@ -20,6 +20,7 @@ public interface IChain
     bool IsRoot { get; }
     IContract[] GetContracts(StorageContext storage);
     void AddBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet);
+    byte[]  SetBlock(Block block, IEnumerable<Transaction> transactions);
 
     BigInteger GetTokenBalance(StorageContext storage, IToken token, Address address);
     BigInteger GetTokenBalance(StorageContext storage, string symbol, Address address);
