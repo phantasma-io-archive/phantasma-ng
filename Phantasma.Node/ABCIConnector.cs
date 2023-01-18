@@ -249,7 +249,15 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             else
             {
                 var result = _rpc.RequestBlock((int)chain.CurrentBlock.Height);
-                var data = HandleRequestBlock(chain, result.Response);
+                try
+                {
+                    var data = HandleRequestBlock(chain, result.Response);
+                }
+                catch ( Exception e)
+                {
+                    Log.Information(e.ToString());
+                    Log.Error("Something went wrong while requesting the block");
+                }
                 //var data = chain.Commit();
             }
         }
