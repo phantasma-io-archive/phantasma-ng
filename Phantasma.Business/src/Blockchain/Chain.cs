@@ -488,64 +488,62 @@ namespace Phantasma.Business.Blockchain
 
             // from here on, the block is accepted
             changeSet.Execute();
+            
+            this.SetBlock(block, transactions);
+        }
 
+        public byte[] SetBlock(Block block, IEnumerable<Transaction> transactions)
+        {
+            // Validate block 
+            if (!VerifyBlockBeforeAdd(block))
+            {
+                throw new ChainException("Invalid block");
+            }
+            
+            if (!block.IsSigned)
+            {
+                throw new ChainException("Block is not signed");
+            }
+                
+            if ( block.PreviousHash != this.CurrentBlock.PreviousHash)
+            {
+                throw new ChainException("Block previous hash is not the same as the current block");
+            }
+                
+            if ( block.Height != this.CurrentBlock.Height)
+            {
+                throw new ChainException("Block height is not the same as the current block");
+            }
+
+            if (block.Timestamp != this.CurrentBlock.Timestamp)
+            {
+                throw new ChainException("Block timestamp is not the same as the current block");
+            }
+
+            if (block.ChainAddress != this.CurrentBlock.ChainAddress)
+            {
+                throw new ChainException("Block chain address is not the same as the current block");
+            }
+                
+            if ( block.Events != this.CurrentBlock.Events)
+            {
+                throw new ChainException("Block events are not the same as the current block");
+            }
+                
+            if ( block.Protocol != this.CurrentBlock.Protocol)
+            {
+                throw new ChainException("Block protocol is not the same as the current block");
+            }
+            
             var hashList = new StorageList(BlockHeightListTag, this.Storage);
             hashList.Add<Hash>(block.Hash);
-
+            
             // persist genesis hash at height 1
             if (block.Height == 1)
             {
                 var genesisHash = block.Hash;
                 Nexus.CommitGenesis(genesisHash);
             }
-
-            var blockMap = new StorageMap(BlockHashMapTag, this.Storage);
-
-            var blockBytes = block.ToByteArray(true);
-
-            var blk = Block.Unserialize(blockBytes);
-            blockBytes = CompressionUtils.Compress(blockBytes);
-            blockMap.Set<Hash, byte[]>(block.Hash, blockBytes);
-
-            var txMap = new StorageMap(TransactionHashMapTag, this.Storage);
-            var txBlockMap = new StorageMap(TxBlockHashMapTag, this.Storage);
-            foreach (Transaction tx in transactions)
-            {
-                var txBytes = tx.ToByteArray(true);
-                txBytes = CompressionUtils.Compress(txBytes);
-                txMap.Set<Hash, byte[]>(tx.Hash, txBytes);
-                txBlockMap.Set<Hash, Hash>(tx.Hash, block.Hash);
-            }
-        
-
-            foreach (var transaction in transactions)
-            {
-                var addresses = new HashSet<Address>();
-                var events = block.GetEventsForTransaction(transaction.Hash);
-
-                foreach (var evt in events)
-                {
-                    if (evt.Contract == "gas" && (evt.Address.IsSystem || evt.Address == block.Validator))
-                    {
-                        continue;
-                    }
-
-                    addresses.Add(evt.Address);
-                }
-
-                var addressTxMap = new StorageMap(AddressTxHashMapTag, this.Storage);
-                foreach (var address in addresses)
-                {
-                    var addressList = addressTxMap.Get<Address, StorageList>(address);
-                    addressList.Add<Hash>(transaction.Hash);
-                }
-            }
-        }
-
-        public byte[] SetBlock(Block block, IEnumerable<Transaction> transactions)
-        {
-            var hashList = new StorageList(BlockHeightListTag, this.Storage);
-            hashList.Add<Hash>(block.Hash);
             
             var blockMap = new StorageMap(BlockHashMapTag, this.Storage);
             
