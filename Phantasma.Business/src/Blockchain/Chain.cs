@@ -428,6 +428,8 @@ namespace Phantasma.Business.Blockchain
         public byte[] Commit()
         {
             Log.Information("Committing block {Height}", this.CurrentBlock.Height);
+            Block lastBlock = this.CurrentBlock;
+            
             try
             {
                 AddBlock(this.CurrentBlock, this.CurrentTransactions, this.CurrentChangeSet);
@@ -438,12 +440,6 @@ namespace Phantasma.Business.Blockchain
                 Log.Error("Critical failure {Error}", e);
                 Environment.Exit(-1);
             }
-
-            Block lastBlock = this.CurrentBlock;
-            this.CurrentBlock = null;
-            this.CurrentTransactions.Clear();
-
-            Log.Information("Committed block {Height}", lastBlock.Height);
 
             return lastBlock.Hash.ToByteArray();
         }
