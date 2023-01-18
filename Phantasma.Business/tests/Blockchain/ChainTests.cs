@@ -232,15 +232,15 @@ public class ChainTests
         Filter.Test(() =>
         {
             var firstOwner = PhantasmaKeys.Generate();
-
-            var simulator = new NexusSimulator(firstOwner);
-            var nexus = simulator.Nexus;
-            
-            simulator.GetFundsInTheFuture(firstOwner);
-
             var secondOwner = PhantasmaKeys.Generate();
             var testUser = PhantasmaKeys.Generate();
             var anotherTestUser = PhantasmaKeys.Generate();
+
+            var simulator = new NexusSimulator(
+                new []{firstOwner, testUser});
+            var nexus = simulator.Nexus;
+            
+            simulator.GetFundsInTheFuture(firstOwner);
 
             var fuelAmount = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
             var transferAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
@@ -254,6 +254,8 @@ public class ChainTests
             var oldToken = nexus.GetTokenInfo(nexus.RootStorage, DomainSettings.RewardTokenSymbol);
             Assert.True(oldToken.Owner == firstOwner.Address);
 
+            simulator.SetValidator(testUser);
+            
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(firstOwner, ProofOfWork.None, () =>
             {
@@ -288,6 +290,9 @@ public class ChainTests
             Assert.True(crownBalance == 21);
 
             var thirdOwner = PhantasmaKeys.Generate();
+            
+            simulator.SetValidator(testUser);
+
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(secondOwner, ProofOfWork.None, () =>
