@@ -542,6 +542,61 @@ namespace Phantasma.Business.Blockchain
             }
         }
 
+        public byte[] SetBlock(Block block, IEnumerable<Transaction> transactions)
+        {
+            var hashList = new StorageList(BlockHeightListTag, this.Storage);
+            hashList.Add<Hash>(block.Hash);
+            
+            var blockMap = new StorageMap(BlockHashMapTag, this.Storage);
+            
+            var blockBytes = block.ToByteArray(true);
+
+            var blk = Block.Unserialize(blockBytes);
+            blockBytes = CompressionUtils.Compress(blockBytes);
+            blockMap.Set<Hash, byte[]>(block.Hash, blockBytes);
+
+            var txMap = new StorageMap(TransactionHashMapTag, this.Storage);
+            var txBlockMap = new StorageMap(TxBlockHashMapTag, this.Storage);
+
+            foreach (Transaction tx in transactions)
+            {
+                var txBytes = tx.ToByteArray(true);
+                txBytes = CompressionUtils.Compress(txBytes);
+                txMap.Set<Hash, byte[]>(tx.Hash, txBytes);
+                txBlockMap.Set<Hash, Hash>(tx.Hash, block.Hash);
+            }
+            
+            foreach (var transaction in transactions)
+            {
+                var addresses = new HashSet<Address>();
+                var events = block.GetEventsForTransaction(transaction.Hash);
+
+                foreach (var evt in events)
+                {
+                    if (evt.Contract == "gas" && (evt.Address.IsSystem || evt.Address == block.Validator))
+                    {
+                        continue;
+                    }
+
+                    addresses.Add(evt.Address);
+                }
+
+                var addressTxMap = new StorageMap(AddressTxHashMapTag, this.Storage);
+                foreach (var address in addresses)
+                {
+                    var addressList = addressTxMap.Get<Address, StorageList>(address);
+                    addressList.Add<Hash>(transaction.Hash);
+                }
+            }
+            
+            Block lastBlock = this.CurrentBlock;
+            this.CurrentBlock = null;
+            this.CurrentTransactions.Clear();
+
+            Log.Information("Committed block {Height}", lastBlock.Height);
+            return lastBlock.Hash.ToByteArray();
+        }
+
         private TransactionResult ExecuteTransaction(int index, Transaction transaction, byte[] script, Address validator, Timestamp time, StorageChangeSetContext changeSet
                 , Action<Hash, Event> onNotify, IOracleReader oracle, IChainTask task)
         {

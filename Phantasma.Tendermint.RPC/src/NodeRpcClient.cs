@@ -175,6 +175,12 @@ namespace Tendermint.RPC
             request.AddQueryParameter("hash", hash);
             return Execute<ResultBlock>(request);
         }
+        
+        public ResultBlock LatestBlock()
+        {
+            RestRequest request = new RestRequest("block", Method.GET);
+            return Execute<ResultBlock>(request);
+        }
 
         public ResultBlockResults BlockResults(long? height = null)
         {
@@ -184,6 +190,16 @@ namespace Tendermint.RPC
                 request.AddQueryParameter("height", height.Value.ToString());
             }
             return Execute<ResultBlockResults>(request);
+        }
+        
+        public ResultAbciQuery BroadcastBlock(string blockAndTransactions)
+        {
+            return AbciQuery("/phantasma/block_sync/set", blockAndTransactions, 0, true);
+        }
+        
+        public ResultAbciQuery RequestBlock(int height)
+        {
+            return AbciQuery("/phantasma/block_sync/get", height.ToString(), 0, true);
         }
 
         public ResultBlockchainInfo Blockchain(long minHeight, long maxHeight)
