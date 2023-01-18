@@ -535,6 +535,26 @@ namespace Phantasma.Business.Blockchain
                 throw new ChainException("Block protocol is not the same as the current block");
             }
             
+            if ( !Nexus.IsPrimaryValidator(block.Validator, Timestamp.Now) )
+            {
+                throw new ChainException("Block validator is not a valid validator");
+            }
+            
+            if ( block.TransactionHashes.Count() != this.CurrentBlock.TransactionHashes.Count())
+            {
+                throw new ChainException("Block transaction hashes are not the same as the current block");
+            }
+
+            if (transactions.Select(tx => tx.IsValid(this)).All(valid => !valid))
+            {
+                throw new ChainException("Block transactions are not valid");
+            }
+            
+            if (transactions.Select(tx => tx.Hash).All(hash => !this.CurrentBlock.TransactionHashes.Contains(hash)))
+            {
+                throw new ChainException("Block transactions are not the same as the current block");
+            }
+            
             var hashList = new StorageList(BlockHeightListTag, this.Storage);
             hashList.Add<Hash>(block.Hash);
             
@@ -616,7 +636,6 @@ namespace Phantasma.Business.Blockchain
             {
                 onNotify(transaction.Hash, evt);
             }
-            
 
             if (result.State != ExecutionState.Halt)
             {
