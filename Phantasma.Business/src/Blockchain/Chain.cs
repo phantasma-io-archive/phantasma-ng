@@ -428,6 +428,7 @@ namespace Phantasma.Business.Blockchain
         public byte[] Commit()
         {
             Log.Information("Committing block {Height}", this.CurrentBlock.Height);
+            this.CurrentBlock.Sign(ValidatorKeys);
             Block lastBlock = this.CurrentBlock;
             
             try

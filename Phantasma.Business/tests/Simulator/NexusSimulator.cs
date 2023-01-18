@@ -179,6 +179,12 @@ public class NexusSimulator
         */
     }
 
+    public void SetValidator( PhantasmaKeys validator)
+    {
+        _currentValidator = validator;
+        this.Nexus.RootChain.ValidatorKeys = _currentValidator;
+    }
+
     public void GetFundsInTheFuture(PhantasmaKeys target)
     {
         for(int i = 0; i < 40; i++)
