@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.Core;
@@ -28,6 +29,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     private List<Transaction> _pendingTxs = new List<Transaction>();
     private BigInteger _minimumFee;
     private Timestamp currentBlockTime;
+    private int _delayRequests = 1000;
 
     // TODO add logger
     public ABCIConnector(IEnumerable<Address> initialValidators, BigInteger minimumFee)
@@ -90,16 +92,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             IEnumerable<Transaction> systemTransactions;
             if (chain.CurrentBlock != null)
             {
-                try
-                {
-                    var result = _rpc.RequestBlock((int)chain.CurrentBlock.Height);
-                    var data =  HandleRequestBlock(chain, result.Response);
-                }
-                catch ( Exception e)
-                {
-                    Log.Information(e.ToString());
-                    Log.Error("Something went wrong while requesting the block");
-                }
+                AttemptRequestBlock(chain);
             }
             systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, time, this._initialValidators); 
         }
@@ -253,22 +246,22 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                 var transactions = chain.GetBlockTransactions(block);
                 var rpcBroadcast = "block:" + Base16.Encode(blockBytes);
                 rpcBroadcast += "_transactions:" + Base16.Encode(transactions.Serialize());
-                _rpc.BroadcastBlock(rpcBroadcast);
-                Log.Information("Broadcast block {Block}", blockString);
+                try
+                {
+                    _rpc.BroadcastBlock(rpcBroadcast);
+                    Log.Information("Broadcast block {Block}", blockString);
+                }
+                catch(Exception e)
+                {
+                    Log.Information(e.ToString());
+                    Log.Error("Something went wrong while broadcasting the block");
+                }
+                
             }
         }
         else
         {
-            try
-            {
-                var result = _rpc.RequestBlock((int)chain.CurrentBlock.Height);
-                var data =  HandleRequestBlock(chain, result.Response);
-            }
-            catch ( Exception e)
-            {
-                Log.Information(e.ToString());
-                Log.Error("Something went wrong while requesting the block");
-            }
+            AttemptRequestBlock(chain);
             //var data = chain.Commit();
         }
         var response = new ResponseCommit();
@@ -285,6 +278,29 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         var transactions =
             Serialization.Unserialize<IEnumerable<Transaction>>(Base16.Decode(transactionsEncoded));
         return Task.FromResult(chain.SetBlock(block, transactions));
+    }
+    
+    private Task<byte[]> AttemptRequestBlock(Chain chain)
+    {
+        var numberOfAttemps = 3;
+        while (numberOfAttemps > 0)
+        {
+            try
+            {
+                var result = _rpc.RequestBlock((int)chain.CurrentBlock.Height);
+                var data =  HandleRequestBlock(chain, result.Response);
+                return data;
+            }
+            catch ( Exception e)
+            {
+                Log.Information(e.ToString());
+                Log.Error("Something went wrong while requesting the block, Attempts {NumberOfAttemps}", numberOfAttemps);
+            }
+            numberOfAttemps--;
+            Thread.Sleep(_delayRequests);
+        }
+        
+        return Task.FromResult(new byte[0]);
     }
 
     public override Task<ResponseEcho> Echo(RequestEcho request, ServerCallContext context)

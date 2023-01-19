@@ -442,6 +442,8 @@ namespace Phantasma.Business.Blockchain
                 Environment.Exit(-1);
             }
 
+            this.CurrentBlock = null;
+            this.CurrentTransactions.Clear();
             return lastBlock.Hash.ToByteArray();
         }
 
