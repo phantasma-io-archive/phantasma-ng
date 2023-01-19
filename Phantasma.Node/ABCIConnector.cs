@@ -88,6 +88,19 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             var chain = _nexus.RootChain as Chain;
 
             IEnumerable<Transaction> systemTransactions;
+            if (chain.CurrentBlock != null)
+            {
+                try
+                {
+                    var result = _rpc.RequestBlock((int)chain.CurrentBlock.Height);
+                    var data =  HandleRequestBlock(chain, result.Response);
+                }
+                catch ( Exception e)
+                {
+                    Log.Information(e.ToString());
+                    Log.Error("Something went wrong while requesting the block");
+                }
+            }
             systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, time, this._initialValidators); 
         }
         catch (Exception e)
@@ -227,7 +240,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         Log.Information($"ABCI Connector - Commit");
 
         var chain = _nexus.RootChain as Chain;
-            // Is signed by me and I am the proposer
+        // Is signed by me and I am the proposer
         if (chain.CurrentBlock.Validator == this._owner.Address)
         {
             var signature = this._owner.Sign(chain.CurrentBlock.ToByteArray(false));
@@ -249,7 +262,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             try
             {
                 var result = _rpc.RequestBlock((int)chain.CurrentBlock.Height);
-                var data = HandleRequestBlock(chain, result.Response);
+                var data =  HandleRequestBlock(chain, result.Response);
             }
             catch ( Exception e)
             {
