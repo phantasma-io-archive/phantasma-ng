@@ -246,6 +246,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                 var transactions = chain.GetBlockTransactions(block);
                 var rpcBroadcast = "block:" + Base16.Encode(blockBytes);
                 rpcBroadcast += "_transactions:" + Base16.Encode(transactions.Serialize());
+                chain.Commit();
                 try
                 {
                     _rpc.BroadcastBlock(rpcBroadcast);
@@ -271,6 +272,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     private Task<byte[]> HandleRequestBlock(Chain chain, Tendermint.RPC.Endpoint.ResponseQuery response)
     {
+        if ( response.Code != (int) CodeType.Ok) return Task.FromResult(new byte[0]);
         var split = response.Value.Split("_");
         var blockEncoded = split[0].Split(":")[1];
         var block = Serialization.Unserialize<Block>(Base16.Decode(blockEncoded));
@@ -403,12 +405,20 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         {
             if (request.Path.Contains("/get"))
             {
+                Log.Information($"ABCI Connector - Query - Getter block");
                 try
                 {
                     var chain = _nexus.RootChain as Chain;
                     var bytes = request.Data.ToByteArray();
-                    var height = Serialization.Unserialize<BigInteger>(bytes);
+                    var height = Serialization.Unserialize<int>(bytes);
                     var hash = chain.GetBlockHashAtHeight(height);
+                    
+                    if ( hash == Hash.Null )
+                    {
+                        query.Code = (int)CodeType.Error;
+                        return Task.FromResult(query);
+                    }
+                    
                     var block = chain.GetBlockByHash(hash);
                     var blockBytes = chain.GetBlockByHash(hash).ToByteArray(true);
                     var transactions = chain.GetBlockTransactions(block);
