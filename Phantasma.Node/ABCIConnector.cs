@@ -276,10 +276,13 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         if ( response.Code != (int) CodeType.Ok) return Task.FromResult(new byte[0]);
         if ( response.Value == null ) return Task.FromResult(new byte[0]);
         var blockString = ByteString.FromBase64(response.Value).ToStringUtf8();
+        Log.Information("Received block {Block}", blockString);
         var split = blockString.Split("_");
         var blockEncoded = split[0].Split(":")[1];
+        Log.Information("Block info : {Block}", blockEncoded);
         var block = Serialization.Unserialize<Block>(Base16.Decode(blockEncoded));
         var transactionsEncoded = split[1].Split(":")[1];
+        Log.Information("Transactions info : {Transactions}", transactionsEncoded);
         var transactions =
             Serialization.Unserialize<Transaction[]>(Base16.Decode(transactionsEncoded));
         return Task.FromResult(chain.SetBlock(block, transactions));

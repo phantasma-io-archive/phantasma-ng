@@ -27,6 +27,8 @@ namespace Tendermint.RPC
         {
             request.RequestFormat = DataFormat.Json;
             var response = restClient.Execute<RpcResponse<T>>(request);
+            Console.WriteLine("Request -> " + request.Resource);
+            Console.WriteLine("Request -> " + request.Parameters);
             if (response.StatusCode != HttpStatusCode.OK || response.ErrorException != null)
             {
                 string message = $"RestClient response error StatusCode: {(int)response.StatusCode} {response.StatusCode}";
@@ -198,7 +200,13 @@ namespace Tendermint.RPC
         
         public ResultAbciQuery RequestBlock(string height)
         {
-            return AbciQuery("/phantasma/block_sync/get", height, 0, false);
+            RestRequest request = new RestRequest("abci_query", Method.GET);
+            request.AddParameter("path", "\"/phantasma/block_sync/get\"");
+            request.AddParameter("data", height);
+            request.AddParameter("height", "0");
+            request.AddParameter("prove", "false");
+            return Execute<ResultAbciQuery>(request);
+            
         }
 
         public ResultBlockchainInfo Blockchain(long minHeight, long maxHeight)
