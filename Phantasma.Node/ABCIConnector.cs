@@ -227,39 +227,36 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         Log.Information($"ABCI Connector - Commit");
 
         var chain = _nexus.RootChain as Chain;
-        if (chain.CurrentBlock.IsSigned)
-        {
             // Is signed by me and I am the proposer
-            if (chain.CurrentBlock.Validator == this._owner.Address)
+        if (chain.CurrentBlock.Validator == this._owner.Address)
+        {
+            var signature = this._owner.Sign(chain.CurrentBlock.ToByteArray(false));
+            if ( signature  == chain.CurrentBlock.Signature)
             {
-                var signature = this._owner.Sign(chain.CurrentBlock.ToByteArray(false));
-                if ( signature  == chain.CurrentBlock.Signature)
-                {
-                    // Broadcast the block
-                    var blockString = Base16.Encode(chain.CurrentBlock.ToByteArray(true));
-                    var block = chain.CurrentBlock;
-                    var blockBytes = block.ToByteArray(true);
-                    var transactions = chain.GetBlockTransactions(block);
-                    var rpcBroadcast = "block:" + Base16.Encode(blockBytes);
-                    rpcBroadcast += "_transactions:" + Base16.Encode(transactions.Serialize());
-                    _rpc.BroadcastBlock(rpcBroadcast);
-                    Log.Information("Broadcast block {Block}", blockString);
-                }
+                // Broadcast the block
+                var blockString = Base16.Encode(chain.CurrentBlock.ToByteArray(true));
+                var block = chain.CurrentBlock;
+                var blockBytes = block.ToByteArray(true);
+                var transactions = chain.GetBlockTransactions(block);
+                var rpcBroadcast = "block:" + Base16.Encode(blockBytes);
+                rpcBroadcast += "_transactions:" + Base16.Encode(transactions.Serialize());
+                _rpc.BroadcastBlock(rpcBroadcast);
+                Log.Information("Broadcast block {Block}", blockString);
             }
-            else
+        }
+        else
+        {
+            try
             {
                 var result = _rpc.RequestBlock((int)chain.CurrentBlock.Height);
-                try
-                {
-                    var data = HandleRequestBlock(chain, result.Response);
-                }
-                catch ( Exception e)
-                {
-                    Log.Information(e.ToString());
-                    Log.Error("Something went wrong while requesting the block");
-                }
-                //var data = chain.Commit();
+                var data = HandleRequestBlock(chain, result.Response);
             }
+            catch ( Exception e)
+            {
+                Log.Information(e.ToString());
+                Log.Error("Something went wrong while requesting the block");
+            }
+            //var data = chain.Commit();
         }
         var response = new ResponseCommit();
         //response.Data = ByteString.CopyFrom(data); // this would change the app hash, we don't want that
