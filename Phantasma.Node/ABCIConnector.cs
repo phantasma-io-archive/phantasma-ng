@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -234,31 +235,31 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
         var chain = _nexus.RootChain as Chain;
         // Is signed by me and I am the proposer
-        if (chain.CurrentBlock.Validator == this._owner.Address)
+        Log.Information("Block {Height} is signed by {Address}", chain.Height, chain.CurrentBlock.Validator);
+        if (chain.CurrentBlock.Validator == chain.ValidatorAddress)
         {
-            var signature = this._owner.Sign(chain.CurrentBlock.ToByteArray(false));
-            if ( signature  == chain.CurrentBlock.Signature)
+            Log.Information("Block {Height} Is Being Validated by me.");
+            chain.Commit();
+        
+            /*chain.CurrentBlock.Sign(chain.ValidatorKeys);
+            var blockString = Base16.Encode(chain.CurrentBlock.ToByteArray(true));
+            var transactions = chain.Transactions.ToArray();
+            var transactionString = Base16.Encode(transactions.Serialize());
+
+            
+            // Broadcast the block
+            var rpcBroadcast = "block:" + blockString;
+            rpcBroadcast += "_transactions:" + transactionString;
+            try
             {
-                // Broadcast the block
-                var blockString = Base16.Encode(chain.CurrentBlock.ToByteArray(true));
-                var block = chain.CurrentBlock;
-                var blockBytes = block.ToByteArray(true);
-                var transactions = chain.GetBlockTransactions(block);
-                var rpcBroadcast = "block:" + Base16.Encode(blockBytes);
-                rpcBroadcast += "_transactions:" + Base16.Encode(transactions.Serialize());
-                chain.Commit();
-                try
-                {
-                    _rpc.BroadcastBlock(rpcBroadcast);
-                    Log.Information("Broadcast block {Block}", blockString);
-                }
-                catch(Exception e)
-                {
-                    Log.Information(e.ToString());
-                    Log.Error("Something went wrong while broadcasting the block");
-                }
-                
+                _rpc.BroadcastBlock(rpcBroadcast);
+                Log.Information("Broadcast block {Block}", blockString);
             }
+            catch(Exception e)
+            {
+                Log.Information(e.ToString());
+                Log.Error("Something went wrong while broadcasting the block");
+            }*/
         }
         else
         {
@@ -273,34 +274,51 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     private Task<byte[]> HandleRequestBlock(Chain chain, Tendermint.RPC.Endpoint.ResponseQuery response)
     {
         if ( response.Code != (int) CodeType.Ok) return Task.FromResult(new byte[0]);
-        var split = response.Value.Split("_");
+        if ( response.Value == null ) return Task.FromResult(new byte[0]);
+        var blockString = ByteString.FromBase64(response.Value).ToStringUtf8();
+        var split = blockString.Split("_");
         var blockEncoded = split[0].Split(":")[1];
         var block = Serialization.Unserialize<Block>(Base16.Decode(blockEncoded));
         var transactionsEncoded = split[1].Split(":")[1];
         var transactions =
-            Serialization.Unserialize<IEnumerable<Transaction>>(Base16.Decode(transactionsEncoded));
+            Serialization.Unserialize<Transaction[]>(Base16.Decode(transactionsEncoded));
         return Task.FromResult(chain.SetBlock(block, transactions));
     }
     
     private Task<byte[]> AttemptRequestBlock(Chain chain)
     {
-        var numberOfAttemps = 3;
-        while (numberOfAttemps > 0)
+        try
         {
-            try
+            _rpc.Health();
+            var numberOfAttemps = 2;
+            while (numberOfAttemps > 0)
             {
-                var result = _rpc.RequestBlock((int)chain.CurrentBlock.Height);
-                var data =  HandleRequestBlock(chain, result.Response);
-                return data;
+                try
+                {
+                    var heightRequestBytes = BitConverter.GetBytes((int)chain.CurrentBlock.Height);
+                    if (BitConverter.IsLittleEndian)
+                        Array.Reverse(heightRequestBytes);
+                    var heightRequest = string.Concat(((int)chain.CurrentBlock.Height).ToString().Select(c => "3" + c.ToString()));
+                    Log.Error("Trying to request this height {height}, {height2}", heightRequest, chain.CurrentBlock.Height);
+
+                    var result = _rpc.RequestBlock(heightRequest);
+                    var data =  HandleRequestBlock(chain, result.Response);
+                    return data;
+                }
+                catch ( Exception e)
+                {
+                    Log.Information(e.ToString());
+                    Log.Error("Something went wrong while requesting the block, Attempts {NumberOfAttemps}", numberOfAttemps);
+                }
+                numberOfAttemps--;
+                Thread.Sleep(_delayRequests);
             }
-            catch ( Exception e)
-            {
-                Log.Information(e.ToString());
-                Log.Error("Something went wrong while requesting the block, Attempts {NumberOfAttemps}", numberOfAttemps);
-            }
-            numberOfAttemps--;
-            Thread.Sleep(_delayRequests);
         }
+        catch ( Exception e)
+        {
+            Log.Error("Not connected to tendermint.");
+        }
+        
         
         return Task.FromResult(new byte[0]);
     }
@@ -398,8 +416,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     {
         Log.Information($"ABCI Connector - Query");
         var query = new ResponseQuery();
-        query.Codespace = "query";
-        query.Code = (int)CodeType.Expired;
+        //query.Codespace = "query";
+        //query.Code = (int)CodeType.InvalidChain;
 
         if (request.Path.Contains("/phantasma/block_sync/"))
         {
@@ -409,21 +427,41 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                 try
                 {
                     var chain = _nexus.RootChain as Chain;
-                    var bytes = request.Data.ToByteArray();
-                    var height = Serialization.Unserialize<int>(bytes);
+                    Log.Information("Data is - {Data}", request.Data.ToStringUtf8());
+
+                    var height = int.Parse(request.Data.ToStringUtf8());
                     var hash = chain.GetBlockHashAtHeight(height);
                     
                     if ( hash == Hash.Null )
                     {
                         query.Code = (int)CodeType.Error;
+                        query.Info = "Block get";
                         return Task.FromResult(query);
                     }
                     
                     var block = chain.GetBlockByHash(hash);
-                    var blockBytes = chain.GetBlockByHash(hash).ToByteArray(true);
+                    if ( block == null )
+                    {
+                        query.Code = (int)CodeType.Error;
+                        query.Info = "Block get";
+                        query.Value = "Block not found".ToByteString();
+                        return Task.FromResult(query);
+                    }
+                    
                     var transactions = chain.GetBlockTransactions(block);
+                    if ( transactions == null )
+                    {
+                        query.Code = (int)CodeType.Error;
+                        query.Info = "Block get";
+                        query.Value = "Transactions not found".ToByteString();
+                        return Task.FromResult(query);
+                    }
+                    
+                    var blockBytes = block.ToByteArray(true);
+                    var transactionsBytes = Serialization.Serialize(transactions.ToArray());
+                    
                     var response = "block:" + Base16.Encode(blockBytes);
-                    response += "_transactions:" + Base16.Encode(transactions.Serialize());
+                    response += "_transactions:" + Base16.Encode(transactionsBytes);
                     query.Info = "Block get";
                     query.Value = response.ToByteString();
                     query.Code = (int)CodeType.Ok;

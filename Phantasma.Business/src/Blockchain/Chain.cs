@@ -43,6 +43,7 @@ namespace Phantasma.Business.Blockchain
         public Address Address { get; private set; }
 
         public Block CurrentBlock{ get; private set; }
+        public IEnumerable<Transaction> Transactions => CurrentTransactions;
         public string CurrentProposer { get; private set; }
 
         public StorageChangeSetContext CurrentChangeSet { get; private set; }
@@ -428,7 +429,13 @@ namespace Phantasma.Business.Blockchain
         public byte[] Commit()
         {
             Log.Information("Committing block {Height}", this.CurrentBlock.Height);
-            this.CurrentBlock.Sign(ValidatorKeys);
+            if (!this.CurrentBlock.IsSigned)
+            {
+                if ( this.CurrentBlock.Validator == ValidatorKeys.Address)
+                {
+                    this.CurrentBlock.Sign(ValidatorKeys);
+                }
+            }
             Block lastBlock = this.CurrentBlock;
             
             try

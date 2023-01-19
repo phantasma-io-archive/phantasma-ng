@@ -130,19 +130,18 @@ namespace Tendermint.RPC
         public ResultAbciQuery AbciQuery(string path, string data = null, long height = 0, bool prove = false)
         {
             RestRequest request = new RestRequest("abci_query", Method.GET);
+            //request.AddQueryParameter("path", "\"" + path + "\"");
             request.AddQueryParameter("path", "\"" + path + "\"");
             if (data != null)
             {
                 request.AddQueryParameter("data", data);
             }
-            if (height != 0)
-            {
-                request.AddQueryParameter("height", height.ToString());
-            }
-            if (prove)
-            {
-                request.AddQueryParameter("prove", "true");
-            }
+            
+            request.AddQueryParameter("height", height.ToString());
+            
+            
+            request.AddQueryParameter("prove", prove ? "true" : "false");
+            
             return Execute<ResultAbciQuery>(request);
         }
 
@@ -194,12 +193,12 @@ namespace Tendermint.RPC
         
         public ResultAbciQuery BroadcastBlock(string blockAndTransactions)
         {
-            return AbciQuery("/phantasma/block_sync/set", blockAndTransactions, 0, true);
+            return AbciQuery("/phantasma/block_sync/set", blockAndTransactions, 0, false);
         }
         
-        public ResultAbciQuery RequestBlock(int height)
+        public ResultAbciQuery RequestBlock(string height)
         {
-            return AbciQuery("/phantasma/block_sync/get", height.ToString(), 0, true);
+            return AbciQuery("/phantasma/block_sync/get", height, 0, false);
         }
 
         public ResultBlockchainInfo Blockchain(long minHeight, long maxHeight)
