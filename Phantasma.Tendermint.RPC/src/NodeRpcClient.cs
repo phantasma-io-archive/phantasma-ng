@@ -201,10 +201,11 @@ namespace Tendermint.RPC
         public ResultAbciQuery RequestBlock(string height)
         {
             RestRequest request = new RestRequest("abci_query", Method.GET);
-            request.AddParameter("path", "\"/phantasma/block_sync/get\"");
-            request.AddParameter("data", height);
-            request.AddParameter("height", "0");
-            request.AddParameter("prove", "false");
+            string _params =  "{\"path\": \"/phantasma/block_sync/get\", \"data\": \"" + height + "\", \"height\": \"0\", \"prove\": false}";
+            request.AddParameter("params", _params);
+            request.AddParameter("id", 1);
+            request.AddQueryParameter("params", _params);
+            request.AddQueryParameter("id", "1");
             return Execute<ResultAbciQuery>(request);
             
         }
