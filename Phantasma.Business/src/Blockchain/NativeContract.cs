@@ -328,33 +328,39 @@ namespace Phantasma.Business.Blockchain
                     }
                 }
             }
-            
-            if (expectedType == typeof(Timestamp))
+
+            if (Runtime.ProtocolVersion > 8)
             {
-                if (receivedType == typeof(string))
+
+                if (expectedType == typeof(Timestamp))
                 {
-                    var value = (string)arg;
-                    if (uint.TryParse(value, out uint timestamp))
+                    if (receivedType == typeof(string))
                     {
-                        arg = new Timestamp(timestamp);
+                        var value = (string)arg;
+                        if (uint.TryParse(value, out uint timestamp))
+                        {
+                            arg = new Timestamp(timestamp);
+                        }
                     }
-                }
-                else if (receivedType == typeof(BigInteger))
-                {
-                    var value = (BigInteger)arg;
-                    arg = new Timestamp((uint)value);
-                }
-                else if (receivedType == typeof(Timestamp))
-                {
-                    return arg;
-                }else if (receivedType == typeof(DateTime))
-                {
-                    var value = (DateTime)arg;
-                    arg = (Timestamp)(value);
-                }else if (receivedType == typeof(uint))
-                {
-                    var value = (uint)arg;
-                    arg = (Timestamp)(value);
+                    else if (receivedType == typeof(BigInteger))
+                    {
+                        var value = (BigInteger)arg;
+                        arg = new Timestamp((uint)value);
+                    }
+                    else if (receivedType == typeof(Timestamp))
+                    {
+                        return arg;
+                    }
+                    else if (receivedType == typeof(DateTime))
+                    {
+                        var value = (DateTime)arg;
+                        arg = (Timestamp)(value);
+                    }
+                    else if (receivedType == typeof(uint))
+                    {
+                        var value = (uint)arg;
+                        arg = (Timestamp)(value);
+                    }
                 }
             }
 
