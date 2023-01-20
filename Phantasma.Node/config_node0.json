@@ -43,6 +43,37 @@
       ]
     },
 
+    "Validators" : [
+      {
+        "validator.address": "P2K9zmyFDNGN6n6hHiTUAz6jqn29s5G1SWLiXwCVQcpHcQb",
+        "validator.tendermint.address": "0c8203a0e63d7c025a4be9e4391b42fb65d344ab",
+        "validator.name": "node0",
+        "validator.api.host": "testnet.phantasma.io",
+        "validator.api.port" : 5101
+      },
+      {
+        "validator.address": "P2K65RZhfxZhQcXKGgSPZL6c6hkygXipNxdeuW5FU531Bqc",
+        "validator.tendermint.address": "e602bda8f1bc8b916af4d312ce2b5c610074f423",
+        "validator.name": "node1",
+        "validator.api.host": "testnet.phantasma.io",
+        "validator.api.port" : 5102
+      },
+      {
+        "validator.address": "P2KAcEJk2UPvTP5rStzeeSJCboE9yEdA2meNVT7UNiKbdH3",
+        "validator.tendermint.address": "ea9eb814c23bc75d53324f9b650ff2b71720a0c3",
+        "validator.name": "node2",
+        "validator.api.host": "testnet.phantasma.io",
+        "validator.api.port" : 5103
+      },
+      {
+        "validator.address": "P2KLvu4UWXFz4r86PsCrtPdJSgkqCSWTZHjDgqdXXJ6Se1v",
+        "validator.tendermint.address": "5aa2fce0959bc52e743b5653f5010b9f7eafcdb1",
+        "validator.name": "node3",
+        "validator.api.host": "108.61.144.236",
+        "validator.api.port" : 5101
+      }
+    ],
+
     "Oracle": {
       "neoscan.api": "mankinighost.phantasma.io:4000",
       "neo.rpc.specific.nodes": [],
@@ -158,7 +189,7 @@
                 "name": "neo",
                 "enabled": false,
                 "height": "8408240",
-                "wif":"L3TngHk5YFnxodUCJANoiyEDBVMwWaMHfx4n7kb2jyN5HrWbKLPz",
+                "wif":"",
                 "rpc.nodes": [
                     "http://seed1.ngd.network:10332",
                     "http://seed9.ngd.network:10332",
@@ -189,7 +220,7 @@
 
       "eth.block.confirmations": 12,
       "eth.gas.limit": 100000,
-      "crypto.compare.key": "4e6ffe0dedfd49d2e182b706b72e736fa027844181d179dc5310f115deeb29be"
+      "crypto.compare.key": ""
     },
 
     "Simulator": {

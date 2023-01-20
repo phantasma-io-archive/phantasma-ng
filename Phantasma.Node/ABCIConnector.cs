@@ -27,16 +27,20 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     private PhantasmaKeys _owner;
     private NodeRpcClient _rpc;
     private IEnumerable<Address> _initialValidators;
+    private IEnumerable<ValidatorSettings> _initialValidatorsSettings;
     private List<Transaction> _pendingTxs = new List<Transaction>();
     private BigInteger _minimumFee;
     private Timestamp currentBlockTime;
+    private NodeConnector _nodeConnector;
     private int _delayRequests = 1000;
 
     // TODO add logger
-    public ABCIConnector(IEnumerable<Address> initialValidators, BigInteger minimumFee)
+    public ABCIConnector(IEnumerable<Address> initialValidators, IEnumerable<ValidatorSettings> validatorSettings, NodeConnector nodeConnector, BigInteger minimumFee)
     {
         _minimumFee = minimumFee;
         _initialValidators = initialValidators;
+        _initialValidatorsSettings = validatorSettings;
+        _nodeConnector = nodeConnector;
         Log.Information("ABCI Connector initialized");
     }
 
@@ -93,8 +97,16 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             IEnumerable<Transaction> systemTransactions;
             if (chain.CurrentBlock != null)
             {
-                AttemptRequestBlock(chain);
+
+                while (chain.CurrentBlock != null)
+                {
+                    AttemptRequestBlock(chain);
+
+                    Thread.Sleep(_delayRequests);
+                    //Task.Delay(_delayRequests).Wait();
+                }
             }
+            
             systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, time, this._initialValidators); 
         }
         catch (Exception e)
@@ -273,8 +285,9 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     private Task<byte[]> HandleRequestBlock(Chain chain, Tendermint.RPC.Endpoint.ResponseQuery response)
     {
-        if ( response.Code != (int) CodeType.Ok) return Task.FromResult(new byte[0]);
+        if ( response.Code != (int) 0) return Task.FromResult(new byte[0]);
         if ( response.Value == null ) return Task.FromResult(new byte[0]);
+        Log.Information("Value {value}, at height:{height}", response.Value, chain.CurrentBlock.Height);
         var blockString = ByteString.FromBase64(response.Value).ToStringUtf8();
         Log.Information("Received block {Block}", blockString);
         var split = blockString.Split("_");
@@ -292,37 +305,18 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     {
         try
         {
-            _rpc.Health();
-            var numberOfAttemps = 2;
-            while (numberOfAttemps > 0)
-            {
-                try
-                {
-                    var heightRequestBytes = BitConverter.GetBytes((int)chain.CurrentBlock.Height);
-                    if (BitConverter.IsLittleEndian)
-                        Array.Reverse(heightRequestBytes);
-                    var heightRequest = string.Concat(((int)chain.CurrentBlock.Height).ToString().Select(c => "3" + c.ToString()));
-                    Log.Error("Trying to request this height {height}, {height2}", heightRequest, chain.CurrentBlock.Height);
-
-                    var result = _rpc.RequestBlock(heightRequest);
-                    var data =  HandleRequestBlock(chain, result.Response);
-                    return data;
-                }
-                catch ( Exception e)
-                {
-                    Log.Information(e.ToString());
-                    Log.Error("Something went wrong while requesting the block, Attempts {NumberOfAttemps}", numberOfAttemps);
-                }
-                numberOfAttemps--;
-                Thread.Sleep(_delayRequests);
-            }
+            //var heightRequest = string.Concat(((int)chain.CurrentBlock.Height).ToString().Select(c => "3" + c.ToString()));
+            //Log.Error("Trying to request this height {height}, {height2}", heightRequest, chain.CurrentBlock.Height);
+            var result = _nodeConnector.RequestBlockHeightFromAddress(chain.CurrentBlock.Validator, (int)chain.CurrentBlock.Height);
+            var data =  HandleRequestBlock(chain, result);
+            return data;
         }
         catch ( Exception e)
         {
-            Log.Error("Not connected to tendermint.");
+            Log.Information(e.ToString());
+            Log.Error("Something went wrong while requesting the block");
         }
-        
-        
+
         return Task.FromResult(new byte[0]);
     }
 
@@ -330,13 +324,6 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     {
         var echo = new ResponseEcho();
         echo.Message = request.Message;
-        
-        // Handle echo
-        /*if ( request.Message.Contains("block:") )
-        {
-            // Handle block
-        }*/
-        
         Log.Information("Echo " + echo.Message);
         return Task.FromResult(echo);
     }
@@ -421,6 +408,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         var query = new ResponseQuery();
         //query.Codespace = "query";
         //query.Code = (int)CodeType.InvalidChain;
+        Log.Information("Path : {Path}", request.Path);
 
         if (request.Path.Contains("/phantasma/block_sync/"))
         {

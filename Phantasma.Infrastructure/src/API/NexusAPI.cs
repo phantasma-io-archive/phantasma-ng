@@ -26,6 +26,8 @@ public static class NexusAPI
     public static ITokenSwapper TokenSwapper { get; set; }
     public static NodeRpcClient TRPC { get; set; }
 
+    public static List<ValidatorSettings> Validators { get; set; }
+
     public static bool ApiLog { get; set; }
 
     public const int PaginationMaxResults = 99999;

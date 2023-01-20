@@ -69,10 +69,12 @@ namespace Phantasma.Node
         public string CryptoCompareAPIKey  { get { return _cryptoCompareAPIKey; } }
         public PhantasmaKeys NodeKeys { get { return _nodeKeys; } }
         public ABCIConnector ABCIConnector { get; private set; }
+        public NodeConnector NodeConnector { get; private set; }
 
         public Node()
         {
-            this.ABCIConnector = new ABCIConnector(Settings.Instance.Node.SeedValidators, Settings.Instance.Node.MinimumFee);
+            this.NodeConnector = new NodeConnector(Settings.Instance.Validators);
+            this.ABCIConnector = new ABCIConnector(Settings.Instance.Node.SeedValidators, Settings.Instance.Validators, this.NodeConnector, Settings.Instance.Node.MinimumFee);
         }
 
         protected override void OnStart()
@@ -636,6 +638,7 @@ $@"  ""initial_height"": ""0"",
         {
             Log.Information($"Initializing nexus API...");
 
+            NexusAPI.Validators = Settings.Instance.Validators;
             NexusAPI.ApiLog = Settings.Instance.Node.ApiLog;
         }
 

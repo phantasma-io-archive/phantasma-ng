@@ -43,6 +43,7 @@
     },
     "Node": {
       "web.logs": false,
+      "max.gas": 10000,
       "block.time": 20,
       "minimum.fee": 100000,
       "minimum.pow": 0,
@@ -73,6 +74,37 @@
       "random.swap.data": false,
       "seeds": []
     },
+
+    "Validators" : [
+      {
+        "validator.address": "",
+        "validator.tendermint.address": "",
+        "validator.name": "",
+        "validator.api.host": "",
+        "validator.api.port" : 5101
+      },
+      {
+        "validator.address": "",
+        "validator.tendermint.address": "",
+        "validator.name": "",
+        "validator.api.host": "",
+        "validator.api.port" : 5102
+      },
+      {
+        "validator.address": "",
+        "validator.tendermint.address": "",
+        "validator.name": "",
+        "validator.api.host": "",
+        "validator.api.port" : 5103
+      },
+      {
+        "validator.address": "",
+        "validator.tendermint.address": "",
+        "validator.name": "",
+        "validator.api.host": "",
+        "validator.api.port" : 5101
+      }
+    ],
 
     "Oracle": {
       "neoscan.api": "https://api.neoscan.io/",

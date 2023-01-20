@@ -153,50 +153,11 @@
         }
       ],
 
-      "swap.platforms": [
-        {
-          "name": "phantasma",
-          "enabled": false,
-          "height": "0",
-          "wif":"",
-          "rpc.nodes": []
-        },
-        {
-          "name": "neo",
-          "enabled": false,
-          "height": "8408240",
-          "wif":"L3TngHk5YFnxodUCJANoiyEDBVMwWaMHfx4n7kb2jyN5HrWbKLPz",
-          "rpc.nodes": [
-            "http://seed1.ngd.network:10332",
-            "http://seed9.ngd.network:10332",
-            "http://seed6.ngd.network:10332",
-            "http://seed4.ngd.network:10332",
-            "http://seed7.ngd.network:10332"
-          ]
-        },
-        {
-          "name": "eth",
-          "enabled": false,
-          "height": "0",
-          "wif":"",
-          "rpc.nodes": [
-            "https://data-seed-prebsc-1-s1.binance.org:8545"
-          ]
-        },
-        {
-          "name": "bsc",
-          "enabled": false,
-          "height": "0",
-          "wif":"",
-          "rpc.nodes": [
-            "https://data-seed-prebsc-1-s1.binance.org:8545"
-          ]
-        }
-      ],
+      
 
       "eth.block.confirmations": 12,
       "eth.gas.limit": 100000,
-      "crypto.compare.key": "4e6ffe0dedfd49d2e182b706b72e736fa027844181d179dc5310f115deeb29be"
+      "crypto.compare.key": ""
     },
 
     "Simulator": {
