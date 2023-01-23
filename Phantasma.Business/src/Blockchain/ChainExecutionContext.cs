@@ -149,7 +149,14 @@ namespace Phantasma.Business.Blockchain
                 var obj = VMObject.FromObject(result);
                 stack.Push(obj);
             }
-
+            else if (method.returnType == VMType.None)
+            {
+                if (result != null)
+                {
+                    var obj = VMObject.FromObject(result);
+                    stack.Push(obj);
+                }
+            }
             return ExecutionState.Running;
         }
     }
