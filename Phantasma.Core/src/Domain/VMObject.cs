@@ -1438,9 +1438,20 @@ namespace Phantasma.Core.Domain
                             var bytes = Serialization.Serialize(obj);
                             writer.WriteByteArray(bytes);
                         }
+                        else if ( this.Data is Array)
+                        {
+                            var array = (Array)this.Data;
+                            writer.WriteVarInt(array.Length);
+                            foreach (var item in array)
+                            {
+                                var obj2 = CastViaReflection(item, 0);
+                                obj2.SerializeData(writer);
+                            }
+                        }
                         else
                         {
                             throw new Exception($"Objects of type {dataType.Name} cannot be serialized");
+
                         }
 
                         break;
