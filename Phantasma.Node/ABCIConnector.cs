@@ -97,7 +97,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             IEnumerable<Transaction> systemTransactions;
             if (chain.CurrentBlock != null)
             {
-
+                Log.Information("Requesting the block because it is not null");
                 while (chain.CurrentBlock != null)
                 {
                     AttemptRequestBlock(chain);
@@ -275,10 +275,17 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         }
         else
         {
-            AttemptRequestBlock(chain);
+            var attempts = 2;
+            while (chain.CurrentBlock != null && attempts-- > 0)
+            {
+                AttemptRequestBlock(chain);
+                
+                Thread.Sleep(_delayRequests);
+            }
             //var data = chain.Commit();
         }
         var response = new ResponseCommit();
+        
         //response.Data = ByteString.CopyFrom(data); // this would change the app hash, we don't want that
         return Task.FromResult(response);
     }
@@ -287,18 +294,18 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     {
         if ( response.Code != (int) 0) return Task.FromResult(new byte[0]);
         if ( response.Value == null ) return Task.FromResult(new byte[0]);
-        Log.Information("Value {value}, at height:{height}", response.Value, chain.CurrentBlock.Height);
+        Log.Information("at height:{height}", chain.CurrentBlock.Height);
         var blockString = ByteString.FromBase64(response.Value).ToStringUtf8();
-        Log.Information("Received block {Block}", blockString);
+        //Log.Information("Received block {Block}", blockString);
         var split = blockString.Split("_");
         var blockEncoded = split[0].Split(":")[1];
-        Log.Information("Block info : {Block}", blockEncoded);
+        //Log.Information("Block info : {Block}", blockEncoded);
         var block = Serialization.Unserialize<Block>(Base16.Decode(blockEncoded));
         var transactionsEncoded = split[1].Split(":")[1];
-        Log.Information("Transactions info : {Transactions}", transactionsEncoded);
+        //Log.Information("Transactions info : {Transactions}", transactionsEncoded);
         var transactions =
             Serialization.Unserialize<Transaction[]>(Base16.Decode(transactionsEncoded));
-        return Task.FromResult(chain.SetBlock(block, transactions));
+        return Task.FromResult(chain.SetBlock(block, transactions, chain.CurrentChangeSet));
     }
     
     private Task<byte[]> AttemptRequestBlock(Chain chain)
@@ -307,6 +314,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         {
             //var heightRequest = string.Concat(((int)chain.CurrentBlock.Height).ToString().Select(c => "3" + c.ToString()));
             //Log.Error("Trying to request this height {height}, {height2}", heightRequest, chain.CurrentBlock.Height);
+            Log.Information("Requesting Block...");
             var result = _nodeConnector.RequestBlockHeightFromAddress(chain.CurrentBlock.Validator, (int)chain.CurrentBlock.Height);
             var data =  HandleRequestBlock(chain, result);
             return data;

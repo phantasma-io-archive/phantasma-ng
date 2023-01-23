@@ -149,7 +149,7 @@ namespace Phantasma.Business.Blockchain
                 var obj = VMObject.FromObject(result);
                 stack.Push(obj);
             }
-            else if (method.returnType == VMType.None)
+            else if (method.returnType == VMType.Object)
             {
                 if (result != null)
                 {

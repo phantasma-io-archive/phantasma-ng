@@ -491,14 +491,11 @@ namespace Phantasma.Business.Blockchain
         public void AddBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet)
         {
             block.AddAllTransactionHashes(transactions.Select (x => x.Hash).ToArray());
-
-            // from here on, the block is accepted
-            changeSet.Execute();
             
-            this.SetBlock(block, transactions);
+            this.SetBlock(block, transactions, changeSet);
         }
 
-        public byte[] SetBlock(Block block, IEnumerable<Transaction> transactions)
+        public byte[] SetBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet)
         {
             // Validate block 
             if (!VerifyBlockBeforeAdd(block))
@@ -560,6 +557,9 @@ namespace Phantasma.Business.Blockchain
             {
                 throw new ChainException("Block transactions are not the same as the current block");
             }*/
+            
+            // from here on, the block is accepted
+            changeSet.Execute();
             
             var hashList = new StorageList(BlockHeightListTag, this.Storage);
             hashList.Add<Hash>(block.Hash);
