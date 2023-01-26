@@ -292,7 +292,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                                 }
                                 else
                                 {
-                                    result = VMObject.CastTo(result, VMType.Struct);
+                                    result = VMObject.FromStruct(result.Data);
                                 }
                             }
                             else if (result.Type == VMType.Struct)
