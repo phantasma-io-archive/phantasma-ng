@@ -562,47 +562,6 @@ namespace Phantasma.Business.Blockchain
         }
         #endregion
 
-        #region RANDOM NUMBERS
-        public static readonly uint RND_A = 16807;
-        public static readonly uint RND_M = 2147483647;
-
-
-        public BigInteger GenerateRandomNumber()
-        {
-            // Consider implenting this -> var x = RandomNumberGenerator.Create();
-            if (_randomSeed == 0 && Transaction != null)
-            {
-                SetRandomSeed(Transaction.Hash);
-            }
-
-            _randomSeed = ((RND_A * _randomSeed) % RND_M);
-            return _randomSeed;
-        }
-
-
-        public void SetRandomSeed(BigInteger seed)
-        {
-            // calculates first initial pseudo random number seed
-            byte[] bytes = seed.ToSignedByteArray();
-
-
-            for (int i = 0; i < EntryScript.Length; i++)
-            {
-                var index = i % bytes.Length;
-                bytes[index] ^= EntryScript[i];
-            }
-
-            var time = System.BitConverter.GetBytes(Time.Value);
-
-            for (int i = 0; i < bytes.Length; i++)
-            {
-                bytes[i] ^= time[i % time.Length];
-            }
-
-            _randomSeed = new BigInteger(bytes, true);
-        }
-        #endregion
-
         // fetches a chain-governed value
         public BigInteger GetGovernanceValue(string name)
         {
