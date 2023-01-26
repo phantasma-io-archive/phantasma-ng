@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Numerics;
 using System.Collections.Generic;
-
 using Phantasma.Core;
 using Phantasma.Core.Types;
 using Phantasma.Business.Blockchain;
@@ -20,6 +19,7 @@ using VMType = Phantasma.Core.Domain.VMType;
 using Xunit;
 using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Node.Chains.Neo2;
+using Tendermint.Abci;
 
 namespace Phantasma.Business.Tests.Simulator;
 
@@ -77,6 +77,11 @@ public class NexusSimulator
     public NexusSimulator(PhantasmaKeys[] owners, int seed = 123, Nexus nexus = null) : this(owners, seed, nexus, DomainSettings.LatestKnownProtocol)
     {
 
+    }
+
+    public NexusSimulator(PhantasmaKeys[] owners, int protocolVersion): this(owners, 123, null, protocolVersion)
+    {
+        
     }
 
     public NexusSimulator(PhantasmaKeys[] owners, int seed, Nexus nexus, int protocolVersion)
@@ -172,6 +177,12 @@ public class NexusSimulator
         }
         EndBlock();
         */
+    }
+
+    public void SetValidator( PhantasmaKeys validator)
+    {
+        _currentValidator = validator;
+        this.Nexus.RootChain.ValidatorKeys = _currentValidator;
     }
 
     public void GetFundsInTheFuture(PhantasmaKeys target)
@@ -526,6 +537,46 @@ public class NexusSimulator
 
                             var result = chain.DeliverTx(tx);
 
+                            
+                           /* try
+                            {
+                                var bytes = Serialization.Serialize(result.Result);
+                                
+                                var response = new ResponseDeliverTx()
+                                {
+                                    Code = result.Code,
+                                    // Codespace cannot be null!
+                                    Codespace = result.Codespace,
+                                    Data = ByteString.CopyFrom(bytes),
+                                };
+                                
+                                if (result.Events.Count() > 0)
+                                {
+                                    var newEvents = new List<Tendermint.Abci.Event>();
+                                    foreach (var evt in result.Events)
+                                    {
+                                        var newEvent = new Tendermint.Abci.Event();
+                                        var attributes = new EventAttribute[]
+                                        {
+                                            // Value cannot be null!
+                                            new EventAttribute() { Key = "address", Value = evt.Address.ToString() },
+                                            new EventAttribute() { Key = "contract", Value = evt.Contract },
+                                            new EventAttribute() { Key = "data", Value = Base16.Encode(evt.Data) },
+                                        };
+
+                                        newEvent.Type = evt.Kind.ToString();
+                                        newEvent.Attributes.AddRange(attributes);
+
+                                        newEvents.Add(newEvent);
+                                    }
+                                    response.Events.AddRange(newEvents);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine("Entered here... with exception: " + e.Message);
+                            }*/
+
                             if (result.State != ExecutionState.Halt)
                             {
                                 // this is for debugging tests, feel free to put a breakpoint here or comment this line
@@ -632,6 +683,11 @@ public class NexusSimulator
     private Transaction MakeTransaction(IKeyPair source, ProofOfWork pow, IChain chain, byte[] script)
     {
         return MakeTransaction(new IKeyPair[] { source }, pow, chain, script);
+    }
+
+    public void SendRawTransaction(Transaction tx)
+    {
+        AddTransactionToPendingBlock(tx, Nexus.RootChain as Chain);
     }
 
     public Transaction GenerateCustomTransaction(IKeyPair owner, ProofOfWork pow, Func<byte[]> scriptGenerator)
@@ -1330,7 +1386,7 @@ public class NexusSimulator
         var tx = GenerateCustomTransaction(_currentValidator, ProofOfWork.None, () =>
             ScriptUtils.BeginScript()
                 .AllowGas(_currentValidator.Address, Address.Null, MinimumFee, DefaultGasLimit)
-                .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), _currentValidator.Address)
+                .CallContract(NativeContractKind.Stake, nameof(StakeContract.GetTimeBeforeUnstake), _currentValidator.Address)
                 .SpendGas(_currentValidator.Address)
                 .EndScript());
         

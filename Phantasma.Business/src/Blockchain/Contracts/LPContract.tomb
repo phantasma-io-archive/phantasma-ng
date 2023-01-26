@@ -14,7 +14,6 @@ struct LPTokenContentRAM
     ClaimedFeesSymbol1:number;
 }
 
-
 token LP {
 	import Runtime;
 	import Time;
@@ -24,7 +23,7 @@ token LP {
 	import Token;
 	import Stake;
 	
-	global _owner:address;
+	global owner:address;
 	global _changed:bool;
 	
     const LP_SERIES: number = 1;
@@ -35,7 +34,7 @@ token LP {
 	property decimals:number = 8;
     property isFinite:bool = false;
     property maxSupply:number = 0;
-	property owner:address = _owner;
+	property owner:address = owner;
 
 	nft LPNFT<LPTokenContentROM, LPTokenContentRAM> {
 		property name:string {
@@ -56,13 +55,13 @@ token LP {
 	}
 
 	constructor(contractOwner:address)	{
-		_owner = contractOwner;
+		owner = contractOwner;
 		_changed = false;
-		NFT.createSeries(_owner, $THIS_SYMBOL, 0, 0, TokenSeries.Unique, LPNFT);
+		NFT.createSeries(owner, $THIS_SYMBOL, 0, 0, TokenSeries.Unique, LPNFT);
 	}
 	
 	public Mint(from:address, rom:LPTokenContentROM, ram:LPTokenContentRAM ):number {
-	    Runtime.expect(Runtime.isWitness(_owner), "witness failed");
+	    Runtime.expect(Runtime.isWitness(owner), "witness failed");
 	    local id : number = NFT.mint($THIS_ADDRESS, from, $THIS_SYMBOL, rom, ram, LP_SERIES);
 	    return id;
 	}
@@ -75,23 +74,21 @@ token LP {
 	
 	public ChangeOwner(from:address){
 	    Runtime.expect(!_changed, "Owner was already changed");
-        Runtime.expect(Runtime.isWitness(_owner), "witness failed");
+        Runtime.expect(Runtime.isWitness(owner), "witness failed");
 		Runtime.expect(Address.isSystem(from), "the new address is not a system address");
-        _owner = from;
+        owner = from;
 	    _changed = true;
 	}
 	
 	public upgradeToDex(from: address){
-        Runtime.expect(Runtime.isWitness(_owner), "witness failed");
+        Runtime.expect(Runtime.isWitness(owner), "witness failed");
         Call.contract<none>("exchange", "MigrateToV3");
 	}
 	
 	trigger onUpgrade(from:address) 
-    {
-        throw "Not allowed to upgrade.";
-		
-        //Runtime.expect(Runtime.isWitness(_owner), "witness failed");
-        //return;
+    {	
+        Runtime.expect(Runtime.isWitness(owner), "witness failed");
+        return;
     }
 	
 	trigger onMigrate(from:address, to:address) {
@@ -102,7 +99,7 @@ token LP {
     {
         local contractSymbol: string = $THIS_SYMBOL;
         Runtime.expect(symbol == contractSymbol, "invalid symbol");
-        Runtime.expect(Runtime.isWitness(_owner), "witness failed");
+        Runtime.expect(Runtime.isWitness(owner), "witness failed");
         return;
     }
     
@@ -114,6 +111,11 @@ token LP {
     trigger onBurn(from:address, to:address, symbol:string, tokenID:number)
     {
         Runtime.expect(Runtime.isWitness(from), "witness failed");
+        Call.contract<none>("exchange", "BurnNFT", from, tokenID);
         return;
+    }
+    
+    trigger onKill(from:address){
+        throw "Not allowed to kill.";
     }
 }

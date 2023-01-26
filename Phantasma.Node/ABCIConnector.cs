@@ -14,6 +14,7 @@ using Phantasma.Core.Types;
 using Serilog;
 using Tendermint;
 using Tendermint.Abci;
+using Tendermint.Extensions;
 using Tendermint.RPC;
 using Chain = Phantasma.Business.Blockchain.Chain;
 
@@ -26,6 +27,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     private IEnumerable<Address> _initialValidators;
     private List<Transaction> _pendingTxs = new List<Transaction>();
     private BigInteger _minimumFee;
+    private Timestamp currentBlockTime;
 
     // TODO add logger
     public ABCIConnector(IEnumerable<Address> initialValidators, BigInteger minimumFee)
@@ -52,7 +54,10 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     public override Task<ResponseBeginBlock> BeginBlock(RequestBeginBlock request, ServerCallContext context)
     {
-        Log.Information("Begin block {Height}", request.Header.Height);
+        Timestamp time = new Timestamp((uint) request.Header.Time.Seconds);
+        currentBlockTime = time;
+        Log.Information("Begin block {Height} at {time}", request.Header.Height, time);
+
         var response = new ResponseBeginBlock();
         try
         {
@@ -83,7 +88,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             var chain = _nexus.RootChain as Chain;
 
             IEnumerable<Transaction> systemTransactions;
-            systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, Timestamp.Now, this._initialValidators); 
+            systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, time, this._initialValidators); 
         }
         catch (Exception e)
         {
@@ -95,7 +100,6 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     
     public override Task<ResponseCheckTx> CheckTx(RequestCheckTx request, ServerCallContext context)
     {
-        // TODO checktx 
         Log.Information($"ABCI Connector - Check TX");
 
         try
@@ -106,8 +110,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
                 var txString = request.Tx.ToStringUtf8();
                 var tx = Transaction.Unserialize(Base16.Decode(txString));
-                
-                (CodeType code, string message) = chain.CheckTx(tx, Timestamp.Now);
+
+                (CodeType code, string message) = chain.CheckTx(tx, currentBlockTime);
 
                 var response = new ResponseCheckTx();
                 response.Code = 0;
@@ -130,7 +134,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     public override Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
     {
         Log.Information($"ABCI Connector - Deliver Tx");
-        
+
         var chain = _nexus.RootChain as Chain;
 
         var txString = request.Tx.ToStringUtf8();
@@ -223,17 +227,64 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         Log.Information($"ABCI Connector - Commit");
 
         var chain = _nexus.RootChain as Chain;
-        var data = chain.Commit();
+            // Is signed by me and I am the proposer
+        if (chain.CurrentBlock.Validator == this._owner.Address)
+        {
+            var signature = this._owner.Sign(chain.CurrentBlock.ToByteArray(false));
+            if ( signature  == chain.CurrentBlock.Signature)
+            {
+                // Broadcast the block
+                var blockString = Base16.Encode(chain.CurrentBlock.ToByteArray(true));
+                var block = chain.CurrentBlock;
+                var blockBytes = block.ToByteArray(true);
+                var transactions = chain.GetBlockTransactions(block);
+                var rpcBroadcast = "block:" + Base16.Encode(blockBytes);
+                rpcBroadcast += "_transactions:" + Base16.Encode(transactions.Serialize());
+                _rpc.BroadcastBlock(rpcBroadcast);
+                Log.Information("Broadcast block {Block}", blockString);
+            }
+        }
+        else
+        {
+            try
+            {
+                var result = _rpc.RequestBlock((int)chain.CurrentBlock.Height);
+                var data = HandleRequestBlock(chain, result.Response);
+            }
+            catch ( Exception e)
+            {
+                Log.Information(e.ToString());
+                Log.Error("Something went wrong while requesting the block");
+            }
+            //var data = chain.Commit();
+        }
         var response = new ResponseCommit();
         //response.Data = ByteString.CopyFrom(data); // this would change the app hash, we don't want that
         return Task.FromResult(response);
     }
 
+    private Task<byte[]> HandleRequestBlock(Chain chain, Tendermint.RPC.Endpoint.ResponseQuery response)
+    {
+        var split = response.Value.Split("_");
+        var blockEncoded = split[0].Split(":")[1];
+        var block = Serialization.Unserialize<Block>(Base16.Decode(blockEncoded));
+        var transactionsEncoded = split[1].Split(":")[1];
+        var transactions =
+            Serialization.Unserialize<IEnumerable<Transaction>>(Base16.Decode(transactionsEncoded));
+        return Task.FromResult(chain.SetBlock(block, transactions));
+    }
 
     public override Task<ResponseEcho> Echo(RequestEcho request, ServerCallContext context)
     {
         var echo = new ResponseEcho();
         echo.Message = request.Message;
+        
+        // Handle echo
+        /*if ( request.Message.Contains("block:") )
+        {
+            // Handle block
+        }*/
+        
         Log.Information("Echo " + echo.Message);
         return Task.FromResult(echo);
     }
@@ -315,8 +366,55 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     public override Task<ResponseQuery> Query(RequestQuery request, ServerCallContext context)
     {
         Log.Information($"ABCI Connector - Query");
+        var query = new ResponseQuery();
+        query.Codespace = "query";
+        query.Code = (int)CodeType.Expired;
 
-        return Task.FromResult( new ResponseQuery());
+        if (request.Path.Contains("/phantasma/block_sync/"))
+        {
+            if (request.Path.Contains("/get"))
+            {
+                try
+                {
+                    var chain = _nexus.RootChain as Chain;
+                    var bytes = request.Data.ToByteArray();
+                    var height = Serialization.Unserialize<BigInteger>(bytes);
+                    var hash = chain.GetBlockHashAtHeight(height);
+                    var block = chain.GetBlockByHash(hash);
+                    var blockBytes = chain.GetBlockByHash(hash).ToByteArray(true);
+                    var transactions = chain.GetBlockTransactions(block);
+                    var response = "block:" + Base16.Encode(blockBytes);
+                    response += "_transactions:" + Base16.Encode(transactions.Serialize());
+                    query.Info = "Block get";
+                    query.Value = response.ToByteString();
+                    query.Code = (int)CodeType.Ok;
+                }
+                catch ( Exception e )
+                {
+                    Log.Information("Error getting block {Exception}", e);
+                    query.Info = "Block get";
+                    query.Value = e.Message.ToByteString();
+                    query.Code = (int)CodeType.Error;
+                }
+                
+            }
+            /* Not sure if this is is needed since we request the blocks from the RPC
+             else if (request.Path.Contains("/set"))
+            {
+                var chain = _nexus.RootChain as Chain;
+                var split = request.Data.ToStringUtf8().Split("_");
+                var blockEncoded = split[0].Split(":")[1];
+                var block = Serialization.Unserialize<Block>(Base16.Decode(blockEncoded));
+                var transactionsEncoded = split[1].Split(":")[1];
+                var transactions =
+                    Serialization.Unserialize<IEnumerable<Transaction>>(Base16.Decode(transactionsEncoded));
+                chain.SetBlock(block, transactions);
+                query.Code = (int)CodeType.Ok;
+                query.Info = "Block set";
+            }*/
+        }
+
+        return Task.FromResult( query );
     }
 
     public override Task<ResponseListSnapshots> ListSnapshots(RequestListSnapshots request, ServerCallContext context)

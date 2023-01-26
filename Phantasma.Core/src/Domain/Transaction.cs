@@ -155,6 +155,33 @@ namespace Phantasma.Core.Domain
             this.Signatures = sigs.ToArray();
         }
 
+        public void AddSignature(Signature signature)
+        {
+            var sigs = new List<Signature>();
+
+            if (this.Signatures != null && this.Signatures.Length > 0)
+            {
+                sigs.AddRange(this.Signatures);
+            }
+
+            sigs.Add(signature);
+            this.Signatures = sigs.ToArray();
+        }
+
+        public Signature GetTransactionSignature(IKeyPair keypair, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
+        {
+            if (keypair == null)
+            {
+                throw new ChainException("Cannot sign with a null keypair");
+            }
+            
+            var msg = this.ToByteArray(false);
+
+            Signature sig = keypair.Sign(msg, customSignFunction);
+
+            return sig;
+        }
+
         public bool IsSignedBy(Address address)
         {
             return IsSignedBy(new Address[] { address });

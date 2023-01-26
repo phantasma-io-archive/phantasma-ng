@@ -10,6 +10,7 @@ using Phantasma.Core;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Business.Blockchain
 {
@@ -325,6 +326,35 @@ namespace Phantasma.Business.Blockchain
                     {
                         arg = number;
                     }
+                }
+            }
+            
+            if (expectedType == typeof(Timestamp))
+            {
+                if (receivedType == typeof(string))
+                {
+                    var value = (string)arg;
+                    if (uint.TryParse(value, out uint timestamp))
+                    {
+                        arg = new Timestamp(timestamp);
+                    }
+                }
+                else if (receivedType == typeof(BigInteger))
+                {
+                    var value = (BigInteger)arg;
+                    arg = new Timestamp((uint)value);
+                }
+                else if (receivedType == typeof(Timestamp))
+                {
+                    return arg;
+                }else if (receivedType == typeof(DateTime))
+                {
+                    var value = (DateTime)arg;
+                    arg = (Timestamp)(value);
+                }else if (receivedType == typeof(uint))
+                {
+                    var value = (uint)arg;
+                    arg = (Timestamp)(value);
                 }
             }
 

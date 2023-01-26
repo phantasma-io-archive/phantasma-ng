@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 
 namespace Phantasma.Core.Types
 {
@@ -9,6 +10,21 @@ namespace Phantasma.Core.Types
         public Timestamp(uint value)
         {
             this.Value = value;
+        }
+        
+        public Timestamp(string value)
+        {
+            if ( uint.TryParse(value, out var result))
+            {
+                this.Value = result;
+            }
+            
+            this.Value = Timestamp.Null.Value;
+        }
+        
+        public Timestamp(BigInteger value)
+        {
+            this.Value = (uint)value;
         }
 
         public override string ToString()
