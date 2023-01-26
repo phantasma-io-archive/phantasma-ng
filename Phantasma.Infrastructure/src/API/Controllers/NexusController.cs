@@ -54,7 +54,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                 chainList.Add(single);
             }
 
-            var governance = (GovernancePair[])nexus.RootChain.InvokeContractAtTimestamp(nexus.RootChain.Storage, Timestamp.Now, "governance", nameof(GovernanceContract.GetValues)).ToObject();
+            var governance = (GovernancePair[])nexus.RootChain.InvokeContractAtTimestamp(nexus.RootChain.Storage, Timestamp.Now, "governance", nameof(GovernanceContract.GetValues)).ToArray<GovernancePair>();
 
             var orgs = nexus.GetOrganizations(nexus.RootStorage);
 

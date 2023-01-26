@@ -1107,11 +1107,16 @@ namespace Phantasma.Core.Domain
                 return VMType.Enum;
             }
 
+            if (type.IsArray)
+            {
+                return VMType.Struct;
+            }
+            
             if (type.IsClass || type.IsValueType)
             {
                 return VMType.Object;
             }
-
+            
             return VMType.None;
         }
 
@@ -1197,6 +1202,17 @@ namespace Phantasma.Core.Domain
                 case VMType.Timestamp: return this.AsTimestamp();
                 case VMType.Object: return this.Data;
                 case VMType.Enum: return this.Data;
+                case VMType.Struct:
+                {
+                    if (this.Data is Array)
+                    {
+                        return this.Data;
+                    }
+                    else
+                    {
+                        throw new Exception($"Cannot cast {Type} to object");
+                    }
+                }
 
                 default: throw new Exception($"Cannot cast {Type} to object");
             }

@@ -5,6 +5,7 @@ using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Performance;
+using Serilog;
 
 namespace Phantasma.Business.Blockchain
 {
@@ -146,12 +147,23 @@ namespace Phantasma.Business.Blockchain
 
             if (method.returnType != VMType.None)
             {
-                var obj = VMObject.FromObject(result);
-                stack.Push(obj);
-            }
-            else if (method.returnType == VMType.Object)
-            {
-                if (result != null)
+                if (((RuntimeVM)frame.VM).ProtocolVersion > 8)
+                {
+                    if ( result is Array)
+                    {
+                        /*foreach ( var item in (Array)result)
+                        {
+                            stack.Push(VMObject.FromObject(item));
+                        }*/
+                        stack.Push(VMObject.FromArray((Array)result));
+                    }
+                    else
+                    {
+                        var obj = VMObject.FromObject(result);
+                        stack.Push(obj);
+                    }
+                }
+                else
                 {
                     var obj = VMObject.FromObject(result);
                     stack.Push(obj);
