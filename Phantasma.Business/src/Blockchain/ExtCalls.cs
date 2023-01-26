@@ -1036,8 +1036,21 @@ namespace Phantasma.Business.Blockchain
 
             if (vm.HasGenesis)
             {
-                var isMinter = vm.IsMintingAddress(source, symbol);
-                vm.Expect(isMinter, $"{source} is not a valid minting address for {symbol}");
+                if (vm.ProtocolVersion > 8)
+                {
+                    if (symbol != DomainSettings.StakingTokenSymbol && symbol != DomainSettings.FuelTokenSymbol &&
+                        symbol != DomainSettings.FuelTokenSymbol)
+                    {
+                        var isMinter = vm.IsMintingAddress(source, symbol);
+                        vm.Expect(isMinter, $"{source} is not a valid minting address for {symbol}");
+                    }
+                }
+                else
+                {
+                    var isMinter = vm.IsMintingAddress(source, symbol);
+                    vm.Expect(isMinter, $"{source} is not a valid minting address for {symbol}");
+                }
+                
             }
 
             vm.MintTokens(symbol, source, destination, amount);
