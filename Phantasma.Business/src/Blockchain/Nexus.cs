@@ -1977,7 +1977,15 @@ public class Nexus : INexus
 
     public ValidatorEntry[] GetValidators(Timestamp timestamp)
     {
-        var validators = RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToArray<ValidatorEntry>();
+        ValidatorEntry[] validators = null;
+        if (this.GetProtocolVersion(RootStorage) > 8)
+        {
+            validators = RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToArray<ValidatorEntry>();
+        }
+        else
+        {
+            validators = (ValidatorEntry[]) RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToObject();
+        }
         return validators;
     }
 
