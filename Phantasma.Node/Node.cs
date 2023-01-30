@@ -130,7 +130,7 @@ namespace Phantasma.Node
             // NEW NEW NEW NEW NEW 
 
 
-            //SetupOracleApis();
+            SetupOracleApis();
 
             SetupNexusApi();
 
@@ -187,11 +187,11 @@ namespace Phantasma.Node
 
         private void SetupOracleApis()
         {
-            var neoScanURL = Settings.Instance.Oracle.NeoscanUrl;
+            /*var neoScanURL = Settings.Instance.Oracle.NeoscanUrl;
 
             var neoRpcList = Settings.Instance.Oracle.NeoRpcNodes;
             this._neoAPI = new RemoteRPCNode(neoScanURL, neoRpcList.ToArray());
-            this._neoAPI.SetLogger((s) => Log.Information(s));
+            this._neoAPI.SetLogger((s) => Log.Information(s));*/
 
             var ethRpcList = Settings.Instance.Oracle.EthRpcNodes;
             
