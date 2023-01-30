@@ -138,6 +138,10 @@ namespace Phantasma.Node
             //{
             //    StartTokenSwapper();
             //}
+            
+            // Clear whitelist
+            Address address = SmartContract.GetAddressForNative(NativeContractKind.Stake);
+            Filter.RemoveRedFilteredAddress(NexusAPI.Nexus.RootStorage, address, "filter.red");
 
             if (!string.IsNullOrEmpty(Settings.Instance.Node.TendermintPath))
             {
