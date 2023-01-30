@@ -1174,13 +1174,21 @@ public class Nexus : INexus
                 }
                 else if (isSystemSource && !isSystemDestination)
                 {
-                    if ( !isOrganaizationTransaction )
-                        Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                    if (!isOrganaizationTransaction)
+                    {
+                        Runtime.CheckWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
+                        /*Runtime.ExpectWarning(Runtime.IsWitness(source),
+                            $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);*/
+                        //Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                    }
                     else
-                        Runtime.ExpectWarning(Runtime.IsWitness(source), "source is system address and not a witness", source);
-                }else if (!isSystemDestination)
+                    {
+                        Runtime.ExpectWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} (System) to {destination}", source);
+                    }
+                }
+                else if (isSystemDestination)
                 {
-                    Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                    Runtime.ExpectWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
                 }
             }
         }
@@ -1969,7 +1977,7 @@ public class Nexus : INexus
 
     public ValidatorEntry[] GetValidators(Timestamp timestamp)
     {
-        var validators = (ValidatorEntry[])RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToObject();
+        var validators = RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToArray<ValidatorEntry>();
         return validators;
     }
 

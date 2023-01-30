@@ -531,7 +531,7 @@ public static class NexusAPI
 
         if (storage.used > 0)
         {
-            var files = (Hash[])Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetFiles), address).ToArray<Hash>();
+            var files = Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetFiles), address).ToArray<Hash>();
 
             Hash avatarHash = Hash.Null;
             storage.archives = files.Select(x => {

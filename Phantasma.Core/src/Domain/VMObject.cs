@@ -9,6 +9,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
+using Serilog;
 
 namespace Phantasma.Core.Domain
 {
@@ -1204,7 +1205,7 @@ namespace Phantasma.Core.Domain
                 case VMType.Enum: return this.Data;
                 case VMType.Struct:
                 {
-                    if (this.Data is Array)
+                    if (!this.IsEmpty)
                     {
                         return this.Data;
                     }
@@ -1213,7 +1214,6 @@ namespace Phantasma.Core.Domain
                         throw new Exception($"Cannot cast {Type} to object");
                     }
                 }
-
                 default: throw new Exception($"Cannot cast {Type} to object");
             }
         }
@@ -1251,7 +1251,12 @@ namespace Phantasma.Core.Domain
 
         public object ToArray(Type arrayElementType)
         {
-            Throw.If(Type != VMType.Struct, "not a valid source struct");
+            if (this.IsEmpty)
+            {
+                return Array.CreateInstance(arrayElementType, 0);
+            }
+            
+            Throw.If(Type != VMType.Struct, $"not a valid source struct");
 
             var children = GetChildren();
             int maxIndex = -1;
@@ -1271,6 +1276,7 @@ namespace Phantasma.Core.Domain
 
             var length = maxIndex + 1;
             var array = Array.CreateInstance(arrayElementType, length);
+            
 
             foreach (var child in children)
             {

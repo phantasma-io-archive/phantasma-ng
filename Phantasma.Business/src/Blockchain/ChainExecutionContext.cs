@@ -149,7 +149,7 @@ namespace Phantasma.Business.Blockchain
             {
                 if (((RuntimeVM)frame.VM).ProtocolVersion > 8)
                 {
-                    if ( result is Array)
+                    if ( result is Array && result.GetType().GetElementType() != typeof(byte))
                     {
                         /*foreach ( var item in (Array)result)
                         {

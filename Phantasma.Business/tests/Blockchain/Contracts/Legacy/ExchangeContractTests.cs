@@ -2986,7 +2986,7 @@ public class ExchangeContractTests
         // Get OTC Orders
         public ExchangeOrder[] GetOTC()
         {
-            return (ExchangeOrder[])simulator.InvokeContract( NativeContractKind.Exchange, nameof(ExchangeContract.GetOTC)).ToObject();
+            return simulator.InvokeContract( NativeContractKind.Exchange, nameof(ExchangeContract.GetOTC)).ToArray<ExchangeOrder>();
         }
         #endregion
         

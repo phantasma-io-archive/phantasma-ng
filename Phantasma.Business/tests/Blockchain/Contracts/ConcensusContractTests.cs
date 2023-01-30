@@ -181,7 +181,7 @@ public class ConcensusContractTests
         Assert.True(hasConsensus);
         
         var allConsensus = simulator.InvokeContract(NativeContractKind.Consensus,
-            nameof(ConsensusContract.GetConsensusPolls), subject).AsStruct<ConsensusPoll[]>();
+            nameof(ConsensusContract.GetConsensusPolls), subject).ToArray<ConsensusPoll>();
         
         Assert.Equal(1, allConsensus.Length);
         Assert.Equal(subject, allConsensus[0].subject);

@@ -154,7 +154,7 @@ public class MailContractTests
         Assert.True(simulator.LastBlockWasSuccessful());
         
         var domainExists = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.DomainExists), domainName).AsBool();
-        var domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).AsStruct<Address[]>();
+        var domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).ToArray<Address>();
 
         Assert.True(domainExists);
         Assert.Equal(1, domainMembers.Count());
@@ -170,7 +170,7 @@ public class MailContractTests
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
         
-        domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).AsStruct<Address[]>();
+        domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).ToArray<Address>();
         Assert.Equal(2, domainMembers.Count());
     }
     
@@ -189,7 +189,7 @@ public class MailContractTests
         Assert.True(simulator.LastBlockWasSuccessful());
         
         var domainExists = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.DomainExists), domainName).AsBool();
-        var domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).AsStruct<Address[]>();
+        var domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).ToArray<Address>();
 
         Assert.True(domainExists);
         Assert.Equal(1, domainMembers.Count());
@@ -205,7 +205,7 @@ public class MailContractTests
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
         
-        domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).AsStruct<Address[]>();
+        domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).ToArray<Address>();
         Assert.Equal(2, domainMembers.Count());
         
         // Leave the domain
@@ -219,7 +219,7 @@ public class MailContractTests
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
         
-        domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).AsStruct<Address[]>();
+        domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).ToArray<Address>();
         Assert.Equal(1, domainMembers.Count());
     }
     
@@ -251,7 +251,7 @@ public class MailContractTests
         
         
         var domainExists = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.DomainExists), domainName).AsBool();
-        var domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).AsStruct<Address[]>();
+        var domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).ToArray<Address>();
 
         Assert.True(domainExists);
         Assert.Equal(1, domainMembers.Count());
@@ -267,7 +267,7 @@ public class MailContractTests
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
         
-        domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).AsStruct<Address[]>();
+        domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).ToArray<Address>();
         Assert.Equal(2, domainMembers.Count());
         
         // Migrate the domain
@@ -281,7 +281,7 @@ public class MailContractTests
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
         
-        domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).AsStruct<Address[]>();
+        domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).ToArray<Address>();
         Assert.Equal(1, domainMembers.Count());
     }
 
@@ -300,7 +300,7 @@ public class MailContractTests
         Assert.True(simulator.LastBlockWasSuccessful());
         
         var domainExists = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.DomainExists), domainName).AsBool();
-        var domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).AsStruct<Address[]>();
+        var domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).ToArray<Address>();
         
         Assert.True(domainExists);
         Assert.Equal(1, domainMembers.Count());
@@ -316,7 +316,7 @@ public class MailContractTests
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
         
-        domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).AsStruct<Address[]>();
+        domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).ToArray<Address>();
         var userDomain = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetUserDomain), user.Address).AsString();
 
         Assert.Equal(2, domainMembers.Count());
@@ -333,7 +333,7 @@ public class MailContractTests
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
         
-        domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).AsStruct<Address[]>();
+        domainMembers = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetDomainUsers), domainName).ToArray<Address>();
         userDomain = simulator.InvokeContract(NativeContractKind.Mail, nameof(MailContract.GetUserDomain), user2.Address).AsString();
         Assert.Equal(1, domainMembers.Count());
         Assert.Equal("", userDomain);

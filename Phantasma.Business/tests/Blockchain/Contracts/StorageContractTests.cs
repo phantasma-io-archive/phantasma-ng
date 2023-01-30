@@ -333,7 +333,7 @@ public class StorageContractTest
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
         
-        files = simulator.InvokeContract(NativeContractKind.Storage, nameof(StorageContract.GetFiles), user.Address).AsStruct<Hash[]>();
+        files = simulator.InvokeContract(NativeContractKind.Storage, nameof(StorageContract.GetFiles), user.Address).ToArray<Hash>();
         Assert.True(files.Length == 2);
 
         hasFile = simulator.InvokeContract(NativeContractKind.Storage, nameof(StorageContract.HasFile), user.Address, files.Last()).AsBool();
