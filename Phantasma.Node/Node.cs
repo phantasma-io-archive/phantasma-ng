@@ -140,8 +140,9 @@ namespace Phantasma.Node
             //}
             
             // Clear whitelist
-            Address address = SmartContract.GetAddressForNative(NativeContractKind.Stake);
-            Filter.RemoveRedFilteredAddress(NexusAPI.Nexus.RootStorage, address, "filter.red");
+            Filter.RemoveRedFilteredAddress(NexusAPI.Nexus.RootStorage, SmartContract.GetAddressForNative(NativeContractKind.Stake), "filter.red");
+            Filter.RemoveRedFilteredAddress(NexusAPI.Nexus.RootStorage, SmartContract.GetAddressForNative(NativeContractKind.Swap), "filter.red");
+            Filter.RemoveRedFilteredAddress(NexusAPI.Nexus.RootStorage, SmartContract.GetAddressForNative(NativeContractKind.Exchange), "filter.red");
 
             if (!string.IsNullOrEmpty(Settings.Instance.Node.TendermintPath))
             {
