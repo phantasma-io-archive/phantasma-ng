@@ -10,7 +10,7 @@ using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
-
+using Phantasma.Core.Storage.Context;
 using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
@@ -365,6 +365,33 @@ public class FilterTests
 
         Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
         Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+    }
+
+    [Fact]
+    public void AddRemoveMultipleTimes()
+    {
+        var owner = PhantasmaKeys.Generate();
+
+        var simulator = new NexusSimulator(owner);
+        var nexus = simulator.Nexus;
+
+        var testUser = PhantasmaKeys.Generate();
+
+        var fuelAmount = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
+
+        var sender = owner;
+
+        simulator.BeginBlock();
+        simulator.GenerateTransfer(sender, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol,
+            fuelAmount);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        Filter.AddRedFilteredAddress(nexus.RootStorage, SmartContract.GetAddressForNative(NativeContractKind.Stake));
+        Filter.RemoveRedFilteredAddress(nexus.RootStorage, SmartContract.GetAddressForNative(NativeContractKind.Stake), "filter.red");
+        Filter.RemoveRedFilteredAddress(nexus.RootStorage, SmartContract.GetAddressForNative(NativeContractKind.Stake), "filter.red");
+        Filter.RemoveRedFilteredAddress(nexus.RootStorage, SmartContract.GetAddressForNative(NativeContractKind.Stake), "filter.red");
+        
     }
 
 }
