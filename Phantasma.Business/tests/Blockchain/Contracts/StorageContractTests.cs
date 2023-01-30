@@ -304,7 +304,7 @@ public class StorageContractTest
         Assert.True(avatarArchive.BlockCount == 1);
 
         // Check files
-        var files = simulator.InvokeContract(NativeContractKind.Storage, nameof(StorageContract.GetFiles), user.Address).AsStruct<Hash[]>();
+        var files = simulator.InvokeContract(NativeContractKind.Storage, nameof(StorageContract.GetFiles), user.Address).ToArray<Hash>();
         Assert.True(files.Length == 1);
 
         var hasFile = simulator.InvokeContract(NativeContractKind.Storage, nameof(StorageContract.HasFile), user.Address, files.First()).AsBool();
