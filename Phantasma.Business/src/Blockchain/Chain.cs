@@ -488,6 +488,12 @@ namespace Phantasma.Business.Blockchain
             return true;
         }
 
+        private bool BlockEventsValidation(Block block)
+        {
+            return block.Events.Count() == this.CurrentBlock.Events.Count() &&
+                   block.Events.All(x => this.CurrentBlock.Events.Contains(x));
+        }
+
         public void AddBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet)
         {
             block.AddAllTransactionHashes(transactions.Select (x => x.Hash).ToArray());
@@ -533,10 +539,10 @@ namespace Phantasma.Business.Blockchain
                 throw new ChainException("Block events are not the same as the current block");
             }
             
-            /*if ( block.Events.Except(this.CurrentBlock.Events).Count() == 0 && this.CurrentBlock.Events.Except(block.Events).Count() == 0)
+            if ( BlockEventsValidation(block) )
             {
                 throw new ChainException("Block events are not the same as the current block");
-            }*/
+            }
                 
             if ( block.Protocol != this.CurrentBlock.Protocol)
             {
@@ -553,20 +559,20 @@ namespace Phantasma.Business.Blockchain
                 throw new ChainException("Block transaction hashes are not the same as the current block");
             }
             
-            /*if ( block.TransactionHashes.Except(this.CurrentBlock.TransactionHashes).Count() == 0 && this.CurrentBlock.TransactionHashes.Except(block.TransactionHashes).Count() == 0)
+            if ( block.TransactionHashes.Where(t => this.CurrentBlock.TransactionHashes.Contains(t)).ToList().Count() == block.TransactionHashes.Count())
             {
                 throw new ChainException("Block transaction hashes are not the same as the current block");
-            }*/
+            }
 
             if (transactions.Select(tx => tx.IsValid(this)).All(valid => !valid))
             {
                 throw new ChainException("Block transactions are not valid");
             }
             
-            /*if (transactions.Except(this.CurrentTransactions).Count() == 0 && this.CurrentTransactions.Except(transactions).Count() == 0)
+            if (transactions.Except(this.CurrentTransactions).Count() == 0 && this.CurrentTransactions.Except(transactions).Count() == 0)
             {
                 throw new ChainException("Block transactions are not the same as the current block");
-            }*/
+            }
             
             /*if (transactions.Select(tx => tx.Hash).All(hash => !this.CurrentBlock.TransactionHashes.Contains(hash)))
             {

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
@@ -222,6 +223,19 @@ namespace Phantasma.Core.Domain
             var contract = reader.ReadVarString();
             var data = reader.ReadByteArray();
             return new Event(kind, address, contract, data);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is not Event)
+            {
+                return false;
+            }
+            else if (obj is Event other)
+            {
+                return this.Kind == other.Kind && this.Address.Text == other.Address.Text && this.Contract == other.Contract && this.Data.SequenceEqual(other.Data);
+            }
+            return false;
         }
     }
 }

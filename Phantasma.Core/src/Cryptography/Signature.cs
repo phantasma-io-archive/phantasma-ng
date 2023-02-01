@@ -33,5 +33,14 @@ namespace Phantasma.Core.Cryptography
                 return stream.ToArray();
             }
         }
+
+        public override bool Equals(object obj)
+        {
+            if ( !(obj is Signature) )
+                return false;
+            
+            var other = (Signature)obj;
+            return this.Kind == other.Kind;
+        }
     }
 }

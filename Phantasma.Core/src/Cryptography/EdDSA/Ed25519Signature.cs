@@ -55,5 +55,22 @@ namespace Phantasma.Core.Cryptography.EdDSA
             var sign = Ed25519.Sign(message, keypair.PrivateKey);
             return new Ed25519Signature(sign);
         }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is Signature))
+            {
+                return false;
+            }
+            
+            var other = (Signature)obj;
+            if (this.Kind != other.Kind)
+            {
+                return false;
+            }
+            
+            var otherEd = (Ed25519Signature)other;
+            return this.Bytes.SequenceEqual(otherEd.Bytes);
+        }
     }
 }
