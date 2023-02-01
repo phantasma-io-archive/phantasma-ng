@@ -532,6 +532,11 @@ namespace Phantasma.Business.Blockchain
             {
                 throw new ChainException("Block events are not the same as the current block");
             }
+            
+            if ( block.Events.Except(this.CurrentBlock.Events).Count() == 0 && this.CurrentBlock.Events.Except(block.Events).Count() == 0)
+            {
+                throw new ChainException("Block events are not the same as the current block");
+            }
                 
             if ( block.Protocol != this.CurrentBlock.Protocol)
             {
@@ -543,14 +548,24 @@ namespace Phantasma.Business.Blockchain
                 throw new ChainException("Block validator is not a valid validator");
             }
             
-            /*if ( block.TransactionHashes.Count() != this.CurrentBlock.TransactionHashes.Count())
+            if ( block.TransactionHashes.Count() != this.CurrentBlock.TransactionHashes.Count())
             {
                 throw new ChainException("Block transaction hashes are not the same as the current block");
-            }*/
+            }
+            
+            if ( block.TransactionHashes.Except(this.CurrentBlock.TransactionHashes).Count() == 0 && this.CurrentBlock.TransactionHashes.Except(block.TransactionHashes).Count() == 0)
+            {
+                throw new ChainException("Block transaction hashes are not the same as the current block");
+            }
 
             if (transactions.Select(tx => tx.IsValid(this)).All(valid => !valid))
             {
                 throw new ChainException("Block transactions are not valid");
+            }
+            
+            if (transactions.Except(this.CurrentTransactions).Count() == 0 && this.CurrentTransactions.Except(transactions).Count() == 0)
+            {
+                throw new ChainException("Block transactions are not the same as the current block");
             }
             
             /*if (transactions.Select(tx => tx.Hash).All(hash => !this.CurrentBlock.TransactionHashes.Contains(hash)))
