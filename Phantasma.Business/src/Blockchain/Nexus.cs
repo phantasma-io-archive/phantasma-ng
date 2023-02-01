@@ -1096,7 +1096,7 @@ public class Nexus : INexus
             Runtime.Expect(destName != ValidationUtils.ANONYMOUS_NAME, "anonymous system address as destination");
         }
 
-        bool isOrganaizationTransaction = false;
+        bool isOrganizationTransaction = false;
         if (source.IsSystem)
         {
             var org = GetOrganizationByAddress(Runtime.RootStorage, source);
@@ -1117,7 +1117,7 @@ public class Nexus : INexus
                         Runtime.ExpectWarning(signature.Verify(msg, orgMembers), "invalid signature", source);
                     }
 
-                    isOrganaizationTransaction = true;
+                    isOrganizationTransaction = true;
                 }
             }
             else
@@ -1174,7 +1174,7 @@ public class Nexus : INexus
                 }
                 else if (isSystemSource && !isSystemDestination)
                 {
-                    if (!isOrganaizationTransaction)
+                    if (!isOrganizationTransaction)
                     {
                         Runtime.CheckWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
                         /*Runtime.ExpectWarning(Runtime.IsWitness(source),
@@ -1201,7 +1201,7 @@ public class Nexus : INexus
             {
                 allowed = Runtime.IsWitness(source);
             }
-            else if (isOrganaizationTransaction)
+            else if (isOrganizationTransaction)
             {
                 allowed = true;
             }
