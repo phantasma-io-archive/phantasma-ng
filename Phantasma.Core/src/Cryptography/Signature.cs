@@ -38,9 +38,8 @@ namespace Phantasma.Core.Cryptography
         {
             if ( !(obj is Signature) )
                 return false;
-            
-            var other = (Signature)obj;
-            return this.Kind == other.Kind;
+
+            return base.Equals(obj);
         }
     }
 }

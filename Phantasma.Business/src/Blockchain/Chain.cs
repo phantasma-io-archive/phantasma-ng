@@ -497,8 +497,7 @@ namespace Phantasma.Business.Blockchain
 
         public byte[] SetBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet)
         {
-            this.CurrentBlock.AddAllTransactionHashes(this.CurrentTransactions.Select (x => x.Hash).ToArray());
-            
+
             // Validate block 
             if (!VerifyBlockBeforeAdd(block))
             {
@@ -559,12 +558,15 @@ namespace Phantasma.Business.Blockchain
             {
                 throw new ChainException("Block validator is not a valid validator");
             }
-            
-            if ( block.TransactionHashes.Count() != this.CurrentBlock.TransactionHashes.Count())
+
+            var transactionHashs = transactions.Select(x => x.Hash).ToArray();
+            if ( block.TransactionHashes.Count() != transactionHashs.Count())
             {
                 throw new ChainException("Block transaction hashes are not the same as the current block");
             }
             
+            this.CurrentBlock.AddAllTransactionHashes(transactionHashs);
+
             if ( block.TransactionHashes.Except(this.CurrentBlock.TransactionHashes).Count() != 0 && this.CurrentBlock.TransactionHashes.Except(block.TransactionHashes).Count() != 0)
             {
                 var blockTransactionHashes = block.TransactionHashes.ToArray();

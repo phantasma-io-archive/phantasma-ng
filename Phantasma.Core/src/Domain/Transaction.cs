@@ -309,12 +309,12 @@ namespace Phantasma.Core.Domain
             {
                 bool result = this.Hash == ((Transaction)obj).Hash;
 
-                return this.Hash == tx.Hash && this.Payload.SequenceEqual(tx.Payload) && this.Script.SequenceEqual(tx.Script)
-                       && this.Expiration == tx.Expiration && this.ChainName == tx.ChainName &&
+                return this.Hash.Equals(tx.Hash) && this.Payload.SequenceEqual(tx.Payload) && this.Script.SequenceEqual(tx.Script)
+                       && this.Expiration.Equals(tx.Expiration) && this.ChainName == tx.ChainName &&
                        this.NexusName == tx.NexusName && this.Signatures.Except(tx.Signatures).Count() == 0 && tx.Signatures.Except(this.Signatures).Count() == 0;
             }
             
-            return false;
+            return base.Equals(obj);
         }
     }
 }

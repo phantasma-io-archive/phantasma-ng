@@ -63,12 +63,6 @@ namespace Phantasma.Core.Cryptography.EdDSA
                 return false;
             }
             
-            var other = (Signature)obj;
-            if (this.Kind != other.Kind)
-            {
-                return false;
-            }
-
             if (obj is Ed25519Signature otherEd)
             {
                 return this.Bytes.SequenceEqual(otherEd.Bytes);
