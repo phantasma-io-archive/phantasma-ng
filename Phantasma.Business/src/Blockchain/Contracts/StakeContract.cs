@@ -809,5 +809,10 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             return _currentEnergyRatioDivisor;
         }
+
+        public Timestamp GetLastMasterClaim()
+        {
+            return _lastMasterClaim;
+        }
     }
 }
