@@ -488,12 +488,6 @@ namespace Phantasma.Business.Blockchain
             return true;
         }
 
-        private bool BlockEventsValidation(Block block)
-        {
-            return block.Events.Count() == this.CurrentBlock.Events.Count() &&
-                   block.Events.All(x => this.CurrentBlock.Events.Contains(x));
-        }
-
         public void AddBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet)
         {
             block.AddAllTransactionHashes(transactions.Select (x => x.Hash).ToArray());
@@ -539,9 +533,19 @@ namespace Phantasma.Business.Blockchain
                 throw new ChainException("Block events are not the same as the current block");
             }
             
-            if ( BlockEventsValidation(block) )
+            if ( block.Events.Except(this.CurrentBlock.Events).Count() != 0 && this.CurrentBlock.Events.Except(block.Events).Count() != 0 )
             {
-                throw new ChainException("Block events are not the same as the current block");
+                var blockEvents = block.Events.ToArray();
+                var currentBlockEvents = this.CurrentBlock.Events.ToArray();
+                
+                for(int i = 0; i < blockEvents.Length; i++)
+                {
+                    if (!blockEvents[i].Equals(currentBlockEvents[i]))
+                    {
+                        throw new ChainException($"Block events are not the same as the current block\n {blockEvents[i]}\n {currentBlockEvents[i]}");
+                    }
+                }
+                //throw new ChainException("Block events are not the same as the current block");
             }
                 
             if ( block.Protocol != this.CurrentBlock.Protocol)
@@ -559,9 +563,19 @@ namespace Phantasma.Business.Blockchain
                 throw new ChainException("Block transaction hashes are not the same as the current block");
             }
             
-            if ( block.TransactionHashes.Where(t => this.CurrentBlock.TransactionHashes.Contains(t)).ToList().Count() == block.TransactionHashes.Count())
+            if ( block.TransactionHashes.Except(this.CurrentBlock.TransactionHashes).Count() != 0 && this.CurrentBlock.TransactionHashes.Except(block.TransactionHashes).Count() != 0)
             {
-                throw new ChainException("Block transaction hashes are not the same as the current block");
+                var blockTransactionHashes = block.TransactionHashes.ToArray();
+                var currentBlockTransactionHashes = this.CurrentBlock.TransactionHashes.ToArray();
+                
+                for(int i = 0; i < blockTransactionHashes.Length; i++)
+                {
+                    if (!blockTransactionHashes[i].Equals(currentBlockTransactionHashes[i]))
+                    {
+                        throw new ChainException($"Block transaction hashes are not the same as the current block\n {blockTransactionHashes[i]}\n {currentBlockTransactionHashes[i]}");
+                    }
+                }
+                //throw new ChainException("Block transaction hashes are not the same as the current block");
             }
 
             if (transactions.Select(tx => tx.IsValid(this)).All(valid => !valid))
@@ -569,9 +583,24 @@ namespace Phantasma.Business.Blockchain
                 throw new ChainException("Block transactions are not valid");
             }
             
-            if (transactions.Except(this.CurrentTransactions).Count() == 0 && this.CurrentTransactions.Except(transactions).Count() == 0)
+            if ( transactions.Count() != this.CurrentTransactions.Count())
             {
                 throw new ChainException("Block transactions are not the same as the current block");
+            }
+            
+            if (transactions.Except(this.CurrentTransactions).Count() != 0 && this.CurrentTransactions.Except(transactions).Count() != 0)
+            {
+                var blockTransactions = transactions.ToArray();
+                var currentBlockTransactions = this.CurrentTransactions.ToArray();
+                
+                for(int i = 0; i < blockTransactions.Length; i++)
+                {
+                    if (!blockTransactions[i].Equals(currentBlockTransactions[i]))
+                    {
+                        throw new ChainException($"Block transactions are not the same as the current block\n {blockTransactions[i]}\n {currentBlockTransactions[i]}");
+                    }
+                }
+                //throw new ChainException("Block transactions are not the same as the current block");
             }
             
             /*if (transactions.Select(tx => tx.Hash).All(hash => !this.CurrentBlock.TransactionHashes.Contains(hash)))

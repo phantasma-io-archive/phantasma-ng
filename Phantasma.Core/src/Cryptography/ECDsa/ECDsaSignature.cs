@@ -94,21 +94,14 @@ namespace Phantasma.Core.Cryptography.ECDsa
             {
                 return false;
             }
-            
-            var other = (Signature)obj;
-            if (other.Kind != this.Kind)
-            {
-                return false;
-            }
-            
-        
+
             if (obj is ECDsaSignature)
             {
                 var otherSig = (ECDsaSignature)obj;
                 return this.Bytes.SequenceEqual(otherSig.Bytes) && this.Curve == otherSig.Curve;
             }
 
-            return false;
+            return base.Equals(obj);
         }
     }
 }

@@ -81,7 +81,8 @@ namespace Phantasma.Core.Domain
         // required for deserialization
         public Transaction()
         {
-
+            this.Hash = Hash.Null;
+            
         }
 
         public Transaction(
@@ -308,7 +309,7 @@ namespace Phantasma.Core.Domain
             {
                 bool result = this.Hash == ((Transaction)obj).Hash;
 
-                return this.Hash == tx.Hash && this.Payload == tx.Payload && this.Script == tx.Script
+                return this.Hash == tx.Hash && this.Payload.SequenceEqual(tx.Payload) && this.Script.SequenceEqual(tx.Script)
                        && this.Expiration == tx.Expiration && this.ChainName == tx.ChainName &&
                        this.NexusName == tx.NexusName && this.Signatures.Except(tx.Signatures).Count() == 0 && tx.Signatures.Except(this.Signatures).Count() == 0;
             }
