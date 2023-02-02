@@ -233,7 +233,12 @@ namespace Phantasma.Core.Domain
             }
             else if (obj is Event other)
             {
-                return this.Kind == other.Kind && this.Address.Text == other.Address.Text && this.Contract == other.Contract && this.Data == other.Data;
+                if ( this.Data == null && other.Data == null)
+                {
+                    return this.Kind == other.Kind && this.Address.Text == other.Address.Text && this.Contract == other.Contract;
+                }
+                
+                return this.Kind == other.Kind && this.Address.Text == other.Address.Text && this.Contract == other.Contract && this.Data.SequenceEqual(other.Data);
             }
             return base.Equals(obj);
         }
