@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Text;
+using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Types;
@@ -449,7 +451,125 @@ public class VMObjectTests
     {
         Assert.True(VMObject.IsVMType(typeof(TestEnum)));
         Assert.True(VMObject.IsVMType(typeof(BigInteger)));
+    }
+
+    [Fact]
+    public void TestUnserializePoll()
+    {
+        var bytes = new byte[]
+        {
+            2, 8, 109, 121, 67, 104,
+            111, 105, 99, 101, 8, 109,
+            121, 67, 104, 111, 105, 99,
+            101
+        };
         
+        var choice = new PollChoice(Encoding.UTF8.GetBytes("myChoice"));
+        var choice2 = new PollChoice(Encoding.UTF8.GetBytes("myChoice"));
+        var choicesNoBytes = new PollChoice[] { choice, choice2 };
+        var choicesSerialized = Serialization.Serialize(choicesNoBytes);
+
+        
+        var results = Serialization.Unserialize<PollChoice[]>(bytes);
+        Assert.Equal(choicesSerialized, bytes);
+        Assert.Equal(choicesNoBytes.Length, results.Length);
+        Assert.Equal(choicesNoBytes[0].value, results[0].value);
+        Assert.Equal(choicesNoBytes[1].value, results[1].value);
+
+        var bytesChoices = new byte[]
+        {
+            2, 1, 57, 2, 49, 48
+        };
+
+        bytesChoices = Encoding.UTF8.GetBytes("910");
+        
+        var choices = Serialization.Unserialize<PollChoice[]>(bytesChoices);
+        Assert.Equal(choices[0].value, Encoding.UTF8.GetBytes("9"));
+        Assert.Equal(choices[1].value, Encoding.UTF8.GetBytes("10"));
+    }
+
+    [Fact]
+    public void TestLocal()
+    {
+        var choice = new PollChoice(Encoding.UTF8.GetBytes("myChoice"));
+        var choice2 = new PollChoice(Encoding.UTF8.GetBytes("myChoice"));
+        var expextedChoice = new byte[]
+        {
+            8, 109, 121, 67, 104, 111, 105, 99, 101
+        };
+        Assert.Equal(expextedChoice, choice.Serialize());
+
+        var choices = new List<byte[]> { choice.Serialize(), choice2.Serialize() };
+        var choicesNoBytes = new List<PollChoice> { choice, choice2 };
+        var vm = VMObject.FromArray(choices.ToArray());
+        var bytes = new byte[36];
+        var stream = new MemoryStream(bytes);
+        var writer = new BinaryWriter(stream);
+        //var result = vm.Serialize();
+        vm.SerializeData(writer);
+        var expexted = new byte[]
+        {
+            1, 2, 3, 1, 0, 2, 9 ,8, 109, 121, 67, 104, 111, 105, 99, 101, 3, 2, 1, 0, 2, 9, 8, 109, 121, 67, 104, 111, 105, 
+            99, 101, 0, 0, 0, 0, 0
+        };
+        
+        Assert.Equal(expexted, bytes);
+        
+        
+
+        var bytesMyClass = new byte[]
+        {
+            4, 116, 101, 115, 116,   2,   8, 109,
+            121,  67, 104, 111, 105,  99, 101,   8,
+            109, 121,  67, 104, 111, 105,  99, 101,
+            16,  39,   0,   0
+        };
+        
+        var myClass = new myTestClass
+        {
+            name = "test",
+            choices = choicesNoBytes.ToArray(),
+            time = new Timestamp(10000)
+        };
+
+        
+        var serialized = myClass.Serialize();
+        var result = Serialization.Unserialize<myTestClass>(bytesMyClass);
+        Assert.Equal(serialized, bytesMyClass);
+        Assert.Equal(myClass.name, result.name);
+        Assert.Equal(myClass.choices[0].Serialize(), result.choices[0].Serialize());
+        Assert.Equal(myClass.choices[1].Serialize(), result.choices[1].Serialize());
+        Assert.Equal(myClass.time, result.time);
+        
+        
+        // Validate VM
+        var bytesForVM = new byte[]
+        {
+            2,  28,   4, 116, 101, 115, 116,   2,
+            8, 109, 121,  67, 104, 111, 105,  99,
+            101,   8, 109, 121,  67, 104, 111, 105,
+            99, 101,  16,  39,   0,   0
+        };
+        var localVM = VMObject.FromObject(myClass.Serialize());
+        Assert.Equal(localVM.Serialize(), bytesForVM);
+        var vmObject = VMObject.FromBytes(bytesForVM);
+        var vmStruct = Serialization.Unserialize<myTestClass>(vmObject.AsByteArray());
+        //vmObject.UnserializeData(bytesForVM);
+        Assert.Equal(localVM.Size, vmObject.Size);
+        Assert.Equal(myClass.name, vmStruct.name);
+        Assert.Equal(myClass.choices[0].Serialize(), vmStruct.choices[0].Serialize());
+        Assert.Equal(myClass.choices[1].Serialize(), vmStruct.choices[1].Serialize());
+        Assert.Equal(myClass.time, vmStruct.time);
+
+        //var resultVM = vmObject.AsStruct<myTestClass>();
+        
+        //Assert.Equal(myClass.name, resultVM.name);
+    }
+    
+     public class myTestClass {
+        public string name;
+        public PollChoice[] choices;
+        public Timestamp time;
 
     }
     

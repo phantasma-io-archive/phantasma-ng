@@ -69,10 +69,12 @@ namespace Phantasma.Node
         public string CryptoCompareAPIKey  { get { return _cryptoCompareAPIKey; } }
         public PhantasmaKeys NodeKeys { get { return _nodeKeys; } }
         public ABCIConnector ABCIConnector { get; private set; }
+        public NodeConnector NodeConnector { get; private set; }
 
         public Node()
         {
-            this.ABCIConnector = new ABCIConnector(Settings.Instance.Node.SeedValidators, Settings.Instance.Node.MinimumFee);
+            this.NodeConnector = new NodeConnector(Settings.Instance.Validators);
+            this.ABCIConnector = new ABCIConnector(Settings.Instance.Node.SeedValidators, Settings.Instance.Validators, this.NodeConnector, Settings.Instance.Node.MinimumFee);
         }
 
         protected override void OnStart()
@@ -128,7 +130,7 @@ namespace Phantasma.Node
             // NEW NEW NEW NEW NEW 
 
 
-            //SetupOracleApis();
+            SetupOracleApis();
 
             SetupNexusApi();
 
@@ -136,6 +138,11 @@ namespace Phantasma.Node
             //{
             //    StartTokenSwapper();
             //}
+            
+            // Clear whitelist
+            Filter.RemoveRedFilteredAddress(NexusAPI.Nexus.RootStorage, SmartContract.GetAddressForNative(NativeContractKind.Stake), "filter.red");
+            Filter.RemoveRedFilteredAddress(NexusAPI.Nexus.RootStorage, SmartContract.GetAddressForNative(NativeContractKind.Swap), "filter.red");
+            Filter.RemoveRedFilteredAddress(NexusAPI.Nexus.RootStorage, SmartContract.GetAddressForNative(NativeContractKind.Exchange), "filter.red");
 
             if (!string.IsNullOrEmpty(Settings.Instance.Node.TendermintPath))
             {
@@ -180,11 +187,11 @@ namespace Phantasma.Node
 
         private void SetupOracleApis()
         {
-            var neoScanURL = Settings.Instance.Oracle.NeoscanUrl;
+            /*var neoScanURL = Settings.Instance.Oracle.NeoscanUrl;
 
             var neoRpcList = Settings.Instance.Oracle.NeoRpcNodes;
             this._neoAPI = new RemoteRPCNode(neoScanURL, neoRpcList.ToArray());
-            this._neoAPI.SetLogger((s) => Log.Information(s));
+            this._neoAPI.SetLogger((s) => Log.Information(s));*/
 
             var ethRpcList = Settings.Instance.Oracle.EthRpcNodes;
             
@@ -636,6 +643,7 @@ $@"  ""initial_height"": ""0"",
         {
             Log.Information($"Initializing nexus API...");
 
+            NexusAPI.Validators = Settings.Instance.Validators;
             NexusAPI.ApiLog = Settings.Instance.Node.ApiLog;
         }
 

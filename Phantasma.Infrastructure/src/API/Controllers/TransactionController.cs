@@ -250,7 +250,10 @@ namespace Phantasma.Infrastructure.API.Controllers
                     throw new APIException($"Execution failed: {error}");
                 }
 
+                var tempStack = vm.Stack.ToArray();
+                
                 var results = new Stack<string>();
+                var singleResult = "";
                 var resultReturn = new ScriptResult();
                 if (vm != null)
                 {
@@ -268,7 +271,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                             if (result.Type == VMType.Object)
                             {
                                 // NOTE currently supports simple arrays of C# objects. If something more complex in ncessary later, its good idea to rewrite this a recursive method
-                                if (result.Data.GetType().IsArray)
+                                if (result.Data is Array)
                                 {
                                     var array1 = ((Array)result.Data);
                                     var array2 = new VMObject[array1.Length];
@@ -280,37 +283,50 @@ namespace Phantasma.Infrastructure.API.Controllers
                                         vm_obj = VMObject.CastTo(result, VMType.Struct);
 
                                         array2[i] = vm_obj;
+                                        
+                                        var resultBytesStruct = Serialization.Serialize(vm_obj);
+                                        results.Push(Base16.Encode(resultBytesStruct));
                                     }
 
                                     result = VMObject.FromArray(array2);
                                 }
                                 else
                                 {
-                                    result = VMObject.CastTo(result, VMType.Struct);
+                                    result = VMObject.FromStruct(result.Data);
                                 }
                             }
                             else if (result.Type == VMType.Struct)
                             {
-                                if (result.Data.GetType().IsArray)
+                                if (result.GetArrayType() != VMType.None)
                                 {
-                                    var array1 = ((Array)result.Data);
-                                    var array2 = new VMObject[array1.Length];
-                                    for (int i = 0; i < array1.Length; i++)
+                                    var array1 = (result.GetChildren());
+                                    
+                                    var array2 = new VMObject[array1.Count];
+                                    for (int i = 0; i < array1.Count; i++)
                                     {
-                                        var obj = array1.GetValue(i);
+                                        var obj = array1.ElementAt(i).Value;
 
-                                        var vm_obj = VMObject.FromObject(obj);
-                                        vm_obj = VMObject.CastTo(result, VMType.Struct);
+                                        var vm_obj = VMObject.FromStruct(obj.Data);
 
                                         array2[i] = vm_obj;
+                                        
+                                        var resultBytesStruct = Serialization.Serialize(vm_obj);
+                                        results.Push(Base16.Encode(resultBytesStruct));
                                     }
-
-                                    result = VMObject.FromArray(array2);
                                 }
                             }
-
+                            
                             var resultBytes = Serialization.Serialize(result);
-                            results.Push(Base16.Encode(resultBytes));
+
+                            if (result.GetArrayType() == VMType.None)
+                            {
+                                results.Push(Base16.Encode(resultBytes));
+                            }
+
+                            if ( string.IsNullOrEmpty(singleResult))
+                            {
+                                singleResult = Base16.Encode(resultBytes);
+                            }
                         }
                     }
                     else
@@ -322,6 +338,10 @@ namespace Phantasma.Infrastructure.API.Controllers
                 {
                     resultReturn.error = "\nVM is null";
                 }
+                
+                var resultArray = results.ToArray();
+                resultReturn.result = singleResult;
+                resultReturn.results = resultArray;
                 
                 EventResult[] evts = new EventResult[0];
 
@@ -366,9 +386,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                     resultReturn.error += "\nOracle is null";
                 }
 
-                var resultArray = results.ToArray();
-                resultReturn.result = resultArray.FirstOrDefault();
-                resultReturn.results = resultArray;
+                
                 return resultReturn;
             }
             catch (APIException apiException)

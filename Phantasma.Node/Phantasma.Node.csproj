@@ -23,12 +23,6 @@
     <None Include="bin\Debug\net6.0\config_testnet_node0.json" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="config.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Foundatio" Version="10.4.0" />
     <PackageReference Include="Foundatio.Extensions.Hosting" Version="10.4.0" />
     <PackageReference Include="Foundatio.Redis" Version="10.4.0" />

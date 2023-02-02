@@ -9,6 +9,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
+using Serilog;
 
 namespace Phantasma.Core.Domain
 {
@@ -1107,11 +1108,16 @@ namespace Phantasma.Core.Domain
                 return VMType.Enum;
             }
 
+            if (type.IsArray)
+            {
+                return VMType.Struct;
+            }
+            
             if (type.IsClass || type.IsValueType)
             {
                 return VMType.Object;
             }
-
+            
             return VMType.None;
         }
 
@@ -1197,7 +1203,17 @@ namespace Phantasma.Core.Domain
                 case VMType.Timestamp: return this.AsTimestamp();
                 case VMType.Object: return this.Data;
                 case VMType.Enum: return this.Data;
-
+                case VMType.Struct:
+                {
+                    if (!this.IsEmpty)
+                    {
+                        return this.Data;
+                    }
+                    else
+                    {
+                        throw new Exception($"Cannot cast {Type} to object");
+                    }
+                }
                 default: throw new Exception($"Cannot cast {Type} to object");
             }
         }
@@ -1235,7 +1251,12 @@ namespace Phantasma.Core.Domain
 
         public object ToArray(Type arrayElementType)
         {
-            Throw.If(Type != VMType.Struct, "not a valid source struct");
+            if (this.IsEmpty)
+            {
+                return Array.CreateInstance(arrayElementType, 0);
+            }
+            
+            Throw.If(Type != VMType.Struct, $"not a valid source struct");
 
             var children = GetChildren();
             int maxIndex = -1;
@@ -1255,6 +1276,7 @@ namespace Phantasma.Core.Domain
 
             var length = maxIndex + 1;
             var array = Array.CreateInstance(arrayElementType, length);
+            
 
             foreach (var child in children)
             {
@@ -1438,9 +1460,20 @@ namespace Phantasma.Core.Domain
                             var bytes = Serialization.Serialize(obj);
                             writer.WriteByteArray(bytes);
                         }
+                        else if ( this.Data is Array)
+                        {
+                            var array = (Array)this.Data;
+                            writer.WriteVarInt(array.Length);
+                            foreach (var item in array)
+                            {
+                                var obj2 = CastViaReflection(item, 0);
+                                obj2.SerializeData(writer);
+                            }
+                        }
                         else
                         {
                             throw new Exception($"Objects of type {dataType.Name} cannot be serialized");
+
                         }
 
                         break;

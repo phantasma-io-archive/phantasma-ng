@@ -704,7 +704,7 @@ public class Nexus : INexus
                 {
                     Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
                 }
-                else
+                else if (Runtime.ProtocolVersion <= 9)
                 {
                     var currentSupply = Runtime.GetTokenSupply(token.Symbol);
                     var totalSupply = currentSupply + amount;
@@ -754,6 +754,17 @@ public class Nexus : INexus
                         //Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
                         Runtime.ExpectWarning(isValidOrigin, $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
                     }
+                }
+                else
+                {
+                    bool isValidContext = Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
+                                          Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName();
+                    bool isValidOrigin = source == SmartContract.GetAddressForNative(NativeContractKind.Stake) || 
+                                         source == SmartContract.GetAddressForNative(NativeContractKind.Gas);
+
+                    Runtime.ExpectWarning(isValidContext , $"minting of {token.Symbol} can only happen via master claim", source);
+                    //Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
+                    Runtime.ExpectWarning(isValidOrigin, $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
                 }
             }
             else if (token.Symbol == DomainSettings.FuelTokenSymbol )
@@ -1096,7 +1107,7 @@ public class Nexus : INexus
             Runtime.Expect(destName != ValidationUtils.ANONYMOUS_NAME, "anonymous system address as destination");
         }
 
-        bool isOrganaizationTransaction = false;
+        bool isOrganizationTransaction = false;
         if (source.IsSystem)
         {
             var org = GetOrganizationByAddress(Runtime.RootStorage, source);
@@ -1117,7 +1128,7 @@ public class Nexus : INexus
                         Runtime.ExpectWarning(signature.Verify(msg, orgMembers), "invalid signature", source);
                     }
 
-                    isOrganaizationTransaction = true;
+                    isOrganizationTransaction = true;
                 }
             }
             else
@@ -1174,13 +1185,21 @@ public class Nexus : INexus
                 }
                 else if (isSystemSource && !isSystemDestination)
                 {
-                    if ( !isOrganaizationTransaction )
-                        Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                    if (!isOrganizationTransaction)
+                    {
+                        Runtime.CheckWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
+                        /*Runtime.ExpectWarning(Runtime.IsWitness(source),
+                            $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);*/
+                        //Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                    }
                     else
-                        Runtime.ExpectWarning(Runtime.IsWitness(source), "source is system address and not a witness", source);
-                }else if (!isSystemDestination)
+                    {
+                        Runtime.ExpectWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} (System) to {destination}", source);
+                    }
+                }
+                else if (isSystemDestination)
                 {
-                    Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                    Runtime.ExpectWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
                 }
             }
         }
@@ -1193,7 +1212,7 @@ public class Nexus : INexus
             {
                 allowed = Runtime.IsWitness(source);
             }
-            else if (isOrganaizationTransaction)
+            else if (isOrganizationTransaction)
             {
                 allowed = true;
             }
@@ -1969,7 +1988,15 @@ public class Nexus : INexus
 
     public ValidatorEntry[] GetValidators(Timestamp timestamp)
     {
-        var validators = (ValidatorEntry[])RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToObject();
+        ValidatorEntry[] validators = null;
+        if (this.GetProtocolVersion(RootStorage) > 8)
+        {
+            validators = RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToArray<ValidatorEntry>();
+        }
+        else
+        {
+            validators = (ValidatorEntry[]) RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToObject();
+        }
         return validators;
     }
 

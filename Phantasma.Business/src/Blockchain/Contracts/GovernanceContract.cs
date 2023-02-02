@@ -1,7 +1,9 @@
 using System.Numerics;
+using System.Text;
 using Org.BouncyCastle.Asn1.X509;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 
 namespace Phantasma.Business.Blockchain.Contracts
@@ -174,7 +176,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
             var pollName = ConsensusContract.SystemPoll + name;
-            var hasConsensus = Runtime.CallNativeContext(NativeContractKind.Consensus, nameof(ConsensusContract.HasConsensus), pollName, value).AsBool();
+            var hasConsensus = Runtime.CallNativeContext(NativeContractKind.Consensus, nameof(ConsensusContract.HasConsensus), pollName, Encoding.UTF8.GetBytes(value.ToString())).AsBool();
             Runtime.Expect(hasConsensus, "consensus not reached");
 
             var previous = _valueMap.Get<string, BigInteger>(name);

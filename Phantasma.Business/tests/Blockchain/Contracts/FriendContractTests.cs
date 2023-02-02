@@ -96,7 +96,7 @@ public class FriendContractTests
         Assert.True(simulator.LastBlockWasSuccessful());
 
         var friendsList =
-            simulator.InvokeContract(NativeContractKind.Friends, nameof(FriendsContract.GetFriends), user.Address).AsStruct<Address[]>();
+            simulator.InvokeContract(NativeContractKind.Friends, nameof(FriendsContract.GetFriends), user.Address).ToArray<Address>();
         
         Assert.True(friendsList.Length == 1);
         Assert.True(friendsList.Length > 0);
@@ -113,7 +113,7 @@ public class FriendContractTests
         Assert.True(simulator.LastBlockWasSuccessful());
         
         friendsList =
-            simulator.InvokeContract(NativeContractKind.Friends, nameof(FriendsContract.GetFriends), user.Address).AsStruct<Address[]>();
+            simulator.InvokeContract(NativeContractKind.Friends, nameof(FriendsContract.GetFriends), user.Address).ToArray<Address>();
 
         Assert.True(friendsList.Length == 0);
     }

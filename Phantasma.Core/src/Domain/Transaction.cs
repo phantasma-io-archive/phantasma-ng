@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
@@ -80,7 +81,8 @@ namespace Phantasma.Core.Domain
         // required for deserialization
         public Transaction()
         {
-
+            this.Hash = Hash.Null;
+            
         }
 
         public Transaction(
@@ -287,6 +289,33 @@ namespace Phantasma.Core.Domain
                 Payload[3] = (byte)((nonce >> 24) & 0xFF);
                 UpdateHash();
             }
+        }
+
+        public override bool Equals(object obj)
+        {
+            if ( obj is not Transaction)
+            {
+                return false;
+            }
+            else if (obj == null)
+            {
+                return false;
+            }
+            else if (obj == this)
+            {
+                return true;
+            }
+            else if (obj is Transaction tx)
+            {
+                bool result = this.Hash == ((Transaction)obj).Hash;
+
+                return this.Hash.Equals(tx.Hash) && this.Payload.SequenceEqual(tx.Payload) && this.Script.SequenceEqual(tx.Script)
+                       && this.Expiration.Equals(tx.Expiration) && this.ChainName == tx.ChainName &&
+                       this.NexusName == tx.NexusName && this.Signatures.Length == tx.Signatures.Length 
+                    /*&& this.Signatures.Except(tx.Signatures).Count() == 0 && tx.Signatures.Except(this.Signatures).Count() == 0*/;
+            }
+            
+            return base.Equals(obj);
         }
     }
 }

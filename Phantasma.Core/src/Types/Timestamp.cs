@@ -18,8 +18,10 @@ namespace Phantasma.Core.Types
             {
                 this.Value = result;
             }
-            
-            this.Value = Timestamp.Null.Value;
+            else
+            {
+                this.Value = Timestamp.Null.Value;
+            }
         }
         
         public Timestamp(BigInteger value)

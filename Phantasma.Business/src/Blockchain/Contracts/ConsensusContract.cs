@@ -243,7 +243,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 {
                     poll.state = PollState.Inactive;
                 }
-                else if (Runtime.Time >= poll.startTime && Runtime.Time<poll.endTime && poll.state == PollState.Inactive)
+                else if (Runtime.Time >= poll.startTime && Runtime.Time < poll.endTime && poll.state == PollState.Inactive)
                 {
                     poll.state = PollState.Active;
                     _pollList.Add<string>(subject);
