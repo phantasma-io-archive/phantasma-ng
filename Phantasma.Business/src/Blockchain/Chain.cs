@@ -497,6 +497,8 @@ namespace Phantasma.Business.Blockchain
 
         public byte[] SetBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet)
         {
+            this.CurrentBlock.AddAllTransactionHashes(this.CurrentTransactions.Select (x => x.Hash).ToArray());
+            
             // Validate block 
             if (!VerifyBlockBeforeAdd(block))
             {
