@@ -311,7 +311,8 @@ namespace Phantasma.Core.Domain
 
                 return this.Hash.Equals(tx.Hash) && this.Payload.SequenceEqual(tx.Payload) && this.Script.SequenceEqual(tx.Script)
                        && this.Expiration.Equals(tx.Expiration) && this.ChainName == tx.ChainName &&
-                       this.NexusName == tx.NexusName && this.Signatures.Except(tx.Signatures).Count() == 0 && tx.Signatures.Except(this.Signatures).Count() == 0;
+                       this.NexusName == tx.NexusName && this.Signatures.Length == tx.Signatures.Length 
+                    /*&& this.Signatures.Except(tx.Signatures).Count() == 0 && tx.Signatures.Except(this.Signatures).Count() == 0*/;
             }
             
             return base.Equals(obj);

@@ -546,7 +546,6 @@ namespace Phantasma.Business.Blockchain
                         throw new ChainException($"Block events are not the same as the current block\n {blockEvents[i]}\n {currentBlockEvents[i]}");
                     }
                 }
-                //throw new ChainException("Block events are not the same as the current block");
             }
                 
             if ( block.Protocol != this.CurrentBlock.Protocol)
@@ -565,12 +564,13 @@ namespace Phantasma.Business.Blockchain
                 throw new ChainException("Block transaction hashes are not the same as the current block");
             }
             
-            this.CurrentBlock.AddAllTransactionHashes(transactionHashs);
-
-            if ( block.TransactionHashes.Except(this.CurrentBlock.TransactionHashes).Count() != 0 && this.CurrentBlock.TransactionHashes.Except(block.TransactionHashes).Count() != 0)
+            if ( this.CurrentBlock.TransactionCount == 0)
+                this.CurrentBlock.AddAllTransactionHashes(transactionHashs);
+            
+            if ( block.TransactionHashes.Except(transactionHashs).Count() != 0 && transactionHashs.Except(block.TransactionHashes).Count() != 0)
             {
                 var blockTransactionHashes = block.TransactionHashes.ToArray();
-                var currentBlockTransactionHashes = this.CurrentBlock.TransactionHashes.ToArray();
+                var currentBlockTransactionHashes = transactionHashs.ToArray();
                 
                 for(int i = 0; i < blockTransactionHashes.Length; i++)
                 {
@@ -579,23 +579,22 @@ namespace Phantasma.Business.Blockchain
                         throw new ChainException($"Block transaction hashes are not the same as the current block\n {blockTransactionHashes[i]}\n {currentBlockTransactionHashes[i]}");
                     }
                 }
-                //throw new ChainException("Block transaction hashes are not the same as the current block");
             }
-
+            
             if (transactions.Select(tx => tx.IsValid(this)).All(valid => !valid))
             {
                 throw new ChainException("Block transactions are not valid");
             }
             
-            if ( transactions.Count() != this.CurrentTransactions.Count())
+            if ( transactions.Count() != this.Transactions.Count())
             {
-                throw new ChainException("Block transactions are not the same as the current block");
+                throw new ChainException($"Block transactions are not the same as the current block, {transactions.Count()} != {this.Transactions.Count()} | {this.CurrentBlock.TransactionCount}");
             }
             
-            if (transactions.Except(this.CurrentTransactions).Count() != 0 && this.CurrentTransactions.Except(transactions).Count() != 0)
+            if (transactions.Except(this.Transactions).Count() != 0 && this.Transactions.Except(transactions).Count() != 0)
             {
                 var blockTransactions = transactions.ToArray();
-                var currentBlockTransactions = this.CurrentTransactions.ToArray();
+                var currentBlockTransactions = this.Transactions.ToArray();
                 
                 for(int i = 0; i < blockTransactions.Length; i++)
                 {
@@ -604,13 +603,7 @@ namespace Phantasma.Business.Blockchain
                         throw new ChainException($"Block transactions are not the same as the current block\n {blockTransactions[i]}\n {currentBlockTransactions[i]}");
                     }
                 }
-                //throw new ChainException("Block transactions are not the same as the current block");
             }
-            
-            /*if (transactions.Select(tx => tx.Hash).All(hash => !this.CurrentBlock.TransactionHashes.Contains(hash)))
-            {
-                throw new ChainException("Block transactions are not the same as the current block");
-            }*/
             
             // from here on, the block is accepted
             changeSet.Execute();
@@ -668,10 +661,12 @@ namespace Phantasma.Business.Blockchain
             }
             
             Block lastBlock = this.CurrentBlock;
+
             this.CurrentBlock = null;
             this.CurrentTransactions.Clear();
-
+            
             Log.Information("Committed block {Height}", lastBlock.Height);
+
             return lastBlock.Hash.ToByteArray();
         }
 
