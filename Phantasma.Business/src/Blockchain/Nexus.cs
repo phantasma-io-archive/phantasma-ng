@@ -31,14 +31,16 @@ public class Nexus : INexus
     private string ChainChildrenBlockKey => ".chain.children.";
 
     private string ChainArchivesKey => ".chain.archives.";
-    public string NexusProtocolVersionTag => "nexus.protocol.version";
+    public static string NexusProtocolVersionTag => "nexus.protocol.version";
     
-     private static string LP_ContractCompiled_PVM =
+     private static string OLD_LP_CONTRACT_PVM =
         "000D01041C5068616E7461736D61204C69717569646974792050726F76696465720301082700000B000D0104024C500301083500000B000D010601000301084200000B000D010601010301084F00000B000D010301080301085C00000B000D010601000301086900000B000D010301000301087600000B000D010408446174612E4765740D0204024C500D0003010803000D0004065F6F776E6572030003020701040303030D00040941646472657373282907000403020301030108BF00000B000D00040F52756E74696D652E56657273696F6E070004000D010301001A0001000A001E010D00043243757272656E74206E657875732070726F746F636F6C2076657273696F6E2073686F756C642062652030206F72206D6F72650C0000040303030D000409416464726573732829070004030203040204010D040601000204020D05026C04076765744E616D6504000000000107746F6B656E4944030E6765744465736372697074696F6E045D0000000107746F6B656E4944030B676574496D61676555524C04F10000000107746F6B656E4944030A676574496E666F55524C041E0100000107746F6B656E4944030003050D0502FD52010004010D0004066D696E744944030003010D0004024C5003000D00041152756E74696D652E52656164546F6B656E070004023202020D0004066D696E744944300203000D0104044C5020230203020E020204230102040304085C00000B0004010D000403524F4D030003010D0004024C5003000D00041152756E74696D652E52656164546F6B656E070004023202020D000403524F4D300203003203030D0104124C6971756469747920666F7220706F6F6C200203020D04040753796D626F6C30300202040D040403202F200203050D06040753796D626F6C3130050506230405062302060423010402030208F000000B0004010D01041F68747470733A2F2F7068616E7461736D612E696F2F696D672F6C702E706E670301081D01000B0004010201020D01041868747470733A2F2F7068616E7461736D612E696F2F6C702F0202030E030304230103040304085101000B03050D0507040000000003050D0503010003050D0503010003050D0504024C50030502010503050D0404174E657875732E437265617465546F6B656E5365726965730704000D030408446174612E53657403010D0004065F6F776E65720300070303020D0004085F6368616E676564030007030B000D010408446174612E4765740D0204024C500D0003010803000D0004065F6F776E6572030003020701040303030D00040941646472657373282907000403040103010D000409416464726573732829070004010402320202040432040402030603060D05041152756E74696D652E49735769746E65737307050405090514040D06040E7769746E657373206661696C65640C06000D0703010103070204070E07070203070202070E07070203070D0704024C50030702010703070D0702220200FACEE6DD84C950B54361FB71DFE736CDC64D894294305B4FEEAF3C61ABF2F2F703070D0004094164647265737328290700040703070D06041152756E74696D652E4D696E74546F6B656E070604060206050205060306089A04000B00040103010D0004094164647265737328290700040104020E02020302010403040D03041152756E74696D652E49735769746E657373070304030903EE040D04040E7769746E657373206661696C65640C040002020403040D040404534F554C03040D0402220200FACEE6DD84C950B54361FB71DFE736CDC64D894294305B4FEEAF3C61ABF2F2F703040D00040941646472657373282907000404030402010403040D03041652756E74696D652E5472616E73666572546F6B656E73070302020403040D0402220200FACEE6DD84C950B54361FB71DFE736CDC64D894294305B4FEEAF3C61ABF2F2F703040D0004094164647265737328290700040403040D0304055374616B6503030D0304057374616B652D03032E03000B000D010408446174612E4765740D0204024C500D0003010803000D0004065F6F776E6572030003020701040303030D000409416464726573732829070004030D0003010603000D0004085F6368616E6765640300030207010404040103010D0004094164647265737328290700040102040215020209024D060D0504194F776E65722077617320616C7265616479206368616E6765640C050002030503050D02041152756E74696D652E49735769746E65737307020402090284060D05040E7769746E657373206661696C65640C05000D000420416464726573732E697353797374656D206E6F7420696D706C656D656E7465640C000902DC060D050427746865206E65772061646472657373206973206E6F7420612073797374656D20616464726573730C05000201020202030D02060101020204000D010408446174612E53657403030D0004065F6F776E65720300070103040D0004085F6368616E676564030007010B000D010408446174612E4765740D0204024C500D0003010803000D0004065F6F776E6572030003020701040303030D00040941646472657373282907000403040103010D0004094164647265737328290700040102030403040D02041152756E74696D652E49735769746E657373070204020902A5070D04040E7769746E657373206661696C65640C04000D04040B4D696772617465546F563303040D02040865786368616E67652D02022E02000B00040103010D000409416464726573732829070004010D0204174E6F7420616C6C6F77656420746F20757067726164652E0C02000B00040103010D00040941646472657373282907000401040203020D0004094164647265737328290700040202010403040D03041152756E74696D652E49735769746E65737307030403090360080D04040E7769746E657373206661696C65640C0400000B000D010408446174612E4765740D0204024C500D0003010803000D0004065F6F776E6572030003020701040303030D00040941646472657373282907000403040103010D00040941646472657373282907000401040203020D00040941646472657373282907000402040404050E0505030D0704024C50020706020407020608190708090909FF080D07040E696E76616C69642073796D626F6C0C070002030803080D07041152756E74696D652E49735769746E65737307070407090736090D08040E7769746E657373206661696C65640C0800083A09000B00040103010D0004094164647265737328290700040104020E02020302010403040D03041152756E74696D652E49735769746E6573730703040309038E090D04040E7769746E657373206661696C65640C0400089209000B00040103010D00040941646472657373282907000401040203020D00040941646472657373282907000402040304040E04040302010603060D05041152756E74696D652E49735769746E657373070504050905FD090D06040E7769746E657373206661696C65640C060008010A000B";
 
-    private static string LP_ContractCompiled_ABI =
+    private static string OLD_LP_CONTRACT_ABI =
         "12076765744E616D650400000000000967657453796D626F6C0428000000000E69735472616E7366657261626C650636000000000A69734275726E61626C650643000000000B676574446563696D616C7303500000000008697346696E697465065D000000000C6765744D6178537570706C79036A00000000086765744F776E65720877000000000A496E697469616C697A6500C0000000010D636F6E74726163744F776E657208044D696E74037F030000030466726F6D0803726F6D010372616D011153656E6446756E6473416E645374616B65009B040000020466726F6D0806616D6F756E74030B4368616E67654F776E657200B4050000010466726F6D080C75706772616465546F446578001A070000010466726F6D08096F6E5570677261646500C9070000010466726F6D08096F6E4D69677261746500FE070000020466726F6D0802746F08066F6E4D696E740062080000040466726F6D0802746F080673796D626F6C0407746F6B656E494403046275726E003B090000020466726F6D0807746F6B656E494403066F6E4275726E0093090000040466726F6D0802746F080673796D626F6C0407746F6B656E49440300";
 
+    private static string NEW_LP_CONTRACT_PVM = "000D01041C5068616E7461736D61204C69717569646974792050726F76696465720301082700000B000D0104024C500301083500000B000D010601000301084200000B000D010601010301084F00000B000D010301080301085C00000B000D010601000301086900000B000D010301000301087600000B000D010408446174612E4765740D0204024C500D0003010803000D0004056F776E6572030003020701040303030D00040941646472657373282907000403020301030108BE00000B000D00040F52756E74696D652E56657273696F6E070004000D010301001A0001000A001D010D00043243757272656E74206E657875732070726F746F636F6C2076657273696F6E2073686F756C642062652030206F72206D6F72650C0000040303030D000409416464726573732829070004030203040204010D040601000204020D05026C04076765744E616D6504000000000107746F6B656E4944030E6765744465736372697074696F6E045D0000000107746F6B656E4944030B676574496D61676555524C04F10000000107746F6B656E4944030A676574496E666F55524C041E0100000107746F6B656E4944030003050D0502FD52010004010D0004066D696E744944030003010D0004024C5003000D00041152756E74696D652E52656164546F6B656E070004023202020D0004066D696E744944300203000D0104044C5020230203020E020204230102040304085C00000B0004010D000403524F4D030003010D0004024C5003000D00041152756E74696D652E52656164546F6B656E070004023202020D000403524F4D300203003203030D0104124C6971756469747920666F7220706F6F6C200203020D04040753796D626F6C30300202040D040403202F200203050D06040753796D626F6C3130050506230405062302060423010402030208F000000B0004010D01041F68747470733A2F2F7068616E7461736D612E696F2F696D672F6C702E706E670301081D01000B0004010201020D01041868747470733A2F2F7068616E7461736D612E696F2F6C702F0202030E030304230103040304085101000B03050D0507040000000003050D0503010003050D0503010003050D0504024C50030502010503050D0404174E657875732E437265617465546F6B656E5365726965730704000D030408446174612E53657403010D0004056F776E65720300070303020D0004085F6368616E676564030007030B000D010408446174612E4765740D0204024C500D0003010803000D0004056F776E6572030003020701040303030D00040941646472657373282907000403040103010D000409416464726573732829070004010402320202040432040402030603060D05041152756E74696D652E49735769746E65737307050405090511040D06040E7769746E657373206661696C65640C06000D0703010103070204070E07070203070202070E07070203070D0704024C50030702010703070D0702220200FACEE6DD84C950B54361FB71DFE736CDC64D894294305B4FEEAF3C61ABF2F2F703070D0004094164647265737328290700040703070D06041152756E74696D652E4D696E74546F6B656E070604060206050205060306089704000B00040103010D0004094164647265737328290700040104020E02020302010403040D03041152756E74696D652E49735769746E657373070304030903EB040D04040E7769746E657373206661696C65640C040002020403040D040404534F554C03040D0402220200FACEE6DD84C950B54361FB71DFE736CDC64D894294305B4FEEAF3C61ABF2F2F703040D00040941646472657373282907000404030402010403040D03041652756E74696D652E5472616E73666572546F6B656E73070302020403040D0402220200FACEE6DD84C950B54361FB71DFE736CDC64D894294305B4FEEAF3C61ABF2F2F703040D0004094164647265737328290700040403040D0304055374616B6503030D0304057374616B652D03032E03000B000D010408446174612E4765740D0204024C500D0003010803000D0004056F776E6572030003020701040303030D000409416464726573732829070004030D0003010603000D0004085F6368616E6765640300030207010404040103010D00040941646472657373282907000401020402150202090249060D0504194F776E65722077617320616C7265616479206368616E6765640C050002030503050D02041152756E74696D652E49735769746E65737307020402090280060D05040E7769746E657373206661696C65640C05000D000420416464726573732E697353797374656D206E6F7420696D706C656D656E7465640C000902D8060D050427746865206E65772061646472657373206973206E6F7420612073797374656D20616464726573730C05000201020202030D02060101020204000D010408446174612E53657403030D0004056F776E65720300070103040D0004085F6368616E676564030007010B000D010408446174612E4765740D0204024C500D0003010803000D0004056F776E6572030003020701040303030D00040941646472657373282907000403040103010D0004094164647265737328290700040102030403040D02041152756E74696D652E49735769746E6573730702040209029F070D04040E7769746E657373206661696C65640C04000D04040B4D696772617465546F563303040D02040865786368616E67652D02022E02000B000D010408446174612E4765740D0204024C500D0003010803000D0004056F776E6572030003020701040303030D00040941646472657373282907000403040103010D0004094164647265737328290700040102030403040D02041152756E74696D652E49735769746E6573730702040209024D080D04040E7769746E657373206661696C65640C0400085108000B00040103010D00040941646472657373282907000401040203020D0004094164647265737328290700040202010403040D03041152756E74696D652E49735769746E657373070304030903B4080D04040E7769746E657373206661696C65640C0400000B000D010408446174612E4765740D0204024C500D0003010803000D0004056F776E6572030003020701040303030D00040941646472657373282907000403040103010D00040941646472657373282907000401040203020D00040941646472657373282907000402040404050E0505030D0704024C5002070602040702060819070809090952090D07040E696E76616C69642073796D626F6C0C070002030803080D07041152756E74696D652E49735769746E65737307070407090789090D08040E7769746E657373206661696C65640C0800088D09000B00040103010D0004094164647265737328290700040104020E02020302010403040D03041152756E74696D652E49735769746E657373070304030903E1090D04040E7769746E657373206661696C65640C040008E509000B00040103010D00040941646472657373282907000401040203020D00040941646472657373282907000402040304040E04040302010603060D05041152756E74696D652E49735769746E657373070504050905500A0D06040E7769746E657373206661696C65640C0600020406030602010603060D0604076275726E4E465403060D05040865786368616E67652D05052E05087C0A000B00040103010D000409416464726573732829070004010D0204144E6F7420616C6C6F77656420746F206B696C6C2E0C02000B";
+    private static string NEW_LP_CONTRACT_ABI = "13076765744E616D650400000000000967657453796D626F6C0428000000000E69735472616E7366657261626C650636000000000A69734275726E61626C650643000000000B676574446563696D616C7303500000000008697346696E697465065D000000000C6765744D6178537570706C79036A00000000086765744F776E65720877000000000A496E697469616C697A6500BF000000010D636F6E74726163744F776E657208044D696E74037D030000030466726F6D0803726F6D010372616D011153656E6446756E6473416E645374616B650098040000020466726F6D0806616D6F756E74030B4368616E67654F776E657200B1050000010466726F6D080C75706772616465546F4465780015070000010466726F6D08096F6E5570677261646500C3070000010466726F6D08096F6E4D6967726174650052080000020466726F6D0802746F08066F6E4D696E7400B6080000040466726F6D0802746F080673796D626F6C0407746F6B656E494403046275726E008E090000020466726F6D0807746F6B656E494403066F6E4275726E00E6090000040466726F6D0802746F080673796D626F6C0407746F6B656E494403066F6E4B696C6C007D0A0000010466726F6D0800";
     
     public static readonly BigInteger FuelPerContractDeployDefault = UnitConversion.ToBigInteger(10, DomainSettings.FiatTokenDecimals);
     public static readonly BigInteger FuelPerTokenDeployDefault = UnitConversion.ToBigInteger(100, DomainSettings.FiatTokenDecimals);
@@ -698,14 +700,95 @@ public class Nexus : INexus
         {
             if (token.Symbol == DomainSettings.StakingTokenSymbol)
             {
-                Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
-            } else if (token.Symbol == DomainSettings.FuelTokenSymbol )
+                if (Runtime.ProtocolVersion <= 8)
+                {
+                    Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
+                }
+                else if (Runtime.ProtocolVersion <= 9)
+                {
+                    var currentSupply = Runtime.GetTokenSupply(token.Symbol);
+                    var totalSupply = currentSupply + amount;
+                    var maxSupply = UnitConversion.ToBigInteger(decimal.Parse((100000000 * Math.Pow(1.03, ((DateTime)Runtime.Time).Year - 2018 - 1)).ToString()), DomainSettings.StakingTokenDecimals);
+
+                    if (Runtime.CurrentContext.Name == "entry" && Runtime.IsPrimaryValidator(source) &&
+                        Runtime.IsPrimaryValidator(destination))
+                    {
+                        if (totalSupply <= maxSupply)
+                        {
+                            Runtime.ExpectWarning(totalSupply <= maxSupply,
+                                $"minting of {token.Symbol} can only happen if the amount is lower than 100M", source);
+                            Runtime.ExpectWarning(Runtime.IsWitness(token.Owner),
+                                $"minting of {token.Symbol} can only happen if the owner of the contract does it.",
+                                source);
+                            Runtime.ExpectWarning(Runtime.IsPrimaryValidator(source),
+                                $"minting of {token.Symbol} can only happen if the owner of the contract does it.",
+                                source);
+                            Runtime.ExpectWarning(Runtime.IsPrimaryValidator(destination),
+                                $"minting of {token.Symbol} can only happen if the destination is a validator.",
+                                source);
+
+                            var org = GetOrganizationByName(Runtime.RootStorage, DomainSettings.ValidatorsOrganizationName);
+                            Runtime.ExpectWarning(org != null, "moving funds from null org currently not possible",
+                                source);
+
+                            var orgMembers = org.GetMembers();
+                            // TODO: Check if it needs to be a DAO member
+                            //Runtime.ExpectFiltered(orgMembers.Contains(destination), "destination must be a member of the org", destination);
+                            Runtime.ExpectWarning(Runtime.Transaction.Signatures.Length == orgMembers.Length,
+                                "must be signed by all org members", source);
+                            var msg = Runtime.Transaction.ToByteArray(false);
+                            foreach (var signature in Runtime.Transaction.Signatures)
+                            {
+                                Runtime.ExpectWarning(signature.Verify(msg, orgMembers), "invalid signature", source);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        bool isValidContext = Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
+                                              Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName();
+                        bool isValidOrigin = source == SmartContract.GetAddressForNative(NativeContractKind.Stake) || 
+                                             source == SmartContract.GetAddressForNative(NativeContractKind.Gas);
+
+                        Runtime.ExpectWarning(isValidContext , $"minting of {token.Symbol} can only happen via master claim", source);
+                        //Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
+                        Runtime.ExpectWarning(isValidOrigin, $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
+                    }
+                }
+                else
+                {
+                    bool isValidContext = Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
+                                          Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName();
+                    bool isValidOrigin = source == SmartContract.GetAddressForNative(NativeContractKind.Stake) || 
+                                         source == SmartContract.GetAddressForNative(NativeContractKind.Gas);
+
+                    Runtime.ExpectWarning(isValidContext , $"minting of {token.Symbol} can only happen via master claim", source);
+                    //Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
+                    Runtime.ExpectWarning(isValidOrigin, $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
+                }
+            }
+            else if (token.Symbol == DomainSettings.FuelTokenSymbol )
             {
-                Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via claiming", source);
+                if (Runtime.ProtocolVersion <= 8)
+                {
+                    Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via claiming", source);
+                }
+                else
+                {
+                    Runtime.ExpectWarning(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via claiming", source);
+                }
             }
             else
             {
-                Runtime.ExpectFiltered(!IsDangerousSymbol(token.Symbol), $"minting of {token.Symbol} failed", source);
+                if (Runtime.ProtocolVersion <= 8)
+                {
+                    Runtime.ExpectFiltered(!IsDangerousSymbol(token.Symbol), $"minting of {token.Symbol} failed",
+                        source);
+                }
+                else
+                {
+                    Runtime.ExpectWarning(!IsDangerousSymbol(token.Symbol), $"minting of {token.Symbol} failed", source);
+                }
             }
         }
 
@@ -844,8 +927,10 @@ public class Nexus : INexus
         var balances = new BalanceSheet(token);
         Runtime.Expect(balances.Subtract(Runtime.Storage, source, amount), $"{token.Symbol} balance subtract failed from {source.Text}");
 
+        // If trigger is missing the code will be executed
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, isSettlement ? TokenTrigger.OnSend : TokenTrigger.OnBurn, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token trigger failed");
 
+        // If trigger is missing the code will be executed
         Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, source, isSettlement ? AccountTrigger.OnSend : AccountTrigger.OnBurn, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account trigger failed");
 
         if (isSettlement)
@@ -879,22 +964,26 @@ public class Nexus : INexus
         var supply = new SupplySheet(token.Symbol, chain, this);
 
         Runtime.Expect(supply.Burn(Runtime.Storage, 1), "supply burning failed");
-
-        if (!isSettlement)
+        
+        if (Runtime.ProtocolVersion <= DomainSettings.Phantasma30Protocol)
         {
-            Runtime.Expect(source == destination, "source and destination must match when burning");
-            Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
-            DestroyNFT(Runtime, token.Symbol, tokenID, source);
+            DestroyNFTIfSettlement(Runtime, token, source, destination, tokenID, isSettlement);
+            
+            var ownerships = new OwnershipSheet(token.Symbol);
+            Runtime.Expect(ownerships.Remove(Runtime.Storage, source, tokenID), "ownership removal failed");
+
+            ValidateBurnTriggers(Runtime, token, source, destination, targetChain, tokenID, isSettlement);
+            
         }
-
-        var ownerships = new OwnershipSheet(token.Symbol);
-        Runtime.Expect(ownerships.Remove(Runtime.Storage, source, tokenID), "ownership removal failed");
-
-        var tokenTrigger = isSettlement ? TokenTrigger.OnSend : TokenTrigger.OnBurn;
-        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed: ");
-
-        var accountTrigger = isSettlement ? AccountTrigger.OnSend : AccountTrigger.OnBurn;
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, source, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"accont {accountTrigger} trigger failed: ");
+        else
+        {
+            ValidateBurnTriggers(Runtime, token, source, destination, targetChain, tokenID, isSettlement);
+            
+            DestroyNFTIfSettlement(Runtime, token, source, destination, tokenID, isSettlement);
+            
+            var ownerships = new OwnershipSheet(token.Symbol);
+            Runtime.Expect(ownerships.Remove(Runtime.Storage, source, tokenID), "ownership removal failed");
+        }
 
         if (isSettlement)
         {
@@ -907,6 +996,37 @@ public class Nexus : INexus
             UpdateBurnedSupply(Runtime.Storage, token.Symbol, 1);
             UpdateBurnedSupplyForSeries(Runtime.Storage, token.Symbol, 1, nft.SeriesID);
             Runtime.Notify(EventKind.TokenBurn, source, new TokenEventData(token.Symbol, tokenID, Runtime.Chain.Name));
+        }
+    }
+
+    /// <summary>
+    /// To validate the burn triggers to call the onBurn trigger on the token and on the account
+    /// </summary>
+    /// <param name="Runtime"></param>
+    /// <param name="token"></param>
+    /// <param name="source"></param>
+    /// <param name="destination"></param>
+    /// <param name="targetChain"></param>
+    /// <param name="tokenID"></param>
+    /// <param name="isSettlement"></param>
+    private void ValidateBurnTriggers(IRuntime Runtime, IToken token, Address source, Address destination, string targetChain, BigInteger tokenID, bool isSettlement )
+    {
+        // If trigger is missing the code will be executed
+        var tokenTrigger = isSettlement ? TokenTrigger.OnSend : TokenTrigger.OnBurn;
+        Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed: ");
+        
+        // If trigger is missing the code will be executed
+        var accountTrigger = isSettlement ? AccountTrigger.OnSend : AccountTrigger.OnBurn;
+        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, source, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"accont {accountTrigger} trigger failed: ");
+    }
+    
+    private void DestroyNFTIfSettlement(IRuntime Runtime, IToken token, Address source, Address destination, BigInteger tokenID, bool isSettlement)
+    {
+        if (!isSettlement)
+        {
+            Runtime.Expect(source == destination, "source and destination must match when burning");
+            Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
+            DestroyNFT(Runtime, token.Symbol, tokenID, source);
         }
     }
 
@@ -926,9 +1046,9 @@ public class Nexus : INexus
 
         var target = DomainSettings.InfusionAddress;
 
+        // If trigger is missing the code will be executed
         var tokenTrigger = TokenTrigger.OnInfuse;
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, from, target, infuseToken.Symbol, value) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed: ");
-
         
         if (infuseToken.IsFungible())
         {
@@ -987,12 +1107,29 @@ public class Nexus : INexus
             Runtime.Expect(destName != ValidationUtils.ANONYMOUS_NAME, "anonymous system address as destination");
         }
 
+        bool isOrganizationTransaction = false;
         if (source.IsSystem)
         {
             var org = GetOrganizationByAddress(Runtime.RootStorage, source);
             if (org != null)
             {
-                Runtime.ExpectFiltered(org == null, "moving funds from orgs currently not possible", source);
+                if ( Runtime.ProtocolVersion <= 8 )
+                    Runtime.ExpectFiltered(org == null, "moving funds from orgs currently not possible", source);
+                else
+                {
+                    Runtime.ExpectWarning(org != null, "moving funds from orgs currently not possible", source);
+                    var orgMembers = org.GetMembers();
+                    // TODO: Check if it needs to be a DAO member
+                    //Runtime.ExpectFiltered(orgMembers.Contains(destination), "destination must be a member of the org", destination);
+                    Runtime.ExpectWarning(Runtime.Transaction.Signatures.Length == orgMembers.Length, "must be signed by all org members", source);
+                    var msg = Runtime.Transaction.ToByteArray(false);
+                    foreach (var signature in Runtime.Transaction.Signatures)
+                    {
+                        Runtime.ExpectWarning(signature.Verify(msg, orgMembers), "invalid signature", source);
+                    }
+
+                    isOrganizationTransaction = true;
+                }
             }
             else
             if (source == DomainSettings.InfusionAddress)
@@ -1032,10 +1169,38 @@ public class Nexus : INexus
         if (Runtime.HasGenesis)
         {
             var isSystemDestination = destination.IsSystem && NativeContract.GetNativeContractByAddress(destination) != null;
-
-            if (!isSystemDestination)
+            var isSystemSource = source.IsSystem;
+            if (Runtime.ProtocolVersion <= 8)
             {
-                Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                if (!isSystemDestination)
+                {
+                    Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                }
+            }
+            else
+            {
+                if ( !isSystemDestination && !isSystemSource )
+                {
+                    Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                }
+                else if (isSystemSource && !isSystemDestination)
+                {
+                    if (!isOrganizationTransaction)
+                    {
+                        Runtime.CheckWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
+                        /*Runtime.ExpectWarning(Runtime.IsWitness(source),
+                            $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);*/
+                        //Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
+                    }
+                    else
+                    {
+                        Runtime.ExpectWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} (System) to {destination}", source);
+                    }
+                }
+                else if (isSystemDestination)
+                {
+                    Runtime.ExpectWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
+                }
             }
         }
 
@@ -1043,7 +1208,18 @@ public class Nexus : INexus
 
         if (Runtime.HasGenesis)
         {
-            allowed = Runtime.IsWitness(source);
+            if (Runtime.ProtocolVersion <= 8)
+            {
+                allowed = Runtime.IsWitness(source);
+            }
+            else if (isOrganizationTransaction)
+            {
+                allowed = true;
+            }
+            else
+            {
+                allowed = Runtime.IsWitness(source);
+            }
         }
         else
         {
@@ -1455,7 +1631,7 @@ public class Nexus : INexus
         sb.CallInterop("Runtime.DeployContract", owner.Address, contractName, script, abi);
     }
 
-    private Transaction NexusCreateTx(PhantasmaKeys owner, Timestamp genesisTime)
+    private Transaction NexusCreateTx(PhantasmaKeys owner, Timestamp genesisTime, int protocolVersion)
     {
         var sb = ScriptUtils.BeginScript();
 
@@ -1478,6 +1654,11 @@ public class Nexus : INexus
             DeployNativeContract(sb, owner, NativeContractKind.Mail);
             DeployNativeContract(sb, owner, NativeContractKind.Friends);
         }
+
+        _genesisValues[NexusProtocolVersionTag] = new KeyValuePair<BigInteger, ChainConstraint[]>(protocolVersion, new ChainConstraint[]
+        {
+            new ChainConstraint() { Kind = ConstraintKind.MustIncrease}
+        });
 
         foreach (var entry in _genesisValues)
         {
@@ -1540,7 +1721,14 @@ public class Nexus : INexus
         }
         
         // Deploy LP Contract
-        sb.CallInterop("Nexus.CreateToken", owner.Address, Base16.Decode(LP_ContractCompiled_PVM),  Base16.Decode(LP_ContractCompiled_ABI));
+        if (this.GetProtocolVersion(RootStorage) <= 8)
+        {
+            sb.CallInterop("Nexus.CreateToken", owner.Address, Base16.Decode(OLD_LP_CONTRACT_PVM),  Base16.Decode(OLD_LP_CONTRACT_ABI));
+        }
+        else
+        {
+            sb.CallInterop("Nexus.CreateToken", owner.Address, Base16.Decode(NEW_LP_CONTRACT_PVM),  Base16.Decode(NEW_LP_CONTRACT_ABI));
+        }
 
         sb.CallInterop("Nexus.EndInit", owner.Address);
 
@@ -1608,8 +1796,8 @@ public class Nexus : INexus
 
     private void InitGenesisValues()
     {
-        var version = GetProtocolVersion(RootStorage);
-
+        var version = DomainSettings.LatestKnownProtocol;
+        
         _genesisValues = new Dictionary<string, KeyValuePair<BigInteger, ChainConstraint[]>>() {
                  {
                      NexusProtocolVersionTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
@@ -1777,11 +1965,17 @@ public class Nexus : INexus
 
     public Transaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner)
     {
+        var version = (int)GetProtocolVersion(RootStorage);
+        return CreateGenesisTransaction(timestamp, owner, version);
+    }
+
+    public Transaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner, int protocolVersion)
+    {
         Throw.If(HasGenesis(), "genesis block already exists");
 
         Throw.If(!_initialValidators.Any(), "initial validators have not been set");
 
-        return NexusCreateTx(owner, timestamp);
+        return NexusCreateTx(owner, timestamp, protocolVersion);
     }
 
     #endregion
@@ -1794,7 +1988,15 @@ public class Nexus : INexus
 
     public ValidatorEntry[] GetValidators(Timestamp timestamp)
     {
-        var validators = (ValidatorEntry[])RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToObject();
+        ValidatorEntry[] validators = null;
+        if (this.GetProtocolVersion(RootStorage) > 8)
+        {
+            validators = RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToArray<ValidatorEntry>();
+        }
+        else
+        {
+            validators = (ValidatorEntry[]) RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToObject();
+        }
         return validators;
     }
 

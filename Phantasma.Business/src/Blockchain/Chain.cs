@@ -43,6 +43,7 @@ namespace Phantasma.Business.Blockchain
         public Address Address { get; private set; }
 
         public Block CurrentBlock{ get; private set; }
+        public IEnumerable<Transaction> Transactions => CurrentTransactions;
         public string CurrentProposer { get; private set; }
 
         public StorageChangeSetContext CurrentChangeSet { get; private set; }
@@ -150,7 +151,9 @@ namespace Phantasma.Business.Blockchain
                     var senderAddress = this.CurrentBlock.Validator;
 
                     // NOTE inflation is a expensive transaction so it requires a larger gas limit compared to other transactions
-                    var requiredGasLimit = Transaction.DefaultGasLimit * 4;
+                    int requiredGasLimit = Transaction.DefaultGasLimit * 50;
+                    if ( Nexus.GetGovernanceValue(Storage,  Phantasma.Business.Blockchain.Nexus.NexusProtocolVersionTag) <= 8)
+                        requiredGasLimit = Transaction.DefaultGasLimit * 4;
 
                     var script = new ScriptBuilder()
                         .AllowGas(senderAddress, Address.Null, minimumFee, requiredGasLimit)
@@ -426,6 +429,15 @@ namespace Phantasma.Business.Blockchain
         public byte[] Commit()
         {
             Log.Information("Committing block {Height}", this.CurrentBlock.Height);
+            if (!this.CurrentBlock.IsSigned)
+            {
+                if ( this.CurrentBlock.Validator == ValidatorKeys.Address)
+                {
+                    this.CurrentBlock.Sign(ValidatorKeys);
+                }
+            }
+            Block lastBlock = this.CurrentBlock;
+            
             try
             {
                 AddBlock(this.CurrentBlock, this.CurrentTransactions, this.CurrentChangeSet);
@@ -437,12 +449,8 @@ namespace Phantasma.Business.Blockchain
                 Environment.Exit(-1);
             }
 
-            Block lastBlock = this.CurrentBlock;
             this.CurrentBlock = null;
             this.CurrentTransactions.Clear();
-
-            Log.Information("Committed block {Height}", lastBlock.Height);
-
             return lastBlock.Hash.ToByteArray();
         }
 
@@ -483,22 +491,135 @@ namespace Phantasma.Business.Blockchain
         public void AddBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet)
         {
             block.AddAllTransactionHashes(transactions.Select (x => x.Hash).ToArray());
+            
+            this.SetBlock(block, transactions, changeSet);
+        }
 
+        public byte[] SetBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet)
+        {
+
+            // Validate block 
+            if (!VerifyBlockBeforeAdd(block))
+            {
+                throw new ChainException("Invalid block");
+            }
+            
+            if (!block.IsSigned)
+            {
+                throw new ChainException("Block is not signed");
+            }
+                
+            if ( block.PreviousHash != this.CurrentBlock.PreviousHash)
+            {
+                throw new ChainException("Block previous hash is not the same as the current block");
+            }
+                
+            if ( block.Height != this.CurrentBlock.Height)
+            {
+                throw new ChainException("Block height is not the same as the current block");
+            }
+
+            if (block.Timestamp != this.CurrentBlock.Timestamp)
+            {
+                throw new ChainException("Block timestamp is not the same as the current block");
+            }
+
+            if (block.ChainAddress != this.CurrentBlock.ChainAddress)
+            {
+                throw new ChainException("Block chain address is not the same as the current block");
+            }
+                
+            if ( block.Events.Count() != this.CurrentBlock.Events.Count())
+            {
+                throw new ChainException("Block events are not the same as the current block");
+            }
+            
+            if ( block.Events.Except(this.CurrentBlock.Events).Count() != 0 && this.CurrentBlock.Events.Except(block.Events).Count() != 0 )
+            {
+                var blockEvents = block.Events.ToArray();
+                var currentBlockEvents = this.CurrentBlock.Events.ToArray();
+                
+                for(int i = 0; i < blockEvents.Length; i++)
+                {
+                    if (!blockEvents[i].Equals(currentBlockEvents[i]))
+                    {
+                        throw new ChainException($"Block events are not the same as the current block\n {blockEvents[i]}\n {currentBlockEvents[i]}");
+                    }
+                }
+            }
+                
+            if ( block.Protocol != this.CurrentBlock.Protocol)
+            {
+                throw new ChainException("Block protocol is not the same as the current block");
+            }
+            
+            if ( !Nexus.IsPrimaryValidator(block.Validator, Timestamp.Now) )
+            {
+                throw new ChainException("Block validator is not a valid validator");
+            }
+
+            var transactionHashs = transactions.Select(x => x.Hash).ToArray();
+            if ( block.TransactionHashes.Count() != transactionHashs.Count())
+            {
+                throw new ChainException("Block transaction hashes are not the same as the current block");
+            }
+            
+            if ( this.CurrentBlock.TransactionCount == 0)
+                this.CurrentBlock.AddAllTransactionHashes(transactionHashs);
+            
+            if ( block.TransactionHashes.Except(transactionHashs).Count() != 0 && transactionHashs.Except(block.TransactionHashes).Count() != 0)
+            {
+                var blockTransactionHashes = block.TransactionHashes.ToArray();
+                var currentBlockTransactionHashes = transactionHashs.ToArray();
+                
+                for(int i = 0; i < blockTransactionHashes.Length; i++)
+                {
+                    if (!blockTransactionHashes[i].Equals(currentBlockTransactionHashes[i]))
+                    {
+                        throw new ChainException($"Block transaction hashes are not the same as the current block\n {blockTransactionHashes[i]}\n {currentBlockTransactionHashes[i]}");
+                    }
+                }
+            }
+            
+            if (transactions.Select(tx => tx.IsValid(this)).All(valid => !valid))
+            {
+                throw new ChainException("Block transactions are not valid");
+            }
+            
+            if ( transactions.Count() != this.Transactions.Count())
+            {
+                throw new ChainException($"Block transactions are not the same as the current block, {transactions.Count()} != {this.Transactions.Count()} | {this.CurrentBlock.TransactionCount}");
+            }
+            
+            if (transactions.Except(this.Transactions).Count() != 0 && this.Transactions.Except(transactions).Count() != 0)
+            {
+                var blockTransactions = transactions.ToArray();
+                var currentBlockTransactions = this.Transactions.ToArray();
+                
+                for(int i = 0; i < blockTransactions.Length; i++)
+                {
+                    if (!blockTransactions[i].Equals(currentBlockTransactions[i]))
+                    {
+                        throw new ChainException($"Block transactions are not the same as the current block\n {blockTransactions[i]}\n {currentBlockTransactions[i]}");
+                    }
+                }
+            }
+            
             // from here on, the block is accepted
             changeSet.Execute();
-
+            
             var hashList = new StorageList(BlockHeightListTag, this.Storage);
             hashList.Add<Hash>(block.Hash);
-
+            
             // persist genesis hash at height 1
             if (block.Height == 1)
             {
                 var genesisHash = block.Hash;
                 Nexus.CommitGenesis(genesisHash);
             }
-
+            
             var blockMap = new StorageMap(BlockHashMapTag, this.Storage);
-
+            
             var blockBytes = block.ToByteArray(true);
 
             var blk = Block.Unserialize(blockBytes);
@@ -507,6 +628,7 @@ namespace Phantasma.Business.Blockchain
 
             var txMap = new StorageMap(TransactionHashMapTag, this.Storage);
             var txBlockMap = new StorageMap(TxBlockHashMapTag, this.Storage);
+
             foreach (Transaction tx in transactions)
             {
                 var txBytes = tx.ToByteArray(true);
@@ -514,8 +636,7 @@ namespace Phantasma.Business.Blockchain
                 txMap.Set<Hash, byte[]>(tx.Hash, txBytes);
                 txBlockMap.Set<Hash, Hash>(tx.Hash, block.Hash);
             }
-        
-
+            
             foreach (var transaction in transactions)
             {
                 var addresses = new HashSet<Address>();
@@ -538,6 +659,15 @@ namespace Phantasma.Business.Blockchain
                     addressList.Add<Hash>(transaction.Hash);
                 }
             }
+            
+            Block lastBlock = this.CurrentBlock;
+
+            this.CurrentBlock = null;
+            this.CurrentTransactions.Clear();
+            
+            Log.Information("Committed block {Height}", lastBlock.Height);
+
+            return lastBlock.Hash.ToByteArray();
         }
 
         private TransactionResult ExecuteTransaction(int index, Transaction transaction, byte[] script, Address validator, Timestamp time, StorageChangeSetContext changeSet
@@ -561,7 +691,6 @@ namespace Phantasma.Business.Blockchain
             {
                 onNotify(transaction.Hash, evt);
             }
-            
 
             if (result.State != ExecutionState.Halt)
             {

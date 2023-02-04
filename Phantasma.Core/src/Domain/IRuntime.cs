@@ -123,15 +123,13 @@ namespace Phantasma.Core.Domain
         public int GetSecondaryValidatorCount();
         public bool IsKnownValidator(Address address);
 
-        public bool IsStakeMaster(Address address); // TODO remove
+        public bool IsStakeMaster(Address address);
         public BigInteger GetStake(Address address);
 
         public BigInteger GetTokenPrice(string symbol);
         public BigInteger GetGovernanceValue(string name);
 
         public BigInteger GenerateUID();
-        public BigInteger GenerateRandomNumber();
-        public void SetRandomSeed(BigInteger seed);
 
         public TriggerResult InvokeTrigger(bool allowThrow, byte[] script, string contextName, ContractInterface abi, string triggerName, params object[] args);
 

@@ -663,27 +663,6 @@ public class InteropTests : IDisposable
     }
 
     [Fact]
-    public void invoke_Runtime_Random_success_tx_hash()
-    {
-        var runtime = CreateRuntime_Default();
-        var seed = BigInteger.Parse("18458728232664014981834504770148603574620012689608654470072532441766883911609642");
-        var result = runtime.CallInterop("Runtime.Random");
-
-        result.AsNumber().ShouldBeGreaterThan(BigInteger.Zero);
-
-        var seed2 = BigInteger.Parse("18458728232664014981834504770148603574620012689608654470072532441766883911609642");
-        var result2 = runtime.CallInterop("Runtime.Random");
-
-        result.AsNumber().ShouldNotBe(result2.AsNumber());
-
-        var seed3 = BigInteger.Parse("32948902349023489290348901238490123904890213748712389478912738947891234789213789");
-        var result3 = runtime.CallInterop("Runtime.Random");
-
-        result.AsNumber().ShouldNotBe(result3.AsNumber());
-        result2.AsNumber().ShouldNotBe(result3.AsNumber());
-    }
-
-    [Fact]
     public void invoke_Runtime_GenerateUID_success()
     {
         var runtime = CreateRuntime_MockedChain();

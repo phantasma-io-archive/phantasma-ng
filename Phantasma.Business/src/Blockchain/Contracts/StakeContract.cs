@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Org.BouncyCastle.Asn1.X509;
@@ -286,8 +287,36 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             Runtime.Expect(stakeAmount >= MinimumValidStake, "invalid amount");
 
-            var crownAddress = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
-            Runtime.Expect(!Nexus.IsDangerousAddress(from, crownAddress), "this address can't be used as source");
+            if (Runtime.ProtocolVersion <= 8)
+            {
+                var crownAddress = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
+                Runtime.Expect(!Nexus.IsDangerousAddress(from, crownAddress), "this address can't be used as source");
+            }
+            else
+            {
+                if (Runtime.PreviousContext.Name == NativeContractKind.Gas.GetContractName())
+                {
+                    var validAddresses = new List<Address>();
+                    var swapAddress = SmartContract.GetAddressForNative(NativeContractKind.Swap);
+                    var exchangeAddress = SmartContract.GetAddressForNative(NativeContractKind.Exchange);
+                    var crownAddress = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
+                    var phantomOrg = Runtime.GetOrganization(DomainSettings.PhantomForceOrganizationName);
+                    var bpOrg = Runtime.GetOrganization(DomainSettings.ValidatorsOrganizationName);
+
+                    validAddresses.Add(crownAddress);
+                    validAddresses.Add(swapAddress);
+                    validAddresses.Add(exchangeAddress);
+                    if (phantomOrg != null) validAddresses.Add(phantomOrg.Address);
+                    if (bpOrg != null) validAddresses.Add(bpOrg.Address);
+
+                    Runtime.Expect(!Nexus.IsDangerousAddress(from, validAddresses.ToArray()), "this address can't be used as source");
+                }
+                else
+                {
+                    var crownAddress = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
+                    Runtime.Expect(!Nexus.IsDangerousAddress(from, crownAddress), "this address can't be used as source");
+                }
+            }
 
             if (Runtime.HasGenesis)
             {
@@ -779,6 +808,11 @@ namespace Phantasma.Business.Blockchain.Contracts
         public BigInteger GetRate()
         {
             return _currentEnergyRatioDivisor;
+        }
+
+        public Timestamp GetLastMasterClaim()
+        {
+            return _lastMasterClaim;
         }
     }
 }

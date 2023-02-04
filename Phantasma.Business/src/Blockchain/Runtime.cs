@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Security.Cryptography;
 using System.Text;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Storage;
@@ -561,46 +562,6 @@ namespace Phantasma.Business.Blockchain
         }
         #endregion
 
-        #region RANDOM NUMBERS
-        public static readonly uint RND_A = 16807;
-        public static readonly uint RND_M = 2147483647;
-
-
-        public BigInteger GenerateRandomNumber()
-        {
-            if (_randomSeed == 0 && Transaction != null)
-            {
-                SetRandomSeed(Transaction.Hash);
-            }
-
-            _randomSeed = ((RND_A * _randomSeed) % RND_M);
-            return _randomSeed;
-        }
-
-
-        public void SetRandomSeed(BigInteger seed)
-        {
-            // calculates first initial pseudo random number seed
-            byte[] bytes = seed.ToSignedByteArray();
-
-
-            for (int i = 0; i < EntryScript.Length; i++)
-            {
-                var index = i % bytes.Length;
-                bytes[index] ^= EntryScript[i];
-            }
-
-            var time = System.BitConverter.GetBytes(Time.Value);
-
-            for (int i = 0; i < bytes.Length; i++)
-            {
-                bytes[i] ^= time[i % time.Length];
-            }
-
-            _randomSeed = new BigInteger(bytes, true);
-        }
-        #endregion
-
         // fetches a chain-governed value
         public BigInteger GetGovernanceValue(string name)
         {
@@ -616,10 +577,19 @@ namespace Phantasma.Business.Blockchain
         {
             ExpectNameLength(triggerName, nameof(triggerName));
 
-            if (_triggerGuards.Contains(triggerName))
+            if (ProtocolVersion <= DomainSettings.Phantasma30Protocol)
+            {
+                if (_triggerGuards.Contains(triggerName))
+                {
+                    throw new ChainException("trigger loop detected: " + triggerName);
+                }
+            }
+            else if (_triggerGuards.Count >= DomainSettings.MaxTriggerLoop)
             {
                 throw new ChainException("trigger loop detected: " + triggerName);
             }
+            
+            
 
             _triggerGuards.Add(triggerName);
         }
@@ -1512,7 +1482,8 @@ namespace Phantasma.Business.Blockchain
                     Expect(
                             ctxName == VirtualMachine.StakeContextName ||
                             ctxName == VirtualMachine.GasContextName ||
-                            ctxName == VirtualMachine.ExchangeContextName,
+                            ctxName == VirtualMachine.ExchangeContextName ||
+                            ctxName == VirtualMachine.EntryContextName,
                             $"Minting system tokens only allowed in a specific context, current {ctxName}");
                 }
             }
@@ -1792,6 +1763,7 @@ namespace Phantasma.Business.Blockchain
             var nft = ReadToken(tokenSymbol, tokenID);
             var token = GetToken(tokenSymbol);
 
+            // If trigger is missing the code will be executed
             Expect(InvokeTriggerOnToken(true, token, TokenTrigger.OnWrite, from, ram, tokenID) != TriggerResult.Failure, "token write trigger failed");
 
             Nexus.WriteNFT(this, tokenSymbol, tokenID, nft.CurrentChain, nft.Creator, nft.CurrentOwner, nft.ROM, ram,

@@ -165,5 +165,53 @@ namespace Phantasma.Infrastructure.API.Controllers
 
             throw new APIException("block not found");
         }
+        
+        [APIInfo(typeof(BlockResult), "Returns information about the latest block.", false, -1)]
+        [APIFailCase("block hash is invalid", "asdfsa")]
+        [APIFailCase("chain is invalid", "453dsa")]
+        [HttpGet("GetLatestBlock")]
+        public BlockResult GetLatestBlock([APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string chainInput)
+        {
+            var chain = NexusAPI.FindChainByInput(chainInput);
+
+            if (chain == null)
+            {
+                throw new APIException("chain not found");
+            }
+
+            var blockHash = chain.GetBlockHashAtHeight(chain.Height);
+            var block = chain.GetBlockByHash(blockHash);
+
+            if (block != null)
+            {
+                return NexusAPI.FillBlock(block, chain);
+            }
+
+            throw new APIException("block not found");
+        }
+        
+        [APIInfo(typeof(string), "Returns a serialized string, in hex format, containing information about the latest block.", false, -1)]
+        [APIFailCase("block hash is invalid", "asdfsa")]
+        [APIFailCase("chain is invalid", "453dsa")]
+        [HttpGet("GetRawLatestBlock")]
+        public string GetRawLatestBlock([APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string chainInput)
+        {
+            var chain = NexusAPI.FindChainByInput(chainInput);
+
+            if (chain == null)
+            {
+                throw new APIException("chain not found");
+            }
+
+            var blockHash = chain.GetBlockHashAtHeight(chain.Height);
+            var block = chain.GetBlockByHash(blockHash);
+
+            if (block != null)
+            {
+                return block.ToByteArray(true).Encode();
+            }
+
+            throw new APIException("block not found");
+        }
     }
 }

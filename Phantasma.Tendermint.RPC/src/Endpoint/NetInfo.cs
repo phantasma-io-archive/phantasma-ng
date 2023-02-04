@@ -1035,18 +1035,9 @@ namespace Tendermint.RPC.Endpoint
 
     public class NetInfoPeerConnectionStatusMonitor
     {
-        [JsonProperty("Active")]
-        public bool Active { get; set; }
-
         [JsonProperty("Start")]
         public string Start { get; set; }
-
-        [JsonProperty("Duration")]
-        public string Duration { get; set; }
-
-        [JsonProperty("Idle")]
-        public string Idle { get; set; }
-
+        
         [JsonProperty("Bytes")]
         public string Bytes { get; set; }
 
@@ -1067,12 +1058,21 @@ namespace Tendermint.RPC.Endpoint
 
         [JsonProperty("BytesRem")]
         public string BytesRem { get; set; }
+        
+        [JsonProperty("Duration")]
+        public string Duration { get; set; }
+        
+        [JsonProperty("Idle")]
+        public string Idle { get; set; }
 
         [JsonProperty("TimeRem")]
         public string TimeRem { get; set; }
 
         [JsonProperty("Progress")]
         public int Progress { get; set; }
+        
+        [JsonProperty("Active")]
+        public bool Active { get; set; }
     }
 
     public class NetInfoPeerConnectionStatusChannel

@@ -6,6 +6,7 @@ using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
@@ -105,6 +106,7 @@ namespace Phantasma.Node
         public RPCSettings RPC { get; }
         public NodeSettings Node { get; }
         public AppSettings App { get; }
+        public List<ValidatorSettings> Validators { get; }
         public LogSettings Log { get; }
         public WebhookSettings WebhookSetting { get; }
         public OracleSettings Oracle { get; }
@@ -154,6 +156,7 @@ namespace Phantasma.Node
                 this.App = new AppSettings(section.GetSection("App"));
                 this.Log = new LogSettings(section.GetSection("Log"));
                 this.RPC = new RPCSettings(section.GetSection("RPC"));
+                this.Validators = SetupValidatorsList(section.GetSection("Validators"));
                 this.WebhookSetting = new WebhookSettings(section.GetSection("Webhook"));
                 this.PerformanceMetrics = section.GetSection("PerformanceMetrics").Get<PerformanceMetricsSettings>();
             }
@@ -162,6 +165,22 @@ namespace Phantasma.Node
                 Serilog.Log.Error(e, $"There were issues loading settings from {this._configFile}, aborting...");
                 Environment.Exit(-1);
             }
+        }
+
+        private static List<ValidatorSettings> SetupValidatorsList(IConfigurationSection section)
+        {
+            var validators = new List<ValidatorSettings>();
+
+            var validatorsArray = section.GetChildren();
+            //var validatorConfig = .Get<ValidatorConfig[]>().ToList();
+
+            foreach (var validator in validatorsArray)
+            {
+                var validatorSettings = new ValidatorConfig(validator);
+                validators.Add(new ValidatorSettings(validatorSettings.Address, validatorSettings.Name, validatorSettings.Host, validatorSettings.Port));
+            }
+
+            return validators;
         }
 
         public static void Load(string[] args, IConfigurationSection section)
@@ -300,6 +319,7 @@ namespace Phantasma.Node
                 .Where(p => p.Value != null)
                 .Select(p => Address.FromText(p.Value))
                 .ToList();
+            
 
             if (this.SeedValidators.Count < 3)
             {
@@ -518,6 +538,24 @@ namespace Phantasma.Node
             Log.Logger.Information($"Webhook Token {Webhook.Token}");
             Log.Logger.Information($"Webhook Channel {Webhook.Channel}");
             Log.Logger.Information($"Webhook Prefix {Webhook.Prefix}");
+        }
+    }
+
+    public class ValidatorConfig
+    {
+        public Address Address { get; }
+        public string Name { get; }
+        public string Host { get; }
+        public uint Port { get; }
+        public string URL { get; }
+        
+        public ValidatorConfig(IConfigurationSection section)
+        {
+            this.Address = Address.FromText(section.GetString("validator.address"));
+            this.Name = section.GetString("validator.name");
+            this.Host = section.GetString("validator.api.host");
+            this.Port = section.GetValueEx<uint>("validator.api.port");
+            this.URL = Host + ":" + Port;
         }
     }
 

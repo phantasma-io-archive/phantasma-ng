@@ -74,6 +74,9 @@ namespace Tendermint.RPC.Endpoint
 
         [JsonProperty("info")]
         public string Info { get; set; }
+        
+        [JsonProperty("index")]
+        public string Index { get; set; }
 
         [JsonProperty("key")]
         public string Key { get; set; }

@@ -11,6 +11,11 @@ namespace Phantasma.Infrastructure.API.Controllers
         public ValidatorResult[] GetValidators()
         {
             var nexus = NexusAPI.GetNexus();
+            
+            if (nexus == null)
+            {
+                throw new APIException("Nexus not ready");
+            }
 
             var validators = nexus.GetValidators(Timestamp.Now).
                 Where(x => !x.address.IsNull).
@@ -18,5 +23,25 @@ namespace Phantasma.Infrastructure.API.Controllers
 
             return validators.ToArray();
         }
+        
+        [APIInfo(typeof(ValidatorResult[]), "Returns an array of available validators.", false, 300)]
+        [HttpGet("GetValidators/{type}")]
+        public ValidatorResult[] GetValidators(string type)
+        {
+            var nexus = NexusAPI.GetNexus();
+
+            if (nexus == null)
+            {
+                throw new APIException("Nexus not ready");
+            }
+            
+            var validators = nexus.GetValidators(Timestamp.Now).
+                Where(x => !x.address.IsNull && x.type.ToString() == type).
+                Select(x => new ValidatorResult() { address = x.address.ToString(), type = x.type.ToString() });
+
+            return validators.ToArray();
+        }
+        
+        
     }
 }

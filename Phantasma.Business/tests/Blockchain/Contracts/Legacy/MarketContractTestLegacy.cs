@@ -104,7 +104,7 @@ public class MarketContractTestLegacy
         Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
         var tokenID = ownedTokenList.First();
 
-        var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        var auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         var previousAuctionCount = auctions.Length;
 
         // verify nft presence on the user post-mint
@@ -128,7 +128,7 @@ public class MarketContractTestLegacy
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
 
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
         simulator.BeginBlock();
@@ -142,7 +142,7 @@ public class MarketContractTestLegacy
         );
         simulator.EndBlock();
 
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
         // verify that the nft was really moved
@@ -186,7 +186,7 @@ public class MarketContractTestLegacy
         Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
         var tokenID = ownedTokenList.First();
 
-        var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        var auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         var previousAuctionCount = auctions.Length;
 
         // verify nft presence on the user post-mint
@@ -220,7 +220,7 @@ public class MarketContractTestLegacy
         simulator.EndBlock();
 
         // verify auction is here
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
         simulator.BeginBlock();
@@ -268,7 +268,7 @@ public class MarketContractTestLegacy
 
 
         // verify auctions empty
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
         // verify that the nft was really moved
@@ -330,7 +330,7 @@ public class MarketContractTestLegacy
         Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
         var tokenID = ownedTokenList.First();
 
-        var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        var auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         var previousAuctionCount = auctions.Length;
 
         // verify nft presence on the user post-mint
@@ -378,7 +378,7 @@ public class MarketContractTestLegacy
         simulator.EndBlock();
 
         // verify auction is here
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
         // make one bid before auction starts (should fail)
@@ -518,7 +518,7 @@ public class MarketContractTestLegacy
 
 
         // check if auction is still there post extension
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == previousAuctionCount + 1, "auction ids should not be empty at this point");
 
         // Has Auction
@@ -543,7 +543,7 @@ public class MarketContractTestLegacy
 
 
         // verify auctions empty
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
         // verify that the nft was really moved
@@ -605,7 +605,7 @@ public class MarketContractTestLegacy
         Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
         var tokenID = ownedTokenList.First();
 
-        var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        var auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         var previousAuctionCount = auctions.Length;
 
         // verify nft presence on the user post-mint
@@ -656,7 +656,7 @@ public class MarketContractTestLegacy
 
 
         // verify auction is here
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
         
         var hasAuction = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.HasAuction), token.Symbol, tokenID).AsBool();
@@ -686,7 +686,7 @@ public class MarketContractTestLegacy
 
 
         // verify auctions empty
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
         // verify that the nft is back to the original owner
@@ -734,7 +734,7 @@ public class MarketContractTestLegacy
         Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
         var tokenID = ownedTokenList.First();
 
-        var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        var auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         var previousAuctionCount = auctions.Length;
 
         // verify nft presence on the user post-mint
@@ -775,7 +775,7 @@ public class MarketContractTestLegacy
 
 
         // verify auction is here
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
         // make one bid below reserve price (should fail)
@@ -868,7 +868,7 @@ public class MarketContractTestLegacy
 
 
         // verify auctions empty
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
         // verify that the nft was really moved
@@ -921,7 +921,7 @@ public class MarketContractTestLegacy
         Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
         var tokenID = ownedTokenList.First();
 
-        var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        var auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         var previousAuctionCount = auctions.Length;
 
         // verify nft presence on the user post-mint
@@ -958,7 +958,7 @@ public class MarketContractTestLegacy
 
 
         // verify auction is here
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
         // make one bid before auction starts (should fail)
@@ -1019,7 +1019,7 @@ public class MarketContractTestLegacy
 
 
         // verify auctions empty
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
         // verify that the nft was really moved
@@ -1069,7 +1069,7 @@ public class MarketContractTestLegacy
         Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
         var tokenID = ownedTokenList.First();
 
-        var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        var auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         var previousAuctionCount = auctions.Length;
 
         // verify nft presence on the user post-mint
@@ -1106,7 +1106,7 @@ public class MarketContractTestLegacy
 
 
         // verify auction is here
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
         // edit auction price with wrong symbol (should fail)
@@ -1166,7 +1166,7 @@ public class MarketContractTestLegacy
 
 
         // verify auctions empty
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
         // verify that the nft was really moved
@@ -1218,7 +1218,7 @@ public class MarketContractTestLegacy
         Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
         var tokenID = ownedTokenList.First();
 
-        var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         var previousAuctionCount = auctions.Length;
 
         // verify nft presence on the user post-mint
@@ -1251,7 +1251,7 @@ public class MarketContractTestLegacy
         simulator.EndBlock();
 
         // verify auction is here
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
         // move half way through sale
@@ -1289,7 +1289,7 @@ public class MarketContractTestLegacy
 
 
         // verify auctions empty
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
         // verify that the nft was not moved
@@ -1341,7 +1341,7 @@ public class MarketContractTestLegacy
         Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
         var tokenID = ownedTokenList.First();
 
-        var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        var auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         var previousAuctionCount = auctions.Length;
 
         // verify nft presence on the user post-mint
@@ -1384,7 +1384,7 @@ public class MarketContractTestLegacy
 
 
         // verify auction is here
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
         // make one bid before auction starts (should fail)
@@ -1447,7 +1447,7 @@ public class MarketContractTestLegacy
 
 
         // verify auctions empty
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
         // verify that the nft was really moved
@@ -1509,7 +1509,7 @@ public class MarketContractTestLegacy
         Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
         var tokenID = ownedTokenList.First();
 
-        var auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        var auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         var previousAuctionCount = auctions.Length;
 
         // verify nft presence on the user post-mint
@@ -1550,7 +1550,7 @@ public class MarketContractTestLegacy
         Assert.True(simulator.LastBlockWasSuccessful());
 
         // verify auction is here
-        auctions = (MarketAuction[])simulator.InvokeContract(NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract(NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == 1 + previousAuctionCount, "auction ids missing");
 
         // make one bid before auction starts (should fail)
@@ -1612,7 +1612,7 @@ public class MarketContractTestLegacy
 
 
         // verify auctions empty
-        auctions = (MarketAuction[])simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToObject();
+        auctions = simulator.InvokeContract( NativeContractKind.Market, nameof(MarketContract.GetAuctions)).ToArray<MarketAuction>();
         Assert.True(auctions.Length == previousAuctionCount, "auction ids should be empty at this point");
 
         // verify that the nft was really moved

@@ -36,6 +36,7 @@ namespace Phantasma.Core.Domain
         OnSeries, // address
         OnWrite, // address, data
         OnMigrate, // from, to
+        OnKill, // address
     }
 
     public enum OrganizationTrigger
@@ -59,7 +60,7 @@ namespace Phantasma.Core.Domain
 
     public static class DomainSettings
     {
-        public const int LatestKnownProtocol = 8;
+        public const int LatestKnownProtocol = 9;
 
         public const int Phantasma20Protocol = 7;
         public const int Phantasma30Protocol = 8;
@@ -71,6 +72,8 @@ namespace Phantasma.Core.Domain
         public const int MaxEventsPerBlock = 2048;
 
         public const int MaxEventsPerTx = 8096;
+        
+        public const int MaxTriggerLoop = 5;
 
         public const int MAX_TOKEN_DECIMALS = 18;
         

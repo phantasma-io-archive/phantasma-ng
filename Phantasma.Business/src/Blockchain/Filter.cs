@@ -90,7 +90,9 @@ namespace Phantasma.Business.Blockchain
         private static bool RemoveFilteredAddress(StorageContext context, Address address, string tag)
         {
             var list = GetFilterStorageList(context, tag);
-            return list.Remove<Address>(address);
+            if (list.Contains(address))
+                return list.Remove<Address>(address);
+            return false;
         }
 
         public static bool IsGreenFilteredAddress(StorageContext context, Address address)

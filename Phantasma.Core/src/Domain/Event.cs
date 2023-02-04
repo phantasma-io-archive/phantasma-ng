@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
@@ -209,8 +210,7 @@ namespace Phantasma.Core.Domain
 
         public void Serialize(BinaryWriter writer)
         {
-            var n = (int)(object)this.Kind; // TODO is this the most clean way to do this?
-            writer.Write((byte)n);
+            writer.Write((byte)this.Kind);
             writer.WriteAddress(this.Address);
             writer.WriteVarString(this.Contract);
             writer.WriteByteArray(this.Data);
@@ -223,6 +223,24 @@ namespace Phantasma.Core.Domain
             var contract = reader.ReadVarString();
             var data = reader.ReadByteArray();
             return new Event(kind, address, contract, data);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is not Event)
+            {
+                return false;
+            }
+            else if (obj is Event other)
+            {
+                if ( this.Data == null && other.Data == null)
+                {
+                    return this.Kind == other.Kind && this.Address.Text == other.Address.Text && this.Contract == other.Contract;
+                }
+                
+                return this.Kind == other.Kind && this.Address.Text == other.Address.Text && this.Contract == other.Contract && this.Data.SequenceEqual(other.Data);
+            }
+            return base.Equals(obj);
         }
     }
 }

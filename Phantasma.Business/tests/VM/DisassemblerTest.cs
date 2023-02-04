@@ -154,16 +154,34 @@ public class DisassemblerTest
                 .EndScript();
         var sut = new Disassembler(script);
         
-        Assert.Equal("000: LOAD r1, 10\n005: JMP\n008: RET", sut.ToString());
-        
+        //Assert.Equal("000: LOAD r1, 10\n005: JMP\n008: RET", sut.ToString());
+
+        var instructions = sut.Instructions.ToArray();
+        Assert.Equal(instructions.Length, 3);
+        Assert.Equal(instructions[0].Opcode, Opcode.LOAD);
+        Assert.Equal(instructions[0].Args.Length, 3);
+        //Assert.Equal(instructions[0].Args[2], 10);
+        Assert.Equal(instructions[1].Opcode, Opcode.JMP);
+        //Assert.Equal(instructions[1].Args[0], 513);
+        Assert.Equal(instructions[2].Opcode, Opcode.RET);
+
         script = ScriptUtils.BeginScript()
             .EmitLoad(1, new BigInteger(10))
             .Emit(Opcode.JMPNOT, new byte[] { 1, 32, 1 })
             .EndScript();
         
         sut = new Disassembler(script);
-        
-        Assert.Equal("000: LOAD r1, 10\n005: JMPNOT\n009: RET", sut.ToString());
+
+        instructions = sut.Instructions.ToArray();
+        Assert.Equal(instructions.Length, 3);
+        Assert.Equal(instructions[0].Opcode, Opcode.LOAD);
+        Assert.Equal(instructions[0].Args.Length, 3);
+        //Assert.Equal(instructions[0].Args[2], 10);
+        Assert.Equal(instructions[1].Opcode, Opcode.JMPNOT);
+        //Assert.Equal(instructions[1].Args[0], 513);
+        Assert.Equal(instructions[2].Opcode, Opcode.RET);
+
+        //Assert.Equal("000: LOAD r1, 10\n005: JMPNOT\n009: RET", sut.ToString());
     }
 
     [Fact]

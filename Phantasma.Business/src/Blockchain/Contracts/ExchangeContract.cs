@@ -2355,6 +2355,14 @@ namespace Phantasma.Business.Blockchain.Contracts
             // If the new amount will be = 0 then burn the NFT
             if (newAmount0 == 0)
             {
+                // Claim Fees
+                ClaimFees(from, symbol0, symbol1);
+                // Change NFT Values
+                nftRAM.Liquidity = 0;
+                nftRAM.Amount0 = 0;
+                nftRAM.Amount1 = 0;
+                Runtime.WriteToken(from, DomainSettings.LiquidityTokenSymbol, nftID, VMObject.FromStruct(nftRAM).AsByteArray());
+
                 // Burn NFT
                 Runtime.BurnToken(DomainSettings.LiquidityTokenSymbol, from, nftID);
                 RemoveFromLPTokens(from, nftID, pool.Symbol0, pool.Symbol1);
@@ -2483,7 +2491,8 @@ namespace Phantasma.Business.Blockchain.Contracts
             return 0;
         }
         #endregion
-
+        
+        #region LP Holder Interactions
         /// <summary>
         /// Distribute Fees
         /// </summary>
@@ -2526,8 +2535,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             // Update List
             _lp_holders.Set<string, StorageList>($"{pool.Symbol0}_{pool.Symbol1}", holdersList);
         }
-
-        #region LP Holder Interactions
+        
         /// <summary>
         /// Method used to claim fees
         /// </summary>
@@ -2580,6 +2588,200 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var holder = GetLPHolder(from, symbol0, symbol1);
             return (holder.UnclaimedSymbol0, holder.UnclaimedSymbol1);
+        }
+        #endregion
+        
+        #region NFT Interactions
+
+        private void DeleteNFT(Address from, string symbol0, BigInteger amount0, string symbol1, BigInteger amount1, LPTokenContentRAM nftRAM, BigInteger nftID)
+        {
+            // Check input
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(amount0 >= 0, "invalid amount 0");
+            Runtime.Expect(amount1 >= 0, "invalid amount 1");
+            Runtime.Expect(amount0 > 0 || amount1 > 0, "invalid amount, both amounts can't be 0");
+            
+            // Check if pool exists
+            Runtime.Expect(PoolExists(symbol0, symbol1), $"Pool {symbol0}/{symbol1} doesn't exist.");
+
+            var token0Info = Runtime.GetToken(symbol0);
+            Runtime.Expect(IsSupportedToken(symbol0), "source token is unsupported");
+
+            var token1Info = Runtime.GetToken(symbol1);
+            Runtime.Expect(IsSupportedToken(symbol1), "destination token is unsupported");
+
+            // Get Pool
+            Pool pool = GetPool(symbol0, symbol1);
+            BigInteger liquidity = 0;
+
+            // Fix inputs
+            if (symbol0 != pool.Symbol0)
+            {
+                symbol0 = pool.Symbol0;
+                symbol1 = pool.Symbol1;
+                (token0Info, token1Info) = (token1Info, token0Info);
+                (amount0, amount1) = (amount1, amount0);
+            }
+
+            // Pool Amounts Same Decimals
+            BigInteger poolSameDecimalsAmount0 =
+                UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals);
+            BigInteger poolSameDecimalsAmount1 =
+                UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals);
+
+            BigInteger sameDecimalsAmount0 =
+                UnitConversion.ConvertDecimals(amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals);
+            BigInteger sameDecimalsAmount1 =
+                UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals);
+
+            // Calculate Amounts
+            decimal poolRatio = 0;
+            decimal tradeRatioAmount = 0;
+
+            poolRatio = GetPoolRatio(pool, token0Info, token1Info);
+
+            // Calculate Amounts if they are 0
+            if (amount0 == 0)
+            {
+                amount0 = UnitConversion.ToBigInteger(
+                    (UnitConversion.ToDecimal(sameDecimalsAmount1, DomainSettings.FiatTokenDecimals) / poolRatio),
+                    token0Info.Decimals);
+            }
+            else if (amount1 == 0)
+            {
+                amount1 = UnitConversion.ToBigInteger(
+                    (UnitConversion.ToDecimal(sameDecimalsAmount0, DomainSettings.FiatTokenDecimals) / poolRatio),
+                    token1Info.Decimals);
+            }
+
+            // To the same Decimals for ease of calculation
+            sameDecimalsAmount0 =
+                UnitConversion.ConvertDecimals(amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals);
+            sameDecimalsAmount1 =
+                UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals);
+
+            tradeRatioAmount = GetAmountRatio(amount0, token0Info, amount1, token1Info);
+
+            if (poolRatio == 0)
+            {
+                poolRatio = tradeRatioAmount;
+            }
+            else
+            {
+                if (tradeRatioAmount != poolRatio)
+                {
+                    amount1 = UnitConversion.ToBigInteger(
+                        (UnitConversion.ToDecimal(sameDecimalsAmount0, DomainSettings.FiatTokenDecimals) / poolRatio),
+                        token1Info.Decimals);
+
+                    sameDecimalsAmount0 = UnitConversion.ConvertDecimals(amount0, token0Info.Decimals,
+                        DomainSettings.FiatTokenDecimals);
+                    sameDecimalsAmount1 = UnitConversion.ConvertDecimals(amount1, token1Info.Decimals,
+                        DomainSettings.FiatTokenDecimals);
+
+                    tradeRatioAmount = GetAmountRatio(amount0, token0Info, amount1, token1Info);
+
+                }
+
+                Runtime.Expect(tradeRatioAmount == poolRatio, $"TradeRatio < 0 | {poolRatio} != {tradeRatioAmount}");
+            }
+
+            //Console.WriteLine($"pool:{poolRatio} | trade:{tradeRatioAmount} | {amount0} {symbol0} for {amount1} {symbol1}");
+            Runtime.Expect(ValidateRatio(sameDecimalsAmount0, sameDecimalsAmount1, poolRatio),
+                $"ratio is not true. {poolRatio}, new {sameDecimalsAmount0} {sameDecimalsAmount1} {sameDecimalsAmount0 / sameDecimalsAmount1} {amount0 / UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, token0Info.Decimals)}");
+
+            // Update the user NFT
+            BigInteger oldAmount0 = nftRAM.Liquidity * pool.Amount0 / pool.TotalLiquidity;
+            BigInteger oldAmount1 = nftRAM.Liquidity * pool.Amount1 / pool.TotalLiquidity;
+            BigInteger newAmount0 = oldAmount0 - amount0;
+            BigInteger newAmount1 = oldAmount1 - amount1;
+            BigInteger oldLP = nftRAM.Liquidity;
+            BigInteger division = pool.Amount0 - nftRAM.Amount0;
+            BigInteger lp = pool.TotalLiquidity - nftRAM.Liquidity;
+
+            if (pool.Amount0 - nftRAM.Amount0 <= 0)
+            {
+                division = 1;
+            }
+
+            // To make math possible.
+            if (lp == 0)
+            {
+                lp = 1;
+            }
+
+            BigInteger newLiquidity = 0;
+            if (pool.Amount0 == oldAmount0)
+            {
+                newLiquidity = (BigInteger)Sqrt(newAmount0 * newAmount1);
+            }
+            else
+            {
+                newLiquidity = newAmount0 * (lp) / division;
+            }
+
+            liquidity = (amount0 * pool.TotalLiquidity) / (pool.Amount0);
+
+            Runtime.Expect(nftRAM.Liquidity - liquidity >= 0, "Trying to remove more than you have...");
+
+            var newPool = pool;
+            // If the new amount will be = 0 then burn the NFT
+            if (newAmount0 == 0)
+            {
+                RemoveFromLPTokens(from, nftID, newPool.Symbol0, newPool.Symbol1);
+                Runtime.TransferTokens(newPool.Symbol0, this.Address, from, oldAmount0);
+                Runtime.TransferTokens(newPool.Symbol1, this.Address, from, oldAmount1);
+            }
+
+
+            // Update the pool values
+            if (pool.Amount0 == oldAmount0)
+            {
+                pool.Amount0 = newAmount0;
+                pool.Amount1 = newAmount1;
+                pool.TotalLiquidity = newLiquidity;
+            }
+            else
+            {
+                pool.Amount0 = (pool.Amount0 - oldAmount0) + newAmount0;
+                pool.Amount1 = (pool.Amount1 - oldAmount1) + newAmount1;
+                pool.TotalLiquidity = pool.TotalLiquidity - oldLP + newLiquidity;
+            }
+
+            if (pool.Amount0 == 0)
+            {
+                _pools.Remove($"{pool.Symbol0}_{pool.Symbol1}");
+            }
+            else
+            {
+                _pools.Set<string, Pool>($"{pool.Symbol0}_{pool.Symbol1}", pool);
+            }
+        }
+
+        public void BurnNFT(Address from, BigInteger nftID)
+        {
+            if (!Runtime.NFTExists(DomainSettings.LiquidityTokenSymbol, nftID)) 
+                return;
+            
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            var nft = Runtime.ReadToken(DomainSettings.LiquidityTokenSymbol, nftID);
+            
+            LPTokenContentROM nftROM = VMObject.FromBytes(nft.ROM).AsStruct<LPTokenContentROM>();
+            LPTokenContentRAM nftRAM = VMObject.FromBytes(nft.RAM).AsStruct<LPTokenContentRAM>();
+
+            BigInteger amount0 = nftRAM.Amount0;
+            BigInteger amount1 = 0;
+            string symbol0 = nftROM.Symbol0;
+            string symbol1 = nftROM.Symbol1;
+            
+            Runtime.Expect(nft.CurrentOwner == from, "Invalid owner");
+            if (nftRAM.Liquidity != 0)
+            {
+                // Claim all the fees
+                ClaimFees(from, nftROM.Symbol0, nftROM.Symbol1);
+                
+                DeleteNFT(from, symbol0, amount0, symbol1, amount1, nftRAM, nftID);
+            }
         }
         #endregion
         
