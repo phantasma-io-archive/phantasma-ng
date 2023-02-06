@@ -119,6 +119,7 @@ namespace Phantasma.Node
 
             server.Start();
 
+            
             Log.Information($"Server is up & running ()");
 
             //ShutdownAwaiter();
@@ -130,7 +131,7 @@ namespace Phantasma.Node
             // NEW NEW NEW NEW NEW 
 
 
-            SetupOracleApis();
+            //SetupOracleApis();
 
             SetupNexusApi();
 
