@@ -1179,7 +1179,7 @@ public class Nexus : INexus
             }
             else
             {
-                if ( !isSystemDestination && !isSystemSource )
+                if ( !isSystemSource && !isSystemDestination )
                 {
                     Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
                 }

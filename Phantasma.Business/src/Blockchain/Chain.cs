@@ -1227,7 +1227,7 @@ namespace Phantasma.Business.Blockchain
             var addressTxMap = new StorageMap(AddressTxHashMapTag, this.Storage);
             var addressList = addressTxMap.Get<Address, StorageList>(address);
             var count = addressList.Count();
-            if (count <=0)
+            if (count <= 0)
             {
                 return Timestamp.Null;
             }
