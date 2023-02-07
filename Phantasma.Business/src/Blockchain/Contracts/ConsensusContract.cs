@@ -522,11 +522,24 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             if (subject.StartsWith(SystemPoll))
             {
-                var validatorCount = Runtime.GetPrimaryValidatorCount();
-                if (validatorCount <= 1)
+                if (Runtime.ProtocolVersion < DomainSettings.Phantasma30Protocol)
                 {
-                    return false;
+                    var validatorCount = Runtime.GetPrimaryValidatorCount();
+                    if (validatorCount <= 1)
+                    {
+                        return false;
+                    }
                 }
+                else
+                {
+                    var validatorCount = Runtime.InvokeContractAtTimestamp(NativeContractKind.Validator,
+                        nameof(ValidatorContract.GetMaxTotalValidators)).AsNumber();
+                    if (validatorCount <= 1)
+                    {
+                        return false;
+                    }
+                }
+                
             }
 
             var rank = GetRank(subject, value);

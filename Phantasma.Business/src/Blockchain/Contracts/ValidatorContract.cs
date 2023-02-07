@@ -147,15 +147,31 @@ namespace Phantasma.Business.Blockchain.Contracts
             if (Runtime.HasGenesis)
             {
                 var maxValidators = Runtime.GetGovernanceValue(ValidatorSlotsTag);
-
-                var result = (maxValidators * 10) / 25;
-
-                if (maxValidators > 0 && result < 1)
+                
+                if ( Runtime.ProtocolVersion <= DomainSettings.Phantasma30Protocol )
                 {
-                    result = 1;
-                }
+                    // This timestamp was 2023-02-07 16:30:00 UTC (1675787400 unix timestamp)
+                    // This was needed because it was not using the correct governance value and with this it will be fixed.
+                    if (Runtime.Time >= 1675787400)
+                    {
+                        return maxValidators;
+                    }
+                    else
+                    {
+                        var result = (maxValidators * 10) / 25;
 
-                return result;
+                        if (maxValidators > 0 && result < 1)
+                        {
+                            result = 1;
+                        }
+
+                        return result;
+                    }
+                }
+                else
+                {
+                    return maxValidators;
+                }
             }
 
             return _initialValidatorCount;
