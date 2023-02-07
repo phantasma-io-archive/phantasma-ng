@@ -23,6 +23,7 @@ public class NexusTestsSimulator
     PhantasmaKeys user;
     PhantasmaKeys owner;
     PhantasmaKeys owner2;
+    PhantasmaKeys owner3;
     Nexus nexus;
     NexusSimulator simulator;
     int amountRequested;
@@ -43,6 +44,7 @@ public class NexusTestsSimulator
         user = PhantasmaKeys.Generate();
         owner = PhantasmaKeys.Generate();
         owner2 = PhantasmaKeys.Generate();
+        owner3 = PhantasmaKeys.Generate();
         amountRequested = 100000000;
         gas = 99999;
         initialAmount = UnitConversion.ToBigInteger(50000, DomainSettings.StakingTokenDecimals);
@@ -54,7 +56,7 @@ public class NexusTestsSimulator
         
     protected void InitializeSimulator()
     {
-        simulator = new NexusSimulator(new []{owner, owner2}, version);
+        simulator = new NexusSimulator(new []{owner, owner2, owner3}, version);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
         SetInitialBalance(user.Address);
@@ -295,7 +297,7 @@ public class NexusTestsSimulator
         
         // Assert
         Assert.NotNull(count);
-        Assert.Equal(1, count);
+        Assert.Equal(3, count);
     }
 
     [Fact]
@@ -305,7 +307,7 @@ public class NexusTestsSimulator
         
         // Assert
         Assert.NotNull(count);
-        Assert.Equal(1, count);
+        Assert.Equal(3, count);
     }
 
     [Fact]
@@ -315,7 +317,7 @@ public class NexusTestsSimulator
         
         // Assert
         Assert.NotNull(validators);
-        Assert.Equal(2, validators.Length);
+        Assert.Equal(3, validators.Length);
     }
 
     [Fact]
