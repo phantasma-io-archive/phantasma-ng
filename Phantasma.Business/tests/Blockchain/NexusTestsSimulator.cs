@@ -501,6 +501,9 @@ public class NexusTestsSimulator
         Signature sig = transaction.GetTransactionSignature(owner2);
         transaction.AddSignature(sig);
         
+        sig = transaction.GetTransactionSignature(owner3);
+        transaction.AddSignature(sig);
+        
         simulator.BeginBlock();
         simulator.SendRawTransaction(transaction);
         simulator.EndBlock();
@@ -551,6 +554,9 @@ public class NexusTestsSimulator
         transaction.Sign(owner);
         
         Signature sig = transaction.GetTransactionSignature(owner2);
+        transaction.AddSignature(sig);
+        
+        sig = transaction.GetTransactionSignature(owner3);
         transaction.AddSignature(sig);
         
         simulator.BeginBlock();
