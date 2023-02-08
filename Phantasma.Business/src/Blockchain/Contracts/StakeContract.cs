@@ -136,6 +136,15 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             return GetMasterClaimDateFromReference(claimDistance, default(Timestamp));
         }
+        
+        public Timestamp GetMasterClaimDateForAddress(Address target)
+        {
+            if (_masterClaims.ContainsKey<Address>(target))
+            {
+                return _masterClaims.Get<Address, Timestamp>(target);
+            }
+            return new Timestamp(0);
+        }
 
         public Timestamp GetMasterDate(Address target)
         {
