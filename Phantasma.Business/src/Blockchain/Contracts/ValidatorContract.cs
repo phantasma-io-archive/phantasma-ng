@@ -168,9 +168,22 @@ namespace Phantasma.Business.Blockchain.Contracts
                         return result;
                     }
                 }
+                else if ( Runtime.ProtocolVersion == 9)
+                {
+                    // This timestamp was 2023-02-07 16:30:00 UTC (1675787400 unix timestamp)
+                    // this was just to make sure that we could still use the old protocol version
+                    return maxValidators;
+                }
                 else
                 {
-                    return maxValidators;
+                    var result = (maxValidators * 10) / 25;
+
+                    if (maxValidators > 0 && result < 1)
+                    {
+                        result = 1;
+                    }
+
+                    return result;
                 }
             }
 

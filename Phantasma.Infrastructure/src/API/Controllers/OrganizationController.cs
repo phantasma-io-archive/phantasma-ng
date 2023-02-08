@@ -9,6 +9,11 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("GetOrganization")]
         public OrganizationResult GetOrganization(string ID)
         {
+            if ( string.IsNullOrEmpty(ID))
+            {
+                throw new APIException("invalid organization ID");
+            }
+            
             var nexus = NexusAPI.GetNexus();
 
             if (!nexus.OrganizationExists(nexus.RootStorage, ID))
@@ -31,6 +36,11 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("GetOrganizationByName")]
         public OrganizationResult GetOrganizationByName(string name)
         {
+            if (string.IsNullOrEmpty(name))
+            {
+                throw new APIException("invalid organization name");
+            }
+            
             var nexus = NexusAPI.GetNexus();
 
             var org = nexus.GetOrganizationByName(nexus.RootStorage, name);

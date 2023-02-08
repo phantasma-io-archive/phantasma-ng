@@ -704,12 +704,16 @@ public class Nexus : INexus
                 {
                     Runtime.ExpectFiltered(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(), $"minting of {token.Symbol} can only happen via master claim", source);
                 }
-                else if (Runtime.ProtocolVersion <= 9)
+                else if (Runtime.ProtocolVersion <= 10)
                 {
                     var currentSupply = Runtime.GetTokenSupply(token.Symbol);
                     var totalSupply = currentSupply + amount;
                     var maxSupply = UnitConversion.ToBigInteger(decimal.Parse((100000000 * Math.Pow(1.03, ((DateTime)Runtime.Time).Year - 2018 - 1)).ToString()), DomainSettings.StakingTokenDecimals);
-
+                    if (Runtime.ProtocolVersion == 10)
+                    {
+                        maxSupply += UnitConversion.ToBigInteger(1784193, DomainSettings.StakingTokenDecimals);
+                    }
+                    
                     if (Runtime.CurrentContext.Name == "entry" && Runtime.IsPrimaryValidator(source) &&
                         Runtime.IsPrimaryValidator(destination))
                     {
@@ -1187,9 +1191,19 @@ public class Nexus : INexus
                 {
                     if (!isOrganizationTransaction)
                     {
-                        Runtime.CheckWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
-                        /*Runtime.ExpectWarning(Runtime.IsWitness(source),
-                            $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);*/
+                        if (Runtime.ProtocolVersion <= 9)
+                            Runtime.CheckWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
+                        else
+                        {
+                            if (source == DomainSettings.InfusionAddress)
+                            {
+                                Runtime.CheckWarning(UnitConversion.ToDecimal(amount, token.Decimals) <= Filter.Quota, $"Transfer Tokens {UnitConversion.ToDecimal(amount, token.Decimals)} {token.Symbol} from {source} to {destination}", source);
+                            }
+                            else
+                            {
+                                Runtime.CheckWarning(Runtime.IsWitness(source), $"Transfer Tokens {UnitConversion.ToDecimal(amount, token.Decimals)} {token.Symbol} from {source} to {destination}", source);
+                            }
+                        }
                         //Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
                     }
                     else
@@ -2630,6 +2644,24 @@ public class Nexus : INexus
     {
         var bytes = System.Text.Encoding.UTF8.GetBytes($".nexus.{key}");
         return bytes;
+    }
+
+    public string[] GetAddressesBySymbol(string symbol)
+    {
+        List<string> addresses = new List<string>();
+        var prefix = BalanceSheet.MakePrefix(symbol);
+
+        RootStorage.Visit((key, value) =>
+        {
+            var keyString = Encoding.UTF8.GetString(key);
+            if (keyString.Contains($".balances.{symbol}"))
+            {
+                byte[] addrChunk = key[prefix.Length..];
+                addresses.Add(Address.FromBytes(addrChunk).Text);
+            }
+        });
+        
+        return addresses.ToArray();
     }
 
     public Hash GetGenesisHash(StorageContext storage)

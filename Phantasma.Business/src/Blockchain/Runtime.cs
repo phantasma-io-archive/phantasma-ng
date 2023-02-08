@@ -63,7 +63,7 @@ namespace Phantasma.Business.Blockchain
             Core.Throw.IfNull(chain, nameof(chain));
             Core.Throw.IfNull(changeSet, nameof(changeSet));
 
-            _baseChangeSetCount = changeSet.Count();
+            _baseChangeSetCount = (int)changeSet.Count();
 
             // NOTE: block and transaction can be null, required for Chain.InvokeContract
             //Throw.IfNull(block, nameof(block));
