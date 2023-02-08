@@ -129,8 +129,14 @@ namespace Phantasma.Business.Blockchain.Contracts
                 return 0;
             }
 
-            var max = GetMaxPrimaryValidators();
             var count = 0;
+            var max = GetMaxPrimaryValidators();
+            
+            if (Runtime.ProtocolVersion >= 10)
+            {
+                max = GetMaxTotalValidators();
+            }
+            
             for (int i = 0; i < max; i++)
             {
                 var validator = GetValidatorByIndex(i);
@@ -139,7 +145,9 @@ namespace Phantasma.Business.Blockchain.Contracts
                     count++;
                 }
             }
+            
             return count;
+
         }
 
         public BigInteger GetMaxPrimaryValidators()
