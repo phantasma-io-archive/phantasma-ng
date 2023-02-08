@@ -711,7 +711,8 @@ public class Nexus : INexus
                     var maxSupply = UnitConversion.ToBigInteger(decimal.Parse((100000000 * Math.Pow(1.03, ((DateTime)Runtime.Time).Year - 2018 - 1)).ToString()), DomainSettings.StakingTokenDecimals);
                     if (Runtime.ProtocolVersion == 10)
                     {
-                        maxSupply += UnitConversion.ToBigInteger(1784193, DomainSettings.StakingTokenDecimals);
+                        // It should be 1784193 but we added more to the supply to avoid the need of a hardfork
+                        maxSupply += UnitConversion.ToBigInteger(5000000, DomainSettings.StakingTokenDecimals);
                     }
                     
                     if (Runtime.CurrentContext.Name == "entry" && Runtime.IsPrimaryValidator(source) &&
