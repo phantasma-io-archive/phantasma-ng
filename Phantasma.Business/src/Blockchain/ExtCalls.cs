@@ -78,6 +78,7 @@ namespace Phantasma.Business.Blockchain
             //callback("Nexus.SetPlatformTokenHash", Nexus_SetPlatformTokenHash); // to remove
 
             callback("Organization.AddMember", 3, Organization_AddMember);
+            callback("Organization.RemoveMember", 3, Organization_RemoveMember);
 
             //callback("Task.Start", Task_Start); currently unused, needs tests
             //callback("Task.Stop", Task_Stop);
@@ -1840,6 +1841,16 @@ namespace Phantasma.Business.Blockchain
             var name = vm.PopString("name");
             //var ID = (new BigInteger(vm.Transaction.Hash.ToByteArray().Concat(Encoding.UTF8.GetBytes(name)).ToArray())).ToString();
             var script = vm.PopBytes("script");
+            
+            var contractAddress = SmartContract.GetAddressFromContractName(ID.ToLower());
+            var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
+            vm.ExpectWarning(!deployed, $"{ID} already exists", source);
+            
+            bool isNative = Nexus.IsNativeContract(ID.ToLower());
+            vm.ExpectWarning(!isNative, "cannot create org with the same name as a native contract", source);
+
+            bool isToken = ValidationUtils.IsValidTicker(ID.ToUpper());
+            vm.ExpectWarning(!isToken, "cannot create org with the same name as a  token contract", source);
 
             vm.CreateOrganization(source, ID, name, script);
 
@@ -1855,6 +1866,21 @@ namespace Phantasma.Business.Blockchain
             var target = vm.PopAddress();
 
             vm.AddMember(name, source, target);
+
+            return ExecutionState.Running;
+        }
+        
+        private static ExecutionState Organization_RemoveMember(RuntimeVM vm)
+        {
+            if (vm.ProtocolVersion <= 9) return ExecutionState.Fault;
+            
+            vm.ExpectStackSize(3);
+            
+            var source = vm.PopAddress();
+            var name = vm.PopString("name");
+            var target = vm.PopAddress();
+
+            vm.RemoveMember(name, source, target);
 
             return ExecutionState.Running;
         }

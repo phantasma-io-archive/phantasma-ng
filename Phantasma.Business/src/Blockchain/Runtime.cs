@@ -1424,6 +1424,9 @@ namespace Phantasma.Business.Blockchain
             Expect(!Nexus.OrganizationExists(RootStorage, ID), "organization already exists");
 
             Nexus.CreateOrganization(RootStorage, ID, name, script);
+            
+            var org = GetOrganization(ID) as Organization;
+            org.InitCreator(from);
 
             // TODO org cost
             /*var fuelCost = GetGovernanceValue(DomainSettings.FuelPerOrganizationDeployTag);

@@ -1120,7 +1120,7 @@ public class Nexus : INexus
             {
                 if ( Runtime.ProtocolVersion <= 8 )
                     Runtime.ExpectFiltered(org == null, "moving funds from orgs currently not possible", source);
-                else
+                else if ( Runtime.ProtocolVersion <= 9)
                 {
                     Runtime.ExpectWarning(org != null, "moving funds from orgs currently not possible", source);
                     var orgMembers = org.GetMembers();
@@ -1133,6 +1133,44 @@ public class Nexus : INexus
                         Runtime.ExpectWarning(signature.Verify(msg, orgMembers), "invalid signature", source);
                     }
 
+                    isOrganizationTransaction = true;
+                }
+                else if (Runtime.ProtocolVersion >= 10)
+                {
+                    Runtime.ExpectWarning(org != null, "moving funds from orgs currently not possible", source);
+                    var orgMembers = org.GetMembers();
+                    var numberOfSignaturesNeeded = orgMembers.Length;
+                    if (numberOfSignaturesNeeded <= 0)
+                    {
+                        numberOfSignaturesNeeded = 1;
+                    }
+
+                    Runtime.ExpectWarning(Runtime.Transaction.Signatures.Length >= numberOfSignaturesNeeded,
+                        "must be signed by all of the org members", source);
+
+                    var msg = Runtime.Transaction.ToByteArray(false);
+                    var validSignatures = 0;
+                    Signature lastSignature = null;
+                    var signatures = Runtime.Transaction.Signatures.ToList();
+
+                    foreach (var member in orgMembers)
+                    {
+                        foreach (var signature in signatures)
+                        {
+                            if (signature.Verify(msg, member))
+                            {
+                                validSignatures++;
+                                lastSignature = signature;
+                                break;
+                            }
+                        }
+
+                        if (lastSignature != null)
+                            signatures.Remove(lastSignature);
+                    }
+
+                    Runtime.ExpectWarning(validSignatures == numberOfSignaturesNeeded,
+                        "Number of valid signatures don't match", source);
                     isOrganizationTransaction = true;
                 }
             }

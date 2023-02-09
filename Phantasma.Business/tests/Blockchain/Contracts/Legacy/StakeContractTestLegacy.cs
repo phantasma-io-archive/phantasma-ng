@@ -1530,7 +1530,10 @@ public class StakeContractTestLegacy
             Assert.True(simulator.LastBlockWasSuccessful());
 
             isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.IsMaster), testUserA.Address).AsBool();
-            Assert.True(isMaster == false);
+            
+            var stakedAmount  = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetStake), testUserA.Address).AsNumber();
+//            Assert.Fail(stakedAmount.ToString());
+            Assert.Equal(false, isMaster);
 
             ////-----------
             ////A restakes to the master threshold -> verify won master status again
