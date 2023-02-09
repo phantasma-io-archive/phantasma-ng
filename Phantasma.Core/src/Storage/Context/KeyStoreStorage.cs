@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 
 namespace Phantasma.Core.Storage.Context
 {
@@ -42,6 +43,11 @@ namespace Phantasma.Core.Storage.Context
             {
                 visitor(keyBytes, valBytes);
             }, searchCount, prefix);
+        }
+
+        public override uint Count()
+        {
+            return Adapter.Count;
         }
     }
 }

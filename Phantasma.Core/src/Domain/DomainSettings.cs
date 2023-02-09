@@ -60,7 +60,7 @@ namespace Phantasma.Core.Domain
 
     public static class DomainSettings
     {
-        public const int LatestKnownProtocol = 9;
+        public const int LatestKnownProtocol = 10;
 
         public const int Phantasma20Protocol = 7;
         public const int Phantasma30Protocol = 8;

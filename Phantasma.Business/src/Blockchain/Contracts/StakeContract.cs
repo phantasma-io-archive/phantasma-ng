@@ -136,6 +136,15 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             return GetMasterClaimDateFromReference(claimDistance, default(Timestamp));
         }
+        
+        public Timestamp GetMasterClaimDateForAddress(Address target)
+        {
+            if (_masterClaims.ContainsKey<Address>(target))
+            {
+                return _masterClaims.Get<Address, Timestamp>(target);
+            }
+            return new Timestamp(0);
+        }
 
         public Timestamp GetMasterDate(Address target)
         {
@@ -245,14 +254,18 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.MintTokens(token.Symbol, this.Address, this.Address, totalAmount);
 
             var masters = Runtime.GetOrganization(DomainSettings.MastersOrganizationName);
-
             var validMasterCount = GetClaimMasterCount(Runtime.Time);
+            
+            if (Runtime.ProtocolVersion >= 10)
+            {
+                validMasterCount = GetClaimMasterCount(thisClaimDate);
+            }
 
             var individualAmount = totalAmount / validMasterCount;
             var leftovers = totalAmount % validMasterCount;
-
+            
             var nextClaim = GetMasterClaimDateFromReference(1, thisClaimDate);
-
+            
             var addresses = masters.GetMembers();
             for (int i = 0; i < addresses.Length; i++)
             {

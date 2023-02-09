@@ -63,7 +63,7 @@ namespace Phantasma.Business.Blockchain
             Core.Throw.IfNull(chain, nameof(chain));
             Core.Throw.IfNull(changeSet, nameof(changeSet));
 
-            _baseChangeSetCount = changeSet.Count();
+            _baseChangeSetCount = (int)changeSet.Count();
 
             // NOTE: block and transaction can be null, required for Chain.InvokeContract
             //Throw.IfNull(block, nameof(block));
@@ -1383,6 +1383,9 @@ namespace Phantasma.Business.Blockchain
             Expect(!Nexus.OrganizationExists(RootStorage, ID), "organization already exists");
 
             Nexus.CreateOrganization(RootStorage, ID, name, script);
+            
+            var org = GetOrganization(ID) as Organization;
+            org.InitCreator(from);
 
             // TODO org cost
             /*var fuelCost = GetGovernanceValue(DomainSettings.FuelPerOrganizationDeployTag);

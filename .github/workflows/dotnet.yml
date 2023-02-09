@@ -51,7 +51,7 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2
         env:
           #GITHUB_TOKEN: "${{ env.PR_KEY }}"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         if: github.event_name == 'pull_request'
         with:
           recreate: true
