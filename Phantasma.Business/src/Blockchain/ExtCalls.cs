@@ -1842,15 +1842,19 @@ namespace Phantasma.Business.Blockchain
             //var ID = (new BigInteger(vm.Transaction.Hash.ToByteArray().Concat(Encoding.UTF8.GetBytes(name)).ToArray())).ToString();
             var script = vm.PopBytes("script");
             
-            var contractAddress = SmartContract.GetAddressFromContractName(ID.ToLower());
-            var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
-            vm.ExpectWarning(!deployed, $"{ID} already exists", source);
+            if (vm.ProtocolVersion >= 10)
+            {
+                var contractAddress = SmartContract.GetAddressFromContractName(ID.ToLower());
+                var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
+                vm.ExpectWarning(!deployed, $"{ID} already exists", source);
             
-            bool isNative = Nexus.IsNativeContract(ID.ToLower());
-            vm.ExpectWarning(!isNative, "cannot create org with the same name as a native contract", source);
+                bool isNative = Nexus.IsNativeContract(ID.ToLower());
+                vm.ExpectWarning(!isNative, "cannot create org with the same name as a native contract", source);
 
-            bool isToken = ValidationUtils.IsValidTicker(ID.ToUpper());
-            vm.ExpectWarning(!isToken, "cannot create org with the same name as a  token contract", source);
+                bool isToken = ValidationUtils.IsValidTicker(ID.ToUpper());
+                vm.ExpectWarning(!isToken, "cannot create org with the same name as a  token contract", source);
+            }
+            
 
             vm.CreateOrganization(source, ID, name, script);
 
