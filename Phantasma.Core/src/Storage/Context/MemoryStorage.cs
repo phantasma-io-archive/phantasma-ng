@@ -113,4 +113,9 @@ public class MemoryStorageContext: StorageContext
             }
         }
     }
+    
+    public override uint Count()
+    {
+        return (uint)_entries.Count;
+    }
 }

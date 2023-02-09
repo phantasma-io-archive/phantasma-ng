@@ -1530,7 +1530,10 @@ public class StakeContractTestLegacy
             Assert.True(simulator.LastBlockWasSuccessful());
 
             isMaster = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.IsMaster), testUserA.Address).AsBool();
-            Assert.True(isMaster == false);
+            
+            var stakedAmount  = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetStake), testUserA.Address).AsNumber();
+//            Assert.Fail(stakedAmount.ToString());
+            Assert.Equal(false, isMaster);
 
             ////-----------
             ////A restakes to the master threshold -> verify won master status again
@@ -1801,6 +1804,56 @@ public class StakeContractTestLegacy
         Console.WriteLine($"{stake2} - {fuel}: {UnitConversion.ConvertDecimals(fuel, DomainSettings.FuelTokenDecimals, DomainSettings.StakingTokenDecimals)}");
         Assert.True(stake == stake2);
     }
+
+
+    [Fact]
+    public void TestMasterClaim()
+    {
+        simulator.BeginBlock();
+        simulator.GenerateTransfer(owner, user.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol,
+            StakeContract.DefaultMasterThreshold * 2);
+        simulator.GenerateTransfer(owner, user.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol,
+            UnitConversion.ToBigInteger(10, DomainSettings.FiatTokenDecimals));
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        // Stake
+        simulator.BeginBlock();
+        var tx = simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(user.Address, Address.Null, simulator.MinimumFee, MinimumGasLimit)
+                .CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), user.Address, StakeContract.DefaultMasterThreshold)
+                .SpendGas(user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        simulator.GetFundsInTheFuture(owner);
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        // Get the balance
+        var accountBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol, user.Address);
+        Assert.Equal(StakeContract.DefaultMasterThreshold + initialAmount, accountBalance );
+        
+        // Trigger the master claim
+        simulator.BeginBlock();
+        tx = simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(user.Address, Address.Null, simulator.MinimumFee, MinimumGasLimit)
+                .CallContract(NativeContractKind.Stake, nameof(StakeContract.MasterClaim), user.Address)
+                .SpendGas(user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        var masterCount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetMasterCount), (Timestamp)simulator.CurrentTime).AsNumber();
+        Assert.Equal(2, masterCount);
+
+        // Get the balance
+        accountBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol, user.Address);
+        Assert.Equal(StakeContract.DefaultMasterThreshold + initialAmount + StakeContract.MasterClaimGlobalAmount/masterCount, accountBalance );
+    }
+    
     
     // GetMasterCount
     // GetMasterAddresses

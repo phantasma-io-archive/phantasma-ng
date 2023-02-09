@@ -175,10 +175,24 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(Runtime.IsPrimaryValidator(from), "must be validator address");
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
-            var pollName = ConsensusContract.SystemPoll + name;
-            var hasConsensus = Runtime.CallNativeContext(NativeContractKind.Consensus, nameof(ConsensusContract.HasConsensus), pollName, Encoding.UTF8.GetBytes(value.ToString())).AsBool();
-            Runtime.Expect(hasConsensus, "consensus not reached");
-
+            if (Runtime.ProtocolVersion <= 9)
+            {
+                var pollName = ConsensusContract.SystemPoll + name;
+                var hasConsensus = Runtime.CallNativeContext(NativeContractKind.Consensus, nameof(ConsensusContract.HasConsensus), pollName, Encoding.UTF8.GetBytes(value.ToString())).AsBool();
+                Runtime.Expect(hasConsensus, "consensus not reached");
+            }
+            else
+            {
+                string pollName = name;
+                if (!name.Contains(ConsensusContract.SystemPoll))
+                {
+                    pollName = ConsensusContract.SystemPoll + name;
+                }
+                
+                var rank = Runtime.CallNativeContext(NativeContractKind.Consensus, nameof(ConsensusContract.GetRank), pollName, Encoding.UTF8.GetBytes(value.ToString())).AsNumber();
+                Runtime.Expect(rank == 0, "consensus not reached");
+            }
+            
             var previous = _valueMap.Get<string, BigInteger>(name);
             var constraints = _constraintMap.Get<string, ChainConstraint[]>(name);
             ValidateConstraints(name, previous, value, constraints, true);

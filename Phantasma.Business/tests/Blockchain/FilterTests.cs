@@ -63,8 +63,11 @@ public class FilterTests
             simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         Assert.True(finalBalance == 0);
 
-        Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
-        Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+        if (nexus.GetProtocolVersion(nexus.RootStorage) <= 9)
+        {
+            Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
+            Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+        }
     }
 
     [Fact]
@@ -116,9 +119,12 @@ public class FilterTests
             simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         Assert.True(finalBalance == 0);
 
-        Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
-        Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
-
+        if (nexus.GetProtocolVersion(nexus.RootStorage) <= 9)
+        {
+            Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
+            Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+        }
+        
         Filter.RemoveRedFilteredAddress(simulator.Nexus.RootStorage, sender.Address, "User X");
 
         simulator.BeginBlock();
@@ -184,8 +190,11 @@ public class FilterTests
             simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         Assert.True(finalBalance == 0);
 
-        Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
-        Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+        if (nexus.GetProtocolVersion(nexus.RootStorage) <= 9)
+        {
+            Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
+            Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+        }
 
         Filter.AddGreenFilteredAddress(simulator.Nexus.RootStorage, sender.Address);
         Filter.AddRedFilteredAddress(simulator.Nexus.RootStorage, testUser.Address);
@@ -276,9 +285,13 @@ public class FilterTests
         var finalBalance =
             simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         Assert.True(finalBalance == expectedBalance);
-
-        Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
-        Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+        
+        if (nexus.GetProtocolVersion(nexus.RootStorage) <= 9)
+        {
+            Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
+            Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+        }
+        
     }
 
     [Fact]

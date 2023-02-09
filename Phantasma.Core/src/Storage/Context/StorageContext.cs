@@ -13,6 +13,7 @@ namespace Phantasma.Core.Storage.Context
         public abstract byte[] Get(StorageKey key);
         public abstract void Put(StorageKey key, byte[] value);
         public abstract void Delete(StorageKey key);
+        public abstract uint Count();
 
         public bool Has(byte[] key)
         {
