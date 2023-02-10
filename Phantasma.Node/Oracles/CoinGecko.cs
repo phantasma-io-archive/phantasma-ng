@@ -116,7 +116,7 @@ namespace Phantasma.Node.Oracles
                     return 0;
                 }
 
-                var array = pricesData.EnumerateArray().First();
+                var array = pricesData.EnumerateArray().Last();
                 var price = array.EnumerateArray().Last().GetDecimal();
                 
                 return price;
