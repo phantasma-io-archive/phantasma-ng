@@ -271,19 +271,48 @@ namespace Phantasma.Business.Blockchain
                 }
                 else
                 {
-                    var dic = (Dictionary<VMObject, VMObject>)arg;
-                    var elementType = expectedType.GetElementType();
-                    var array = Array.CreateInstance(elementType, dic.Count);
-                    for (int i = 0; i < array.Length; i++)
+                    if (Runtime.ProtocolVersion >= 11)
                     {
-                        var key = new VMObject();
-                        key.SetValue(i);
+                        var elementType = expectedType.GetElementType();
 
-                        var val = dic[key].Data;
-                        val = CastArgument(runtime, val, elementType);
-                        array.SetValue(val, i);
+                        if (arg == typeof(Dictionary<VMObject, VMObject>))
+                        {
+                            var dic = (Dictionary<VMObject, VMObject>)arg;
+                            var array = Array.CreateInstance(elementType, dic.Count);
+                            for (int i = 0; i < array.Length; i++)
+                            {
+                                var key = new VMObject();
+                                key.SetValue(i);
+
+                                var val = dic[key].Data;
+                                val = CastArgument(runtime, val, elementType);
+                                array.SetValue(val, i);
+                            }
+                            return array;
+                        }
+                        else if (arg == typeof(VMObject))
+                        {
+                            var vmObj = (VMObject)arg;
+                            var array = vmObj.ToArray(elementType);
+                            return array;
+                        }
                     }
-                    return array;
+                    else
+                    {
+                        var dic = (Dictionary<VMObject, VMObject>)arg;
+                        var elementType = expectedType.GetElementType();
+                        var array = Array.CreateInstance(elementType, dic.Count);
+                        for (int i = 0; i < array.Length; i++)
+                        {
+                            var key = new VMObject();
+                            key.SetValue(i);
+
+                            var val = dic[key].Data;
+                            val = CastArgument(runtime, val, elementType);
+                            array.SetValue(val, i);
+                        }
+                        return array;
+                    }
                 }
             }
 
