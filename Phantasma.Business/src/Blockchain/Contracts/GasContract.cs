@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM;
@@ -39,6 +40,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         internal Timestamp _lastInflationDate;
         internal bool _inflationReady;
+        internal bool _fixedInflation;
 
         private readonly int InflationPerYear = 133;
         private readonly int SMInflationPercentage = 10;
@@ -166,6 +168,11 @@ namespace Phantasma.Business.Blockchain.Contracts
                 foreach (var addr in rewardList)
                 {
                     var reward = new StakeReward(addr, Runtime.Time);
+                    if (Runtime.ProtocolVersion >= 11)
+                    {
+                        reward = new StakeReward(addr, _lastInflationDate);
+                    }
+
                     var rom = Serialization.Serialize(reward);
 
                     var tokenID = Runtime.MintToken(DomainSettings.RewardTokenSymbol, this.Address, this.Address, rom, new byte[0], 0);
@@ -225,7 +232,20 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Notify(EventKind.Inflation, from, new TokenEventData(DomainSettings.StakingTokenSymbol, mintedAmount, Runtime.Chain.Name));
 
             _lastInflationDate = Runtime.Time;
+
             _inflationReady = false;
+            
+            if (Runtime.ProtocolVersion >= 11)
+            {
+                var inflationPeriod = SecondsInDay * 90;
+
+                _lastInflationDate = new Timestamp( _lastInflationDate.Value + inflationPeriod);
+                var infDiff = Runtime.Time - _lastInflationDate;
+                if (infDiff >= inflationPeriod)
+                {
+                    _inflationReady = true;
+                }
+            }
         }
 
         /// <summary>
@@ -347,6 +367,54 @@ namespace Phantasma.Business.Blockchain.Contracts
                     _inflationReady = true;
                 }
             }
+        }
+
+        /// <summary>
+        /// This method is used to fix the inflation timing.
+        /// </summary>
+        public void FixInflationTiming(Address from, Timestamp lastInflationDate)
+        {
+            Runtime.ExpectWarning(!_fixedInflation, "inflation timing already fixed", from);
+            
+            // Validate Validaotrs and orgs and Multi signature
+            var org = Runtime.GetOrganization(DomainSettings.ValidatorsOrganizationName);
+            Runtime.Expect(org != null, "no validators org");
+            Runtime.Expect(org.IsMember(from), "not a validator");
+            Runtime.Expect(Runtime.IsPrimaryValidator(from), "not a primary validator");
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+
+            var size = org.Size;
+            var numberOfSignaturesNeeded = org.Size;
+            Runtime.Expect(Runtime.Transaction.Signatures.Length == numberOfSignaturesNeeded, "invalid number of signatures");
+            
+            var validSignatures = 0;
+            Signature lastSignature = null;
+            var signatures = Runtime.Transaction.Signatures.ToList();
+            var members = org.GetMembers();
+            var msg = Runtime.Transaction.ToByteArray(false);
+            
+            foreach (var member in members )
+            {
+                foreach ( var signature in signatures )
+                {
+                    if ( signature.Verify(msg, member) )
+                    {
+                        validSignatures++;
+                        lastSignature = signature;
+                        break;
+                    }
+                }
+                
+                if ( lastSignature != null)
+                    signatures.Remove(lastSignature);
+            }
+            
+            Runtime.Expect(validSignatures == numberOfSignaturesNeeded, "invalid signatures");
+            
+            // Fix Values
+            _fixedInflation = true;
+            _lastInflationDate = lastInflationDate;
+            _inflationReady = true;
         }
 
         /// <summary>
