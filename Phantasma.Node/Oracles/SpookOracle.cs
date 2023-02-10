@@ -210,7 +210,7 @@ namespace Phantasma.Node.Oracles
                 }
             }
 
-            var price = Pricer.GetCoinRate(symbol, DomainSettings.FiatTokenSymbol, apiKey, pricerCGEnabled, pricerSupportedTokens);
+            var price = Pricer.GetCoinRateWithTime(time, symbol, DomainSettings.FiatTokenSymbol, apiKey, pricerCGEnabled, pricerSupportedTokens);
             return price;
         }
 
