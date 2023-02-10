@@ -200,11 +200,14 @@ namespace Phantasma.Node.Oracles
             var apiKey = _cli.CryptoCompareAPIKey;
             var pricerCGEnabled = Settings.Instance.Oracle.PricerCoinGeckoEnabled;
             var pricerSupportedTokens = Settings.Instance.Oracle.PricerSupportedTokens.ToArray();
-
-            if (symbol == DomainSettings.FuelTokenSymbol)
+            
+            if (time <= new Timestamp(1644570000))
             {
-                var result = PullPrice(time, DomainSettings.StakingTokenSymbol);
-                return result / 5;
+                if (symbol == DomainSettings.FuelTokenSymbol)
+                {
+                    var result = PullPrice(time, DomainSettings.StakingTokenSymbol);
+                    return result / 5;
+                }
             }
 
             var price = Pricer.GetCoinRate(symbol, DomainSettings.FiatTokenSymbol, apiKey, pricerCGEnabled, pricerSupportedTokens);
