@@ -2331,6 +2331,7 @@ public class ExchangeContractTests
             simulator.EndBlock();
             
             simulator.GetFundsInTheFuture(owner);
+            Assert.True(simulator.LastBlockWasSuccessful());
             
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, soul.Symbol, poolAmount0*2);
@@ -2339,7 +2340,6 @@ public class ExchangeContractTests
             simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, bnb.Symbol, poolAmount3);
             simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, neo.Symbol, poolAmount4);
             simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, gas.Symbol, poolAmount5);
-            
             simulator.EndBlock();
             Assert.True(simulator.LastBlockWasSuccessful());
             //Migrate();
