@@ -1118,8 +1118,10 @@ public class Nexus : INexus
             var org = GetOrganizationByAddress(Runtime.RootStorage, source);
             if (org != null)
             {
-                if ( Runtime.ProtocolVersion <= 8 )
+                if (Runtime.ProtocolVersion <= 8)
+                {
                     Runtime.ExpectFiltered(org == null, "moving funds from orgs currently not possible", source);
+                }
                 else if ( Runtime.ProtocolVersion <= 9)
                 {
                     Runtime.ExpectWarning(org != null, "moving funds from orgs currently not possible", source);
@@ -1142,7 +1144,7 @@ public class Nexus : INexus
                     if (Runtime.ProtocolVersion >= 12)
                     {
                         if (org.ID == DomainSettings.PhantomForceOrganizationName &&
-                            (Runtime.PreviousContext.Name == "stake" || Runtime.PreviousContext.Name == "gas"))
+                            (Runtime.CurrentContext.Name == "stake" || Runtime.CurrentContext.Name == "gas"))
                         {
                             isKnownException = true;
                         }
@@ -1198,7 +1200,6 @@ public class Nexus : INexus
             }
             else if ( Runtime.ProtocolVersion <= 11)
             {
-                
                 Runtime.Expect(Runtime.CurrentContext.Name != VirtualMachine.EntryContextName, "moving funds from system address if forbidden");
 
                 var sourceContract = Runtime.Chain.GetContractByAddress(Runtime.Storage, source);
@@ -1274,7 +1275,9 @@ public class Nexus : INexus
                     if (!isOrganizationTransaction)
                     {
                         if (Runtime.ProtocolVersion <= 9)
+                        {
                             Runtime.CheckWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
+                        }
                         else
                         {
                             if (source == DomainSettings.InfusionAddress)
@@ -1301,7 +1304,7 @@ public class Nexus : INexus
                 {
                     if ( isSystemSource && isSystemDestination )
                     {
-                        //Runtime.ExpectWarning(token, source, amount, "Transfer Tokens");
+                        Runtime.CheckWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
                     }
                 }
             }
