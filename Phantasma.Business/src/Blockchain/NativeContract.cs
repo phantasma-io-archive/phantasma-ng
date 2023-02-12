@@ -296,6 +296,21 @@ namespace Phantasma.Business.Blockchain
                             var array = vmObj.ToArray(elementType);
                             return array;
                         }
+                        else if ( Runtime.ProtocolVersion >= 12)
+                        {
+                            var dic = (Dictionary<VMObject, VMObject>)arg;
+                            var array = Array.CreateInstance(elementType, dic.Count);
+                            for (int i = 0; i < array.Length; i++)
+                            {
+                                var key = new VMObject();
+                                key.SetValue(i);
+
+                                var val = dic[key].Data;
+                                val = CastArgument(runtime, val, elementType);
+                                array.SetValue(val, i);
+                            }
+                            return array;
+                        }
                     }
                     else
                     {

@@ -240,13 +240,21 @@ public class ChainTests
                 new []{firstOwner, testUser});
             var nexus = simulator.Nexus;
             
-            simulator.GetFundsInTheFuture(firstOwner);
+            var crownBalanceFirstOwner = nexus.RootChain.GetTokenBalance(nexus.RootStorage, DomainSettings.RewardTokenSymbol, firstOwner.Address);
+            Assert.Equal(0, crownBalanceFirstOwner);
+            
+            simulator.GetFundsInTheFuture(firstOwner, 20);
+            Assert.True(simulator.LastBlockWasSuccessful());
+            
+            var crownBalanceFirstOwnerAfter = nexus.RootChain.GetTokenBalance(nexus.RootStorage, DomainSettings.RewardTokenSymbol, firstOwner.Address);
+            Assert.NotEqual(crownBalanceFirstOwner, crownBalanceFirstOwnerAfter);
+            
 
             var fuelAmount = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
             var transferAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
 
             simulator.BeginBlock();
-            simulator.GenerateTransfer(firstOwner, secondOwner.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
+            //simulator.GenerateTransfer(firstOwner, secondOwner.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
             simulator.GenerateTransfer(firstOwner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
             simulator.EndBlock();
             Assert.True(simulator.LastBlockWasSuccessful());
@@ -258,13 +266,11 @@ public class ChainTests
             
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(firstOwner, ProofOfWork.None, () =>
-            {
-                return ScriptUtils.BeginScript().
-                     AllowGas(firstOwner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit).
-                     CallContract("account", "Migrate", firstOwner.Address, secondOwner.Address).
-                     SpendGas(firstOwner.Address).
-                     EndScript();
-            });
+                ScriptUtils.BeginScript().
+                    AllowGas(firstOwner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit).
+                    CallContract(NativeContractKind.Account, nameof(AccountContract.Migrate), firstOwner.Address, secondOwner.Address).
+                    SpendGas(firstOwner.Address).
+                    EndScript());
             simulator.EndBlock();
             Assert.True(simulator.LastBlockWasSuccessful());
 
@@ -284,10 +290,10 @@ public class ChainTests
             Assert.True(simulator.LastBlockWasSuccessful());
 
             var crownBalance = nexus.RootChain.GetTokenBalance(nexus.RootStorage, DomainSettings.RewardTokenSymbol, firstOwner.Address);
-            Assert.True(crownBalance == 0);
+            Assert.Equal(0, crownBalance);
 
             crownBalance = nexus.RootChain.GetTokenBalance(nexus.RootStorage, DomainSettings.RewardTokenSymbol, secondOwner.Address);
-            Assert.True(crownBalance == 21);
+            Assert.Equal(21, crownBalance);
 
             var thirdOwner = PhantasmaKeys.Generate();
             
@@ -1158,6 +1164,7 @@ public class ChainTests
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, stakeAmount);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
@@ -1165,6 +1172,8 @@ public class ChainTests
                 .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, stakeAmount).
                 SpendGas(testUser.Address).EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
 
         simulator.BeginBlock();
         for (int i = 0; i < 1000; i++)
@@ -1206,6 +1215,8 @@ public class ChainTests
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, stakeAmount);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
 
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
@@ -1213,6 +1224,7 @@ public class ChainTests
                 .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, stakeAmount).
                 SpendGas(testUser.Address).EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         string[] scriptString;
 
@@ -1286,6 +1298,7 @@ public class ChainTests
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
     }
 
     [Fact]
@@ -1297,7 +1310,7 @@ public class ChainTests
         var nexus = simulator.Nexus;
         
         simulator.GetFundsInTheFuture(owner);
-
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         simulator.blockTimeSkip = TimeSpan.FromSeconds(5);
 
@@ -1360,13 +1373,15 @@ public class ChainTests
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
 
         // send some funds to contract address
         var contractAddress = SmartContract.GetAddressFromContractName(contractName);
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, contractAddress, nexus.RootChain, DomainSettings.StakingTokenSymbol, stakeAmount);
         simulator.EndBlock();
-
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         // now stake some SOUL on the contract address
         simulator.BeginBlock();
@@ -1376,6 +1391,7 @@ public class ChainTests
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.False(simulator.LastBlockWasSuccessful());
 
         // upgrade it
         var newScript = Core.Utils.ByteArrayUtils.ConcatBytes(script, new byte[] { (byte)Opcode.NOP }); // concat useless opcode just to make it different
@@ -1386,6 +1402,8 @@ public class ChainTests
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
 
         // kill it
         Assert.True(nexus.RootChain.IsContractDeployed(nexus.RootStorage, contractName));
@@ -1396,6 +1414,8 @@ public class ChainTests
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
 
         Assert.False(nexus.RootChain.IsContractDeployed(nexus.RootStorage, contractName));
     }
