@@ -13,6 +13,7 @@ using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Core.Storage.Context;
 using Phantasma.Infrastructure.Pay.Chains;
 using VMType = Phantasma.Core.Domain.VMType;
 
@@ -185,23 +186,23 @@ public class NexusSimulator
         this.Nexus.RootChain.ValidatorKeys = _currentValidator;
     }
 
-    public void GetFundsInTheFuture(PhantasmaKeys target)
+    public void GetFundsInTheFuture(PhantasmaKeys target, int times = 40)
     {
-        for(int i = 0; i < 40; i++)
+        for(int i = 0; i < times; i++)
             TimeSkipDays(90);
 
-        BeginBlock();
         foreach (var validator in _validators)
         {
+            BeginBlock();
             GenerateCustomTransaction(validator, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript()
-                    .AllowGas(validator.Address, Address.Null, MinimumFee, DefaultGasLimit)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), validator.Address, validator.Address)
-                    .SpendGas(validator.Address)
-                    .EndScript());
+                    ScriptUtils.BeginScript()
+                        .AllowGas(validator.Address, Address.Null, MinimumFee, DefaultGasLimit)
+                        .CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), validator.Address, validator.Address)
+                        .SpendGas(validator.Address)
+                        .EndScript());
+            var block = EndBlock();
         }
-        var block = EndBlock();
-
+        
         TransferOwnerAssetsToAddress(target.Address);
     }
 

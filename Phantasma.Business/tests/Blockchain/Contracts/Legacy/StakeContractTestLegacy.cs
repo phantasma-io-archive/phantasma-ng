@@ -66,15 +66,20 @@ public class StakeContractTestLegacy
         simulator = new NexusSimulator(owner);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
-        simulator.GetFundsInTheFuture(owner);
-        simulator.BeginBlock();
-        simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-            ScriptUtils.BeginScript()
-                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 9999)
-                .CallContract(NativeContractKind.Stake, nameof(StakeContract.MasterClaim), owner.Address)
-                .SpendGas(owner.Address)
-                .EndScript());
-        simulator.EndBlock();
+        simulator.GetFundsInTheFuture(owner, 5);
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        for (int i = 0; i < 5; i++)
+        {
+            simulator.BeginBlock();
+            simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+                ScriptUtils.BeginScript()
+                    .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, 9999)
+                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.MasterClaim), owner.Address)
+                    .SpendGas(owner.Address)
+                    .EndScript());
+            simulator.EndBlock();
+        }
         Assert.True(simulator.LastBlockWasSuccessful());
         
         SetInitialBalance(user.Address);
@@ -1268,6 +1273,7 @@ public class StakeContractTestLegacy
             simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, BaseKCALBalance);
             simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, accountBalance * 5);
             simulator.EndBlock();
+            Assert.True(simulator.LastBlockWasSuccessful());
 
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(testUserA, ProofOfWork.None, () =>
@@ -1287,6 +1293,7 @@ public class StakeContractTestLegacy
 
             Assert.True(rewardToken.Symbol == DomainSettings.RewardTokenSymbol);
 
+            //simulator.Nexus.RootChain.InvokeContractAtTimestamp()
             var stakeTokenBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserA.Address);
             var rewardTokenBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, rewardToken, testUserA.Address);
 
@@ -1328,9 +1335,8 @@ public class StakeContractTestLegacy
 
             var ellapsedDays = (int)(((DateTime)simulator.CurrentTime) - baseDate).TotalDays;
 
-
-            rewardTokenBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, rewardToken, testUserA.Address);
-            Assert.True(rewardTokenBalance == 1, $"{rewardTokenBalance} == 1");
+            var rewardTokens = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, rewardToken.Symbol, testUserA.Address);
+            Assert.Equal(1, rewardTokens);
 
             var unclaimedAmountBefore = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUserA.Address).AsNumber();
 

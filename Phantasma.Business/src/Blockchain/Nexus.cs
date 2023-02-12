@@ -839,7 +839,7 @@ public class Nexus : INexus
 
         var ownerships = new OwnershipSheet(token.Symbol);
         Runtime.Expect(ownerships.Add(Runtime.Storage, destination, tokenID), "ownership add failed");
-
+        
         if (!Runtime.IsSystemToken(token.Symbol))
         {
             // for non system tokens, the onMint trigger is mandatory
@@ -1118,8 +1118,10 @@ public class Nexus : INexus
             var org = GetOrganizationByAddress(Runtime.RootStorage, source);
             if (org != null)
             {
-                if ( Runtime.ProtocolVersion <= 8 )
+                if (Runtime.ProtocolVersion <= 8)
+                {
                     Runtime.ExpectFiltered(org == null, "moving funds from orgs currently not possible", source);
+                }
                 else if ( Runtime.ProtocolVersion <= 9)
                 {
                     Runtime.ExpectWarning(org != null, "moving funds from orgs currently not possible", source);
@@ -1138,6 +1140,15 @@ public class Nexus : INexus
                 else if (Runtime.ProtocolVersion >= 10)
                 {
                     Runtime.ExpectWarning(org != null, "moving funds from orgs currently not possible", source);
+                    bool isKnownException = false;
+                    if (Runtime.ProtocolVersion >= 12)
+                    {
+                        if (org.ID == DomainSettings.PhantomForceOrganizationName &&
+                            (Runtime.CurrentContext.Name == "stake" || Runtime.CurrentContext.Name == "gas"))
+                        {
+                            isKnownException = true;
+                        }
+                    }
                     var orgMembers = org.GetMembers();
                     var numberOfSignaturesNeeded = orgMembers.Length;
                     if (numberOfSignaturesNeeded <= 0)
@@ -1145,9 +1156,12 @@ public class Nexus : INexus
                         numberOfSignaturesNeeded = 1;
                     }
 
-                    Runtime.ExpectWarning(Runtime.Transaction.Signatures.Length >= numberOfSignaturesNeeded,
-                        "must be signed by all of the org members", source);
-
+                    if (!isKnownException)
+                    {
+                        Runtime.ExpectWarning(Runtime.Transaction.Signatures.Length >= numberOfSignaturesNeeded,
+                            "must be signed by all of the org members", source);
+                    }
+                    
                     var msg = Runtime.Transaction.ToByteArray(false);
                     var validSignatures = 0;
                     Signature lastSignature = null;
@@ -1169,8 +1183,12 @@ public class Nexus : INexus
                             signatures.Remove(lastSignature);
                     }
 
-                    Runtime.ExpectWarning(validSignatures == numberOfSignaturesNeeded,
-                        "Number of valid signatures don't match", source);
+                    if (!isKnownException)
+                    {
+                        Runtime.ExpectWarning(validSignatures == numberOfSignaturesNeeded,
+                            "Number of valid signatures don't match", source);
+                    }
+                    
                     isOrganizationTransaction = true;
                 }
             }
@@ -1180,7 +1198,7 @@ public class Nexus : INexus
                 Runtime.Expect(!_infusionOperationAddress.IsNull, "infusion address is currently locked");
                 Runtime.Expect(destination == _infusionOperationAddress, "not valid target for infusion address transfer");
             }
-            else
+            else if ( Runtime.ProtocolVersion <= 11)
             {
                 Runtime.Expect(Runtime.CurrentContext.Name != VirtualMachine.EntryContextName, "moving funds from system address if forbidden");
 
@@ -1202,6 +1220,32 @@ public class Nexus : INexus
                     }
                 }
 
+                if (!isKnownExceptionToRule)
+                {
+                    Runtime.Expect(Runtime.CurrentContext.Name == sourceContract.Name, "moving funds from a contract is forbidden if not made by the contract itself");
+                }
+            }
+            else
+            {
+                Runtime.Expect(Runtime.CurrentContext.Name != VirtualMachine.EntryContextName, "moving funds from system address if forbidden");
+                var isKnownExceptionToRule = false;
+                var sourceContract = Runtime.Chain.GetContractByAddress(Runtime.Storage, source);
+                Runtime.Expect(sourceContract != null, "cannot find matching contract for address: " + source);
+            
+                if (Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
+                    Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName() )
+                {
+                    if (IsNativeContract(sourceContract.Name))
+                    {
+                        isKnownExceptionToRule = true;
+                    }
+                    else
+                    if (TokenExists(Runtime.RootStorage, sourceContract.Name))
+                    {
+                        isKnownExceptionToRule = true;
+                    }
+                }
+            
                 if (!isKnownExceptionToRule)
                 {
                     Runtime.Expect(Runtime.CurrentContext.Name == sourceContract.Name, "moving funds from a contract is forbidden if not made by the contract itself");
@@ -1231,7 +1275,9 @@ public class Nexus : INexus
                     if (!isOrganizationTransaction)
                     {
                         if (Runtime.ProtocolVersion <= 9)
+                        {
                             Runtime.CheckWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
+                        }
                         else
                         {
                             if (source == DomainSettings.InfusionAddress)
@@ -1250,15 +1296,21 @@ public class Nexus : INexus
                         Runtime.ExpectWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} (System) to {destination}", source);
                     }
                 }
-                else if (isSystemDestination)
+                else if (Runtime.ProtocolVersion <= 11 && isSystemDestination)
                 {
                     Runtime.ExpectWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
+                }
+                else if (Runtime.ProtocolVersion >= 12)
+                {
+                    if ( isSystemSource && isSystemDestination )
+                    {
+                        Runtime.CheckWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
+                    }
                 }
             }
         }
 
-        bool allowed;
-
+        bool allowed = false;
         if (Runtime.HasGenesis)
         {
             if (Runtime.ProtocolVersion <= 8)
@@ -1271,8 +1323,33 @@ public class Nexus : INexus
             }
             else
             {
-                allowed = Runtime.IsWitness(source);
+                if (Runtime.ProtocolVersion <= 11)
+                {
+                    allowed = Runtime.IsWitness(source);
+                }
+                else if (Runtime.ProtocolVersion >= 12)
+                {
+                    var crownToken = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
+                    var stakeContract = NativeContract.GetAddressForNative(NativeContractKind.Stake);
+                    if (isOrganizationTransaction)
+                    {
+                        allowed = true;
+                    }
+                    else if ( source == crownToken && destination == stakeContract)
+                    {
+                        allowed = true;
+                    }
+                    else
+                    {
+                        allowed = Runtime.IsWitness(source);
+                    }
+                }
+                else
+                {
+                    allowed = Runtime.IsWitness(source);
+                }
             }
+            
         }
         else
         {
