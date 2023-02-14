@@ -3013,7 +3013,7 @@ public class Nexus : INexus
     {
         if (!HasGenesis())
         {
-            return DomainSettings.Phantasma30Protocol;
+            return DomainSettings.LatestKnownProtocol;
         }
 
         return (uint)this.GetGovernanceValue(storage, NexusProtocolVersionTag);
