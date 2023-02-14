@@ -144,7 +144,7 @@ namespace Phantasma.Business.Blockchain
 
             if (this.IsRoot)
             {
-                var inflationReady = Filter.Enabled ? false : NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
+                var inflationReady = NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
 
                 if (inflationReady)
                 {
@@ -580,17 +580,17 @@ namespace Phantasma.Business.Blockchain
                     }
                 }
             }
-            
+
             if (transactions.Select(tx => tx.IsValid(this)).All(valid => !valid))
             {
                 throw new ChainException("Block transactions are not valid");
             }
-            
+        
             if ( transactions.Count() != this.Transactions.Count())
             {
                 throw new ChainException($"Block transactions are not the same as the current block, {transactions.Count()} != {this.Transactions.Count()} | {this.CurrentBlock.TransactionCount}");
             }
-            
+
             if (transactions.Except(this.Transactions).Count() != 0 && this.Transactions.Except(transactions).Count() != 0)
             {
                 var blockTransactions = transactions.ToArray();
