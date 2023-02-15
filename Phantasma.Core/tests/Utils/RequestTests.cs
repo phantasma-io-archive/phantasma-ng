@@ -79,8 +79,8 @@ public class RequestTests
         //var value = //BlockResult(request.RootElement);
         Assert.True(myResponse != null);
         Assert.True(request != null);
-        Assert.Equal(block.hash, "92A8515F09674AB14279FC9CD0B41F3A80EE84DEAF531EFB6E3EABF9E121E0F5");
-        Assert.Equal(block.timestamp, (Timestamp)1669136164);
+        Assert.Equal(block.hash, "54F15B681EDB997D641784560BE4712A77CD13E3118B8F87764E558F75734542");
+        Assert.Equal(block.timestamp, (Timestamp)1676347075);
     }
 
     [Fact]
@@ -93,8 +93,8 @@ public class RequestTests
         var block = new BlockResult();
         block = JsonSerializer.Deserialize<BlockResult>(request.Result);
         Assert.True(request != null);
-        Assert.Equal(block.hash, "92A8515F09674AB14279FC9CD0B41F3A80EE84DEAF531EFB6E3EABF9E121E0F5");
-        Assert.Equal(block.timestamp, (Timestamp)1669136164);
+        Assert.Equal(block.hash, "54F15B681EDB997D641784560BE4712A77CD13E3118B8F87764E558F75734542");
+        Assert.Equal(block.timestamp, (Timestamp)1676347075);
     }
     
     [Fact]
