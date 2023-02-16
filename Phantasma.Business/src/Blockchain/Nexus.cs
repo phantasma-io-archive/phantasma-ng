@@ -1593,8 +1593,8 @@ public class Nexus : INexus
         var bytes = content.ToByteArray();
         bytes = CompressionUtils.Compress(bytes);
 
-        Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.WriteData), contractAddress, tokenKey, bytes);
-
+        Runtime.WriteData(contractAddress, tokenKey, bytes);
+        
         return content.TokenID;
     }
 
@@ -1645,7 +1645,7 @@ public class Nexus : INexus
 
         var tokenKey = GetKeyForNFT(symbol, tokenID);
 
-        Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.DeleteData), contractAddress, tokenKey);
+        Runtime.DeleteData(contractAddress, tokenKey);
     }
 
     public void WriteNFT(IRuntime Runtime, string symbol, BigInteger tokenID, string chainName, Address creator,
@@ -1685,7 +1685,7 @@ public class Nexus : INexus
             var bytes = content.ToByteArray();
             bytes = CompressionUtils.Compress(bytes);
 
-            Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.WriteData), contractAddress, tokenKey, bytes);
+            Runtime.WriteData(contractAddress, tokenKey, bytes);
         }
         else
         {
@@ -3013,7 +3013,7 @@ public class Nexus : INexus
     {
         if (!HasGenesis())
         {
-            return DomainSettings.LatestKnownProtocol;
+            return DomainSettings.Phantasma30Protocol;
         }
 
         return (uint)this.GetGovernanceValue(storage, NexusProtocolVersionTag);

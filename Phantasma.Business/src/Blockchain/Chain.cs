@@ -141,9 +141,11 @@ namespace Phantasma.Business.Blockchain
             // create new storage context
             this.CurrentChangeSet = new StorageChangeSetContext(this.Storage);
             List<Transaction> systemTransactions = new ();
+            var oracle = Nexus.GetOracleReader();
 
             if (this.IsRoot)
             {
+                //var inflationReady = Filter.Enabled ? false : NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
                 var inflationReady = NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
 
                 if (inflationReady)
@@ -154,6 +156,7 @@ namespace Phantasma.Business.Blockchain
                     int requiredGasLimit = Transaction.DefaultGasLimit * 50;
                     if ( Nexus.GetGovernanceValue(Storage,  Phantasma.Business.Blockchain.Nexus.NexusProtocolVersionTag) <= 8)
                         requiredGasLimit = Transaction.DefaultGasLimit * 4;
+                    
 
                     var script = new ScriptBuilder()
                         .AllowGas(senderAddress, Address.Null, minimumFee, requiredGasLimit)
@@ -173,7 +176,6 @@ namespace Phantasma.Business.Blockchain
                 }
             }
 
-            var oracle = Nexus.GetOracleReader();
             systemTransactions.AddRange(ProcessPendingTasks(this.CurrentBlock, oracle, minimumFee, this.CurrentChangeSet));
 
             // returns eventual system transactions that need to be broadcasted to tenderm int to be included into the current block
@@ -202,6 +204,20 @@ namespace Phantasma.Business.Blockchain
                 var type = CodeType.UnsignedTx;
                 Log.Information("check tx error {UsignedTx} {Hash}", type, tx.Hash);
                 return (type, "Transaction is not signed");
+            }
+            
+           if (tx.Script.LongLength > DomainSettings.ArchiveMaxSize)
+            {
+                var type = CodeType.Error;
+                Log.Information("check tx error {ScriptTooBig} {Hash}", type, tx.Hash);
+                return (type, "Transaction script is too big");
+            }
+
+            if (this.ContainsTransaction(tx.Hash))
+            {
+                var type = CodeType.Error;
+                Log.Information("check tx error {Error} {Hash}", type, tx.Hash);
+                return (type, "Transaction already exists in chain");
             }
 
             if (Nexus.HasGenesis())
@@ -579,6 +595,11 @@ namespace Phantasma.Business.Blockchain
                         throw new ChainException($"Block transaction hashes are not the same as the current block\n {blockTransactionHashes[i]}\n {currentBlockTransactionHashes[i]}");
                     }
                 }
+            }
+            
+            if ( transactions.Select(tx => !this.ContainsTransaction(tx.Hash)).All(valid => !valid))
+            {
+                throw new ChainException("Block transactions are not valid");
             }
 
             if (transactions.Select(tx => tx.IsValid(this)).All(valid => !valid))

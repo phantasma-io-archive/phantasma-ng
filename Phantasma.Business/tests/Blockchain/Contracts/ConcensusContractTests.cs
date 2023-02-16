@@ -290,7 +290,7 @@ public class ConcensusContractTests
                 .SpendGas(owner4.Address)
                 .EndScript());
         var block = simulator.EndBlock().First();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
         var txResult = block.GetResultForTransaction(tx.Hash);
         Assert.NotNull(txResult);
 
