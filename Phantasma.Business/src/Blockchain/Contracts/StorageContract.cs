@@ -1,5 +1,6 @@
 using System.Numerics;
 using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
@@ -271,9 +272,10 @@ namespace Phantasma.Business.Blockchain.Contracts
             var result = _dataQuotas.Get<Address, BigInteger>(address);
             return result;
         }
-
-        public void WriteData(Address target, byte[] key, byte[] value)
+        
+        internal void WriteData(Address target, byte[] key, byte[] value)
         {
+            Runtime.Expect(Runtime.PreviousContext.Name != VirtualMachine.EntryContextName, "invalid context");
             ValidateKey(key);
 
             var usedQuota = _dataQuotas.Get<Address, BigInteger>(target);
@@ -311,8 +313,10 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(temp.Length == value.Length, "storage write corruption");
         }
 
-        public void DeleteData(Address target, byte[] key)
+        internal void DeleteData(Address target, byte[] key)
         {
+            Runtime.Expect(Runtime.PreviousContext.Name != VirtualMachine.EntryContextName, "invalid context");
+
             ValidateKey(key);
 
             Runtime.Expect(Runtime.Storage.Has(key), "key does not exist");
