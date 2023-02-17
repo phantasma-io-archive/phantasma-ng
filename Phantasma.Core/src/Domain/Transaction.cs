@@ -10,6 +10,15 @@ using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Domain
 {
+    public struct TransactionGas
+    {
+        public static readonly TransactionGas Null = new TransactionGas();
+        public Address GasPayer;
+        public Address GasTarget;
+        public BigInteger GasLimit;
+        public BigInteger GasPrice;
+    }
+    
     public sealed class Transaction : ITransaction, ISerializable
     {
         public readonly static Transaction Null = null;
@@ -29,6 +38,8 @@ namespace Phantasma.Core.Domain
         public Signature[] Signatures { get; private set; }
 
         public Hash Hash { get; private set; }
+        
+        public TransactionGas TransactionGas { get; private set; }
 
         public static Transaction? Unserialize(byte[] bytes)
         {
@@ -63,6 +74,15 @@ namespace Phantasma.Core.Domain
             writer.Write(this.Expiration.Value);
             writer.WriteByteArray(this.Payload);
 
+            if (TransactionGas.Null.GasPayer != TransactionGas.GasPayer  &&
+                TransactionGas.Null.GasLimit != TransactionGas.GasLimit && TransactionGas.Null.GasPrice != TransactionGas.GasPrice)
+            {
+                writer.WriteAddress(this.TransactionGas.GasPayer);
+                writer.WriteAddress(this.TransactionGas.GasTarget);
+                writer.WriteBigInteger(this.TransactionGas.GasLimit);
+                writer.WriteBigInteger(this.TransactionGas.GasPrice);
+            }
+
             if (withSignature)
             {
                 writer.WriteVarInt(this.Signatures.Length);
@@ -82,6 +102,7 @@ namespace Phantasma.Core.Domain
         public Transaction()
         {
             this.Hash = Hash.Null;
+            this.TransactionGas = TransactionGas.Null;
         }
 
         public Transaction(
@@ -95,6 +116,28 @@ namespace Phantasma.Core.Domain
                     script,
                     expiration,
                     Encoding.UTF8.GetBytes(payload))
+        {
+        }
+        
+        public Transaction(
+            string nexusName,
+            string chainName,
+            byte[] script,
+            Timestamp expiration,
+            Address gasPayer,
+            Address gasTarget,
+            BigInteger gasLimit,
+            BigInteger gasPrice,
+            string payload)
+            : this(nexusName,
+                chainName,
+                script,
+                expiration,
+                gasPayer,
+                gasTarget,
+                gasLimit,
+                gasPrice,
+                Encoding.UTF8.GetBytes(payload))
         {
         }
 
@@ -112,6 +155,39 @@ namespace Phantasma.Core.Domain
             this.ChainName = chainName;
             this.Script = script;
             this.Expiration = expiration;
+            this.Payload = payload != null ? payload :new byte[0];
+            this.TransactionGas = TransactionGas.Null;
+
+            this.Signatures = new Signature[0];
+
+            this.UpdateHash();
+        }
+        
+        public Transaction(
+            string nexusName,
+            string chainName,
+            byte[] script,
+            Timestamp expiration,
+            Address gasPayer,
+            Address gasTarget,
+            BigInteger gasLimit,
+            BigInteger gasPrice,
+            byte[] payload = null)
+        {
+            Throw.IfNull(script, nameof(script));
+
+            this.NexusName = nexusName;
+            this.ChainName = chainName;
+            this.Script = script;
+            this.Expiration = expiration;
+            this.TransactionGas = new TransactionGas
+            {
+                GasPayer = gasPayer,
+                GasTarget = gasTarget,
+                GasLimit = gasLimit,
+                GasPrice = gasPrice
+            };
+            
             this.Payload = payload != null ? payload :new byte[0];
 
             this.Signatures = new Signature[0];
@@ -227,6 +303,28 @@ namespace Phantasma.Core.Domain
             this.Script = reader.ReadByteArray();
             this.Expiration = reader.ReadUInt32();
             this.Payload = reader.ReadByteArray();
+            var pointer = reader.BaseStream.Position;
+
+            try
+            {
+                var gasPayer = reader.ReadAddress();
+                var gasTarget = reader.ReadAddress();
+                var gasLimit = reader.ReadBigInteger();
+                var gasPrice = reader.ReadBigInteger();
+                this.TransactionGas = new TransactionGas
+                {
+                    GasPayer = gasPayer,
+                    GasTarget = gasTarget,
+                    GasLimit = gasLimit,
+                    GasPrice = gasPrice
+                };
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine($"Error:{e.Message} || {e.StackTrace}");
+                this.TransactionGas = TransactionGas.Null;
+                reader.BaseStream.Position = pointer;
+            }
 
             // check if we have some signatures attached
             try
