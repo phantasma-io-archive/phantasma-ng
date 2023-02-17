@@ -1496,6 +1496,10 @@ public class MarketContractTestLegacy
         // Create the token CoolToken as an NFT
         simulator.BeginBlock();
         simulator.GenerateToken(owner, tokenTicker, "MKNI", 10000000, 0, TokenFlags.Transferable | TokenFlags.Fungible);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        
+        simulator.BeginBlock();
         simulator.MintTokens(owner, owner.Address, tokenTicker, 10000000);
         simulator.GenerateTransfer(owner, user.Address, nexus.RootChain as Chain, tokenTicker, 10000);
         simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);

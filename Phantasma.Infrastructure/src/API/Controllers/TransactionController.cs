@@ -177,7 +177,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             }
             
             // TODO store deserialized tx to save some time later on
-            var tx = Transaction.Unserialize(bytes);
+            var tx = TransactionExtensions.Unserialize(bytes, NexusAPI.Nexus.GetProtocolVersion(NexusAPI.Nexus.RootStorage));
             if (tx == null)
             {
                 return "Unserializing tx failed";

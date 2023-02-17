@@ -21,13 +21,13 @@ public interface INexus
     void Notify(StorageContext storage);
     bool LoadNexus(StorageContext storage);
     IKeyValueStoreAdapter CreateKeyStoreAdapter(string name);
-    Block FindBlockByTransaction(Transaction tx);
+    Block FindBlockByTransaction(ITransaction tx);
     Block FindBlockByTransactionHash(Hash hash);
     Address LookUpName(StorageContext storage, string name, Timestamp timestamp);
     byte[] LookUpAddressScript(StorageContext storage, Address address, Timestamp timestamp);
     bool HasAddressScript(StorageContext storage, Address address, Timestamp timestamp);
     SmartContract GetContractByName(StorageContext storage, string contractName);
-    Transaction FindTransactionByHash(Hash hash);
+    ITransaction FindTransactionByHash(Hash hash);
     bool CreateChain(StorageContext storage, string organization, string name, string parentChainName);
     string LookUpChainNameByAddress(Address address);
     bool ChainExists(StorageContext storage, string chainName);
@@ -75,7 +75,7 @@ public interface INexus
     void BeginInitialize(IRuntime vm, Address owner);
     void FinishInitialize(IRuntime vm, Address owner);
     void SetInitialValidators(IEnumerable<Address> initialValidators);
-    Transaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner);
+    ITransaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner);
     Timestamp GetValidatorLastActivity(Address target);
     ValidatorEntry[] GetValidators(Timestamp timestamp);
     int GetPrimaryValidatorCount(Timestamp timestamp);

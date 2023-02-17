@@ -19,8 +19,8 @@ public interface IChain
     StorageContext Storage { get; }
     bool IsRoot { get; }
     IContract[] GetContracts(StorageContext storage);
-    void AddBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet);
-    byte[]  SetBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet);
+    void AddBlock(Block block, IEnumerable<ITransaction> transactions, StorageChangeSetContext changeSet);
+    byte[]  SetBlock(Block block, IEnumerable<ITransaction> transactions, StorageChangeSetContext changeSet);
 
     BigInteger GetTokenBalance(StorageContext storage, IToken token, Address address);
     BigInteger GetTokenBalance(StorageContext storage, string symbol, Address address);
@@ -31,7 +31,7 @@ public interface IChain
     VMObject InvokeScript(StorageContext storage, byte[] script, Timestamp time);
     BigInteger GenerateUID(StorageContext storage);
     BigInteger GetBlockReward(Block block);
-    BigInteger GetTransactionFee(Transaction tx);
+    BigInteger GetTransactionFee(ITransaction tx);
     BigInteger GetTransactionFee(Hash transactionHash);
     bool IsContractDeployed(StorageContext storage, string name);
     bool IsContractDeployed(StorageContext storage, Address contractAddress);
@@ -48,9 +48,9 @@ public interface IChain
     bool ContainsBlockHash(Hash hash);
     BigInteger GetTransactionCount();
     bool ContainsTransaction(Hash hash);
-    Transaction GetTransactionByHash(Hash hash);
+    ITransaction GetTransactionByHash(Hash hash);
     Hash GetBlockHashOfTransaction(Hash transactionHash);
-    IEnumerable<Transaction> GetBlockTransactions(Block block);
+    IEnumerable<ITransaction> GetBlockTransactions(Block block);
     Hash[] GetTransactionHashesForAddress(Address address);
     Timestamp GetLastActivityOfAddress(Address address);
     void RegisterSwap(StorageContext storage, Address from, ChainSwap swap);

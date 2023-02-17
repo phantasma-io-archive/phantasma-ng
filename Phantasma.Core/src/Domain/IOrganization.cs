@@ -12,7 +12,7 @@ namespace Phantasma.Core.Domain
         BigInteger Size { get; } // number of members
 
         bool IsMember(Address address);
-        bool IsWitness(Transaction transaction);
+        bool IsWitness(ITransaction transaction);
         bool MigrateMember(IRuntime Runtime, Address admin, Address from, Address to);
         bool AddMember(IRuntime Runtime, Address from, Address target);
         bool RemoveMember(IRuntime Runtime, Address from, Address target);

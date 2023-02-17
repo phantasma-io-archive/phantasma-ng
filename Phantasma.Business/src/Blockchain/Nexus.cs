@@ -205,7 +205,7 @@ public class Nexus : INexus
         return result;
     }
 
-    public Block FindBlockByTransaction(Transaction tx)
+    public Block FindBlockByTransaction(ITransaction tx)
     {
         return FindBlockByTransactionHash(tx.Hash);
     }
@@ -283,7 +283,7 @@ public class Nexus : INexus
     #endregion
 
     #region TRANSACTIONS
-    public Transaction FindTransactionByHash(Hash hash)
+    public ITransaction FindTransactionByHash(Hash hash)
     {
         var chainNames = this.GetChains(RootStorage);
         foreach (var chainName in chainNames)
@@ -1873,7 +1873,7 @@ public class Nexus : INexus
         };
     }
 
-    public Transaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner)
+    public ITransaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner)
     {
         var version = (int)GetProtocolVersion(RootStorage);
         return CreateGenesisTransaction(timestamp, owner, version);

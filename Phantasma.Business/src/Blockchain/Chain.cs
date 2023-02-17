@@ -5,6 +5,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Transactions;
 using Google.Protobuf;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Tokens;
@@ -18,6 +19,7 @@ using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 using Serilog;
 using Serilog.Core;
+using Transaction = Phantasma.Core.Domain.Transaction;
 
 namespace Phantasma.Business.Blockchain
 {
@@ -30,7 +32,7 @@ namespace Phantasma.Business.Blockchain
         private const string AddressTxHashMapTag = ".adblmp";
         private const string TaskListTag = ".tasks";
 
-        private List<Transaction> CurrentTransactions = new();
+        private List<ITransaction> CurrentTransactions = new();
 
         private Dictionary<string, int> _methodTableForGasExtraction = null;
 
@@ -43,7 +45,7 @@ namespace Phantasma.Business.Blockchain
         public Address Address { get; private set; }
 
         public Block CurrentBlock{ get; private set; }
-        public IEnumerable<Transaction> Transactions => CurrentTransactions;
+        public IEnumerable<ITransaction> Transactions => CurrentTransactions;
         public string CurrentProposer { get; private set; }
 
         public StorageChangeSetContext CurrentChangeSet { get; private set; }
@@ -84,7 +86,7 @@ namespace Phantasma.Business.Blockchain
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
         }
 
-        public IEnumerable<Transaction> BeginBlock(string proposerAddress, BigInteger height, BigInteger minimumFee, Timestamp timestamp, IEnumerable<Address> availableValidators)
+        public IEnumerable<ITransaction> BeginBlock(string proposerAddress, BigInteger height, BigInteger minimumFee, Timestamp timestamp, IEnumerable<Address> availableValidators)
         {
             // should never happen
             if (this.CurrentBlock != null)
@@ -140,13 +142,13 @@ namespace Phantasma.Business.Blockchain
 
             // create new storage context
             this.CurrentChangeSet = new StorageChangeSetContext(this.Storage);
-            List<Transaction> systemTransactions = new ();
+            List<ITransaction> systemTransactions = new ();
             var oracle = Nexus.GetOracleReader();
 
             if (this.IsRoot)
             {
                 bool inflationReady = false;
-                if ( Nexus.GetProtocolVersion(Storage) <= 12)
+                if ( protocol <= 12)
                     inflationReady = Filter.Enabled ? false : NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
                 else
                     inflationReady = NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
@@ -167,13 +169,30 @@ namespace Phantasma.Business.Blockchain
                         .SpendGas(senderAddress)
                         .EndScript();
 
-                    var transaction = new Transaction(
+                    ITransaction transaction;
+                    if (protocol >= 13)
+                    {
+                        transaction = new TransactionV2(
+                            this.Nexus.Name,
+                            this.Name,
+                            script,
+                            this.CurrentBlock.Timestamp.Value + 1,
+                            senderAddress,
+                            Address.Null,
+                            minimumFee,
+                            requiredGasLimit,
+                            "SYSTEM");
+                    }
+                    else
+                    {
+                        transaction = new Transaction(
                             this.Nexus.Name,
                             this.Name,
                             script,
                             this.CurrentBlock.Timestamp.Value + 1,
                             "SYSTEM");
-
+                    }
+                    
                     transaction.Sign(this.ValidatorKeys);
                     systemTransactions.Add(transaction);
                 }
@@ -185,7 +204,7 @@ namespace Phantasma.Business.Blockchain
             return systemTransactions;
         }
 
-        public (CodeType, string) CheckTx(Transaction tx, Timestamp timestamp)
+        public (CodeType, string) CheckTx(ITransaction tx, Timestamp timestamp)
         {
             uint protocolVersion = Nexus.GetProtocolVersion(Storage);
             Log.Information("check tx {Hash}", tx.Hash);
@@ -236,25 +255,48 @@ namespace Phantasma.Business.Blockchain
                 {
                     _methodTableForGasExtraction = GenerateMethodTable();
                 }
-
+                
                 var methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction);
-
-                if (!TransactionExtensions.ExtractGasDetailsFromMethods(methods, out from, out target, out gasPrice, out gasLimit, _methodTableForGasExtraction))
+                
+                if ( protocolVersion >= 13)
                 {
-                    var type = CodeType.NoUserAddress;
-                    Log.Information("check tx error {type} {Hash}", type, tx.Hash);
-                    return (type, "AllowGas call not found in transaction script (or wrong number of arguments)");
+                    if (tx is TransactionV2)
+                    {
+                        var tx2 = tx as TransactionV2;
+                        from = tx2.GasPayer;
+                        target = tx2.GasTarget;
+                        gasPrice = tx2.GasPrice;
+                        gasLimit = tx2.GasLimit;
+                    }
+                    else
+                    {
+                        var result = this.ExtractGasInformation(tx, out from, out target, out gasPrice, out gasLimit, methods, _methodTableForGasExtraction);
+
+                        if (result.Item1 != CodeType.Ok)
+                        {
+                            return (result.Item1, result.Item2);
+                        }
+                    }
                 }
-
-                /*if (from.IsNull || target.IsNull || gasLimit <= 0 || gasPrice <= 0)
+                else
                 {
-                    var type = CodeType.NoSystemAddress;
-                    Log.Information("check tx error {type} {Hash}", type, tx.Hash);
-                    return (type, "AllowGas call not found in transaction script");
-                }*/
+                    var result = this.ExtractGasInformation(tx, out from, out target, out gasPrice, out gasLimit, methods, _methodTableForGasExtraction);
+
+                    if (result.Item1 != CodeType.Ok)
+                    {
+                        return (result.Item1, result.Item2);
+                    }
+                }
 
                 if (protocolVersion >= 13)
                 {
+                    if (from.IsNull  || gasPrice <= 0 || gasLimit <= 0)
+                    {
+                        var type = CodeType.NoSystemAddress;
+                        Log.Information("check tx error {type} {Hash}", type, tx.Hash);
+                        return (type, "AllowGas or GasPayer / GasTarget / GasPrice / GasLimit call not found in transaction script");
+                    }
+
                     if (!tx.IsSignedBy(from))
                     {
                         var type = CodeType.Error;
@@ -392,7 +434,7 @@ namespace Phantasma.Business.Blockchain
             return new List<T>();
         }
 
-        public TransactionResult DeliverTx(Transaction tx)
+        public TransactionResult DeliverTx(ITransaction tx)
         {
             TransactionResult result = new();
 
@@ -521,14 +563,14 @@ namespace Phantasma.Business.Blockchain
             return true;
         }
 
-        public void AddBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet)
+        public void AddBlock(Block block, IEnumerable<ITransaction> transactions, StorageChangeSetContext changeSet)
         {
             block.AddAllTransactionHashes(transactions.Select (x => x.Hash).ToArray());
             
             this.SetBlock(block, transactions, changeSet);
         }
 
-        public byte[] SetBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet)
+        public byte[] SetBlock(Block block, IEnumerable<ITransaction> transactions, StorageChangeSetContext changeSet)
         {
 
             // Validate block 
@@ -667,7 +709,7 @@ namespace Phantasma.Business.Blockchain
             var txMap = new StorageMap(TransactionHashMapTag, this.Storage);
             var txBlockMap = new StorageMap(TxBlockHashMapTag, this.Storage);
 
-            foreach (Transaction tx in transactions)
+            foreach (ITransaction tx in transactions)
             {
                 var txBytes = tx.ToByteArray(true);
                 txBytes = CompressionUtils.Compress(txBytes);
@@ -708,7 +750,7 @@ namespace Phantasma.Business.Blockchain
             return lastBlock.Hash.ToByteArray();
         }
 
-        private TransactionResult ExecuteTransaction(int index, Transaction transaction, byte[] script, Address validator, Timestamp time, StorageChangeSetContext changeSet
+        private TransactionResult ExecuteTransaction(int index, ITransaction transaction, byte[] script, Address validator, Timestamp time, StorageChangeSetContext changeSet
                 , Action<Hash, Event> onNotify, IOracleReader oracle, IChainTask task)
         {
             var result = new TransactionResult();
@@ -907,7 +949,7 @@ namespace Phantasma.Business.Blockchain
             return total;
         }
 
-        public BigInteger GetTransactionFee(Transaction tx)
+        public BigInteger GetTransactionFee(ITransaction tx)
         {
             Throw.IfNull(tx, nameof(tx));
             return GetTransactionFee(tx.Hash);
@@ -1215,14 +1257,15 @@ namespace Phantasma.Business.Blockchain
             return txMap.ContainsKey(hash);
         }
 
-        public Transaction GetTransactionByHash(Hash hash)
+        public ITransaction GetTransactionByHash(Hash hash)
         {
             var txMap = new StorageMap(TransactionHashMapTag, this.Storage);
             if (txMap.ContainsKey<Hash>(hash))
             {
+                var protocolVersion = Nexus.GetProtocolVersion(Storage);
                 var bytes = txMap.Get<Hash, byte[]>(hash);
                 bytes = CompressionUtils.Decompress(bytes);
-                var tx = Transaction.Unserialize(bytes);
+                var tx = TransactionExtensions.Unserialize(bytes, protocolVersion);
 
                 if (tx.Hash != hash)
                 {
@@ -1248,7 +1291,7 @@ namespace Phantasma.Business.Blockchain
             return Hash.Null;
         }
 
-        public IEnumerable<Transaction> GetBlockTransactions(Block block)
+        public IEnumerable<ITransaction> GetBlockTransactions(Block block)
         {
             return block.TransactionHashes.Select(hash => GetTransactionByHash(hash));
         }

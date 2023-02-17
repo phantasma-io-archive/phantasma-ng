@@ -225,7 +225,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                         }
                         else
                         {
-                            if ( balance - UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)  > UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals) )
+                            if ( balance  > UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals) * 2 )
                                 Runtime.TransferTokens(symbol, from, target, balance - UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals));
                             else
                                 throw new ChainException("Can't migrate address with less than 2 fuel");

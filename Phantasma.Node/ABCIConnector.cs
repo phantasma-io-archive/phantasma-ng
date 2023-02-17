@@ -94,7 +94,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
             var chain = _nexus.RootChain as Chain;
 
-            IEnumerable<Transaction> systemTransactions;
+            IEnumerable<ITransaction> systemTransactions;
             if (chain.CurrentBlock != null)
             {
                 Log.Information("Requesting the block because it is not null");
@@ -128,7 +128,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                 var chain = _nexus.RootChain as Chain;
 
                 var txString = request.Tx.ToStringUtf8();
-                var tx = Transaction.Unserialize(Base16.Decode(txString));
+                var tx = TransactionExtensions.Unserialize(Base16.Decode(txString), _nexus.GetProtocolVersion(_nexus.RootStorage));
 
                 (CodeType code, string message) = chain.CheckTx(tx, currentBlockTime);
 
@@ -157,7 +157,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         var chain = _nexus.RootChain as Chain;
 
         var txString = request.Tx.ToStringUtf8();
-        var newTx = Transaction.Unserialize(Base16.Decode(txString));
+        
+        var newTx = TransactionExtensions.Unserialize(Base16.Decode(txString), _nexus.GetProtocolVersion(_nexus.RootStorage));
 
         var result = chain.DeliverTx(newTx);
 
