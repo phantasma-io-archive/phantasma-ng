@@ -82,7 +82,6 @@ namespace Phantasma.Core.Domain
         public Transaction()
         {
             this.Hash = Hash.Null;
-            
         }
 
         public Transaction(
