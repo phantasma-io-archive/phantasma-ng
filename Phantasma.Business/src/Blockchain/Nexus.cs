@@ -1105,7 +1105,8 @@ public class Nexus : INexus
         Runtime.Expect(amount > 0, "invalid amount");
         Runtime.Expect(source != destination, "source and destination must be different");
         Runtime.Expect(!destination.IsNull, "invalid destination");
-
+        Runtime.Expect(!source.IsNull, "invalid source");
+        
         if (destination.IsSystem)
         {
             var destName = Runtime.Chain.GetNameFromAddress(Runtime.Storage, destination, Runtime.Time);
@@ -1113,260 +1114,11 @@ public class Nexus : INexus
         }
 
         bool isOrganizationTransaction = false;
-        if (source.IsSystem)
-        {
-            var org = GetOrganizationByAddress(Runtime.RootStorage, source);
-            if (org != null)
-            {
-                if (Runtime.ProtocolVersion <= 8)
-                {
-                    Runtime.ExpectFiltered(org == null, "moving funds from orgs currently not possible", source);
-                }
-                else if ( Runtime.ProtocolVersion <= 9)
-                {
-                    Runtime.ExpectWarning(org != null, "moving funds from orgs currently not possible", source);
-                    var orgMembers = org.GetMembers();
-                    // TODO: Check if it needs to be a DAO member
-                    //Runtime.ExpectFiltered(orgMembers.Contains(destination), "destination must be a member of the org", destination);
-                    Runtime.ExpectWarning(Runtime.Transaction.Signatures.Length == orgMembers.Length, "must be signed by all org members", source);
-                    var msg = Runtime.Transaction.ToByteArray(false);
-                    foreach (var signature in Runtime.Transaction.Signatures)
-                    {
-                        Runtime.ExpectWarning(signature.Verify(msg, orgMembers), "invalid signature", source);
-                    }
+        this.ValidateTransferSystem(Runtime, source, destination, token.Symbol, amount, out isOrganizationTransaction, _infusionOperationAddress);
 
-                    isOrganizationTransaction = true;
-                }
-                else if (Runtime.ProtocolVersion >= 10)
-                {
-                    Runtime.ExpectWarning(org != null, "moving funds from orgs currently not possible", source);
-                    bool isKnownException = false;
-                    if (Runtime.ProtocolVersion >= 12)
-                    {
-                        if (org.ID == DomainSettings.PhantomForceOrganizationName &&
-                            (Runtime.CurrentContext.Name == "stake" || Runtime.CurrentContext.Name == "gas"))
-                        {
-                            isKnownException = true;
-                        }
-                    }
-                    var orgMembers = org.GetMembers();
-                    var numberOfSignaturesNeeded = orgMembers.Length;
-                    if (numberOfSignaturesNeeded <= 0)
-                    {
-                        numberOfSignaturesNeeded = 1;
-                    }
+        this.ValidateTransferAmounts(Runtime, source, destination, token, amount, isOrganizationTransaction, _infusionOperationAddress);
 
-                    if (!isKnownException)
-                    {
-                        Runtime.ExpectWarning(Runtime.Transaction.Signatures.Length >= numberOfSignaturesNeeded,
-                            "must be signed by all of the org members", source);
-                    }
-                    
-                    var msg = Runtime.Transaction.ToByteArray(false);
-                    var validSignatures = 0;
-                    Signature lastSignature = null;
-                    var signatures = Runtime.Transaction.Signatures.ToList();
-
-                    foreach (var member in orgMembers)
-                    {
-                        foreach (var signature in signatures)
-                        {
-                            if (signature.Verify(msg, member))
-                            {
-                                validSignatures++;
-                                lastSignature = signature;
-                                break;
-                            }
-                        }
-
-                        if (lastSignature != null)
-                            signatures.Remove(lastSignature);
-                    }
-
-                    if (!isKnownException)
-                    {
-                        Runtime.ExpectWarning(validSignatures == numberOfSignaturesNeeded,
-                            "Number of valid signatures don't match", source);
-                    }
-                    
-                    isOrganizationTransaction = true;
-                }
-            }
-            else
-            if (source == DomainSettings.InfusionAddress)
-            {
-                Runtime.Expect(!_infusionOperationAddress.IsNull, "infusion address is currently locked");
-                Runtime.Expect(destination == _infusionOperationAddress, "not valid target for infusion address transfer");
-            }
-            else if ( Runtime.ProtocolVersion <= 11)
-            {
-                Runtime.Expect(Runtime.CurrentContext.Name != VirtualMachine.EntryContextName, "moving funds from system address if forbidden");
-
-                var sourceContract = Runtime.Chain.GetContractByAddress(Runtime.Storage, source);
-                Runtime.Expect(sourceContract != null, "cannot find matching contract for address: " + source);
-
-                var isKnownExceptionToRule = false;
-
-                if (Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName())
-                {
-                    if (IsNativeContract(sourceContract.Name))
-                    {
-                        isKnownExceptionToRule = true;
-                    }
-                    else
-                    if (TokenExists(Runtime.RootStorage, sourceContract.Name))
-                    {
-                        isKnownExceptionToRule = true;
-                    }
-                }
-
-                if (!isKnownExceptionToRule)
-                {
-                    Runtime.Expect(Runtime.CurrentContext.Name == sourceContract.Name, "moving funds from a contract is forbidden if not made by the contract itself");
-                }
-            }
-            else
-            {
-                Runtime.Expect(Runtime.CurrentContext.Name != VirtualMachine.EntryContextName, "moving funds from system address if forbidden");
-                var isKnownExceptionToRule = false;
-                var sourceContract = Runtime.Chain.GetContractByAddress(Runtime.Storage, source);
-                Runtime.Expect(sourceContract != null, "cannot find matching contract for address: " + source);
-            
-                if (Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
-                    Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName() )
-                {
-                    if (IsNativeContract(sourceContract.Name))
-                    {
-                        isKnownExceptionToRule = true;
-                    }
-                    else
-                    if (TokenExists(Runtime.RootStorage, sourceContract.Name))
-                    {
-                        isKnownExceptionToRule = true;
-                    }
-                }
-            
-                if (!isKnownExceptionToRule)
-                {
-                    Runtime.Expect(Runtime.CurrentContext.Name == sourceContract.Name, "moving funds from a contract is forbidden if not made by the contract itself");
-                }
-            }
-        }
-
-        if (Runtime.HasGenesis)
-        {
-            var isSystemDestination = destination.IsSystem && NativeContract.GetNativeContractByAddress(destination) != null;
-            var isSystemSource = source.IsSystem;
-            if (Runtime.ProtocolVersion <= 8)
-            {
-                if (!isSystemDestination)
-                {
-                    Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
-                }
-            }
-            else
-            {
-                if ( !isSystemSource && !isSystemDestination )
-                {
-                    Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
-                }
-                else if (isSystemSource && !isSystemDestination)
-                {
-                    if (!isOrganizationTransaction)
-                    {
-                        if (Runtime.ProtocolVersion <= 9)
-                        {
-                            Runtime.CheckWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
-                        }
-                        else
-                        {
-                            if (source == DomainSettings.InfusionAddress)
-                            {
-                                Runtime.CheckWarning(UnitConversion.ToDecimal(amount, token.Decimals) <= Filter.Quota, $"Transfer Tokens {UnitConversion.ToDecimal(amount, token.Decimals)} {token.Symbol} from {source} to {destination}", source);
-                            }
-                            else
-                            {
-                                Runtime.CheckWarning(Runtime.IsWitness(source), $"Transfer Tokens {UnitConversion.ToDecimal(amount, token.Decimals)} {token.Symbol} from {source} to {destination}", source);
-                            }
-                        }
-                        //Runtime.CheckFilterAmountThreshold(token, source, amount, "Transfer Tokens");
-                    }
-                    else
-                    {
-                        Runtime.ExpectWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} (System) to {destination}", source);
-                    }
-                }
-                else if (Runtime.ProtocolVersion <= 11 && isSystemDestination)
-                {
-                    Runtime.ExpectWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
-                }
-                else if (Runtime.ProtocolVersion >= 12)
-                {
-                    if ( isSystemSource && isSystemDestination )
-                    {
-                        Runtime.CheckWarning(Runtime.IsWitness(source), $"Transfer Tokens {amount} {token.Symbol} from {source} to {destination}", source);
-                    }
-                }
-            }
-        }
-
-        bool allowed = false;
-        if (Runtime.HasGenesis)
-        {
-            if (Runtime.ProtocolVersion <= 8)
-            {
-                allowed = Runtime.IsWitness(source);
-            }
-            else if (isOrganizationTransaction)
-            {
-                allowed = true;
-            }
-            else
-            {
-                if (Runtime.ProtocolVersion <= 11)
-                {
-                    allowed = Runtime.IsWitness(source);
-                }
-                else if (Runtime.ProtocolVersion >= 12)
-                {
-                    var crownToken = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
-                    var stakeContract = NativeContract.GetAddressForNative(NativeContractKind.Stake);
-                    if (isOrganizationTransaction)
-                    {
-                        allowed = true;
-                    }
-                    else if ( source == crownToken && destination == stakeContract)
-                    {
-                        allowed = true;
-                    }
-                    else
-                    {
-                        allowed = Runtime.IsWitness(source);
-                    }
-                }
-                else
-                {
-                    allowed = Runtime.IsWitness(source);
-                }
-            }
-            
-        }
-        else
-        {
-            allowed = Runtime.IsPrimaryValidator(source);
-        }
-
-#if ALLOWANCE_OPERATIONS
-        if (!allowed)
-        {
-            allowed = Runtime.SubtractAllowance(source, token.Symbol, amount);
-        }
-#endif
-
-        if (!allowed && source == DomainSettings.InfusionAddress && destination == _infusionOperationAddress)
-        {
-            allowed = true;
-        }
+        bool allowed = this.ValidateIsTransferAllow(Runtime, source, destination, token, amount, isOrganizationTransaction, _infusionOperationAddress);
 
         Runtime.Expect(allowed, "invalid witness or allowance");
 
@@ -1545,6 +1297,11 @@ public class Nexus : INexus
         BigInteger mintID = series.GenerateMintID();
         Runtime.Expect(mintID > 0, "invalid mintID generated");
 
+        if (Runtime.ProtocolVersion >= 13)
+        {
+            Runtime.Expect(Runtime.Transaction.Signatures.Length > 0, "No signatures found in transaction");
+        }
+
         if (series.Mode == TokenSeriesMode.Duplicated)
         {
             if (mintID > 1)
@@ -1593,8 +1350,15 @@ public class Nexus : INexus
         var bytes = content.ToByteArray();
         bytes = CompressionUtils.Compress(bytes);
 
-        Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.WriteData), contractAddress, tokenKey, bytes);
-
+        if (Runtime.ProtocolVersion <= 12)
+        {
+            Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.WriteData), contractAddress, tokenKey, bytes);
+        }
+        else
+        {
+            Runtime.WriteData(contractAddress, tokenKey, bytes);
+        }
+        
         return content.TokenID;
     }
 
@@ -1613,6 +1377,11 @@ public class Nexus : INexus
         var infusionAddress = DomainSettings.InfusionAddress;
 
         var tokenContent = ReadNFT(Runtime, symbol, tokenID);
+
+        if (Runtime.ProtocolVersion >= 13)
+        {
+            Runtime.Expect(Runtime.Transaction.Signatures.Length > 0, "No signatures found in transaction");
+        }
 
         foreach (var asset in tokenContent.Infusion)
         {
@@ -1645,7 +1414,10 @@ public class Nexus : INexus
 
         var tokenKey = GetKeyForNFT(symbol, tokenID);
 
-        Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.DeleteData), contractAddress, tokenKey);
+        if (Runtime.ProtocolVersion <= 12)
+            Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.DeleteData), contractAddress, tokenKey);
+        else
+            Runtime.DeleteData(contractAddress, tokenKey);
     }
 
     public void WriteNFT(IRuntime Runtime, string symbol, BigInteger tokenID, string chainName, Address creator,
@@ -1655,6 +1427,11 @@ public class Nexus : INexus
         Runtime.Expect(ram != null && ram.Length < TokenContent.MaxRAMSize, "invalid nft ram update");
 
         var tokenKey = GetKeyForNFT(symbol, tokenID);
+
+        if (Runtime.ProtocolVersion >= 13)
+        {
+            Runtime.Expect(Runtime.Transaction.Signatures.Length > 0, "No signatures found in transaction");
+        }
 
         if (Runtime.RootStorage.Has(tokenKey))
         {
@@ -1685,7 +1462,10 @@ public class Nexus : INexus
             var bytes = content.ToByteArray();
             bytes = CompressionUtils.Compress(bytes);
 
-            Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.WriteData), contractAddress, tokenKey, bytes);
+            if ( Runtime.ProtocolVersion <= 12)
+                Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.WriteData), contractAddress, tokenKey, bytes);
+            else
+                Runtime.WriteData(contractAddress, tokenKey, bytes);
         }
         else
         {
@@ -3013,7 +2793,7 @@ public class Nexus : INexus
     {
         if (!HasGenesis())
         {
-            return DomainSettings.LatestKnownProtocol;
+            return DomainSettings.Phantasma30Protocol;
         }
 
         return (uint)this.GetGovernanceValue(storage, NexusProtocolVersionTag);

@@ -67,7 +67,7 @@ public class StakeContractTestLegacy
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
         simulator.GetFundsInTheFuture(owner, 5);
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         for (int i = 0; i < 5; i++)
         {
@@ -421,7 +421,7 @@ public class StakeContractTestLegacy
                 .SpendGas(testUser.Address)
                 .EndScript());
         var blocks = simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
 
@@ -469,7 +469,7 @@ public class StakeContractTestLegacy
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
         fees += txCost;
@@ -1336,22 +1336,27 @@ public class StakeContractTestLegacy
             var ellapsedDays = (int)(((DateTime)simulator.CurrentTime) - baseDate).TotalDays;
 
             var rewardTokens = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, rewardToken.Symbol, testUserA.Address);
-            Assert.Equal(1, rewardTokens);
+            Assert.Equal(2, rewardTokens);
 
             var unclaimedAmountBefore = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUserA.Address).AsNumber();
 
             var stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetStake), testUserA.Address).AsNumber();
-            var fuelAmount = StakeContract.StakeToFuel(stakedAmount, 500) * (ellapsedDays + 1);
+            var rewardTokensAmountPerDay =
+                UnitConversion.ToDecimal(StakeContract.StakeToFuel(stakedAmount, 500),
+                    DomainSettings.FuelTokenDecimals) * (5 * (decimal)1 / 100);
+            var fuelAmount = UnitConversion.ToBigInteger((ellapsedDays + 1) * UnitConversion.ToDecimal(StakeContract.StakeToFuel(stakedAmount, 500), DomainSettings.FuelTokenDecimals)
+                + (91 * rewardTokensAmountPerDay) , DomainSettings.FuelTokenDecimals);
+            // Missing master claim bonus
 
-            Assert.True(fuelAmount == unclaimedAmountBefore);
+            Assert.Equal(fuelAmount, unclaimedAmountBefore);
             simulator.TimeSkipDays(1, false);
 
-            fuelAmount = StakeContract.StakeToFuel(stakedAmount, 500) * (ellapsedDays + 2);
-            var bonus = (fuelAmount * 5) / 100;
-            var dailyBonus = bonus / (ellapsedDays + 2);
+            //fuelAmount = StakeContract.StakeToFuel(stakedAmount, 500) * (ellapsedDays + 2);
+            var bonus = (StakeContract.StakeToFuel(stakedAmount, 500) * 10) / 100;
+            var dailyBonus = bonus;
 
             var unclaimedAmountAfter = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUserA.Address).AsNumber();
-            Assert.True((fuelAmount + dailyBonus) == unclaimedAmountAfter, $"{(fuelAmount + dailyBonus)} == {unclaimedAmountAfter}");
+            Assert.Equal((fuelAmount + dailyBonus * 11), unclaimedAmountAfter);
         });
     }
 
@@ -1853,11 +1858,11 @@ public class StakeContractTestLegacy
         Assert.True(simulator.LastBlockWasSuccessful());
         
         var masterCount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetMasterCount), (Timestamp)simulator.CurrentTime).AsNumber();
-        Assert.Equal(2, masterCount);
+        Assert.Equal(3, masterCount);
 
         // Get the balance
         accountBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol, user.Address);
-        Assert.Equal(StakeContract.DefaultMasterThreshold + initialAmount + StakeContract.MasterClaimGlobalAmount/masterCount, accountBalance );
+        Assert.Equal(StakeContract.DefaultMasterThreshold + initialAmount + StakeContract.MasterClaimGlobalAmount/masterCount + StakeContract.MasterClaimGlobalAmount%masterCount, accountBalance );
     }
     
     

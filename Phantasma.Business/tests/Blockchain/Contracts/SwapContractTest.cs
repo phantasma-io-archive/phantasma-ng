@@ -152,7 +152,7 @@ public class SwapContractTest
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var currentSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         var currentKcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
@@ -198,11 +198,8 @@ public class SwapContractTest
                 .CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapFee), testUser.Address, DomainSettings.StakingTokenSymbol, swapAmount)
                 .SpendGas(testUser.Address)
                 .EndScript());
-        Assert.Throws<ChainException>(() =>
-        {
-            return simulator.EndBlock();
-        });
-        Assert.True(simulator.LastBlockWasSuccessful());
+        simulator.EndBlock();
+        Assert.False(simulator.LastBlockWasSuccessful());
         
         var currentSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         var currentKcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
@@ -247,8 +244,8 @@ public class SwapContractTest
                 .SpendGas(testUser.Address)
                 .EndScript()); 
         
-        Assert.Throws<ChainException>(() => {simulator.EndBlock(); });
-        Assert.True(simulator.LastBlockWasSuccessful()); // this regarding the first transaction not this one.
+        simulator.EndBlock();
+        Assert.False(simulator.LastBlockWasSuccessful()); // this regarding the first transaction not this one.
         
 
         var currentSoulBalance =
@@ -288,7 +285,8 @@ public class SwapContractTest
                 .SpendGas(testUser.Address)
                 .EndScript());
         // This is because the pot is empty
-        Assert.Throws<ChainException>(() => {simulator.EndBlock(); });
+        simulator.EndBlock();
+        Assert.False(simulator.LastBlockWasSuccessful());
     }
 
     /*

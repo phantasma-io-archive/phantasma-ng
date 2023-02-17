@@ -1,5 +1,6 @@
 using System.Numerics;
 using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
@@ -271,9 +272,10 @@ namespace Phantasma.Business.Blockchain.Contracts
             var result = _dataQuotas.Get<Address, BigInteger>(address);
             return result;
         }
-
+        
         public void WriteData(Address target, byte[] key, byte[] value)
         {
+            Runtime.Expect(Runtime.ProtocolVersion <= 12, "Method was deprecated in protocol version 13");
             ValidateKey(key);
 
             var usedQuota = _dataQuotas.Get<Address, BigInteger>(target);
@@ -313,6 +315,8 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public void DeleteData(Address target, byte[] key)
         {
+            Runtime.Expect(Runtime.ProtocolVersion <= 12, "Method was deprecated in protocol version 13");
+            
             ValidateKey(key);
 
             Runtime.Expect(Runtime.Storage.Has(key), "key does not exist");

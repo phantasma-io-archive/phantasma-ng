@@ -27,6 +27,7 @@ public class NFTTests
     BigInteger initialFuel;
     BigInteger startBalance;
     StakeReward reward;
+    BigInteger currentSupply;
 
     public NFTTests()
     {
@@ -52,7 +53,8 @@ public class NFTTests
         simulator = new NexusSimulator(owner);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
-        simulator.GetFundsInTheFuture(owner);
+        currentSupply = nexus.RootChain.GetTokenSupply(nexus.RootStorage, DomainSettings.StakingTokenSymbol);
+        simulator.GetFundsInTheFuture(owner, 1);
         SetInitialBalance(user.Address);
     }
 
@@ -195,6 +197,8 @@ public class NFTTests
         var prevBalance = nexus.RootChain.GetTokenBalance(nexus.RootChain.Storage, infuseSymbol, user.Address);
 
         // Infuse some KCAL to the CoolToken
+        var prevInfused = nexus.RootChain.GetTokenBalance(nexus.RootChain.Storage, infuseSymbol, DomainSettings.InfusionAddress);
+        
         simulator.BeginBlock();
         simulator.InfuseNonFungibleToken(user, symbol, tokenId, infuseSymbol, infuseAmount);
         simulator.EndBlock();
@@ -204,10 +208,11 @@ public class NFTTests
         Assert.True(nft.Infusion.Length == 1); // should have something infused now
 
         var infusedBalance = nexus.RootChain.GetTokenBalance(nexus.RootChain.Storage, infuseSymbol, DomainSettings.InfusionAddress);
-        Assert.True(infusedBalance == infuseAmount); // should match
+        infuseAmount += prevInfused; // Inflation per year
+        Assert.Equal(infusedBalance, infuseAmount); // should match
 
         var curBalance = nexus.RootChain.GetTokenBalance(nexus.RootChain.Storage, infuseSymbol, user.Address);
-        Assert.True(curBalance + infusedBalance == prevBalance); // should match
+        Assert.Equal(curBalance + infuseAmount - prevInfused, prevBalance); // should match
 
         prevBalance = curBalance;
 
@@ -223,13 +228,13 @@ public class NFTTests
 
         // verify that the user received the infused assets
         curBalance = nexus.RootChain.GetTokenBalance(nexus.RootChain.Storage, infuseSymbol, user.Address);
-        Assert.True(curBalance == prevBalance + infusedBalance); // should match
+        Assert.Equal(curBalance, prevBalance + infusedBalance - prevInfused); // should match
 
         var burnedSupply = nexus.GetBurnedTokenSupply(nexus.RootStorage, symbol);
-        Assert.True(burnedSupply == 1);
+        Assert.Equal(burnedSupply, 1);
 
         var burnedSeriesSupply = nexus.GetBurnedTokenSupplyForSeries(nexus.RootStorage, symbol, seriesID);
-        Assert.True(burnedSeriesSupply == 1);
+        Assert.Equal(burnedSeriesSupply, 1);
     }
 
     [Fact]
@@ -296,7 +301,7 @@ public class NFTTests
         simulator.BeginBlock();
         var txA = simulator.GenerateNftTransfer(sender, receiver.Address, chain, symbol, tokenId);
         simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         // verify nft presence on the receiver post-transfer
         ownedTokenList = ownerships.Get(chain.Storage, receiver.Address);
@@ -528,7 +533,7 @@ public class NFTTests
         var tokenAddress = TokenUtils.GetContractAddress(symbol);
         var usedStorage = (int)simulator.InvokeContract("storage", nameof(StorageContract.GetUsedSpace), tokenAddress).AsNumber();
         var minExpectedSize = tokenROM.Length + tokenRAM.Length;
-        Assert.True(usedStorage >= minExpectedSize);
+        Assert.True(usedStorage >= minExpectedSize, $"Used storage is less than expected, expected {minExpectedSize}, got {usedStorage}");
 
         //verify that the present nft is the same we actually tried to create
         var tokenID = ownedTokenList.First();

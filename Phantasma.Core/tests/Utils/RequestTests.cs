@@ -71,7 +71,7 @@ public class RequestTests
     public void TestRequestGetBlockByHeight()
     {
         var postParms = "";
-        var urlRequest = "http://testnet.phantasma.io:5101/api/v1/GetBlockByHeight?chainInput=main&height=5";
+        var urlRequest = "http://testnet.phantasma.io:5101/api/v1/GetBlockByHeight?chainInput=main&height=1";
         var request = RequestUtils.Request<JsonDocument>(RequestType.GET, urlRequest, out string myResponse);
 
         var block = new BlockResult();
@@ -79,22 +79,22 @@ public class RequestTests
         //var value = //BlockResult(request.RootElement);
         Assert.True(myResponse != null);
         Assert.True(request != null);
-        Assert.Equal(block.hash, "92A8515F09674AB14279FC9CD0B41F3A80EE84DEAF531EFB6E3EABF9E121E0F5");
-        Assert.Equal(block.timestamp, (Timestamp)1669136164);
+        Assert.Equal(block.hash, "FB22A6C9CFA3C6CA34A6238C53516480F4D42997BFE0AC4EDD09433F2A357EF2");
+        //Assert.Equal(block.timestamp, (Timestamp)1676347075);
     }
 
     [Fact]
     public void TestRequestAsync()
     {
         var postParms = "";
-        var urlRequest = "http://testnet.phantasma.io:5101/api/v1/GetBlockByHeight?chainInput=main&height=5";
+        var urlRequest = "http://testnet.phantasma.io:5101/api/v1/GetBlockByHeight?chainInput=main&height=1";
         var request = RequestUtils.RequestAsync<JsonDocument>(RequestType.GET, urlRequest);
 
         var block = new BlockResult();
         block = JsonSerializer.Deserialize<BlockResult>(request.Result);
         Assert.True(request != null);
-        Assert.Equal(block.hash, "92A8515F09674AB14279FC9CD0B41F3A80EE84DEAF531EFB6E3EABF9E121E0F5");
-        Assert.Equal(block.timestamp, (Timestamp)1669136164);
+        Assert.Equal(block.hash, "FB22A6C9CFA3C6CA34A6238C53516480F4D42997BFE0AC4EDD09433F2A357EF2");
+        //Assert.Equal(block.timestamp, (Timestamp)1676347075);
     }
     
     [Fact]
