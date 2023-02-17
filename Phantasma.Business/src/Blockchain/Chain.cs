@@ -145,8 +145,11 @@ namespace Phantasma.Business.Blockchain
 
             if (this.IsRoot)
             {
-                //var inflationReady = Filter.Enabled ? false : NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
-                var inflationReady = NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
+                bool inflationReady = false;
+                if ( Nexus.GetProtocolVersion(Storage) <= 12)
+                    inflationReady = Filter.Enabled ? false : NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
+                else
+                    inflationReady = NativeContract.LoadFieldFromStorage<bool>(this.CurrentChangeSet, NativeContractKind.Gas, nameof(GasContract._inflationReady));
 
                 if (inflationReady)
                 {
@@ -184,6 +187,7 @@ namespace Phantasma.Business.Blockchain
 
         public (CodeType, string) CheckTx(Transaction tx, Timestamp timestamp)
         {
+            uint protocolVersion = Nexus.GetProtocolVersion(Storage);
             Log.Information("check tx {Hash}", tx.Hash);
 
             if (tx.Expiration < timestamp)
@@ -205,19 +209,22 @@ namespace Phantasma.Business.Blockchain
                 Log.Information("check tx error {UsignedTx} {Hash}", type, tx.Hash);
                 return (type, "Transaction is not signed");
             }
-            
-           if (tx.Script.LongLength > DomainSettings.ArchiveMaxSize)
-            {
-                var type = CodeType.Error;
-                Log.Information("check tx error {ScriptTooBig} {Hash}", type, tx.Hash);
-                return (type, "Transaction script is too big");
-            }
 
-            if (this.ContainsTransaction(tx.Hash))
+            if (protocolVersion >= 13)
             {
-                var type = CodeType.Error;
-                Log.Information("check tx error {Error} {Hash}", type, tx.Hash);
-                return (type, "Transaction already exists in chain");
+                if (tx.Script.Length > DomainSettings.ArchiveMaxSize)
+                {
+                    var type = CodeType.Error;
+                    Log.Information("check tx error {ScriptTooBig} {Hash}", type, tx.Hash);
+                    return (type, "Transaction script is too big");
+                }
+
+                if (this.ContainsTransaction(tx.Hash))
+                {
+                    var type = CodeType.Error;
+                    Log.Information("check tx error {Error} {Hash}", type, tx.Hash);
+                    return (type, "Transaction already exists in chain");
+                }
             }
 
             if (Nexus.HasGenesis())
@@ -245,6 +252,16 @@ namespace Phantasma.Business.Blockchain
                     Log.Information("check tx error {type} {Hash}", type, tx.Hash);
                     return (type, "AllowGas call not found in transaction script");
                 }*/
+
+                if (protocolVersion >= 13)
+                {
+                    if (!tx.IsSignedBy(from))
+                    {
+                        var type = CodeType.Error;
+                        Log.Information("check tx error {Error} {Hash}", type, tx.Hash);
+                        return (type, "Transaction was not signed by the caller address");
+                    }
+                }
                 
                 var whitelisted = TransactionExtensions.IsWhitelisted(methods);
                 if (whitelisted)

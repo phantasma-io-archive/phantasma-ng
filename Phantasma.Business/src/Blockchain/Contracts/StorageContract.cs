@@ -273,9 +273,9 @@ namespace Phantasma.Business.Blockchain.Contracts
             return result;
         }
         
-        internal void WriteData(Address target, byte[] key, byte[] value)
+        public void WriteData(Address target, byte[] key, byte[] value)
         {
-            Runtime.Expect(Runtime.PreviousContext.Name != VirtualMachine.EntryContextName, "invalid context");
+            Runtime.Expect(Runtime.ProtocolVersion <= 12, "Method was deprecated in protocol version 13");
             ValidateKey(key);
 
             var usedQuota = _dataQuotas.Get<Address, BigInteger>(target);
@@ -313,10 +313,10 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(temp.Length == value.Length, "storage write corruption");
         }
 
-        internal void DeleteData(Address target, byte[] key)
+        public void DeleteData(Address target, byte[] key)
         {
-            Runtime.Expect(Runtime.PreviousContext.Name != VirtualMachine.EntryContextName, "invalid context");
-
+            Runtime.Expect(Runtime.ProtocolVersion <= 12, "Method was deprecated in protocol version 13");
+            
             ValidateKey(key);
 
             Runtime.Expect(Runtime.Storage.Has(key), "key does not exist");

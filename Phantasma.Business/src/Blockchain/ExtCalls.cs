@@ -573,12 +573,23 @@ namespace Phantasma.Business.Blockchain
 
             vm.Expect(vm.ContractDeployed(contractName), $"contract '{contractName}' is not deployed when trying to fetch field '{field}'");
 
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(vm.Transaction.Signatures.Length > 0, "No signatures found in transaction");
+            }
+
             var obj = vm.Stack.Pop();
             var valBytes = obj.AsByteArray();
 
             var contractAddress = SmartContract.GetAddressFromContractName(contractName);
-            vm.WriteData(contractAddress, key, valBytes);
-            //vm.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.WriteData), contractAddress, key, valBytes);
+            if (vm.ProtocolVersion <= 12)
+            {
+                vm.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.WriteData), contractAddress, key, valBytes);
+            }
+            else
+            {
+                vm.WriteData(contractAddress, key, valBytes);
+            }
 
             return ExecutionState.Running;
         }
@@ -599,12 +610,25 @@ namespace Phantasma.Business.Blockchain
             var contractName = vm.CurrentContext.Name;
             vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
 
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(vm.Transaction.Signatures.Length > 0, "No signatures found in transaction");
+            }
+
             var field = vm.PopString("field");
             var key = SmartContract.GetKeyForField(contractName, field, false);
 
             var contractAddress = SmartContract.GetAddressFromContractName(contractName);
-            vm.DeleteData(contractAddress, key);
-            //vm.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.DeleteData), contractAddress, key);
+            
+            if (vm.ProtocolVersion <= 12)
+            {
+                vm.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.DeleteData), contractAddress,
+                    key);
+            }
+            else
+            {
+                vm.DeleteData(contractAddress, key);
+            }
 
             return ExecutionState.Running;
         }
@@ -965,6 +989,12 @@ namespace Phantasma.Business.Blockchain
 
             var symbol = vm.PopString("symbol");
             var amount = vm.PopNumber("amount");
+            
+            // Add Validations here
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.ValidateBasicTransfer(source, destination, symbol, amount);
+            }
 
             vm.TransferTokens(symbol, source, destination, amount);
 
