@@ -296,7 +296,7 @@ public class ConcensusContractTests
 
         var test = Serialization.Unserialize<VMObject>(txResult);
         var toTransactionBytes = test.AsByteArray();
-        var result = TransactionExtensions.Unserialize(toTransactionBytes, 12);
+        var result = Transaction.Unserialize(toTransactionBytes);
         Assert.NotNull(result);
         
         Assert.Equal(transaction.Expiration, result.Expiration);

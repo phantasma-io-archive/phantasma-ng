@@ -87,7 +87,7 @@ public class SerializedBlockList {
             for (int j = 0; j < txCount; j++)
             {
                 var serializedTx = reader.ReadByteArray();
-                var tx = TransactionExtensions.Unserialize(serializedTx, block.Protocol);
+                var tx = Transaction.Unserialize(serializedTx);
                 txs.Add(tx);
             }
             this.BlockTransactions[block.Height] = txs;

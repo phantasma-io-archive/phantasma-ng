@@ -172,7 +172,7 @@ namespace Phantasma.Business.Blockchain
                     ITransaction transaction;
                     if (protocol >= 13)
                     {
-                        transaction = new TransactionV2(
+                        transaction = new Transaction(
                             this.Nexus.Name,
                             this.Name,
                             script,
@@ -260,23 +260,26 @@ namespace Phantasma.Business.Blockchain
                 
                 if ( protocolVersion >= 13)
                 {
-                    if (tx is TransactionV2)
+                    var transaction = tx as Transaction;
+                   
+                    if (transaction.TransactionGas != TransactionGas.Null)
                     {
-                        var tx2 = tx as TransactionV2;
-                        from = tx2.GasPayer;
-                        target = tx2.GasTarget;
-                        gasPrice = tx2.GasPrice;
-                        gasLimit = tx2.GasLimit;
+                        from = transaction.TransactionGas.GasPayer;
+                        target = transaction.TransactionGas.GasTarget;
+                        gasPrice = transaction.TransactionGas.GasPrice;
+                        gasLimit = transaction.TransactionGas.GasLimit;
                     }
                     else
                     {
-                        var result = this.ExtractGasInformation(tx, out from, out target, out gasPrice, out gasLimit, methods, _methodTableForGasExtraction);
+                        var result = this.ExtractGasInformation(tx, out from, out target, out gasPrice,
+                            out gasLimit, methods, _methodTableForGasExtraction);
 
                         if (result.Item1 != CodeType.Ok)
                         {
                             return (result.Item1, result.Item2);
                         }
                     }
+                    
                 }
                 else
                 {
@@ -1265,7 +1268,7 @@ namespace Phantasma.Business.Blockchain
                 var protocolVersion = Nexus.GetProtocolVersion(Storage);
                 var bytes = txMap.Get<Hash, byte[]>(hash);
                 bytes = CompressionUtils.Decompress(bytes);
-                var tx = TransactionExtensions.Unserialize(bytes, protocolVersion);
+                var tx = Transaction.Unserialize(bytes);
 
                 if (tx.Hash != hash)
                 {

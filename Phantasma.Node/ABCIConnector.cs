@@ -128,7 +128,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                 var chain = _nexus.RootChain as Chain;
 
                 var txString = request.Tx.ToStringUtf8();
-                var tx = TransactionExtensions.Unserialize(Base16.Decode(txString), _nexus.GetProtocolVersion(_nexus.RootStorage));
+                var tx = Transaction.Unserialize(Base16.Decode(txString));
 
                 (CodeType code, string message) = chain.CheckTx(tx, currentBlockTime);
 
@@ -158,7 +158,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
         var txString = request.Tx.ToStringUtf8();
         
-        var newTx = TransactionExtensions.Unserialize(Base16.Decode(txString), _nexus.GetProtocolVersion(_nexus.RootStorage));
+        var newTx = Transaction.Unserialize(Base16.Decode(txString));
 
         var result = chain.DeliverTx(newTx);
 

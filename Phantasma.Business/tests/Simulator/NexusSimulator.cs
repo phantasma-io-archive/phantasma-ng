@@ -671,7 +671,7 @@ public class NexusSimulator
         }
         else
         {
-            tx = new TransactionV2(Nexus.Name, chain.Name, script, CurrentTime + TimeSpan.FromSeconds(40));
+            tx = new Transaction(Nexus.Name, chain.Name, script, CurrentTime + TimeSpan.FromSeconds(40));
         }
 
         Throw.If(!signees.Any(), "at least one signer required");
@@ -686,7 +686,7 @@ public class NexusSimulator
         }
         else
         {
-            tx = new TransactionV2(Nexus.Name, chain.Name, script, CurrentTime + TimeSpan.FromSeconds(40), (_user as PhantasmaKeys).Address, Address.Null, MinimumFee, MinimumGasLimit);
+            tx = new Transaction(Nexus.Name, chain.Name, script, CurrentTime + TimeSpan.FromSeconds(40), (_user as PhantasmaKeys).Address, Address.Null, MinimumFee, MinimumGasLimit);
         }
 
         tx.Mine((int)pow);

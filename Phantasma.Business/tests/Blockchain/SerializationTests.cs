@@ -42,7 +42,7 @@ public class SerializationTests
         Assert.True(bytesSigned != null);
         Assert.True(bytesSigned.Length != bytesUnsigned.Length);
 
-        var tx2 = TransactionExtensions.Unserialize(bytesSigned, 12);
+        var tx2 = Transaction.Unserialize(bytesSigned);
         Assert.True(tx2 != null);
 
         Assert.True(tx.Hash == tx2.Hash);
