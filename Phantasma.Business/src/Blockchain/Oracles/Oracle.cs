@@ -16,7 +16,7 @@ namespace Phantasma.Business.Blockchain
         public const string interopTag = "interop://";
         public const string priceTag = "price://";
         public const string feeTag = "fee://";
-        public BigInteger ProtocolVersion => Nexus.GetGovernanceValue(Nexus.RootStorage, Nexus.NexusProtocolVersionTag);
+        public BigInteger ProtocolVersion => Nexus.GetGovernanceValue(Nexus.RootChain.StorageFactory.ContractsStorage, Nexus.NexusProtocolVersionTag);
 
         protected ConcurrentDictionary<string, OracleEntry> _entries = new ConcurrentDictionary<string, OracleEntry>();
         protected ConcurrentDictionary<string, OracleEntry> _txEntries = new ConcurrentDictionary<string, OracleEntry>();
@@ -62,7 +62,7 @@ namespace Phantasma.Business.Blockchain
                     args = args.Skip(2).ToArray();
                     content = (T)(object)ReadNFTOracle(platformName, args);
                 }
-                else if (Nexus.PlatformExists(Nexus.RootStorage, platformName))
+                else if (Nexus.PlatformExists(Nexus.RootChain.StorageFactory.PlatformsStorage, platformName))
                 {
                     args = args.Skip(2).ToArray();
                     content = ReadChainOracle<T>(platformName, chainName, args);
@@ -99,7 +99,7 @@ namespace Phantasma.Business.Blockchain
 
                 BigInteger val;
 
-                if (!Nexus.TokenExists(Nexus.RootStorage, baseSymbol))
+                if (!Nexus.TokenExists(Nexus.RootChain.StorageFactory.ContractsStorage, baseSymbol))
                 {
                     throw new OracleException("unknown token: " + baseSymbol);
                 }
@@ -127,7 +127,7 @@ namespace Phantasma.Business.Blockchain
                     throw new OracleException("invalid oracle fee request");
                 }
 
-                if (!Nexus.PlatformExists(Nexus.RootStorage, platform))
+                if (!Nexus.PlatformExists(Nexus.RootChain.StorageFactory.PlatformsStorage, platform))
                 {
                     throw new OracleException("unknown platform: " + platform);
                 }
@@ -261,7 +261,7 @@ namespace Phantasma.Business.Blockchain
 
                                                     byte[] rawData = null;
 
-                                                    var token = Nexus.GetTokenInfo(Nexus.RootStorage, data.Symbol);
+                                                    var token = Nexus.GetTokenInfo(Nexus.StorageFactory.ContractsStorage, data.Symbol);
                                                     if (!token.IsFungible())
                                                     {
                                                         Event nftEvent;
@@ -399,8 +399,8 @@ namespace Phantasma.Business.Blockchain
 
             if (platformName == DomainSettings.PlatformName)
             {
-                var nft = Nexus.ReadNFT(Nexus.RootStorage, symbol, tokenID);
-                var tokenInfo = Nexus.GetTokenInfo(Nexus.RootStorage, symbol);
+                var nft = Nexus.ReadNFT(Nexus.RootChain.StorageFactory.ContractsStorage, symbol, tokenID);
+                var tokenInfo = Nexus.GetTokenInfo(Nexus.RootChain.StorageFactory.ContractsStorage, symbol);
 
                 var name = $"{tokenInfo.Name} #{tokenID}";
 

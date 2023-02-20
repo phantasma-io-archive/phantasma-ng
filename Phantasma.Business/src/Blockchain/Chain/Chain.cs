@@ -5,9 +5,9 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-using System.Transactions;
 using Google.Protobuf;
 using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core;
@@ -55,7 +55,9 @@ namespace Phantasma.Business.Blockchain
 
         public BigInteger Height => GetBlockHeight();
 
-        public StorageContext Storage { get; private set; }
+        public StorageContext Storage => StorageFactory.MainStorage;
+        public StorageFactory StorageFactory { get; private set; }
+      
 
         public bool IsRoot => this.Name == DomainSettings.RootChainName;
 #endregion
@@ -70,7 +72,7 @@ namespace Phantasma.Business.Blockchain
 
             this.Address = Address.FromHash(this.Name);
 
-            this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
+            StorageFactory = new StorageFactory(this.Nexus, this.Name);
         }
 
         public Chain(INexus nexus, string name, PhantasmaKeys keys)
@@ -83,9 +85,20 @@ namespace Phantasma.Business.Blockchain
 
             this.Address = Address.FromHash(this.Name);
 
-            this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
+            StorageFactory = new StorageFactory(this.Nexus, this.Name);
         }
-
+        
+#region Chain methods
+        /// <summary>
+        /// Method called when a new block is being created
+        /// </summary>
+        /// <param name="proposerAddress"></param>
+        /// <param name="height"></param>
+        /// <param name="minimumFee"></param>
+        /// <param name="timestamp"></param>
+        /// <param name="availableValidators"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         public IEnumerable<ITransaction> BeginBlock(string proposerAddress, BigInteger height, BigInteger minimumFee, Timestamp timestamp, IEnumerable<Address> availableValidators)
         {
             // should never happen
@@ -102,7 +115,7 @@ namespace Phantasma.Business.Blockchain
             try
             {
                 if (lastBlockHash != Hash.Null)
-                    protocol = Nexus.GetProtocolVersion(Nexus.RootStorage);
+                    protocol = Nexus.GetProtocolVersion(this.StorageFactory.ContractsStorage);
             }
             catch (Exception e)
             {
@@ -110,7 +123,7 @@ namespace Phantasma.Business.Blockchain
             }
             
             this.CurrentProposer = proposerAddress;
-            var validator = Nexus.GetValidator(this.Storage, this.CurrentProposer);
+            var validator = Nexus.GetValidator(this.StorageFactory.MainStorage, this.CurrentProposer);
 
             Address validatorAddress = validator.address;
 
@@ -141,7 +154,7 @@ namespace Phantasma.Business.Blockchain
             );
 
             // create new storage context
-            this.CurrentChangeSet = new StorageChangeSetContext(this.Storage);
+            this.CurrentChangeSet = new StorageChangeSetContext(this.StorageFactory.ContractsStorage);
             List<ITransaction> systemTransactions = new ();
             var oracle = Nexus.GetOracleReader();
 
@@ -159,7 +172,7 @@ namespace Phantasma.Business.Blockchain
 
                     // NOTE inflation is a expensive transaction so it requires a larger gas limit compared to other transactions
                     int requiredGasLimit = Transaction.DefaultGasLimit * 50;
-                    if ( Nexus.GetGovernanceValue(Storage,  Phantasma.Business.Blockchain.Nexus.NexusProtocolVersionTag) <= 8)
+                    if ( Nexus.GetGovernanceValue(this.StorageFactory.ContractsStorage,  Phantasma.Business.Blockchain.Nexus.NexusProtocolVersionTag) <= 8)
                         requiredGasLimit = Transaction.DefaultGasLimit * 4;
                     
 
@@ -204,9 +217,15 @@ namespace Phantasma.Business.Blockchain
             return systemTransactions;
         }
 
+        /// <summary>
+        /// Method called when a new block is being created
+        /// </summary>
+        /// <param name="tx"></param>
+        /// <param name="timestamp"></param>
+        /// <returns></returns>
         public (CodeType, string) CheckTx(ITransaction tx, Timestamp timestamp)
         {
-            uint protocolVersion = Nexus.GetProtocolVersion(Storage);
+            uint protocolVersion = Nexus.GetProtocolVersion(this.StorageFactory.ContractsStorage);
             Log.Information("check tx {Hash}", tx.Hash);
 
             if (tx.Expiration < timestamp)
@@ -313,11 +332,11 @@ namespace Phantasma.Business.Blockchain
                 {
                     if (methods.Any(x => x.MethodName.Equals(nameof(SwapContract.SwapFee)) || x.MethodName.Equals(nameof(ExchangeContract.SwapFee))))
                     {
-                        var existsLPToken = Nexus.TokenExists(Storage, DomainSettings.LiquidityTokenSymbol);
-                        var exchangeVersion = this.InvokeContractAtTimestamp(Storage, CurrentBlock.Timestamp, NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVerion)).AsNumber();
+                        var existsLPToken = Nexus.TokenExists(this.StorageFactory.ContractsStorage, DomainSettings.LiquidityTokenSymbol);
+                        var exchangeVersion = this.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, CurrentBlock.Timestamp, NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVerion)).AsNumber();
                         if (existsLPToken && exchangeVersion >= 1) // Check for the Exchange contract
                         {
-                            var exchangePot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Exchange));
+                            var exchangePot = GetTokenBalance(this.StorageFactory.AddressBalancesStorage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Exchange));
                             if (exchangePot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
                                 return (CodeType.Error, $"Empty pot Exchange");
                             }
@@ -325,7 +344,7 @@ namespace Phantasma.Business.Blockchain
                         else
                         {
                             // Run the Swap contract
-                            var pot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Swap));
+                            var pot = GetTokenBalance(this.StorageFactory.AddressBalancesStorage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Swap));
                             if (pot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
                                 return (CodeType.Error, $"Empty pot Swap");
                             }
@@ -334,7 +353,7 @@ namespace Phantasma.Business.Blockchain
                 }
                 else
                 {
-                    var minFee = Nexus.GetGovernanceValue(Nexus.RootStorage, GovernanceContract.GasMinimumFeeTag);
+                    var minFee = Nexus.GetGovernanceValue(this.StorageFactory.ContractsStorage, GovernanceContract.GasMinimumFeeTag);
                     if (gasPrice < minFee)
                     {
                         var type = CodeType.GasFeeTooLow;
@@ -343,7 +362,7 @@ namespace Phantasma.Business.Blockchain
                     }
 
                     var minGasRequired = gasPrice * gasLimit;
-                    var balance = GetTokenBalance(this.Storage, DomainSettings.FuelTokenSymbol, from);
+                    var balance = GetTokenBalance(this.StorageFactory.AddressBalancesStorage, DomainSettings.FuelTokenSymbol, from);
                     if (balance < minGasRequired)
                     {
                         var type = CodeType.MissingFuel;
@@ -376,67 +395,13 @@ namespace Phantasma.Business.Blockchain
             Log.Information("check tx Successful {Hash}", tx.Hash);
             return (CodeType.Ok, "");
         }
-
-        internal void FlushExtCalls()
-        {
-            // make it null here to force next txs received to rebuild it
-            _methodTableForGasExtraction = null;
-        }
-
-        public Dictionary<string, int> GenerateMethodTable()
-        {
-            var table = DisasmUtils.GetDefaultDisasmTable();
-
-            var contracts = GetContracts(this.Storage);
-
-            foreach (var contract in contracts)
-            {
-                var nativeKind = contract.Name.FindNativeContractKindByName();
-                if (nativeKind != NativeContractKind.Unknown)
-                {
-                    continue; // we skip native contracts as those are already in the dictionary from GetDefaultDisasmTable()
-                }
-
-                table.AddContractToTable(contract);
-            }
-
-            var tokens = this.Nexus.GetTokens(Nexus.RootStorage);
-            foreach (var symbol in tokens)
-            {
-                if (Nexus.IsSystemToken(symbol) && symbol != DomainSettings.LiquidityTokenSymbol)
-                {
-                    continue;
-                }
-
-                var token = Nexus.GetTokenInfo(Nexus.RootStorage, symbol);
-                table.AddTokenToTable(token);
-            }
-
-            return table;
-        }
-
-        public IEnumerable<T> EndBlock<T>() where T : class
-        {
-            //if (Height == 1)
-            //{
-            //    throw new ChainException("genesis transaction failed");
-            //}
-            
-            // TODO currently the managing of the ABI cache is broken so we have to call this at end of the block
-            ((Chain)Nexus.RootChain).FlushExtCalls();
-            
-            // TODO return block events
-            if (typeof(T) == typeof(Block))
-            {
-                this.CurrentBlock.AddOraclesEntries(Nexus.GetOracleReader().Entries);
-                //var blocks = new List<Block>() { CurrentBlock };
-                //return (List<T>) Convert.ChangeType(blocks, typeof(List<T>));
-            }
-            
-            // TODO validator update
-            return new List<T>();
-        }
-
+        
+        /// <summary>
+        /// Method called Run the transaction
+        /// </summary>
+        /// <param name="tx"></param>
+        /// <returns></returns>
+        /// <exception cref="ChainException"></exception>
         public TransactionResult DeliverTx(ITransaction tx)
         {
             TransactionResult result = new();
@@ -493,17 +458,38 @@ namespace Phantasma.Business.Blockchain
 
             return result;
         }
-
-        private void ProcessFilteredExceptions(string exceptionMessage)
+        
+        /// <summary>
+        /// Method called at the end of a block to process the block events
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public IEnumerable<T> EndBlock<T>() where T : class
         {
-            var filteredAddress = Filter.ExtractFilteredAddress(exceptionMessage);
-
-            if (!filteredAddress.IsNull)
+            //if (Height == 1)
+            //{
+            //    throw new ChainException("genesis transaction failed");
+            //}
+            
+            // TODO currently the managing of the ABI cache is broken so we have to call this at end of the block
+            ((Chain)Nexus.RootChain).FlushExtCalls();
+            
+            // TODO return block events
+            if (typeof(T) == typeof(Block))
             {
-                Filter.AddRedFilteredAddress(Nexus.RootStorage, filteredAddress);
+                this.CurrentBlock.AddOraclesEntries(Nexus.GetOracleReader().Entries);
+                //var blocks = new List<Block>() { CurrentBlock };
+                //return (List<T>) Convert.ChangeType(blocks, typeof(List<T>));
             }
+            
+            // TODO validator update
+            return new List<T>();
         }
-
+        
+        /// <summary>
+        /// Method called to commit the block to the chain
+        /// </summary>
+        /// <returns></returns>
         public byte[] Commit()
         {
             Log.Information("Committing block {Height}", this.CurrentBlock.Height);
@@ -531,41 +517,13 @@ namespace Phantasma.Business.Blockchain
             this.CurrentTransactions.Clear();
             return lastBlock.Hash.ToByteArray();
         }
-
-        public IContract[] GetContracts(StorageContext storage)
-        {
-            var contractList = new StorageList(GetContractListKey(), storage);
-            var addresses = contractList.All<Address>();
-            return addresses.Select(x => this.GetContractByAddress(storage, x)).ToArray();
-        }
-
-        public override string ToString()
-        {
-            return $"{Name} ({Address})";
-        }
-
-        private bool VerifyBlockBeforeAdd(Block block)
-        {
-            if (block.TransactionCount >= DomainSettings.MaxTxPerBlock)
-            {
-                return false;
-            }
-
-            /* THOSE DONT WORK because the block is still empty!
-            
-            if (block.OracleData.Count() >= DomainSettings.MaxOracleEntriesPerBlock)
-            {
-                return false;
-            }
-
-            if (block.Events.Count() >= DomainSettings.MaxEventsPerBlock)
-            {
-                return false;
-            }*/
-
-            return true;
-        }
-
+        
+        /// <summary>
+        /// Method called to add a block to the chain
+        /// </summary>
+        /// <param name="block"></param>
+        /// <param name="transactions"></param>
+        /// <param name="changeSet"></param>
         public void AddBlock(Block block, IEnumerable<ITransaction> transactions, StorageChangeSetContext changeSet)
         {
             block.AddAllTransactionHashes(transactions.Select (x => x.Hash).ToArray());
@@ -573,6 +531,14 @@ namespace Phantasma.Business.Blockchain
             this.SetBlock(block, transactions, changeSet);
         }
 
+        /// <summary>
+        /// Method called to set a block to the chain
+        /// </summary>
+        /// <param name="block"></param>
+        /// <param name="transactions"></param>
+        /// <param name="changeSet"></param>
+        /// <returns></returns>
+        /// <exception cref="ChainException"></exception>
         public byte[] SetBlock(Block block, IEnumerable<ITransaction> transactions, StorageChangeSetContext changeSet)
         {
 
@@ -691,7 +657,7 @@ namespace Phantasma.Business.Blockchain
             // from here on, the block is accepted
             changeSet.Execute();
             
-            var hashList = new StorageList(BlockHeightListTag, this.Storage);
+            var hashList = new StorageList(BlockHeightListTag, this.StorageFactory.BlocksStorage);
             hashList.Add<Hash>(block.Hash);
             
             // persist genesis hash at height 1
@@ -701,7 +667,7 @@ namespace Phantasma.Business.Blockchain
                 Nexus.CommitGenesis(genesisHash);
             }
             
-            var blockMap = new StorageMap(BlockHashMapTag, this.Storage);
+            var blockMap = new StorageMap(BlockHashMapTag, this.StorageFactory.BlocksStorage);
             
             var blockBytes = block.ToByteArray(true);
 
@@ -709,8 +675,8 @@ namespace Phantasma.Business.Blockchain
             blockBytes = CompressionUtils.Compress(blockBytes);
             blockMap.Set<Hash, byte[]>(block.Hash, blockBytes);
 
-            var txMap = new StorageMap(TransactionHashMapTag, this.Storage);
-            var txBlockMap = new StorageMap(TxBlockHashMapTag, this.Storage);
+            var txMap = new StorageMap(TransactionHashMapTag, this.StorageFactory.TransactionsStorage);
+            var txBlockMap = new StorageMap(TxBlockHashMapTag, this.StorageFactory.BlocksTransactionsStorage);
 
             foreach (ITransaction tx in transactions)
             {
@@ -735,7 +701,7 @@ namespace Phantasma.Business.Blockchain
                     addresses.Add(evt.Address);
                 }
 
-                var addressTxMap = new StorageMap(AddressTxHashMapTag, this.Storage);
+                var addressTxMap = new StorageMap(AddressTxHashMapTag, this.StorageFactory.AddressTransactionsStorage);
                 foreach (var address in addresses)
                 {
                     var addressList = addressTxMap.Get<Address, StorageList>(address);
@@ -752,7 +718,99 @@ namespace Phantasma.Business.Blockchain
 
             return lastBlock.Hash.ToByteArray();
         }
+#endregion
+        
+        /// <summary>
+        /// Flush the method table for gas extraction
+        /// </summary>
+        internal void FlushExtCalls()
+        {
+            // make it null here to force next txs received to rebuild it
+            _methodTableForGasExtraction = null;
+        }
+        
+        /// <summary>
+        /// Generate the method table for gas extraction
+        /// </summary>
+        /// <returns></returns>
+        public Dictionary<string, int> GenerateMethodTable()
+        {
+            var table = DisasmUtils.GetDefaultDisasmTable();
 
+            var contracts = GetContracts(this.StorageFactory.ContractsStorage);
+
+            foreach (var contract in contracts)
+            {
+                var nativeKind = contract.Name.FindNativeContractKindByName();
+                if (nativeKind != NativeContractKind.Unknown)
+                {
+                    continue; // we skip native contracts as those are already in the dictionary from GetDefaultDisasmTable()
+                }
+
+                table.AddContractToTable(contract);
+            }
+
+            var tokens = this.Nexus.GetTokens(this.StorageFactory.ContractsStorage);
+            foreach (var symbol in tokens)
+            {
+                if (Nexus.IsSystemToken(symbol) && symbol != DomainSettings.LiquidityTokenSymbol)
+                {
+                    continue;
+                }
+
+                var token = Nexus.GetTokenInfo(this.StorageFactory.ContractsStorage, symbol);
+                table.AddTokenToTable(token);
+            }
+
+            return table;
+        }
+        
+        /// <summary>
+        /// Method called to process the filtered exceptions
+        /// </summary>
+        /// <param name="exceptionMessage"></param>
+        private void ProcessFilteredExceptions(string exceptionMessage)
+        {
+            var filteredAddress = Filter.ExtractFilteredAddress(exceptionMessage);
+
+            if (!filteredAddress.IsNull)
+            {
+                Filter.AddRedFilteredAddress(this.StorageFactory.MainStorage, filteredAddress);
+            }
+        }
+
+        public override string ToString()
+        {
+            return $"{Name} ({Address})";
+        }
+
+        /// <summary>
+        /// Method called to verify the block before adding it to the chain.
+        /// </summary>
+        /// <param name="block"></param>
+        /// <returns></returns>
+        private bool VerifyBlockBeforeAdd(Block block)
+        {
+            if (block.TransactionCount >= DomainSettings.MaxTxPerBlock)
+            {
+                return false;
+            }
+
+            /* THOSE DONT WORK because the block is still empty!
+            
+            if (block.OracleData.Count() >= DomainSettings.MaxOracleEntriesPerBlock)
+            {
+                return false;
+            }
+
+            if (block.Events.Count() >= DomainSettings.MaxEventsPerBlock)
+            {
+                return false;
+            }*/
+
+            return true;
+        }
+        
         private TransactionResult ExecuteTransaction(int index, ITransaction transaction, byte[] script, Address validator, Timestamp time, StorageChangeSetContext changeSet
                 , Action<Hash, Event> onNotify, IOracleReader oracle, IChainTask task)
         {
@@ -814,7 +872,7 @@ namespace Phantasma.Business.Blockchain
 
         public BigInteger GetTokenBalance(StorageContext storage, string symbol, Address address)
         {
-            var token = Nexus.GetTokenInfo(storage, symbol);
+            var token = Nexus.GetTokenInfo(this.StorageFactory.ContractsStorage, symbol);
             return GetTokenBalance(storage, token, address);
         }
 
@@ -860,17 +918,6 @@ namespace Phantasma.Business.Blockchain
                 }
             }
         }*/
-
-        public ExecutionContext GetContractContext(StorageContext storage, SmartContract contract)
-        {
-            if (!IsContractDeployed(storage, contract.Address))
-            {
-                throw new ChainException($"contract '{contract.Name}' not deployed on '{Name}' chain");
-            }
-
-            var context = new ChainExecutionContext(contract);
-            return context;
-        }
 
         public VMObject InvokeContractAtTimestamp(StorageContext storage, Timestamp time, NativeContractKind nativeContract, string methodName, params object[] args)
         {
@@ -918,7 +965,7 @@ namespace Phantasma.Business.Blockchain
         // generates incremental ID (unique to this chain)
         public BigInteger GenerateUID(StorageContext storage)
         {
-            var key = Encoding.ASCII.GetBytes("_uid");
+            var key = Encoding.ASCII.GetBytes(".uid");
 
             var lastID = storage.Has(key) ? storage.Get<BigInteger>(key) : 0;
 
@@ -929,6 +976,11 @@ namespace Phantasma.Business.Blockchain
         }
 
 #region FEES
+        /// <summary>
+        /// Returns the total fee paid for a block.
+        /// </summary>
+        /// <param name="block"></param>
+        /// <returns></returns>
         public BigInteger GetBlockReward(Block block)
         {
             if (block.TransactionCount == 0)
@@ -952,12 +1004,22 @@ namespace Phantasma.Business.Blockchain
             return total;
         }
 
+        /// <summary>
+        /// Returns the total fee paid for a transaction.
+        /// </summary>
+        /// <param name="tx"></param>
+        /// <returns></returns>
         public BigInteger GetTransactionFee(ITransaction tx)
         {
             Throw.IfNull(tx, nameof(tx));
             return GetTransactionFee(tx.Hash);
         }
 
+        /// <summary>
+        /// Returns the total fee paid for a transaction.
+        /// </summary>
+        /// <param name="transactionHash"></param>
+        /// <returns></returns>
         public BigInteger GetTransactionFee(Hash transactionHash)
         {
             Throw.IfNull(transactionHash, nameof(transactionHash));
@@ -983,18 +1045,42 @@ namespace Phantasma.Business.Blockchain
 #endregion
 
 #region Contracts
-        private byte[] GetContractListKey()
+        /// <summary>
+        /// Returns all deployed contracts on this chain.
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <returns></returns>
+        public IContract[] GetContracts(StorageContext storage)
         {
-            return Encoding.ASCII.GetBytes("contracts.");
+            var contractList = new StorageList(SmartContractSheet.GetContractListKey(), storage);
+            var addresses = contractList.All<Address>();
+            return addresses.Select(x => this.GetContractByAddress(storage, x)).ToArray();
         }
 
-        private byte[] GetContractKey(Address contractAddress, string field)
+        /// <summary>
+        /// Returns the Execution Context for the specified contract.
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="contract"></param>
+        /// <returns></returns>
+        /// <exception cref="ChainException"></exception>
+        public ExecutionContext GetContractContext(StorageContext storage, SmartContract contract)
         {
-            var bytes = Encoding.ASCII.GetBytes(field);
-            var key = ByteArrayUtils.ConcatBytes(bytes, contractAddress.ToByteArray());
-            return key;
+            if (!IsContractDeployed(storage, contract.Address))
+            {
+                throw new ChainException($"contract '{contract.Name}' not deployed on '{Name}' chain");
+            }
+
+            var context = new ChainExecutionContext(contract);
+            return context;
         }
 
+        /// <summary>
+        /// Returns the true if the contract is deployed on this chain.
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public bool IsContractDeployed(StorageContext storage, string name)
         {
             if (ValidationUtils.IsValidTicker(name))
@@ -1005,6 +1091,12 @@ namespace Phantasma.Business.Blockchain
             return IsContractDeployed(storage, SmartContract.GetAddressFromContractName(name));
         }
 
+        /// <summary>
+        /// Returns true if the contract is deployed on this chain.
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="contractAddress"></param>
+        /// <returns></returns>
         public bool IsContractDeployed(StorageContext storage, Address contractAddress)
         {
             if (contractAddress == SmartContract.GetAddressForNative(NativeContractKind.Gas))
@@ -1022,8 +1114,8 @@ namespace Phantasma.Business.Blockchain
                 return false;
             }
 
-            var key = GetContractKey(contractAddress, "script");
-            if (storage.Has(key))
+            var contract = new SmartContractSheet(contractAddress);
+            if ( contract.HasScript(storage) )
             {
                 return true;
             }
@@ -1032,56 +1124,67 @@ namespace Phantasma.Business.Blockchain
             return (token != null);
         }
 
+        /// <summary>
+        /// Deploy a smart contract to the chain.
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="contractOwner"></param>
+        /// <param name="name"></param>
+        /// <param name="contractAddress"></param>
+        /// <param name="script"></param>
+        /// <param name="abi"></param>
+        /// <returns></returns>
         public bool DeployContractScript(StorageContext storage, Address contractOwner, string name, Address contractAddress, byte[] script, ContractInterface abi)
         {
-            var scriptKey = GetContractKey(contractAddress, "script");
-            if (storage.Has(scriptKey))
+            var contract = new SmartContractSheet(name, contractAddress);
+            if (contract.HasScript(storage))
             {
                 return false;
             }
 
-            storage.Put(scriptKey, script);
+            contract.PutScript(storage, script);
 
             var ownerBytes = contractOwner.ToByteArray();
-            var ownerKey = GetContractKey(contractAddress, "owner");
-            storage.Put(ownerKey, ownerBytes);
+            contract.PutOwner(storage, ownerBytes);
 
             var abiBytes = abi.ToByteArray();
-            var abiKey = GetContractKey(contractAddress, "abi");
-            storage.Put(abiKey, abiBytes);
-
+            contract.PutABI(storage, abiBytes);
+            
             var nameBytes = Encoding.ASCII.GetBytes(name);
-            var nameKey = GetContractKey(contractAddress, "name");
-            storage.Put(nameKey, nameBytes);
-
-            var contractList = new StorageList(GetContractListKey(), storage);
-            contractList.Add<Address>(contractAddress);
+            contract.PutName(storage, nameBytes);
+            contract.Add(storage, contractAddress);
 
             FlushExtCalls();
 
             return true;
         }
 
+        /// <summary>
+        /// Get the contract by Address.
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="contractAddress"></param>
+        /// <returns></returns>
         public SmartContract GetContractByAddress(StorageContext storage, Address contractAddress)
         {
-            var nameKey = GetContractKey(contractAddress, "name");
+            var contract = new SmartContractSheet(contractAddress);
 
-            if (storage.Has(nameKey))
+            if (contract.HasName(this.StorageFactory.ContractsStorage))
             {
-                var nameBytes = storage.Get(nameKey);
+                var nameBytes = contract.GetName(storage);
 
                 var name = Encoding.ASCII.GetString(nameBytes);
                 return GetContractByName(storage, name);
             }
 
-            var symbols = Nexus.GetTokens(storage);
+            var symbols = Nexus.GetTokens(this.StorageFactory.ContractsStorage);
             foreach (var symbol in symbols)
             {
                 var tokenAddress = TokenUtils.GetContractAddress(symbol);
 
                 if (tokenAddress == contractAddress)
                 {
-                    var token = Nexus.GetTokenInfo(storage, symbol);
+                    var token = Nexus.GetTokenInfo(this.StorageFactory.ContractsStorage, symbol);
                     return new CustomContract(token.Symbol, token.Script, token.ABI);
                 }
             }
@@ -1089,6 +1192,12 @@ namespace Phantasma.Business.Blockchain
             return NativeContract.GetNativeContractByAddress(contractAddress);
         }
 
+        /// <summary>
+        /// Get Contract by Name.
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public SmartContract GetContractByName(StorageContext storage, string name)
         {
             if (Blockchain.Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
@@ -1097,21 +1206,27 @@ namespace Phantasma.Business.Blockchain
             }
 
             var address = SmartContract.GetAddressFromContractName(name);
-            var scriptKey = GetContractKey(address, "script");
-            if (!storage.Has(scriptKey))
+            var contract = new SmartContractSheet(address);
+            if (!contract.HasScript(storage))
             {
                 return null;
             }
 
-            var script = storage.Get(scriptKey);
-
-            var abiKey = GetContractKey(address, "abi");
-            var abiBytes = storage.Get(abiKey);
+            var script = contract.GetScript(storage);
+            var abiBytes = contract.GetABI(storage);
             var abi = ContractInterface.FromBytes(abiBytes);
 
             return new CustomContract(name, script, abi);
         }
 
+        /// <summary>
+        /// Upgrade a smart contract on the chain.
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="name"></param>
+        /// <param name="script"></param>
+        /// <param name="abi"></param>
+        /// <exception cref="ChainException"></exception>
         public void UpgradeContract(StorageContext storage, string name, byte[] script, ContractInterface abi)
         {
             if (Blockchain.Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
@@ -1125,17 +1240,20 @@ namespace Phantasma.Business.Blockchain
             }
 
             var address = SmartContract.GetAddressFromContractName(name);
-
-            var scriptKey = GetContractKey(address, "script");
-            storage.Put(scriptKey, script);
-
-            var abiKey = GetContractKey(address, "abi");
             var abiBytes = abi.ToByteArray();
-            storage.Put(abiKey, abiBytes);
+            var contract = new SmartContractSheet(name, address);
+            contract.PutScript(storage, script);
+            contract.PutABI(storage, abiBytes);
 
             FlushExtCalls();
         }
 
+        /// <summary>
+        /// Kill a smart contract on the chain. (remove it from the list of deployed contracts)
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="name"></param>
+        /// <exception cref="ChainException"></exception>
         public void KillContract(StorageContext storage, string name)
         {
             if (Blockchain.Nexus.IsNativeContract(name) || ValidationUtils.IsValidTicker(name))
@@ -1149,25 +1267,32 @@ namespace Phantasma.Business.Blockchain
             }
 
             var address = SmartContract.GetAddressFromContractName(name);
-
-            var scriptKey = GetContractKey(address, "script");
-            storage.Delete(scriptKey);
-
-            var abiKey = GetContractKey(address, "abi");
-            storage.Delete(abiKey);
-
+            
+            var contract = new SmartContractSheet(address);
+            contract.DeleteOwner(storage);
+            contract.DeleteName(storage);
+            contract.DeleteScript(storage);
+            contract.DeleteABI(storage);
+            
             // TODO clear other storage used by contract (global variables, maps, lists, etc)
+            //contract.DeleteContract(storage);
         }
 
+        /// <summary>
+        /// Get the contract owner.
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="contractAddress"></param>
+        /// <returns></returns>
         public Address GetContractOwner(StorageContext storage, Address contractAddress)
         {
             if (contractAddress.IsSystem)
             {
-                var ownerKey = GetContractKey(contractAddress, "owner");
-                var bytes = storage.Get(ownerKey);
-                if (bytes != null)
+                var contract = new SmartContractSheet(contractAddress);
+                var owner = contract.GetOwner(storage);
+                if (owner != Address.Null)
                 {
-                    return Address.FromBytes(bytes);
+                    return owner;
                 }
 
                 var token = Nexus.GetTokenInfo(storage, contractAddress);
@@ -1179,15 +1304,23 @@ namespace Phantasma.Business.Blockchain
 
             return Address.Null;
         }
-
 #endregion
 
+#region Blocks
+        /// <summary>
+        /// Returns the current block height
+        /// </summary>
+        /// <returns></returns>
         private BigInteger GetBlockHeight()
         {
-            var hashList = new StorageList(BlockHeightListTag, this.Storage);
+            var hashList = new StorageList(BlockHeightListTag, this.StorageFactory.BlocksStorage);
             return hashList.Count();
         }
 
+        /// <summary>
+        /// Returns the last block hash
+        /// </summary>
+        /// <returns></returns>
         public Hash GetLastBlockHash()
         {
             var lastHeight = GetBlockHeight();
@@ -1199,6 +1332,12 @@ namespace Phantasma.Business.Blockchain
             return GetBlockHashAtHeight(lastHeight);
         }
 
+        /// <summary>
+        /// Returns the block at the given height
+        /// </summary>
+        /// <param name="height"></param>
+        /// <returns></returns>
+        /// <exception cref="ChainException"></exception>
         public Hash GetBlockHashAtHeight(BigInteger height)
         {
             if (height <= 0)
@@ -1211,12 +1350,18 @@ namespace Phantasma.Business.Blockchain
                 return Hash.Null;
             }
 
-            var hashList = new StorageList(BlockHeightListTag, this.Storage);
+            var hashList = new StorageList(BlockHeightListTag, this.StorageFactory.BlocksStorage);
             // NOTE chain heights start at 1, but list index start at 0
             var hash = hashList.Get<Hash>(height - 1);
             return hash;
         }
 
+        /// <summary>
+        /// Returns the block at the given height
+        /// </summary>
+        /// <param name="hash"></param>
+        /// <returns></returns>
+        /// <exception cref="ChainException"></exception>
         public Block GetBlockByHash(Hash hash)
         {
             if (hash == Hash.Null)
@@ -1224,7 +1369,7 @@ namespace Phantasma.Business.Blockchain
                 return null;
             }
 
-            var blockMap = new StorageMap(BlockHashMapTag, this.Storage);
+            var blockMap = new StorageMap(BlockHashMapTag, this.StorageFactory.BlocksStorage);
 
             if (blockMap.ContainsKey<Hash>(hash))
             {
@@ -1243,29 +1388,69 @@ namespace Phantasma.Business.Blockchain
             return null;
         }
 
+        /// <summary>
+        /// Returns if a block hash is present in the chain
+        /// </summary>
+        /// <param name="hash"></param>
+        /// <returns></returns>
         public bool ContainsBlockHash(Hash hash)
         {
             return GetBlockByHash(hash) != null;
         }
+        
+        /// <summary>
+        /// Returns the block hash of a transaction
+        /// </summary>
+        /// <param name="transactionHash"></param>
+        /// <returns></returns>
+        public Hash GetBlockHashOfTransaction(Hash transactionHash)
+        {
+            var txBlockMap = new StorageMap(TxBlockHashMapTag, this.StorageFactory.BlocksTransactionsStorage);
 
+            if (txBlockMap.ContainsKey(transactionHash))
+            {
+                var blockHash = txBlockMap.Get<Hash, Hash>(transactionHash);
+                return blockHash;
+            }
+
+            return Hash.Null;
+        }
+#endregion
+        
+#region Transactions
+        /// <summary>
+        /// Returns the current transaction count
+        /// </summary>
+        /// <returns></returns>
         public BigInteger GetTransactionCount()
         {
-            var txMap = new StorageMap(TransactionHashMapTag, this.Storage);
+            var txMap = new StorageMap(TransactionHashMapTag, this.StorageFactory.TransactionsStorage);
             return txMap.Count();
         }
 
+        /// <summary>
+        /// Returns if a transaction hash is present in the chain
+        /// </summary>
+        /// <param name="hash"></param>
+        /// <returns></returns>
         public bool ContainsTransaction(Hash hash)
         {
-            var txMap = new StorageMap(TransactionHashMapTag, this.Storage);
+            var txMap = new StorageMap(TransactionHashMapTag, this.StorageFactory.TransactionsStorage);
             return txMap.ContainsKey(hash);
         }
 
+        /// <summary>
+        /// Returns the transaction by the given hash
+        /// </summary>
+        /// <param name="hash"></param>
+        /// <returns></returns>
+        /// <exception cref="ChainException"></exception>
         public ITransaction GetTransactionByHash(Hash hash)
         {
-            var txMap = new StorageMap(TransactionHashMapTag, this.Storage);
+            var txMap = new StorageMap(TransactionHashMapTag, this.StorageFactory.TransactionsStorage);
             if (txMap.ContainsKey<Hash>(hash))
             {
-                var protocolVersion = Nexus.GetProtocolVersion(Storage);
+                var protocolVersion = Nexus.GetProtocolVersion(this.StorageFactory.ContractsStorage);
                 var bytes = txMap.Get<Hash, byte[]>(hash);
                 bytes = CompressionUtils.Decompress(bytes);
                 var tx = Transaction.Unserialize(bytes);
@@ -1280,68 +1465,60 @@ namespace Phantasma.Business.Blockchain
 
             return null;
         }
-
-        public Hash GetBlockHashOfTransaction(Hash transactionHash)
-        {
-            var txBlockMap = new StorageMap(TxBlockHashMapTag, this.Storage);
-
-            if (txBlockMap.ContainsKey(transactionHash))
-            {
-                var blockHash = txBlockMap.Get<Hash, Hash>(transactionHash);
-                return blockHash;
-            }
-
-            return Hash.Null;
-        }
-
+        
+        /// <summary>
+        /// Returns the transactions of a block
+        /// </summary>
+        /// <param name="block"></param>
+        /// <returns></returns>
         public IEnumerable<ITransaction> GetBlockTransactions(Block block)
         {
             return block.TransactionHashes.Select(hash => GetTransactionByHash(hash));
         }
-
+        
+        /// <summary>
+        /// Returns the transaction for a given address
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public Hash[] GetTransactionHashesForAddress(Address address)
         {
-            var addressTxMap = new StorageMap(AddressTxHashMapTag, this.Storage);
+            var addressTxMap = new StorageMap(AddressTxHashMapTag, this.StorageFactory.AddressTransactionsStorage);
             var addressList = addressTxMap.Get<Address, StorageList>(address);
             return addressList.All<Hash>();
         }
-
-        public Timestamp GetLastActivityOfAddress(Address address)
-        {
-            var addressTxMap = new StorageMap(AddressTxHashMapTag, this.Storage);
-            var addressList = addressTxMap.Get<Address, StorageList>(address);
-            var count = addressList.Count();
-            if (count <= 0)
-            {
-                return Timestamp.Null;
-            }
-
-            var lastTxHash = addressList.Get<Hash>(count - 1);
-            var blockHash = GetBlockHashOfTransaction(lastTxHash);
-
-            var block = GetBlockByHash(blockHash);
-
-            if (block == null) // should never happen
-            {
-                return Timestamp.Null;
-            }
-
-            return block.Timestamp;
-        }
+#endregion
 
 #region SWAPS
+        /// <summary>
+        /// Returns the swap list for the given address
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="address"></param>
+        /// <returns></returns>
         private StorageList GetSwapListForAddress(StorageContext storage, Address address)
         {
             var key = ByteArrayUtils.ConcatBytes(Encoding.UTF8.GetBytes(".swapaddr"), address.ToByteArray());
             return new StorageList(key, storage);
         }
 
+        /// <summary>
+        /// Returns the swap map
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <returns></returns>
         private StorageMap GetSwapMap(StorageContext storage)
         {
             var key = Encoding.UTF8.GetBytes(".swapmap");
             return new StorageMap(key, storage);
         }
-
+        
+        /// <summary>
+        /// Registers a swap
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="from"></param>
+        /// <param name="swap"></param>
         public void RegisterSwap(StorageContext storage, Address from, ChainSwap swap)
         {
             var list = GetSwapListForAddress(storage, from);
@@ -1351,6 +1528,13 @@ namespace Phantasma.Business.Blockchain
             map.Set<Hash, ChainSwap>(swap.sourceHash, swap);
         }
 
+        /// <summary>
+        /// Returns the swap for the given hash
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="sourceHash"></param>
+        /// <returns></returns>
+        /// <exception cref="ChainException"></exception>
         public ChainSwap GetSwap(StorageContext storage, Hash sourceHash)
         {
             var map = GetSwapMap(storage);
@@ -1363,6 +1547,12 @@ namespace Phantasma.Business.Blockchain
             throw new ChainException("invalid chain swap hash: " + sourceHash);
         }
 
+        /// <summary>
+        /// Returns the swap hashes for the given address
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public Hash[] GetSwapHashesForAddress(StorageContext storage, Address address)
         {
             var list = GetSwapListForAddress(storage, address);
@@ -1378,65 +1568,90 @@ namespace Phantasma.Business.Blockchain
             return key;
         }
 
+        /// <summary>
+        /// Stars a task on the chain and returns the task ID
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="from"></param>
+        /// <param name="contractName"></param>
+        /// <param name="method"></param>
+        /// <param name="frequency"></param>
+        /// <param name="delay"></param>
+        /// <param name="mode"></param>
+        /// <param name="gasLimit"></param>
+        /// <returns></returns>
         public IChainTask StartTask(StorageContext storage, Address from, string contractName, ContractMethod method, uint frequency, uint delay, TaskFrequencyMode mode, BigInteger gasLimit)
         {
             if (!IsContractDeployed(storage, contractName))
             {
                 return null;
             }
-
+            
             var taskID = GenerateUID(storage);
             var task = new ChainTask(taskID, from, contractName, method.name, frequency, delay, mode, gasLimit, this.Height + 1, true);
 
-            var taskKey = GetTaskKey(taskID, "task_info");
-
+            var taskSheet = new TaskSheet(taskID);
             var taskBytes = task.ToByteArray();
-
-            storage.Put(taskKey, taskBytes);
-
-            var taskList = new StorageList(TaskListTag, this.Storage);
-            taskList.Add<BigInteger>(taskID);
-
+            taskSheet.PutTaskInfo(storage, taskBytes);
+            
+            taskSheet.Add(storage, taskID);
             return task;
         }
 
+        /// <summary>
+        /// Stops a task on the chain
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="taskID"></param>
+        /// <returns></returns>
         public bool StopTask(StorageContext storage, BigInteger taskID)
         {
-            var taskKey = GetTaskKey(taskID, "task_info");
+            var taskSheet = new TaskSheet(taskID);
 
-            if (this.Storage.Has(taskKey))
+            if (taskSheet.HasTaskInfo(storage))
             {
-                this.Storage.Delete(taskKey);
+                taskSheet.DeleteInfo(storage);
 
-                taskKey = GetTaskKey(taskID, "task_run");
-                if (this.Storage.Has(taskKey))
+                if (taskSheet.HasTaskRun(storage))
                 {
-                    this.Storage.Delete(taskKey);
+                    taskSheet.DeleteRun(storage);
                 }
 
-                var taskList = new StorageList(TaskListTag, this.Storage);
-                taskList.Remove<BigInteger>(taskID);
-
+                taskSheet.Remove(storage, taskID);
                 return true;
             }
 
             return false;
         }
 
+        /// <summary>
+        /// Returns the task for the given ID
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="taskID"></param>
+        /// <returns></returns>
         public IChainTask GetTask(StorageContext storage, BigInteger taskID)
         {
-            var taskKey = GetTaskKey(taskID, "task_info");
+            var taskSheet = new TaskSheet(taskID);
 
-            var taskBytes = this.Storage.Get(taskKey);
+            var taskBytes = taskSheet.GetTaskInfo(storage);
 
             var task = ChainTask.FromBytes(taskID, taskBytes);
 
             return task;
-
         }
-
+        
+        /// <summary>
+        /// Processes the pending tasks
+        /// </summary>
+        /// <param name="block"></param>
+        /// <param name="oracle"></param>
+        /// <param name="minimumFee"></param>
+        /// <param name="changeSet"></param>
+        /// <returns></returns>
         private IEnumerable<Transaction> ProcessPendingTasks(Block block, IOracleReader oracle, BigInteger minimumFee, StorageChangeSetContext changeSet)
         {
+            // TODO: Reformulate this
             var taskList = new StorageList(TaskListTag, changeSet);
             var taskCount = taskList.Count();
 
@@ -1479,6 +1694,13 @@ namespace Phantasma.Business.Blockchain
             return Enumerable.Empty<Transaction>();
         }
 
+        /// <summary>
+        /// Get the current time for the task
+        /// </summary>
+        /// <param name="mode"></param>
+        /// <param name="block"></param>
+        /// <returns></returns>
+        /// <exception cref="ChainException"></exception>
         private BigInteger GetTaskTimeFromBlock(TaskFrequencyMode mode, Block block)
         {
             switch (mode)
@@ -1498,13 +1720,25 @@ namespace Phantasma.Business.Blockchain
             }
         }
 
+        /// <summary>
+        /// Process a pending task
+        /// </summary>
+        /// <param name="block"></param>
+        /// <param name="oracle"></param>
+        /// <param name="minimumFee"></param>
+        /// <param name="changeSet"></param>
+        /// <param name="task"></param>
+        /// <param name="transaction"></param>
+        /// <returns></returns>
         private TaskResult ProcessPendingTask(Block block, IOracleReader oracle, BigInteger minimumFee,
                 StorageChangeSetContext changeSet, IChainTask task, out Transaction transaction)
         {
+            // TODO : Reformulate this
             transaction = null;
 
             BigInteger currentRun = GetTaskTimeFromBlock(task.Mode, block);
-            var taskKey = GetTaskKey(task.ID, "task_run");
+            var taskSheet = new TaskSheet(task.ID);
+            var taskKey = taskSheet.GetTaskRunKey();
 
             if (task.Mode != TaskFrequencyMode.Always)
             {
@@ -1574,7 +1808,7 @@ namespace Phantasma.Business.Blockchain
 #region block validation
         public void CloseBlock(Block block, StorageChangeSetContext storage)
         {
-            var rootStorage = this.IsRoot ? storage : Nexus.RootStorage;
+            var rootStorage = this.IsRoot ? storage : this.StorageFactory.MainStorage;
 
             if (block.Height > 1)
             {
@@ -1586,7 +1820,7 @@ namespace Phantasma.Business.Blockchain
                 }
             }
 
-            var tokenStorage = this.Name == DomainSettings.RootChainName ? storage : Nexus.RootStorage;
+            var tokenStorage = this.Name == DomainSettings.RootChainName ? storage : this.StorageFactory.MainStorage;
             var token = this.Nexus.GetTokenInfo(tokenStorage, DomainSettings.FuelTokenSymbol);
             var balance = new BalanceSheet(token);
             var blockAddress = Address.FromHash("block");
@@ -1644,6 +1878,41 @@ namespace Phantasma.Business.Blockchain
         }
 #endregion
 
+        /// <summary>
+        /// Returns the last activity of an address in the chain.
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
+        public Timestamp GetLastActivityOfAddress(Address address)
+        {
+            var addressTxMap = new StorageMap(AddressTxHashMapTag, this.StorageFactory.AddressTransactionsStorage);
+            var addressList = addressTxMap.Get<Address, StorageList>(address);
+            var count = addressList.Count();
+            if (count <= 0)
+            {
+                return Timestamp.Null;
+            }
+
+            var lastTxHash = addressList.Get<Hash>(count - 1);
+            var blockHash = GetBlockHashOfTransaction(lastTxHash);
+
+            var block = GetBlockByHash(blockHash);
+
+            if (block == null) // should never happen
+            {
+                return Timestamp.Null;
+            }
+
+            return block.Timestamp;
+        }
+
+        /// <summary>
+        /// Looks up the name in the current chain, and if not found, in the parent chain.
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="name"></param>
+        /// <param name="timestamp"></param>
+        /// <returns></returns>
         public Address LookUpName(StorageContext storage, string name, Timestamp timestamp)
         {
             if (IsContractDeployed(storage, name))
@@ -1654,6 +1923,13 @@ namespace Phantasma.Business.Blockchain
             return this.Nexus.LookUpName(storage, name, timestamp);
         }
 
+        /// <summary>
+        /// Gets the name of an address, if it exists in the current chain, or in the parent chain.
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="address"></param>
+        /// <param name="timestamp"></param>
+        /// <returns></returns>
         public string GetNameFromAddress(StorageContext storage, Address address, Timestamp timestamp)
         {
             if (address.IsNull)
@@ -1668,7 +1944,7 @@ namespace Phantasma.Business.Blockchain
                     return DomainSettings.InfusionName;
                 }
 
-                var contract = this.GetContractByAddress(storage, address);
+                var contract = this.GetContractByAddress(this.StorageFactory.ContractsStorage, address);
                 if (contract != null)
                 {
                     return contract.Name;
@@ -1681,7 +1957,7 @@ namespace Phantasma.Business.Blockchain
                         return tempChain.Name;
                     }
 
-                    var org = Nexus.GetOrganizationByAddress(storage, address);
+                    var org = Nexus.GetOrganizationByAddress(this.StorageFactory.OrganizationStorage, address);
                     if (org != null)
                     {
                         return org.ID;
@@ -1693,6 +1969,5 @@ namespace Phantasma.Business.Blockchain
 
             return Nexus.RootChain.InvokeContractAtTimestamp(storage, timestamp, NativeContractKind.Account, nameof(AccountContract.LookUpAddress), address).AsString();
         }
-
     }
 }

@@ -66,7 +66,7 @@ public class BlockOracleTests
     public void TestBlockOracleInstance()
     {
         var wallet = PhantasmaKeys.Generate();
-        nexus.CreatePlatform(nexus.RootStorage, "", wallet.Address, "neo", "GAS");
+        nexus.CreatePlatform(nexus.RootChain.StorageFactory.PlatformsStorage, "", wallet.Address, "neo", "GAS");
         var block = nexus.RootChain.GetBlockByHash(nexus.RootChain.GetLastBlockHash());
         var oracle = new BlockOracleReader(nexus, block);
 
@@ -79,7 +79,7 @@ public class BlockOracleTests
     public void TestRead()
     {
         var wallet = PhantasmaKeys.Generate();
-        nexus.CreatePlatform(nexus.RootStorage, "", wallet.Address, "neo", "GAS");
+        nexus.CreatePlatform(nexus.RootChain.StorageFactory.PlatformsStorage, "", wallet.Address, "neo", "GAS");
         var block = nexus.RootChain.GetBlockByHash(nexus.RootChain.GetLastBlockHash());
         var oracle = new BlockOracleReader(nexus, block);
         nexus.SetOracleReader(oracle);
@@ -110,13 +110,9 @@ public class BlockOracleTests
         Assert.NotNull(block);
         Assert.Equal(nexus, oracle.Nexus);
         Assert.Equal(block, oracle.OriginalBlock);
-        
-        
+
         Console.WriteLine("block oracle data: " + blockEnd.OracleData.Count());
         Assert.True(blockEnd.OracleData.Count() == totalOracleCalls);
-        
-        
-
     }
 
     [Fact]

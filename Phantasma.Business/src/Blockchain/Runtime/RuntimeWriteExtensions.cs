@@ -61,7 +61,7 @@ public static class RuntimeWriteExtensions
         var usedQuota = Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.GetUsedDataQuota), target).AsNumber();
 
         BigInteger deleteSize = 0;
-        if (Runtime.Storage.Has(Key))
+        if (Runtime.StorageFactory.ContractsStorage.Has(Key))
         {
             var oldData = Runtime.Storage.Get(Key);
             deleteSize = oldData.Length;
@@ -75,7 +75,7 @@ public static class RuntimeWriteExtensions
             Runtime.Expect(availableSize >= diff, $"not enough storage space available: requires " + diff + ", only have: " + availableSize);
         }
 
-        Runtime.Storage.Put(Key, value);
+        Runtime.StorageFactory.ContractsStorage.Put(Key, value);
 
         usedQuota -= deleteSize;
         usedQuota += writeSize;
@@ -87,7 +87,7 @@ public static class RuntimeWriteExtensions
         
         Runtime.SetDataQuotas(target, usedQuota);
         
-        var temp = Runtime.Storage.Get(Key);
+        var temp = Runtime.StorageFactory.ContractsStorage.Get(Key);
         Runtime.Expect(temp.Length == value.Length, "storage write corruption");
     }
 
@@ -101,12 +101,12 @@ public static class RuntimeWriteExtensions
     {
         ValidateKey(Runtime, key);
 
-        Runtime.Expect(Runtime.Storage.Has(key), "key does not exist");
+        Runtime.Expect(Runtime.StorageFactory.ContractsStorage.Has(key), "key does not exist");
 
-        var value = Runtime.Storage.Get(key);
+        var value = Runtime.StorageFactory.ContractsStorage.Get(key);
         var deleteSize = value.Length;
 
-        Runtime.Storage.Delete(key);
+        Runtime.StorageFactory.ContractsStorage.Delete(key);
 
         var usedQuota = Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.GetUsedDataQuota), target).AsNumber();
         usedQuota -= deleteSize;

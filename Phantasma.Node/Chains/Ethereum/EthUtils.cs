@@ -32,7 +32,7 @@ namespace Phantasma.Node.Chains.Ethereum
                 assetID = assetID.Substring(2);
             }
 
-            var symbol = nexus.GetPlatformTokenByHash(Hash.FromUnpaddedHex(assetID), "ethereum", nexus.RootStorage);
+            var symbol = nexus.GetPlatformTokenByHash(Hash.FromUnpaddedHex(assetID), "ethereum", nexus.RootChain.StorageFactory.PlatformsStorage);
 
             if (String.IsNullOrEmpty(symbol))
             {

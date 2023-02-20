@@ -12,6 +12,7 @@ public interface INexus
     string Name { get; init; }
     IChain RootChain { get; }
     StorageContext RootStorage { get; init;  }
+    StorageFactory StorageFactory { get; init;  }
 
     bool HasGenesis();
     void CommitGenesis(Hash hash);

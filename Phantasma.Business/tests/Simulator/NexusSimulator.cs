@@ -121,8 +121,8 @@ public class NexusSimulator
         _keys.Add(_currentValidator);
 
         var oneFuel = UnitConversion.ToBigInteger(1, DomainSettings.FuelTokenDecimals);
-        var token = Nexus.GetTokenInfo(Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
-        var localBalance = Nexus.RootChain.GetTokenBalance(Nexus.RootStorage, token, _currentValidator.Address);
+        var token = Nexus.GetTokenInfo(Nexus.StorageFactory.ContractsStorage, DomainSettings.FuelTokenSymbol);
+        var localBalance = Nexus.RootChain.GetTokenBalance(Nexus.StorageFactory.AddressBalancesStorage, token, _currentValidator.Address);
 
         if (localBalance < oneFuel)
         {
@@ -222,13 +222,13 @@ public class NexusSimulator
             BeginBlock();
 
 
-            var balance = rootChain.GetTokenBalance(Nexus.RootStorage, DomainSettings.StakingTokenSymbol, validator.Address);
+            var balance = rootChain.GetTokenBalance(Nexus.StorageFactory.AddressBalancesStorage, DomainSettings.StakingTokenSymbol, validator.Address);
             if (balance > 0)
             {
                 GenerateTransfer(validator, target, rootChain, DomainSettings.StakingTokenSymbol, balance);
             }
             
-            var balanceKCAL = rootChain.GetTokenBalance(Nexus.RootStorage, DomainSettings.StakingTokenSymbol, validator.Address);
+            var balanceKCAL = rootChain.GetTokenBalance(Nexus.StorageFactory.AddressBalancesStorage, DomainSettings.StakingTokenSymbol, validator.Address);
             if (balanceKCAL > 0)
             {
                 GenerateTransfer(validator, target, rootChain, DomainSettings.FuelTokenSymbol, balanceKCAL - UnitConversion.ToBigInteger(5, DomainSettings.FuelTokenDecimals));
@@ -252,8 +252,9 @@ public class NexusSimulator
         BeginBlock();
         AddTransactionToPendingBlock(genesisTx, Nexus.RootChain);
         EndBlock();
+        Assert.True(LastBlockWasSuccessful(), FailedTxReason);
 
-        var initialBalance = Nexus.RootChain.GetTokenBalance(Nexus.RootStorage, DomainSettings.StakingTokenSymbol, _currentValidator.Address);
+        var initialBalance = Nexus.RootChain.GetTokenBalance(Nexus.StorageFactory.AddressBalancesStorage, DomainSettings.StakingTokenSymbol, _currentValidator.Address);
         // check if the owner address got at least enough tokens to be a SM
         Assert.True(initialBalance >= StakeContract.DefaultMasterThreshold);
 
@@ -334,23 +335,23 @@ public class NexusSimulator
     public void InitPlatforms()
     {
         var neoPlatform = NeoWallet.NeoPlatform;
-        var neoKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.RootStorage), neoPlatform);
+        var neoKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.StorageFactory.PlatformsStorage), neoPlatform);
         var neoText = NeoKeys.FromWIF(neoKeys.ToWIF()).Address;
         var neoAddress = NeoWallet.EncodeAddress(neoText);
 
         var ethPlatform = EthereumWallet.EthereumPlatform;
-        var ethKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.RootStorage), ethPlatform);
+        var ethKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.StorageFactory.PlatformsStorage), ethPlatform);
         var ethText = EthereumKey.FromWIF(ethKeys.ToWIF()).Address;
         var ethAddress = EthereumWallet.EncodeAddress(ethText);
 
         var bscPlatform = BSCWallet.BSCPlatform;
-        var bscKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.RootStorage), bscPlatform);
+        var bscKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.StorageFactory.PlatformsStorage), bscPlatform);
         var bscText = EthereumKey.FromWIF(bscKeys.ToWIF()).Address;
         var bscAddress = BSCWallet.EncodeAddress(bscText);
 
-        Nexus.CreatePlatform(Nexus.RootStorage, neoText, neoAddress, neoPlatform, "GAS");
-        Nexus.CreatePlatform(Nexus.RootStorage, ethText, ethAddress, ethPlatform, "ETH");
-        Nexus.CreatePlatform(Nexus.RootStorage, bscText, bscAddress, bscPlatform, "BNB");
+        Nexus.CreatePlatform(Nexus.StorageFactory.PlatformsStorage, neoText, neoAddress, neoPlatform, "GAS");
+        Nexus.CreatePlatform(Nexus.StorageFactory.PlatformsStorage, ethText, ethAddress, ethPlatform, "ETH");
+        Nexus.CreatePlatform(Nexus.StorageFactory.PlatformsStorage, bscText, bscAddress, bscPlatform, "BNB");
 
         
         /*BeginBlock();
@@ -448,7 +449,7 @@ public class NexusSimulator
         var readyNames = new List<Address>();
         foreach (var address in pendingNames)
         {
-            var currentName = Nexus.RootChain.GetNameFromAddress(Nexus.RootStorage, address, CurrentTime);
+            var currentName = Nexus.RootChain.GetNameFromAddress(Nexus.StorageFactory.AddressStorage, address, CurrentTime);
             if (currentName != ValidationUtils.ANONYMOUS_NAME)
             {
                 readyNames.Add(address);
@@ -494,7 +495,7 @@ public class NexusSimulator
         blockOpen = false;
 
         var blocks = new List<Block>();
-        var protocol = (uint)Nexus.GetGovernanceValue(Nexus.RootStorage, Nexus.NexusProtocolVersionTag);
+        var protocol = (uint)Nexus.GetGovernanceValue(Nexus.StorageFactory.ContractsStorage, Nexus.NexusProtocolVersionTag);
 
         if (txChainMap.Count > 0)
         {
@@ -751,7 +752,7 @@ public class NexusSimulator
     public ITransaction GenerateToken(PhantasmaKeys owner, string symbol, string name, BigInteger totalSupply,
             int decimals, TokenFlags flags, byte[] tokenScript = null, Dictionary<string, int> labels = null, IEnumerable<ContractMethod> customMethods = null, uint seriesID = 0)
     {
-        var version = Nexus.GetGovernanceValue(Nexus.RootStorage, Nexus.NexusProtocolVersionTag);
+        var version = Nexus.GetGovernanceValue(Nexus.StorageFactory.ContractsStorage, Nexus.NexusProtocolVersionTag);
         if (labels == null)
         {
             labels = new Dictionary<string, int>();
@@ -932,7 +933,7 @@ public class NexusSimulator
     public ITransaction GenerateSideChainSend(PhantasmaKeys source, string tokenSymbol, IChain sourceChain, Address targetAddress, IChain targetChain, BigInteger amount, BigInteger fee)
     {
         Throw.IfNull(source, nameof(source));
-        Throw.If(!Nexus.TokenExists(Nexus.RootStorage, tokenSymbol), "Token does not exist: "+ tokenSymbol);
+        Throw.If(!Nexus.TokenExists(Nexus.StorageFactory.MainStorage, tokenSymbol), "Token does not exist: "+ tokenSymbol);
         Throw.IfNull(sourceChain, nameof(sourceChain));
         Throw.IfNull(targetChain, nameof(targetChain));
         Throw.If(amount <= 0, "positive amount required");
@@ -1270,7 +1271,7 @@ public class NexusSimulator
                         sourceChain = this.Nexus.RootChain;
                         tokenSymbol = DomainSettings.FuelTokenSymbol;
 
-                        var token = Nexus.GetTokenInfo(Nexus.RootStorage, tokenSymbol);
+                        var token = Nexus.GetTokenInfo(Nexus.StorageFactory.ContractsStorage, tokenSymbol);
 
                         var balance = sourceChain.GetTokenBalance(sourceChain.Storage, token, source.Address);
                         if (balance > fee + AccountContract.RegistrationCost && !pendingNames.Contains(source.Address))
@@ -1295,10 +1296,10 @@ public class NexusSimulator
                                     break;
                             }
 
-                            var currentName = Nexus.RootChain.GetNameFromAddress(Nexus.RootStorage, source.Address, CurrentTime);
+                            var currentName = Nexus.RootChain.GetNameFromAddress(Nexus.StorageFactory.AddressStorage, source.Address, CurrentTime);
                             if (currentName == ValidationUtils.ANONYMOUS_NAME)
                             {
-                                var lookup = Nexus.LookUpName(Nexus.RootStorage, randomName, CurrentTime);
+                                var lookup = Nexus.LookUpName(Nexus.StorageFactory.AddressStorage, randomName, CurrentTime);
                                 if (lookup.IsNull)
                                 {
                                     Log($"Rnd.GenerateAccount: {source.Address} => {randomName}");
@@ -1331,10 +1332,10 @@ public class NexusSimulator
                         {
                             var total = UnitConversion.ToBigInteger(1 + _rnd.Next() % 100, DomainSettings.FuelTokenDecimals - 1);
 
-                            var token = Nexus.GetTokenInfo(Nexus.RootStorage, tokenSymbol);
+                            var token = Nexus.GetTokenInfo(Nexus.StorageFactory.ContractsStorage, tokenSymbol);
                             var tokenBalance = sourceChain.GetTokenBalance(sourceChain.Storage, token, source.Address);
 
-                            var fuelToken = Nexus.GetTokenInfo(Nexus.RootStorage, DomainSettings.FuelTokenSymbol);
+                            var fuelToken = Nexus.GetTokenInfo(Nexus.StorageFactory.ContractsStorage, DomainSettings.FuelTokenSymbol);
                             var fuelBalance = sourceChain.GetTokenBalance(sourceChain.Storage, fuelToken, source.Address);
 
                             var expectedTotal = total;
@@ -1432,7 +1433,7 @@ public class NexusSimulator
     }
     public void WriteArchive(Hash hash, int blockIndex, byte[] bytes)
     {
-        var archive = Nexus.GetArchive(Nexus.RootStorage, hash);
+        var archive = Nexus.GetArchive(Nexus.StorageFactory.ArchiveStorage, hash);
         if (archive == null)
         {
             throw new ChainException("archive not found");
@@ -1480,17 +1481,17 @@ public class NexusSimulator
 
     public VMObject InvokeContract(NativeContractKind nativeContract, string methodName, params object[] args)
     {
-        return this.Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootStorage, CurrentTime, nativeContract, methodName, args);
+        return this.Nexus.RootChain.InvokeContractAtTimestamp(Nexus.StorageFactory.ContractsStorage, CurrentTime, nativeContract, methodName, args);
     }
 
     public VMObject InvokeContract(string contractName, string methodName, params object[] args)
     {
-        return this.Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootStorage, CurrentTime, contractName, methodName, args);
+        return this.Nexus.RootChain.InvokeContractAtTimestamp(Nexus.StorageFactory.ContractsStorage, CurrentTime, contractName, methodName, args);
     }
 
     public VMObject InvokeScript(byte[] script)
     {
-        return this.Nexus.RootChain.InvokeScript(Nexus.RootStorage, script, CurrentTime);
+        return this.Nexus.RootChain.InvokeScript(Nexus.StorageFactory.ContractsStorage, script, CurrentTime);
     }
 
     public void UpdateOraclePrice(string symbol, decimal price)

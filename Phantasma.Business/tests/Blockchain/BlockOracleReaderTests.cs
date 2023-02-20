@@ -48,7 +48,8 @@ public class BlockOracleReaderTests
         simulator = new NexusSimulator(owner);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
-        simulator.GetFundsInTheFuture(owner);
+        simulator.GetFundsInTheFuture(owner, 1);
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.BeginScript()
@@ -57,7 +58,7 @@ public class BlockOracleReaderTests
                 .SpendGas(owner.Address)
                 .EndScript());
         simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
         SetInitialBalance(user.Address);
     }
 
@@ -67,7 +68,7 @@ public class BlockOracleReaderTests
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.StakingTokenSymbol, initialAmount);
         simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
     }
 
     [Fact]
@@ -137,7 +138,7 @@ public class BlockOracleReaderTests
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, user.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
         var block = simulator.EndBlock().First();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
         
         BlockOracleReader reader = new BlockOracleReader(nexus, block);
 

@@ -192,7 +192,7 @@ namespace Phantasma.Node
         {
             var nexus = NexusAPI.GetNexus();
 
-            var genesisHash = nexus.GetGenesisHash(nexus.RootStorage);
+            var genesisHash = nexus.GetGenesisHash(nexus.RootChain.StorageFactory.MainStorage);
             var interopKeys = InteropUtils.GenerateInteropKeys(nodeKeys, genesisHash, platformName);
             var defaultWif = interopKeys.ToWIF();
 

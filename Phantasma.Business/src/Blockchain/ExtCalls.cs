@@ -522,7 +522,7 @@ namespace Phantasma.Business.Blockchain
             return ExecutionState.Running;
         }
 
-        #region DATA
+#region DATA
         private static ExecutionState Data_Get(RuntimeVM vm)
         {
             // NOTE: having this check here prevents NFT properties from working
@@ -545,7 +545,7 @@ namespace Phantasma.Business.Blockchain
                 vmType = VMType.Bytes;
             }
 
-            var value_bytes = vm.Storage.Get(key);
+            var value_bytes = vm.StorageFactory.ContractsStorage.Get(key);
             var val = new VMObject();
             val.SetValue(value_bytes, vmType);
             vm.Stack.Push(val);
@@ -632,9 +632,9 @@ namespace Phantasma.Business.Blockchain
 
             return ExecutionState.Running;
         }
-        #endregion
+#endregion
 
-        #region MAP
+#region MAP
         private static ExecutionState Map_Has(RuntimeVM vm)
         {
             //vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
@@ -652,7 +652,7 @@ namespace Phantasma.Business.Blockchain
             var type_obj = vm.Stack.Pop();
             var vmType = type_obj.AsEnum<VMType>();
 
-            var map = new StorageMap(mapKey, vm.Storage);
+            var map = new StorageMap(mapKey, vm.StorageFactory.ContractsStorage);
 
             var keyExists = map.ContainsKey(entryKey);
 
@@ -681,7 +681,7 @@ namespace Phantasma.Business.Blockchain
             var type_obj = vm.Stack.Pop();
             var vmType = type_obj.AsEnum<VMType>();
 
-            var map = new StorageMap(mapKey, vm.Storage);
+            var map = new StorageMap(mapKey, vm.StorageFactory.ContractsStorage);
 
             var value_bytes = map.GetRaw(entryKey);
 
@@ -719,7 +719,7 @@ namespace Phantasma.Business.Blockchain
 
             var value = vm.Stack.Pop();
 
-            var map = new StorageMap(mapKey, vm.Storage);
+            var map = new StorageMap(mapKey, vm.StorageFactory.ContractsStorage);
 
             var value_bytes = value.AsByteArray();
 
@@ -745,7 +745,7 @@ namespace Phantasma.Business.Blockchain
             var entryKey = entry_obj.AsByteArray();
             vm.Expect(entryKey.Length > 0, "invalid entry key");
 
-            var map = new StorageMap(mapKey, vm.Storage);
+            var map = new StorageMap(mapKey, vm.StorageFactory.ContractsStorage);
 
             map.Remove<byte[]>(entryKey);
 
@@ -764,7 +764,7 @@ namespace Phantasma.Business.Blockchain
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
 
-            var map = new StorageMap(mapKey, vm.Storage);
+            var map = new StorageMap(mapKey, vm.StorageFactory.ContractsStorage);
             map.Clear();
 
             return ExecutionState.Running;
@@ -782,7 +782,7 @@ namespace Phantasma.Business.Blockchain
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
 
-            var map = new StorageMap(mapKey, vm.Storage);
+            var map = new StorageMap(mapKey, vm.StorageFactory.ContractsStorage);
 
             var keys = map.AllKeys<byte[]>();
             var val = VMObject.FromObject(keys);
@@ -802,7 +802,7 @@ namespace Phantasma.Business.Blockchain
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
 
-            var map = new StorageMap(mapKey, vm.Storage);
+            var map = new StorageMap(mapKey,vm.StorageFactory.ContractsStorage);
 
             var count = map.Count();
             var val = VMObject.FromObject(count);
@@ -810,9 +810,9 @@ namespace Phantasma.Business.Blockchain
 
             return ExecutionState.Running;
         }
-        #endregion
+#endregion
 
-        #region LIST
+#region LIST
         private static ExecutionState List_Get(RuntimeVM vm)
         {
             //vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
@@ -830,7 +830,7 @@ namespace Phantasma.Business.Blockchain
             var type_obj = vm.Stack.Pop();
             var vmType = type_obj.AsEnum<VMType>();
 
-            var list = new StorageList(listKey, vm.Storage);
+            var list = new StorageList(listKey, vm.StorageFactory.ContractsStorage);
 
             var value_bytes = list.GetRaw(index);
 
@@ -864,7 +864,7 @@ namespace Phantasma.Business.Blockchain
 
             var value = vm.Stack.Pop();
 
-            var list = new StorageList(listKey, vm.Storage);
+            var list = new StorageList(listKey, vm.StorageFactory.ContractsStorage);
 
             var value_bytes = value.AsByteArray();
 
@@ -891,7 +891,7 @@ namespace Phantasma.Business.Blockchain
 
             var value = vm.Stack.Pop();
 
-            var list = new StorageList(listKey, vm.Storage);
+            var list = new StorageList(listKey, vm.StorageFactory.ContractsStorage);
 
             var value_bytes = value.AsByteArray();
 
@@ -915,7 +915,7 @@ namespace Phantasma.Business.Blockchain
             var index = vm.PopNumber("index");
             vm.Expect(index >= 0, "invalid index");
 
-            var list = new StorageList(listKey, vm.Storage);
+            var list = new StorageList(listKey, vm.StorageFactory.ContractsStorage);
 
             list.RemoveAt(index);
 
@@ -935,7 +935,7 @@ namespace Phantasma.Business.Blockchain
             var field = vm.PopString("field");
             var listKey = SmartContract.GetKeyForField(contractName, field, false);
 
-            var list = new StorageList(listKey, vm.Storage);
+            var list = new StorageList(listKey, vm.StorageFactory.ContractsStorage);
             list.Clear();
 
             return ExecutionState.Running;
@@ -952,7 +952,7 @@ namespace Phantasma.Business.Blockchain
             var field = vm.PopString("field");
             var listKey = SmartContract.GetKeyForField(contractName, field, false);
 
-            var list = new StorageList(listKey, vm.Storage);
+            var list = new StorageList(listKey, vm.StorageFactory.ContractsStorage);
 
             var count = list.Count();
             var val = VMObject.FromObject(count);
@@ -960,9 +960,9 @@ namespace Phantasma.Business.Blockchain
 
             return ExecutionState.Running;
         }
-        #endregion
+#endregion
         
-        #region Token Interactions
+#region Token Interactions
 
         private static ExecutionState Runtime_GetBalance(RuntimeVM vm)
         {
@@ -1202,7 +1202,7 @@ namespace Phantasma.Business.Blockchain
 
             var tokenContext = vm.FindContext(symbol);
             var contractAddress = SmartContract.GetAddressFromContractName(symbol);
-            var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
+            var deployed = vm.Chain.IsContractDeployed(vm.StorageFactory.ContractsStorage, contractAddress);
             
             if (vm.ProtocolVersion <= 8)
             {
@@ -1347,7 +1347,7 @@ namespace Phantasma.Business.Blockchain
             vm.ExpectStackSize(1);
             var tag = vm.PopString("tag");
         
-            var val = vm.Nexus.GetGovernanceValue(vm.RootStorage, tag);
+            var val = vm.Nexus.GetGovernanceValue(vm.StorageFactory.ContractsStorage, tag);
         
             var result = new VMObject();
             result.SetValue(val);
@@ -1435,9 +1435,9 @@ namespace Phantasma.Business.Blockchain
 
             return ExecutionState.Running;
         }
-        #endregion
+#endregion
 
-        #region Contract / Token Deployment
+#region Contract / Token Deployment
         private static ExecutionState Runtime_DeployContract(RuntimeVM vm)
         {
             var tx = vm.Transaction;
@@ -1465,7 +1465,7 @@ namespace Phantasma.Business.Blockchain
             var contractName = vm.PopString("contractName");
 
             var contractAddress = SmartContract.GetAddressFromContractName(contractName);
-            var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
+            var deployed = vm.Chain.IsContractDeployed(vm.StorageFactory.ContractsStorage, contractAddress);
             vm.ExpectWarning(!deployed, $"{contractName} is already deployed", from);
             
             // check if exists token with same name
@@ -1529,7 +1529,7 @@ namespace Phantasma.Business.Blockchain
             // ABI validation
             ValidateABI(vm, contractName, abi, isNative);
 
-            var success = vm.Chain.DeployContractScript(vm.Storage, from, contractName, contractAddress, script, abi);
+            var success = vm.Chain.DeployContractScript(vm.StorageFactory.ContractsStorage, from, contractName, contractAddress, script, abi);
             vm.Expect(success, $"deployment of {contractName} failed");
 
             var constructor = abi.FindMethod(SmartContract.ConstructorName);
@@ -1564,7 +1564,7 @@ namespace Phantasma.Business.Blockchain
             var contractName = vm.PopString("contractName");
 
             var contractAddress = SmartContract.GetAddressFromContractName(contractName);
-            var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
+            var deployed = vm.Chain.IsContractDeployed(vm.StorageFactory.ContractsStorage, contractAddress);
 
             vm.Expect(deployed, $"{contractName} does not exist");
 
@@ -1587,11 +1587,11 @@ namespace Phantasma.Business.Blockchain
             SmartContract oldContract;
             if (isToken)
             {
-                oldContract = vm.Nexus.GetTokenContract(vm.Storage, contractName);
+                oldContract = vm.Nexus.GetTokenContract(vm.StorageFactory.ContractsStorage, contractName);
             }
             else
             {
-                oldContract = vm.Chain.GetContractByName(vm.Storage, contractName);
+                oldContract = vm.Chain.GetContractByName(vm.StorageFactory.ContractsStorage, contractName);
             }
 
             vm.Expect(oldContract != null, "could not fetch previous contract");
@@ -1604,11 +1604,11 @@ namespace Phantasma.Business.Blockchain
 
             if (isToken)
             {
-                vm.Nexus.UpgradeTokenContract(vm.RootStorage, contractName, script, abi);
+                vm.Nexus.UpgradeTokenContract(vm.StorageFactory.ContractsStorage, contractName, script, abi);
             }
             else
             {
-                vm.Chain.UpgradeContract(vm.Storage, contractName, script, abi);
+                vm.Chain.UpgradeContract(vm.StorageFactory.ContractsStorage, contractName, script, abi);
             }
 
             vm.Notify(EventKind.ContractUpgrade, from, contractName);
@@ -1634,7 +1634,7 @@ namespace Phantasma.Business.Blockchain
             var contractName = vm.PopString("contractName");
 
             var contractAddress = SmartContract.GetAddressFromContractName(contractName);
-            var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
+            var deployed = vm.Chain.IsContractDeployed(vm.StorageFactory.ContractsStorage, contractAddress);
 
             vm.Expect(deployed, $"{contractName} does not exist");
 
@@ -1650,11 +1650,11 @@ namespace Phantasma.Business.Blockchain
             SmartContract contract;
             if (isToken)
             {
-                contract = vm.Nexus.GetTokenContract(vm.Storage, contractName);
+                contract = vm.Nexus.GetTokenContract(vm.StorageFactory.ContractsStorage, contractName);
             }
             else
             {
-                contract = vm.Chain.GetContractByName(vm.Storage, contractName);
+                contract = vm.Chain.GetContractByName(vm.StorageFactory.ContractsStorage, contractName);
             }
 
             vm.Expect(contract != null, "could not fetch previous contract");
@@ -1684,7 +1684,7 @@ namespace Phantasma.Business.Blockchain
             }
             else
             {
-                vm.Chain.KillContract(vm.Storage, contractName);
+                vm.Chain.KillContract(vm.StorageFactory.ContractsStorage, contractName);
             }
 
             vm.Notify(EventKind.ContractKill, from, contractName);
@@ -1715,7 +1715,7 @@ namespace Phantasma.Business.Blockchain
             vm.Expect(abi.HasTokenTrigger(TokenTrigger.OnMint), $"Token contract needs to implement {TokenTrigger.OnMint}");
 
             var rootChain = (Chain)vm.GetRootChain(); // this cast is not the best, but works for now...
-            var storage = vm.RootStorage;
+            var storage = vm.StorageFactory.ContractsStorage;
 
             TokenUtils.FetchProperty(storage, rootChain, "getSymbol", script, abi, (prop, value) =>
             {
@@ -1789,7 +1789,7 @@ namespace Phantasma.Business.Blockchain
             
             // check if contract already exists
             var contractAddress = SmartContract.GetAddressFromContractName(symbol.ToLower());
-            var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
+            var deployed = vm.Chain.IsContractDeployed(vm.StorageFactory.ContractsStorage, contractAddress);
             vm.ExpectWarning(!deployed, $"{symbol} already exists", owner);
             vm.Expect(ValidationUtils.IsValidTicker(symbol), "missing or invalid token symbol");
             vm.Expect(!string.IsNullOrEmpty(name), "missing or invalid token name");
@@ -1803,9 +1803,9 @@ namespace Phantasma.Business.Blockchain
 
             return ExecutionState.Running;
         }
-        #endregion
+#endregion
         
-        #region CHAIN
+#region CHAIN
 
         private static ExecutionState Nexus_BeginInit(RuntimeVM vm)
         {
@@ -1881,9 +1881,14 @@ namespace Phantasma.Business.Blockchain
         //    return ExecutionState.Running;
         //}
         
-        #endregion
+#endregion
         
-        #region Organization
+#region Organization
+        /// <summary>
+        /// Creates an organization
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Nexus_CreateOrganization(RuntimeVM vm)
         {
             vm.ExpectStackSize(4);
@@ -1897,7 +1902,7 @@ namespace Phantasma.Business.Blockchain
             if (vm.ProtocolVersion >= 10)
             {
                 var contractAddress = SmartContract.GetAddressFromContractName(ID.ToLower());
-                var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
+                var deployed = vm.Chain.IsContractDeployed(vm.StorageFactory.ContractsStorage, contractAddress);
                 vm.ExpectWarning(!deployed, $"{ID} already exists", source);
             
                 bool isNative = Nexus.IsNativeContract(ID.ToLower());
@@ -1913,10 +1918,17 @@ namespace Phantasma.Business.Blockchain
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Add a member to an organization
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Organization_AddMember(RuntimeVM vm)
         {
             vm.ExpectStackSize(3);
 
+            // TODO: Add some validations here.
+            
             var source = vm.PopAddress();
             var name = vm.PopString("name");
             var target = vm.PopAddress();
@@ -1926,9 +1938,16 @@ namespace Phantasma.Business.Blockchain
             return ExecutionState.Running;
         }
         
+        /// <summary>
+        /// Remove a member from an organization
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Organization_RemoveMember(RuntimeVM vm)
         {
             if (vm.ProtocolVersion <= 9) return ExecutionState.Fault;
+            
+            // TODO: Add some validations here.
             
             vm.ExpectStackSize(3);
             
@@ -1940,7 +1959,7 @@ namespace Phantasma.Business.Blockchain
 
             return ExecutionState.Running;
         }
-        #endregion
+#endregion
 
         private static void ValidateABI(RuntimeVM vm, string contractName, ContractInterface abi, bool isNative)
         {
@@ -1963,7 +1982,7 @@ namespace Phantasma.Business.Blockchain
             }
         }
 
-        #region TASKS
+#region TASKS
         private static ExecutionState Task_Current(RuntimeVM vm)
         {
             var result = new VMObject();
@@ -2023,9 +2042,9 @@ namespace Phantasma.Business.Blockchain
             return ExecutionState.Running;
         }
 
-        #endregion
+#endregion
 
-        #region ACCOUNT 
+#region ACCOUNT 
         private static ExecutionState Account_Name(RuntimeVM vm)
         {
             vm.ExpectStackSize(1);
@@ -2073,8 +2092,6 @@ namespace Phantasma.Business.Blockchain
 
             return ExecutionState.Running;
         }
-
-        #endregion
-
+#endregion
     }
 }

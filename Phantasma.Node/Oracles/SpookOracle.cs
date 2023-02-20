@@ -45,7 +45,7 @@ namespace Phantasma.Node.Oracles
 
             Log.Information("Platform count: " + platforms.Count);
 
-            var nexusPlatforms = (nexus as Nexus).GetPlatforms(nexus.RootStorage);
+            var nexusPlatforms = (nexus as Nexus).GetPlatforms(nexus.RootChain.StorageFactory.PlatformsStorage);
             foreach (var nexusPlatform in nexusPlatforms)
             {
                 if (!platforms.ContainsKey(nexusPlatform))
@@ -257,7 +257,7 @@ namespace Phantasma.Node.Oracles
                             ((TokenSwapper)tokenSwapper).SwapAddresses[platformName], coldStorage);
                     break;
                 case EthereumWallet.EthereumPlatform:
-                    var hashes = nexus.GetPlatformTokenHashes(EthereumWallet.EthereumPlatform, nexus.RootStorage)
+                    var hashes = nexus.GetPlatformTokenHashes(EthereumWallet.EthereumPlatform, nexus.RootChain.StorageFactory.PlatformsStorage)
                         .Select(x => x.ToString().Substring(0, 40)).ToArray();
                 
                     interopTuple = EthereumInterop.MakeInteropBlock(nexus, _cli.EthAPI, height,

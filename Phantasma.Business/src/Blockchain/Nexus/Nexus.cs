@@ -33,6 +33,12 @@ public class Nexus : INexus
     private string ChainArchivesKey => ".chain.archives.";
     public static string NexusProtocolVersionTag => "nexus.protocol.version";
     
+    private const string TokenTag = "tokens";
+    private const string ChainTag = "chains";
+    private const string PlatformTag = "platforms";
+    private const string FeedTag = "feeds";
+    private const string OrganizationTag = "orgs";
+    
      private static string OLD_LP_CONTRACT_PVM =
         "000D01041C5068616E7461736D61204C69717569646974792050726F76696465720301082700000B000D0104024C500301083500000B000D010601000301084200000B000D010601010301084F00000B000D010301080301085C00000B000D010601000301086900000B000D010301000301087600000B000D010408446174612E4765740D0204024C500D0003010803000D0004065F6F776E6572030003020701040303030D00040941646472657373282907000403020301030108BF00000B000D00040F52756E74696D652E56657273696F6E070004000D010301001A0001000A001E010D00043243757272656E74206E657875732070726F746F636F6C2076657273696F6E2073686F756C642062652030206F72206D6F72650C0000040303030D000409416464726573732829070004030203040204010D040601000204020D05026C04076765744E616D6504000000000107746F6B656E4944030E6765744465736372697074696F6E045D0000000107746F6B656E4944030B676574496D61676555524C04F10000000107746F6B656E4944030A676574496E666F55524C041E0100000107746F6B656E4944030003050D0502FD52010004010D0004066D696E744944030003010D0004024C5003000D00041152756E74696D652E52656164546F6B656E070004023202020D0004066D696E744944300203000D0104044C5020230203020E020204230102040304085C00000B0004010D000403524F4D030003010D0004024C5003000D00041152756E74696D652E52656164546F6B656E070004023202020D000403524F4D300203003203030D0104124C6971756469747920666F7220706F6F6C200203020D04040753796D626F6C30300202040D040403202F200203050D06040753796D626F6C3130050506230405062302060423010402030208F000000B0004010D01041F68747470733A2F2F7068616E7461736D612E696F2F696D672F6C702E706E670301081D01000B0004010201020D01041868747470733A2F2F7068616E7461736D612E696F2F6C702F0202030E030304230103040304085101000B03050D0507040000000003050D0503010003050D0503010003050D0504024C50030502010503050D0404174E657875732E437265617465546F6B656E5365726965730704000D030408446174612E53657403010D0004065F6F776E65720300070303020D0004085F6368616E676564030007030B000D010408446174612E4765740D0204024C500D0003010803000D0004065F6F776E6572030003020701040303030D00040941646472657373282907000403040103010D000409416464726573732829070004010402320202040432040402030603060D05041152756E74696D652E49735769746E65737307050405090514040D06040E7769746E657373206661696C65640C06000D0703010103070204070E07070203070202070E07070203070D0704024C50030702010703070D0702220200FACEE6DD84C950B54361FB71DFE736CDC64D894294305B4FEEAF3C61ABF2F2F703070D0004094164647265737328290700040703070D06041152756E74696D652E4D696E74546F6B656E070604060206050205060306089A04000B00040103010D0004094164647265737328290700040104020E02020302010403040D03041152756E74696D652E49735769746E657373070304030903EE040D04040E7769746E657373206661696C65640C040002020403040D040404534F554C03040D0402220200FACEE6DD84C950B54361FB71DFE736CDC64D894294305B4FEEAF3C61ABF2F2F703040D00040941646472657373282907000404030402010403040D03041652756E74696D652E5472616E73666572546F6B656E73070302020403040D0402220200FACEE6DD84C950B54361FB71DFE736CDC64D894294305B4FEEAF3C61ABF2F2F703040D0004094164647265737328290700040403040D0304055374616B6503030D0304057374616B652D03032E03000B000D010408446174612E4765740D0204024C500D0003010803000D0004065F6F776E6572030003020701040303030D000409416464726573732829070004030D0003010603000D0004085F6368616E6765640300030207010404040103010D0004094164647265737328290700040102040215020209024D060D0504194F776E65722077617320616C7265616479206368616E6765640C050002030503050D02041152756E74696D652E49735769746E65737307020402090284060D05040E7769746E657373206661696C65640C05000D000420416464726573732E697353797374656D206E6F7420696D706C656D656E7465640C000902DC060D050427746865206E65772061646472657373206973206E6F7420612073797374656D20616464726573730C05000201020202030D02060101020204000D010408446174612E53657403030D0004065F6F776E65720300070103040D0004085F6368616E676564030007010B000D010408446174612E4765740D0204024C500D0003010803000D0004065F6F776E6572030003020701040303030D00040941646472657373282907000403040103010D0004094164647265737328290700040102030403040D02041152756E74696D652E49735769746E657373070204020902A5070D04040E7769746E657373206661696C65640C04000D04040B4D696772617465546F563303040D02040865786368616E67652D02022E02000B00040103010D000409416464726573732829070004010D0204174E6F7420616C6C6F77656420746F20757067726164652E0C02000B00040103010D00040941646472657373282907000401040203020D0004094164647265737328290700040202010403040D03041152756E74696D652E49735769746E65737307030403090360080D04040E7769746E657373206661696C65640C0400000B000D010408446174612E4765740D0204024C500D0003010803000D0004065F6F776E6572030003020701040303030D00040941646472657373282907000403040103010D00040941646472657373282907000401040203020D00040941646472657373282907000402040404050E0505030D0704024C50020706020407020608190708090909FF080D07040E696E76616C69642073796D626F6C0C070002030803080D07041152756E74696D652E49735769746E65737307070407090736090D08040E7769746E657373206661696C65640C0800083A09000B00040103010D0004094164647265737328290700040104020E02020302010403040D03041152756E74696D652E49735769746E6573730703040309038E090D04040E7769746E657373206661696C65640C0400089209000B00040103010D00040941646472657373282907000401040203020D00040941646472657373282907000402040304040E04040302010603060D05041152756E74696D652E49735769746E657373070504050905FD090D06040E7769746E657373206661696C65640C060008010A000B";
 
@@ -64,7 +70,10 @@ public class Nexus : INexus
             return _rootChain;
         }
     }
-
+    
+    public StorageContext RootStorage { get; init;  }
+    public StorageFactory StorageFactory { get; init; }
+    
     private KeyValueStore<Hash, byte[]> _archiveContents;
 
     private Func<string, IKeyValueStoreAdapter> _adapterFactory = null;
@@ -80,6 +89,7 @@ public class Nexus : INexus
 
         var storage = new KeyStoreStorage(GetChainStorage(DomainSettings.RootChainName));
         RootStorage = storage;
+        this.StorageFactory = new StorageFactory(this, DomainSettings.RootChainName);
 
         if (!ValidationUtils.IsValidIdentifier(name))
         {
@@ -102,7 +112,7 @@ public class Nexus : INexus
         {
             InitGenesisValues();
 
-            var tokens = GetTokens(storage);
+            var tokens = GetTokens(StorageFactory.ContractsStorage);
             _migratingNexus = tokens.Any(x => x.Equals(DomainSettings.StakingTokenSymbol));
 
             if (_migratingNexus)
@@ -122,62 +132,6 @@ public class Nexus : INexus
         _archiveContents = new KeyValueStore<Hash, byte[]>(CreateKeyStoreAdapter("contents"));
 
         this._oracleReader = null;
-    }
-
-    public void SetInitialValidators(IEnumerable<Address> initialValidators)
-    {
-        this._initialValidators = initialValidators;
-    }
-
-    public bool HasGenesis()
-    {
-        var key = GetNexusKey("hash");
-        return RootStorage.Has(key);
-    }
-
-    public void CommitGenesis(Hash hash)
-    {
-        Throw.If(HasGenesis(), "genesis already exists");
-        var key = GetNexusKey("hash");
-        RootStorage.Put(key, hash);
-        _genesisValues.Clear();
-    }
-
-    public void SetOracleReader(IOracleReader oracleReader)
-    {
-        this._oracleReader = oracleReader;
-    }
-
-    public void Attach(IOracleObserver observer)
-    {
-        this._observers.Add(observer);
-    }
-
-    public void Detach(IOracleObserver observer)
-    {
-        this._observers.Remove(observer);
-    }
-
-    public void Notify(StorageContext storage)
-    {
-        foreach (var observer in _observers)
-        {
-            observer.Update(this, storage);
-        }
-    }
-
-    public bool LoadNexus(StorageContext storage)
-    {
-        var chainList = this.GetChains(storage);
-        foreach (var chainName in chainList)
-        {
-           var chain = GetChainByName(chainName);
-           if (chain is null)
-           {
-               return false;
-           }
-        }
-        return true;
     }
 
     private Dictionary<string, IKeyValueStoreAdapter> _keystoreCache = new Dictionary<string, IKeyValueStoreAdapter>();
@@ -205,6 +159,7 @@ public class Nexus : INexus
         return result;
     }
 
+#region Block
     public Block FindBlockByTransaction(ITransaction tx)
     {
         return FindBlockByTransactionHash(tx.Hash);
@@ -212,7 +167,7 @@ public class Nexus : INexus
 
     public Block FindBlockByTransactionHash(Hash hash)
     {
-        var chainNames = this.GetChains(RootStorage);
+        var chainNames = this.GetChains(this.StorageFactory.MainStorage);
         foreach (var chainName in chainNames)
         {
             var chain = GetChainByName(chainName);
@@ -225,8 +180,50 @@ public class Nexus : INexus
 
         return null;
     }
+#endregion
+    
+#region Oracles
+    /// <summary>
+    /// Set the oracle reader for the nexus.
+    /// </summary>
+    /// <param name="oracleReader"></param>
+    public void SetOracleReader(IOracleReader oracleReader)
+    {
+        this._oracleReader = oracleReader;
+    }
 
-    #region NAME SERVICE
+    /// <summary>
+    /// Attach an observer to the oracle reader.
+    /// </summary>
+    /// <param name="observer"></param>
+    public void Attach(IOracleObserver observer)
+    {
+        this._observers.Add(observer);
+    }
+
+    /// <summary>
+    /// Detach an observer from the oracle reader.
+    /// </summary>
+    /// <param name="observer"></param>
+    public void Detach(IOracleObserver observer)
+    {
+        this._observers.Remove(observer);
+    }
+
+    /// <summary>
+    /// Notify all observers of the oracle reader.
+    /// </summary>
+    /// <param name="storage"></param>
+    public void Notify(StorageContext storage)
+    {
+        foreach (var observer in _observers)
+        {
+            observer.Update(this, storage);
+        }
+    }
+#endregion
+    
+#region NAME SERVICE
     public Address LookUpName(StorageContext storage, string name, Timestamp timestamp)
     {
         if (!ValidationUtils.IsValidIdentifier(name))
@@ -261,9 +258,27 @@ public class Nexus : INexus
         var chain = RootChain;
         return chain.InvokeContractAtTimestamp(storage, timestamp, NativeContractKind.Account, nameof(AccountContract.HasScript), address).AsBool();
     }
-    #endregion
+    
+    public string[] GetAddressesBySymbol(string symbol)
+    {
+        List<string> addresses = new List<string>();
+        var prefix = BalanceSheet.MakePrefix(symbol);
 
-    #region CONTRACTS
+        this.StorageFactory.AddressBalancesStorage.Visit((key, value) =>
+        {
+            var keyString = Encoding.UTF8.GetString(key);
+            if (keyString.Contains($".balances.{symbol}"))
+            {
+                byte[] addrChunk = key[prefix.Length..];
+                addresses.Add(Address.FromBytes(addrChunk).Text);
+            }
+        });
+        
+        return addresses.ToArray();
+    }
+#endregion
+
+#region CONTRACTS
     public SmartContract GetContractByName(StorageContext storage, string contractName)
     {
         Throw.IfNullOrEmpty(contractName, nameof(contractName));
@@ -279,13 +294,12 @@ public class Nexus : INexus
 
         return result;
     }
+#endregion
 
-    #endregion
-
-    #region TRANSACTIONS
+#region TRANSACTIONS
     public ITransaction FindTransactionByHash(Hash hash)
     {
-        var chainNames = this.GetChains(RootStorage);
+        var chainNames = this.GetChains(this.StorageFactory.MainStorage);
         foreach (var chainName in chainNames)
         {
             var chain = GetChainByName(chainName);
@@ -298,10 +312,17 @@ public class Nexus : INexus
 
         return null;
     }
+#endregion
 
-    #endregion
-
-    #region CHAINS
+#region CHAINS
+    /// <summary>
+    /// Create a new chain.
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <param name="organization"></param>
+    /// <param name="name"></param>
+    /// <param name="parentChainName"></param>
+    /// <returns></returns>
     public bool CreateChain(StorageContext storage, string organization, string name, string parentChainName)
     {
         if (name != DomainSettings.RootChainName)
@@ -332,7 +353,7 @@ public class Nexus : INexus
         {
             return false;
         }
-
+        
         var chain = new Chain(this, name);
 
         // add to persistent list of chains
@@ -356,18 +377,29 @@ public class Nexus : INexus
         return true;
     }
 
+    /// <summary>
+    /// Get the chain by name.
+    /// </summary>
+    /// <param name="address"></param>
+    /// <returns></returns>
     public string LookUpChainNameByAddress(Address address)
     {
         var key = ChainAddressMapKey + address.Text;
-        if (RootStorage.Has(key))
+        if (this.StorageFactory.AddressStorage.Has(key))
         {
-            var bytes = RootStorage.Get(key);
+            var bytes = this.StorageFactory.AddressStorage.Get(key);
             return Encoding.UTF8.GetString(bytes);
         }
 
         return null;
     }
 
+    /// <summary>
+    /// Get the chain by name.
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <param name="chainName"></param>
+    /// <returns></returns>
     public bool ChainExists(StorageContext storage, string chainName)
     {
         if (string.IsNullOrEmpty(chainName))
@@ -399,9 +431,9 @@ public class Nexus : INexus
         }
 
         var key = ChainParentNameKey + chainName;
-        if (RootStorage.Has(key))
+        if (this.StorageFactory.MainStorage.Has(key))
         {
-            var bytes = RootStorage.Get(key);
+            var bytes = this.StorageFactory.MainStorage.Get(key);
             var parentName = Encoding.UTF8.GetString(bytes);
             return parentName;
         }
@@ -412,9 +444,9 @@ public class Nexus : INexus
     public string GetChainOrganization(string chainName)
     {
         var key = ChainOrgKey + chainName;
-        if (RootStorage.Has(key))
+        if (this.StorageFactory.OrganizationStorage.Has(key))
         {
-            var bytes = RootStorage.Get(key);
+            var bytes = this.StorageFactory.OrganizationStorage.Get(key);
             var orgName = Encoding.UTF8.GetString(bytes);
             return orgName;
         }
@@ -482,7 +514,7 @@ public class Nexus : INexus
             return _chainCache[name];
         }
 
-        if (ChainExists(RootStorage, name))
+        if (ChainExists(this.StorageFactory.MainStorage, name))
         {
             var chain = new Chain(this, name);
             _chainCache[name] = chain;
@@ -493,9 +525,35 @@ public class Nexus : INexus
         return null;
     }
 
-    #endregion
+    public string[] GetChains(StorageContext storage)
+    {
+        var list = GetSystemList(ChainTag, storage);
+        return list.All<string>();
+    }
 
-    #region FEEDS
+    public int GetIndexOfChain(string name)
+    {
+        var chains = this.GetChains(this.StorageFactory.MainStorage);
+        int index = 0;
+        foreach (var chain in chains)
+        {
+            if (chain == name)
+            {
+                return index;
+            }
+
+            index++;
+        }
+        return -1;
+    }
+
+    public IKeyValueStoreAdapter GetChainStorage(string name)
+    {
+        return this.CreateKeyStoreAdapter($"chain.{name}");
+    }
+#endregion
+
+#region FEEDS
     public bool CreateFeed(StorageContext storage, Address owner, string name, FeedMode mode)
     {
         if (name == null)
@@ -553,10 +611,15 @@ public class Nexus : INexus
 
         throw new ChainException($"Oracle feed does not exist ({name})");
     }
-    #endregion
+    
+    public string[] GetFeeds(StorageContext storage)
+    {
+        var list = GetSystemList(FeedTag, storage);
+        return list.All<string>();
+    }
+#endregion
 
-    #region TOKENS
-
+#region TOKENS
     public IToken CreateToken(StorageContext storage, string symbol, string name, Address owner, BigInteger maxSupply, int decimals, TokenFlags flags, byte[] script, ContractInterface abi = null)
     {
         Throw.IfNull(script, nameof(script));
@@ -592,7 +655,7 @@ public class Nexus : INexus
         tokenList.Add(symbol);
 
         // we need to flush every chain ABI cache otherwise calls to the new token methods wont work
-        var chainNames = GetChains(RootStorage);
+        var chainNames = GetChains(this.StorageFactory.MainStorage);
         foreach (var chainName in chainNames)
         {
             var chain = GetChainByName(chainName) as Chain;
@@ -732,7 +795,7 @@ public class Nexus : INexus
                                 $"minting of {token.Symbol} can only happen if the destination is a validator.",
                                 source);
 
-                            var org = GetOrganizationByName(Runtime.RootStorage, DomainSettings.ValidatorsOrganizationName);
+                            var org = GetOrganizationByName(Runtime.StorageFactory.OrganizationStorage, DomainSettings.ValidatorsOrganizationName);
                             Runtime.ExpectWarning(org != null, "moving funds from null org currently not possible",
                                 source);
 
@@ -800,10 +863,10 @@ public class Nexus : INexus
         var isSettlement = sourceChain != Runtime.Chain.Name;
 
         var supply = new SupplySheet(token.Symbol, Runtime.Chain, this);
-        Runtime.Expect(supply.Mint(Runtime.Storage, amount, token.MaxSupply), "mint supply failed");
+        Runtime.Expect(supply.Mint(Runtime.StorageFactory.ContractsStorage, amount, token.MaxSupply), "mint supply failed");
 
         var balances = new BalanceSheet(token);
-        Runtime.Expect(balances.Add(Runtime.Storage, destination, amount), "balance add failed");
+        Runtime.Expect(balances.Add(Runtime.StorageFactory.AddressBalancesStorage, destination, amount), "balance add failed");
 
         if (!Runtime.IsSystemToken(token.Symbol))
         {
@@ -835,10 +898,10 @@ public class Nexus : INexus
         var isSettlement = sourceChain != Runtime.Chain.Name;
 
         var supply = new SupplySheet(token.Symbol, Runtime.Chain, this);
-        Runtime.Expect(supply.Mint(Runtime.Storage, 1, token.MaxSupply), "supply mint failed");
+        Runtime.Expect(supply.Mint(Runtime.StorageFactory.ContractsStorage, 1, token.MaxSupply), "supply mint failed");
 
         var ownerships = new OwnershipSheet(token.Symbol);
-        Runtime.Expect(ownerships.Add(Runtime.Storage, destination, tokenID), "ownership add failed");
+        Runtime.Expect(ownerships.Add(Runtime.StorageFactory.AddressBalancesNFTStorage, destination, tokenID), "ownership add failed");
         
         if (!Runtime.IsSystemToken(token.Symbol))
         {
@@ -897,6 +960,13 @@ public class Nexus : INexus
         return burnedSupply;
     }
 
+    /// <summary>
+    /// Get the total amount of tokens burned for a specific series.
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <param name="symbol"></param>
+    /// <param name="seriesID"></param>
+    /// <returns></returns>
     public BigInteger GetBurnedTokenSupplyForSeries(StorageContext storage, string symbol, BigInteger seriesID)
     {
         var burnKey = GetBurnKey($"{symbol}.{seriesID}");
@@ -904,6 +974,15 @@ public class Nexus : INexus
         return burnedSupply;
     }
 
+    /// <summary>
+    /// Burn tokens from the source address and send them to the destination address on the target chain.
+    /// </summary>
+    /// <param name="Runtime"></param>
+    /// <param name="token"></param>
+    /// <param name="source"></param>
+    /// <param name="destination"></param>
+    /// <param name="targetChain"></param>
+    /// <param name="amount"></param>
     public void BurnTokens(IRuntime Runtime, IToken token, Address source, Address destination, string targetChain, BigInteger amount)
     {
         Runtime.Expect(token.Flags.HasFlag(TokenFlags.Fungible), "must be fungible");
@@ -927,10 +1006,10 @@ public class Nexus : INexus
 
         var supply = new SupplySheet(token.Symbol, Runtime.Chain, this);
 
-        Runtime.Expect(supply.Burn(Runtime.Storage, amount), $"{token.Symbol} burn failed");
+        Runtime.Expect(supply.Burn(Runtime.StorageFactory.ContractsStorage, amount), $"{token.Symbol} burn failed");
 
         var balances = new BalanceSheet(token);
-        Runtime.Expect(balances.Subtract(Runtime.Storage, source, amount), $"{token.Symbol} balance subtract failed from {source.Text}");
+        Runtime.Expect(balances.Subtract(Runtime.StorageFactory.AddressBalancesStorage, source, amount), $"{token.Symbol} balance subtract failed from {source.Text}");
 
         // If trigger is missing the code will be executed
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, isSettlement ? TokenTrigger.OnSend : TokenTrigger.OnBurn, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token trigger failed");
@@ -945,12 +1024,20 @@ public class Nexus : INexus
         }
         else
         {
-            UpdateBurnedSupply(Runtime.Storage, token.Symbol, amount);
+            UpdateBurnedSupply(Runtime.StorageFactory.ContractsStorage, token.Symbol, amount);
             Runtime.Notify(EventKind.TokenBurn, source, new TokenEventData(token.Symbol, amount, Runtime.Chain.Name));
         }
     }
 
-    // NFT version
+    /// <summary>
+    /// Burn a non fungible token (NFT version)
+    /// </summary>
+    /// <param name="Runtime"></param>
+    /// <param name="token"></param>
+    /// <param name="source"></param>
+    /// <param name="destination"></param>
+    /// <param name="targetChain"></param>
+    /// <param name="tokenID"></param>
     public void BurnToken(IRuntime Runtime, IToken token, Address source, Address destination, string targetChain, BigInteger tokenID)
     {
         Runtime.Expect(!token.Flags.HasFlag(TokenFlags.Fungible), $"{token.Symbol} can't be fungible");
@@ -968,14 +1055,14 @@ public class Nexus : INexus
         var chain = RootChain;
         var supply = new SupplySheet(token.Symbol, chain, this);
 
-        Runtime.Expect(supply.Burn(Runtime.Storage, 1), "supply burning failed");
+        Runtime.Expect(supply.Burn(Runtime.StorageFactory.ContractsStorage, 1), "supply burning failed");
         
         if (Runtime.ProtocolVersion <= DomainSettings.Phantasma30Protocol)
         {
             DestroyNFTIfSettlement(Runtime, token, source, destination, tokenID, isSettlement);
             
             var ownerships = new OwnershipSheet(token.Symbol);
-            Runtime.Expect(ownerships.Remove(Runtime.Storage, source, tokenID), "ownership removal failed");
+            Runtime.Expect(ownerships.Remove(Runtime.StorageFactory.AddressBalancesNFTStorage, source, tokenID), "ownership removal failed");
 
             ValidateBurnTriggers(Runtime, token, source, destination, targetChain, tokenID, isSettlement);
             
@@ -987,7 +1074,7 @@ public class Nexus : INexus
             DestroyNFTIfSettlement(Runtime, token, source, destination, tokenID, isSettlement);
             
             var ownerships = new OwnershipSheet(token.Symbol);
-            Runtime.Expect(ownerships.Remove(Runtime.Storage, source, tokenID), "ownership removal failed");
+            Runtime.Expect(ownerships.Remove(Runtime.StorageFactory.AddressBalancesNFTStorage, source, tokenID), "ownership removal failed");
         }
 
         if (isSettlement)
@@ -998,8 +1085,8 @@ public class Nexus : INexus
         }
         else
         {
-            UpdateBurnedSupply(Runtime.Storage, token.Symbol, 1);
-            UpdateBurnedSupplyForSeries(Runtime.Storage, token.Symbol, 1, nft.SeriesID);
+            UpdateBurnedSupply(Runtime.StorageFactory.ContractsStorage, token.Symbol, 1);
+            UpdateBurnedSupplyForSeries(Runtime.StorageFactory.ContractsStorage, token.Symbol, 1, nft.SeriesID);
             Runtime.Notify(EventKind.TokenBurn, source, new TokenEventData(token.Symbol, tokenID, Runtime.Chain.Name));
         }
     }
@@ -1025,6 +1112,15 @@ public class Nexus : INexus
         Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, source, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"accont {accountTrigger} trigger failed: ");
     }
     
+    /// <summary>
+    /// To destroy the NFT if it is a settlement
+    /// </summary>
+    /// <param name="Runtime"></param>
+    /// <param name="token"></param>
+    /// <param name="source"></param>
+    /// <param name="destination"></param>
+    /// <param name="tokenID"></param>
+    /// <param name="isSettlement"></param>
     private void DestroyNFTIfSettlement(IRuntime Runtime, IToken token, Address source, Address destination, BigInteger tokenID, bool isSettlement)
     {
         if (!isSettlement)
@@ -1035,6 +1131,15 @@ public class Nexus : INexus
         }
     }
 
+    /// <summary>
+    /// Infuse a non fungible token (NFT version)
+    /// </summary>
+    /// <param name="Runtime"></param>
+    /// <param name="token"></param>
+    /// <param name="from"></param>
+    /// <param name="tokenID"></param>
+    /// <param name="infuseToken"></param>
+    /// <param name="value"></param>
     public void InfuseToken(IRuntime Runtime, IToken token, Address from, BigInteger tokenID, IToken infuseToken, BigInteger value)
     {
         Runtime.Expect(!token.Flags.HasFlag(TokenFlags.Fungible), "can't be fungible");
@@ -1109,7 +1214,7 @@ public class Nexus : INexus
         
         if (destination.IsSystem)
         {
-            var destName = Runtime.Chain.GetNameFromAddress(Runtime.Storage, destination, Runtime.Time);
+            var destName = Runtime.Chain.GetNameFromAddress(Runtime.StorageFactory.AddressStorage, destination, Runtime.Time);
             Runtime.Expect(destName != ValidationUtils.ANONYMOUS_NAME, "anonymous system address as destination");
         }
 
@@ -1123,8 +1228,8 @@ public class Nexus : INexus
         Runtime.Expect(allowed, "invalid witness or allowance");
 
         var balances = new BalanceSheet(token);
-        Runtime.Expect(balances.Subtract(Runtime.Storage, source, amount), $"{token.Symbol} balance subtract failed from {source.Text}");
-        Runtime.Expect(balances.Add(Runtime.Storage, destination, amount), $"{token.Symbol} balance add failed to {destination.Text}");
+        Runtime.Expect(balances.Subtract(Runtime.StorageFactory.AddressBalancesStorage, source, amount), $"{token.Symbol} balance subtract failed from {source.Text}");
+        Runtime.Expect(balances.Add(Runtime.StorageFactory.AddressBalancesStorage, destination, amount), $"{token.Symbol} balance add failed to {destination.Text}");
 
 #if ALLOWANCE_OPERATIONS
         Runtime.AddAllowance(destination, token.Symbol, amount);
@@ -1170,9 +1275,9 @@ public class Nexus : INexus
         Runtime.Expect(nft.CurrentOwner != Address.Null, "nft already destroyed");
 
         var ownerships = new OwnershipSheet(token.Symbol);
-        Runtime.Expect(ownerships.Remove(Runtime.Storage, source, tokenID), "ownership remove failed");
+        Runtime.Expect(ownerships.Remove(Runtime.StorageFactory.AddressBalancesNFTStorage, source, tokenID), "ownership remove failed");
 
-        Runtime.Expect(ownerships.Add(Runtime.Storage, destination, tokenID), "ownership add failed");
+        Runtime.Expect(ownerships.Add(Runtime.StorageFactory.AddressBalancesNFTStorage, destination, tokenID), "ownership add failed");
 
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnSend, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "token send trigger failed");
 
@@ -1200,10 +1305,121 @@ public class Nexus : INexus
         }
     }
 
-    #endregion
+    public string[] GetTokens(StorageContext storage)
+    {
+        var list = GetSystemList(TokenTag, storage);
+        return list.All<string>();
+    }
+    
+    /// <summary>
+    /// Get Token Info
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <param name="contractAddress"></param>
+    /// <returns></returns>
+    public IToken GetTokenInfo(StorageContext storage, Address contractAddress)
+    {
+        var symbols = GetTokens(storage);
+        foreach (var symbol in symbols)
+        {
+            var tokenAddress = TokenUtils.GetContractAddress(symbol);
 
-    #region NFT
+            if (tokenAddress == contractAddress)
+            {
+                var token = GetTokenInfo(storage, symbol);
+                return token;
+            }
+        }
 
+        return null;
+    }
+
+    /// <summary>
+    /// Migrate Token Owner
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <param name="oldOwner"></param>
+    /// <param name="newOwner"></param>
+    public void MigrateTokenOwner(StorageContext storage, Address oldOwner, Address newOwner)
+    {
+        var symbols = GetTokens(storage);
+        foreach (var symbol in symbols)
+        {
+            var token = (TokenInfo) GetTokenInfo(storage, symbol);
+            if (token.Owner == oldOwner)
+            {
+                token.Owner = newOwner;
+                EditToken(storage, symbol, token);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Upgrade a token contract to a new script and ABI. 
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <param name="symbol"></param>
+    /// <param name="script"></param>
+    /// <param name="abi"></param>
+    /// <exception cref="ChainException"></exception>
+    public void UpgradeTokenContract(StorageContext storage, string symbol, byte[] script, ContractInterface abi)
+    {
+        var key = GetTokenInfoKey(symbol);
+        if (!storage.Has(key))
+        {
+            throw new ChainException($"Cannot upgrade non-existing token contract: {symbol}");
+        }
+
+        if (IsDangerousSymbol(symbol))
+        {
+            throw new ChainException($"Forbidden to upgrade token contract: {symbol}");
+        }
+
+        var bytes = storage.Get(key);
+        var info = Serialization.Unserialize<TokenInfo>(bytes);
+
+        info = new TokenInfo(info.Symbol, info.Name, info.Owner, info.MaxSupply, info.Decimals, info.Flags, script, abi);
+        bytes = Serialization.Serialize(info);
+        storage.Put(key, bytes);
+    }
+
+    /// <summary>
+    /// Get Token Contract
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <param name="symbol"></param>
+    /// <returns></returns>
+    public SmartContract GetTokenContract(StorageContext storage, string symbol)
+    {
+        if (TokenExists(storage, symbol))
+        {
+            var token = GetTokenInfo(storage, symbol);
+
+            return new CustomContract(symbol, token.Script, token.ABI);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Get Token Contract
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <param name="contractAddress"></param>
+    /// <returns></returns>
+    public SmartContract GetTokenContract(StorageContext storage, Address contractAddress)
+    {
+        var token = GetTokenInfo(storage, contractAddress);
+        if (token != null)
+        {
+            return new CustomContract(token.Symbol, token.Script, token.ABI);
+        }
+
+        return null;
+    }
+#endregion
+
+#region NFT
     public byte[] GetKeyForNFT(string symbol, BigInteger tokenID)
     {
         return GetKeyForNFT(symbol, tokenID.ToString());
@@ -1291,7 +1507,7 @@ public class Nexus : INexus
 
         Runtime.Expect(seriesID >= 0, "invalid series ID");
 
-        var series = GetTokenSeries(Runtime.RootStorage, symbol, seriesID);
+        var series = GetTokenSeries(Runtime.StorageFactory.ContractsStorage, symbol, seriesID);
         Runtime.Expect(series != null, $"{symbol} series {seriesID} does not exist");
 
         BigInteger mintID = series.GenerateMintID();
@@ -1327,7 +1543,7 @@ public class Nexus : INexus
             Runtime.Expect(rom != null && rom.Length > 0, "invalid nft rom");
         }
 
-        WriteTokenSeries(Runtime.RootStorage, symbol, seriesID, series);
+        WriteTokenSeries(Runtime.StorageFactory.ContractsStorage, symbol, seriesID, series);
 
         var token = Runtime.GetToken(symbol);
 
@@ -1343,7 +1559,7 @@ public class Nexus : INexus
         var content = new TokenContent(seriesID, mintID, chainName, targetAddress, targetAddress, rom, ram, Runtime.Time, null, series.Mode);
 
         var tokenKey = GetKeyForNFT(symbol, content.TokenID);
-        Runtime.Expect(!Runtime.Storage.Has(tokenKey), "duplicated nft");
+        Runtime.Expect(!Runtime.StorageFactory.ContractsStorage.Has(tokenKey), "duplicated nft");
 
         var contractAddress = token.GetContractAddress();
 
@@ -1371,7 +1587,6 @@ public class Nexus : INexus
         _infusionOperationAddress = Address.Null;
     }
 
-
     public void DestroyNFT(IRuntime Runtime, string symbol, BigInteger tokenID, Address target)
     {
         var infusionAddress = DomainSettings.InfusionAddress;
@@ -1385,7 +1600,7 @@ public class Nexus : INexus
 
         foreach (var asset in tokenContent.Infusion)
         {
-            var assetInfo = this.GetTokenInfo(Runtime.RootStorage, asset.Symbol);
+            var assetInfo = this.GetTokenInfo(Runtime.StorageFactory.ContractsStorage, asset.Symbol);
 
 #if ALLOWANCE_OPERATIONS
             Runtime.AddAllowance(infusionAddress, asset.Symbol, asset.Value);
@@ -1435,9 +1650,9 @@ public class Nexus : INexus
 
         if (Runtime.RootStorage.Has(tokenKey))
         {
-            var content = ReadNFTRaw(Runtime.RootStorage, tokenKey, Runtime.ProtocolVersion);
+            var content = ReadNFTRaw(Runtime.StorageFactory.ContractsStorage, tokenKey, Runtime.ProtocolVersion);
 
-            var series = GetTokenSeries(Runtime.RootStorage, symbol, content.SeriesID);
+            var series = GetTokenSeries(Runtime.StorageFactory.ContractsStorage, symbol, content.SeriesID);
             Runtime.Expect(series != null, $"could not find series {seriesID} for {symbol}");
 
             switch (series.Mode)
@@ -1479,7 +1694,7 @@ public class Nexus : INexus
 
     public TokenContent ReadNFT(IRuntime Runtime, string symbol, BigInteger tokenID)
     {
-        return ReadNFT(Runtime.RootStorage, symbol, tokenID, Runtime.ProtocolVersion);
+        return ReadNFT(Runtime.StorageFactory.ContractsStorage, symbol, tokenID, Runtime.ProtocolVersion);
     }
 
     public TokenContent ReadNFT(StorageContext storage, string symbol, BigInteger tokenID)
@@ -1522,10 +1737,16 @@ public class Nexus : INexus
         var tokenKey = GetKeyForNFT(symbol, tokenID);
         return storage.Has(tokenKey);
     }
-    #endregion
+#endregion
 
-    #region GENESIS
-
+#region GENESIS
+    /// <summary>
+    /// Creates a genesis transaction for the Nexus
+    /// </summary>
+    /// <param name="sb"></param>
+    /// <param name="owner"></param>
+    /// <param name="nativeContract"></param>
+    /// <exception cref="ChainException"></exception>
     private void DeployNativeContract(ScriptBuilder sb, PhantasmaKeys owner, NativeContractKind nativeContract)
     {
         if (nativeContract == NativeContractKind.Unknown)
@@ -1541,6 +1762,13 @@ public class Nexus : INexus
         sb.CallInterop("Runtime.DeployContract", owner.Address, contractName, script, abi);
     }
 
+    /// <summary>
+    /// Creates a genesis transaction for the Nexus
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="genesisTime"></param>
+    /// <param name="protocolVersion"></param>
+    /// <returns></returns>
     private Transaction NexusCreateTx(PhantasmaKeys owner, Timestamp genesisTime, int protocolVersion)
     {
         var sb = ScriptUtils.BeginScript();
@@ -1631,7 +1859,7 @@ public class Nexus : INexus
         }
         
         // Deploy LP Contract
-        if (this.GetProtocolVersion(RootStorage) <= 8)
+        if (this.GetProtocolVersion(this.StorageFactory.MainStorage) <= 8)
         {
             sb.CallInterop("Nexus.CreateToken", owner.Address, Base16.Decode(OLD_LP_CONTRACT_PVM),  Base16.Decode(OLD_LP_CONTRACT_ABI));
         }
@@ -1651,9 +1879,14 @@ public class Nexus : INexus
         return tx;
     }
 
+    /// <summary>
+    /// Initializes the Nexus with the given owner.
+    /// </summary>
+    /// <param name="vm"></param>
+    /// <param name="owner"></param>
     public void BeginInitialize(IRuntime vm, Address owner)
     {
-        var storage = RootStorage;
+        var storage = this.StorageFactory.ContractsStorage;
 
         storage.Put(GetNexusKey("owner"), owner);
 
@@ -1662,25 +1895,30 @@ public class Nexus : INexus
 
         if (!_migratingNexus)
         {
-            CreateToken(storage, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenName, owner, 0, DomainSettings.StakingTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Stakable, tokenScript, abi);
-            CreateToken(storage, DomainSettings.FuelTokenSymbol, DomainSettings.FuelTokenName, owner, 0, DomainSettings.FuelTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Burnable | TokenFlags.Fuel, tokenScript, abi);
-            CreateToken(storage, DomainSettings.RewardTokenSymbol, DomainSettings.RewardTokenName, owner, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
-            CreateToken(storage, DomainSettings.FiatTokenSymbol, DomainSettings.FiatTokenName, owner, 0, DomainSettings.FiatTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Fiat, tokenScript, abi);
+            CreateToken(this.StorageFactory.ContractsStorage, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenName, owner, 0, DomainSettings.StakingTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Stakable, tokenScript, abi);
+            CreateToken(this.StorageFactory.ContractsStorage, DomainSettings.FuelTokenSymbol, DomainSettings.FuelTokenName, owner, 0, DomainSettings.FuelTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Burnable | TokenFlags.Fuel, tokenScript, abi);
+            CreateToken(this.StorageFactory.ContractsStorage, DomainSettings.RewardTokenSymbol, DomainSettings.RewardTokenName, owner, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
+            CreateToken(this.StorageFactory.ContractsStorage, DomainSettings.FiatTokenSymbol, DomainSettings.FiatTokenName, owner, 0, DomainSettings.FiatTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Fiat, tokenScript, abi);
 
-            CreateToken(storage, "NEO", "NEO", owner, UnitConversion.ToBigInteger(100000000, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite, tokenScript, abi);
-            CreateToken(storage, "GAS", "GAS", owner, UnitConversion.ToBigInteger(100000000, 8), 8, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Finite, tokenScript, abi);
-            CreateToken(storage, "ETH", "Ethereum", owner, UnitConversion.ToBigInteger(0, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible, tokenScript, abi);
+            CreateToken(this.StorageFactory.ContractsStorage, "NEO", "NEO", owner, UnitConversion.ToBigInteger(100000000, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite, tokenScript, abi);
+            CreateToken(this.StorageFactory.ContractsStorage, "GAS", "GAS", owner, UnitConversion.ToBigInteger(100000000, 8), 8, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Finite, tokenScript, abi);
+            CreateToken(this.StorageFactory.ContractsStorage, "ETH", "Ethereum", owner, UnitConversion.ToBigInteger(0, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible, tokenScript, abi);
             //CreateToken(storage, "DAI", "Dai Stablecoin", owner, UnitConversion.ToBigInteger(0, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Foreign, tokenScript, abi);
             //GenerateToken(_owner, "EOS", "EOS", "EOS", UnitConversion.ToBigInteger(1006245120, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite | TokenFlags.Divisible | TokenFlags.External, tokenScript, abi);
 
-            SetPlatformTokenHash(DomainSettings.StakingTokenSymbol, "neo", Hash.FromUnpaddedHex("ed07cffad18f1308db51920d99a2af60ac66a7b3"), storage);
-            SetPlatformTokenHash("NEO", "neo", Hash.FromUnpaddedHex("c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b"), storage);
-            SetPlatformTokenHash("GAS", "neo", Hash.FromUnpaddedHex("602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7"), storage);
-            SetPlatformTokenHash("ETH", "ethereum", Hash.FromString("ETH"), storage);
-            //SetPlatformTokenHash("DAI", "ethereum", Hash.FromUnpaddedHex("6b175474e89094c44da98b954eedeac495271d0f"), storage);
+            SetPlatformTokenHash(DomainSettings.StakingTokenSymbol, "neo", Hash.FromUnpaddedHex("ed07cffad18f1308db51920d99a2af60ac66a7b3"), StorageFactory.ContractsStorage);
+            SetPlatformTokenHash("NEO", "neo", Hash.FromUnpaddedHex("c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b"), StorageFactory.ContractsStorage);
+            SetPlatformTokenHash("GAS", "neo", Hash.FromUnpaddedHex("602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7"), StorageFactory.ContractsStorage);
+            SetPlatformTokenHash("ETH", "ethereum", Hash.FromString("ETH"), StorageFactory.ContractsStorage);
+            //SetPlatformTokenHash("DAI", "ethereum", Hash.FromUnpaddedHex("6b175474e89094c44da98b954eedeac495271d0f"), StorageFactory.PlatformsStorage);
         }
     }
 
+    /// <summary>
+    /// Finalize the Nexus with the given owner.
+    /// </summary>
+    /// <param name="vm"></param>
+    /// <param name="owner"></param>
     public void FinishInitialize(IRuntime vm, Address owner)
     {
         if (_migratingNexus)
@@ -1688,7 +1926,7 @@ public class Nexus : INexus
             return;
         }
 
-        var storage = RootStorage;
+        var storage = this.StorageFactory.ContractsStorage;
 
         var symbols = GetTokens(storage);
         foreach (var symbol in symbols)
@@ -1699,11 +1937,15 @@ public class Nexus : INexus
 
             if (constructor != null)
             {
-                vm.CallContext(symbol, constructor, owner);
+                if ( token.Symbol != "LP")
+                    vm.CallContext(symbol, constructor, owner);
             }
         }
     }
 
+    /// <summary>
+    /// Initializes the genesis values.
+    /// </summary>
     private void InitGenesisValues()
     {
         var version = DomainSettings.LatestKnownProtocol;
@@ -1873,12 +2115,25 @@ public class Nexus : INexus
         };
     }
 
+    /// <summary>
+    /// Create the Genesis transaction
+    /// </summary>
+    /// <param name="timestamp"></param>
+    /// <param name="owner"></param>
+    /// <returns></returns>
     public ITransaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner)
     {
-        var version = (int)GetProtocolVersion(RootStorage);
+        var version = (int)GetProtocolVersion(this.StorageFactory.MainStorage);
         return CreateGenesisTransaction(timestamp, owner, version);
     }
 
+    /// <summary>
+    /// Create the Genesis transaction
+    /// </summary>
+    /// <param name="timestamp"></param>
+    /// <param name="owner"></param>
+    /// <param name="protocolVersion"></param>
+    /// <returns></returns>
     public Transaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner, int protocolVersion)
     {
         Throw.If(HasGenesis(), "genesis block already exists");
@@ -1887,10 +2142,107 @@ public class Nexus : INexus
 
         return NexusCreateTx(owner, timestamp, protocolVersion);
     }
+    
+    /// <summary>
+    /// Get the genesis hash
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <returns></returns>
+    public Hash GetGenesisHash(StorageContext storage)
+    {
+        var key = GetNexusKey("hash");
+        if (storage.Has(key))
+        {
+            return storage.Get<Hash>(key);
+        }
 
-    #endregion
+        return Hash.Null;
+    }
 
-    #region VALIDATORS
+    /// <summary>
+    /// Get the genesis block
+    /// </summary>
+    /// <returns></returns>
+    public Block GetGenesisBlock()
+    {
+        if (HasGenesis())
+        {
+            var genesisHash = GetGenesisHash(this.StorageFactory.MainStorage);
+            return RootChain.GetBlockByHash(genesisHash);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Get the genesis block
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    public byte[] GetNexusKey(string key)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes($".nexus.{key}");
+        return bytes;
+    }
+    
+    /// <summary>
+    /// HasGenesis returns true if the genesis block has been committed.
+    /// </summary>
+    /// <returns></returns>
+    public bool HasGenesis()
+    {
+        var key = GetNexusKey("hash");
+        return this.StorageFactory.MainStorage.Has(key);
+    }
+
+    /// <summary>
+    /// CommitGenesis commits the genesis block to the root chain.
+    /// </summary>
+    /// <param name="hash"></param>
+    public void CommitGenesis(Hash hash)
+    {
+        Throw.If(HasGenesis(), "genesis already exists");
+        var key = GetNexusKey("hash");
+        this.StorageFactory.MainStorage.Put(key, hash);
+        _genesisValues.Clear();
+    }
+    
+    /// <summary>
+    /// Loads the nexus from the storage.
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <returns></returns>
+    public bool LoadNexus(StorageContext storage)
+    {
+        var chainList = this.GetChains(storage);
+        foreach (var chainName in chainList)
+        {
+            var chain = GetChainByName(chainName);
+            if (chain is null)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    /// <summary>
+    /// Get Protocol Version
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <returns></returns>
+    public uint GetProtocolVersion(StorageContext storage)
+    {
+        if (!HasGenesis())
+        {
+            return DomainSettings.Phantasma30Protocol;
+        }
+
+        return (uint)this.GetGovernanceValue(storage, NexusProtocolVersionTag);
+    }
+#endregion
+
+#region VALIDATORS
     public Timestamp GetValidatorLastActivity(Address target)
     {
         throw new NotImplementedException();
@@ -1899,20 +2251,20 @@ public class Nexus : INexus
     public ValidatorEntry[] GetValidators(Timestamp timestamp)
     {
         ValidatorEntry[] validators = null;
-        if (this.GetProtocolVersion(RootStorage) > 8)
+        if (this.GetProtocolVersion(this.StorageFactory.ContractsStorage) > 8)
         {
-            validators = RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToArray<ValidatorEntry>();
+            validators = RootChain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToArray<ValidatorEntry>();
         }
         else
         {
-            validators = (ValidatorEntry[]) RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToObject();
+            validators = (ValidatorEntry[]) RootChain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToObject();
         }
         return validators;
     }
 
     public int GetPrimaryValidatorCount(Timestamp timestamp)
     {
-        var count = RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
+        var count = RootChain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
         if (count < 1)
         {
             return 1;
@@ -1922,13 +2274,13 @@ public class Nexus : INexus
 
     public int GetSecondaryValidatorCount(Timestamp timestamp)
     {
-        var count = RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
+        var count = RootChain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
         return (int)count;
     }
 
     public ValidatorType GetValidatorType(Address address, Timestamp timestamp)
     {
-        var result = RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorType), address).AsEnum<ValidatorType>();
+        var result = RootChain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorType), address).AsEnum<ValidatorType>();
         return result;
     }
 
@@ -2003,7 +2355,7 @@ public class Nexus : INexus
             return -1;
         }
 
-        var result = (int)RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetIndexOfValidator), address).AsNumber();
+        var result = (int)RootChain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetIndexOfValidator), address).AsNumber();
         return result;
     }
 
@@ -2021,13 +2373,44 @@ public class Nexus : INexus
 
         Throw.If(index < 0, "invalid validator index");
 
-        var result = (ValidatorEntry)RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorByIndex), (BigInteger)index).ToObject();
+        var result = (ValidatorEntry)RootChain.InvokeContractAtTimestamp(this.RootChain.StorageFactory.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorByIndex), (BigInteger)index).ToObject();
         return result;
     }
-    #endregion
+    
+    public ValidatorEntry GetValidator(StorageContext storage, string tAddress)
+    {
+        var validatorContractName = NativeContractKind.Validator.GetContractName();
+        // TODO use builtin methods instead of doing this directly
+        var valueMapKey = Encoding.UTF8.GetBytes($".{validatorContractName}._validators");
+        var validators = new StorageMap(valueMapKey, storage);
 
-    #region STORAGE
+        foreach (var validator in validators.AllValues<ValidatorEntry>())
+        {
+            if (validator.address.TendermintAddress == tAddress)
+            {
+                return validator;
+            }
+        }
 
+        return new ValidatorEntry()
+        {
+            address = Address.Null,
+            type = ValidatorType.Invalid,
+            election = new Timestamp(0)
+        };
+    }
+
+    /// <summary>
+    /// Set the initial validators for the root chain.
+    /// </summary>
+    /// <param name="initialValidators"></param>
+    public void SetInitialValidators(IEnumerable<Address> initialValidators)
+    {
+        this._initialValidators = initialValidators;
+    }
+#endregion
+
+#region STORAGE
     private StorageMap GetArchiveMap(StorageContext storage)
     {
         var map = new StorageMap(ChainArchivesKey, storage);
@@ -2141,7 +2524,7 @@ public class Nexus : INexus
         _archiveContents.Set(hash, content);
 
         archive.AddMissingBlock(blockIndex);
-        ModifyArchive(RootStorage, archive);
+        ModifyArchive(this.StorageFactory.ArchiveStorage, archive);
     }
 
     public byte[] ReadArchiveBlock(IArchive archive, int blockIndex)
@@ -2179,15 +2562,26 @@ public class Nexus : INexus
         }
     }
 
-    #endregion
+    private StorageList GetSystemList(string name, StorageContext storage)
+    {
+        var key = System.Text.Encoding.UTF8.GetBytes($".{name}.list");
+        return new StorageList(key, storage);
+    }
 
-    #region CHANNELS
+    private StorageMap GetSystemMap(string name, StorageContext storage)
+    {
+        var key = System.Text.Encoding.UTF8.GetBytes($".{name}.map");
+        return new StorageMap(key, storage);
+    }
+#endregion
+
+#region CHANNELS
     public BigInteger GetRelayBalance(Address address, Timestamp timestamp)
     {
         var chain = RootChain;
         try
         {
-            var result = chain.InvokeContractAtTimestamp(this.RootStorage, timestamp, "relay", "GetBalance", address).AsNumber();
+            var result = chain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, timestamp, "relay", "GetBalance", address).AsNumber();
             return result;
         }
         catch
@@ -2195,9 +2589,9 @@ public class Nexus : INexus
             return 0;
         }
     }
-    #endregion
+#endregion
 
-    #region PLATFORMS
+#region PLATFORMS
     public int CreatePlatform(StorageContext storage, string externalAddress, Address interopAddress, string name, string fuelSymbol)
     {
         // check if something with this name already exists
@@ -2257,191 +2651,187 @@ public class Nexus : INexus
 
         throw new ChainException($"Platform does not exist ({name})");
     }
-    #endregion
-
-    #region Contracts
-    private byte[] GetContractInfoKey(string name)
+    
+    /// <summary>
+    /// Token exists on a given platform
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <param name="platform"></param>
+    /// <param name="storage"></param>
+    /// <returns></returns>
+    public bool TokenExistsOnPlatform(string symbol, string platform, StorageContext storage)
     {
-        return GetNexusKey($"contract.{name}");
-    }
-
-    /*
-    private void EditContract(StorageContext storage, string name, PlatformInfo platformInfo)
-    {
-        var key = GetPlatformInfoKey(name);
-        var bytes = Serialization.Serialize(platformInfo);
-        storage.Put(key, bytes);
-    }*/
-
-    public static bool IsNativeContract(string name)
-    {
-        NativeContractKind kind;
-        return Enum.TryParse<NativeContractKind>(name, true, out kind);
-    }
-
-    public bool ContractExists(StorageContext storage, string name)
-    {
-        if (IsNativeContract(name))
+        var key = GetNexusKey($"{symbol}.{platform}.hash");
+        if (storage.Has(key))
         {
             return true;
         }
 
-        var key = GetContractInfoKey(name);
-        return storage.Has(key);
+        return false;
     }
 
-    /*
-    public PlatformInfo GetPlatformInfo(StorageContext storage, string name)
+    /// <summary>
+    /// Get the token hash for a given platform
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <param name="platform"></param>
+    /// <param name="storage"></param>
+    /// <returns></returns>
+    public Hash GetTokenPlatformHash(string symbol, string platform, StorageContext storage)
     {
-        var key = GetPlatformInfoKey(name);
+        if (platform == DomainSettings.PlatformName)
+        {
+            return Hash.FromString(symbol);
+        }
+
+        var key = GetNexusKey($"{symbol}.{platform}.hash");
         if (storage.Has(key))
         {
-            var bytes = storage.Get(key);
-            return Serialization.Unserialize<PlatformInfo>(bytes);
+            return storage.Get<Hash>(key);
         }
 
-        throw new ChainException($"Platform does not exist ({name})");
-    }*/
-    #endregion
-
-    #region ORGANIZATIONS
-    public void CreateOrganization(StorageContext storage, string ID, string name, byte[] script)
-    {
-        var organizationList = GetSystemList(OrganizationTag, storage);
-
-        var organization = new Organization(ID, storage);
-        organization.Init(name, script);
-
-        // add to persistent list of tokens
-        organizationList.Add(ID);
-
-        var organizationMap = GetSystemMap(OrganizationTag, storage);
-        organizationMap.Set<Address, string>(organization.Address, ID);
+        return Hash.Null;
     }
 
-    public bool OrganizationExists(StorageContext storage, string name) // name in this case is actually the id....
+    /// <summary>
+    /// Get all the token hashes for a given platform
+    /// </summary>
+    /// <param name="platform"></param>
+    /// <param name="storage"></param>
+    /// <returns></returns>
+    public Hash[] GetPlatformTokenHashes(string platform, StorageContext storage)
     {
-        var orgs = GetOrganizations(storage);
-        return orgs.Contains(name);
-    }
+        var tokens = GetTokens(storage);
 
-    public IOrganization GetOrganizationByName(StorageContext storage, string name) // name in this case is actually the id....
-    {
-        if (OrganizationExists(storage, name))
+        var hashes = new List<Hash>();
+
+        if (platform == DomainSettings.PlatformName)
         {
-            var org = new Organization(name, storage);
-            return org;
-        }
-
-        return null;
-    }
-
-    public IOrganization GetOrganizationByAddress(StorageContext storage, Address address)
-    {
-        var organizationMap = GetSystemMap(OrganizationTag, storage);
-        if (organizationMap.ContainsKey<Address>(address))
-        {
-            var name = organizationMap.Get<Address, string>(address);
-            return GetOrganizationByName(storage, name);
-        }
-
-        return null;
-    }
-    #endregion
-
-    public int GetIndexOfChain(string name)
-    {
-        var chains = this.GetChains(RootStorage);
-        int index = 0;
-        foreach (var chain in chains)
-        {
-            if (chain == name)
+            foreach (var token in tokens)
             {
-                return index;
+                hashes.Add(Hash.FromString(token));
             }
-
-            index++;
+            return hashes.ToArray();
         }
-        return -1;
-    }
 
-    public IKeyValueStoreAdapter GetChainStorage(string name)
-    {
-        return this.CreateKeyStoreAdapter($"chain.{name}");
-    }
-
-    public ValidatorEntry GetValidator(StorageContext storage, string tAddress)
-    {
-        var validatorContractName = NativeContractKind.Validator.GetContractName();
-        // TODO use builtin methods instead of doing this directly
-        var valueMapKey = Encoding.UTF8.GetBytes($".{validatorContractName}._validators");
-        var validators = new StorageMap(valueMapKey, storage);
-
-        foreach (var validator in validators.AllValues<ValidatorEntry>())
+        foreach (var token in tokens)
         {
-            if (validator.address.TendermintAddress == tAddress)
+            var key = GetNexusKey($"{token}.{platform}.hash");
+            if (storage.Has(key))
             {
-                return validator;
-            }
-        }
-
-        return new ValidatorEntry()
-        {
-            address = Address.Null,
-            type = ValidatorType.Invalid,
-            election = new Timestamp(0)
-        };
-    }
-
-    public BigInteger GetGovernanceValue(StorageContext storage, string name)
-    {
-        if (HasGenesis())
-        {
-            return OptimizedGetGovernanceValue(storage, name);
-        }
-
-        if (_genesisValues != null)
-        {
-            foreach (var entry in _genesisValues)
-            {
-                if (entry.Key == name)
+                var tokenHash = storage.Get<Hash>(key);
+                if (tokenHash != Hash.Null)
                 {
-                    return entry.Value.Key;
+                    hashes.Add(tokenHash);
                 }
             }
         }
 
-        return 0;
-        //throw new ChainException("Cannot read governance values without a genesis block");
+        return hashes.Distinct().ToArray();
     }
 
-
-    private static byte[] _optimizedGovernanceKey = null;
-
-    private BigInteger OptimizedGetGovernanceValue(StorageContext storage, string name)
+    /// <summary>
+    /// Get the token symbol by hash
+    /// </summary>
+    /// <param name="hash"></param>
+    /// <param name="platform"></param>
+    /// <param name="storage"></param>
+    /// <returns></returns>
+    public string GetPlatformTokenByHash(Hash hash, string platform, StorageContext storage)
     {
-        if (_optimizedGovernanceKey == null)
-        {
-            var governanceContractName = NativeContractKind.Governance.GetContractName();
-            _optimizedGovernanceKey = Encoding.UTF8.GetBytes($".{governanceContractName}._valueMap");
-        }
+        var tokens = GetTokens(storage);
 
-        var valueMap = new StorageMap(_optimizedGovernanceKey, storage);
-
-        if (!valueMap.ContainsKey(name))
+        if (platform == DomainSettings.PlatformName)
         {
-            if (name == GovernanceContract.GasMinimumFeeTag)
+            foreach (var token in tokens)
             {
-                return DomainSettings.DefaultMinimumGasFee;
+                if (Hash.FromString(token) == hash)
+                    return token;
             }
-
-            throw new ChainException("invalid governance value name: " + name);            
         }
 
-        var value = valueMap.Get<string, BigInteger>(name);
-        return value;
+        foreach (var token in tokens)
+        {
+            var key = GetNexusKey($"{token}.{platform}.hash");
+            if (HasTokenPlatformHash(token, platform, storage))
+            {
+                var tokenHash = storage.Get<Hash>(key);
+                if (tokenHash == hash)
+                {
+                    return token;
+                }
+            }
+        }
+
+        Log.Warning($"Token hash {hash} doesn't exist!");
+        return null;
     }
 
+    /// <summary>
+    /// Sets the hash of a token on a platform.
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <param name="platform"></param>
+    /// <param name="hash"></param>
+    /// <param name="storage"></param>
+    /// <exception cref="ChainException"></exception>
+    public void SetPlatformTokenHash(string symbol, string platform, Hash hash, StorageContext storage)
+    {
+        var tokenKey = GetTokenInfoKey(symbol);
+        if (!storage.Has(tokenKey))
+        {
+            throw new ChainException($"Token does not exist ({symbol})");
+        }
+
+        if (platform == DomainSettings.PlatformName)
+        {
+            throw new ChainException($"cannot set token hash of {symbol} for native platform");
+        }
+
+        var bytes = storage.Get(tokenKey);
+        var info = Serialization.Unserialize<TokenInfo>(bytes);
+
+        if (!info.Flags.HasFlag(TokenFlags.Swappable))
+        {
+            info.Flags |= TokenFlags.Swappable;
+            EditToken(storage, symbol, info);
+        }
+
+        var hashKey = GetNexusKey($"{symbol}.{platform}.hash");
+
+        //should be updateable since a foreign token hash could change
+        if (storage.Has(hashKey))
+        {
+            Log.Warning($"Token hash of {symbol} already set for platform {platform}, updating to {hash}");
+        }
+
+        storage.Put<Hash>(hashKey, hash);
+    }
+
+    /// <summary>
+    /// Has Token Platform Hash
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <param name="platform"></param>
+    /// <param name="storage"></param>
+    /// <returns></returns>
+    public bool HasTokenPlatformHash(string symbol, string platform, StorageContext storage)
+    {
+        if (platform == DomainSettings.PlatformName)
+        {
+            return true;
+        }
+
+        var key = GetNexusKey($"{symbol}.{platform}.hash");
+        return storage.Has(key);
+    }
+    
+    public string[] GetPlatforms(StorageContext storage)
+    {
+        var list = GetSystemList(PlatformTag, storage);
+        return list.All<string>();
+    }
+    
     public void RegisterPlatformAddress(StorageContext storage, string platform, Address localAddress, string externalAddress)
     {
         var platformInfo = GetPlatformInfo(storage, platform);
@@ -2485,318 +2875,190 @@ public class Nexus : INexus
 
         return false;
     }
+    
+    /*
+   public PlatformInfo GetPlatformInfo(StorageContext storage, string name)
+   {
+       var key = GetPlatformInfoKey(name);
+       if (storage.Has(key))
+       {
+           var bytes = storage.Get(key);
+           return Serialization.Unserialize<PlatformInfo>(bytes);
+       }
 
-    public StorageContext RootStorage { get; init;  }
+       throw new ChainException($"Platform does not exist ({name})");
+   }*/
+#endregion
 
-    private StorageList GetSystemList(string name, StorageContext storage)
+#region Contracts
+    /*
+    private void EditContract(StorageContext storage, string name, PlatformInfo platformInfo)
     {
-        var key = System.Text.Encoding.UTF8.GetBytes($".{name}.list");
-        return new StorageList(key, storage);
+        var key = GetPlatformInfoKey(name);
+        var bytes = Serialization.Serialize(platformInfo);
+        storage.Put(key, bytes);
+    }*/
+
+    public static bool IsNativeContract(string name)
+    {
+        NativeContractKind kind;
+        return Enum.TryParse<NativeContractKind>(name, true, out kind);
     }
 
-    private StorageMap GetSystemMap(string name, StorageContext storage)
+    public bool ContractExists(StorageContext storage, string name)
     {
-        var key = System.Text.Encoding.UTF8.GetBytes($".{name}.map");
-        return new StorageMap(key, storage);
+        if (IsNativeContract(name))
+        {
+            return true;
+        }
+
+        var contract = new SmartContractSheet(name);
+        return contract.HasName(storage);
     }
+#endregion
 
-    private const string TokenTag = "tokens";
-    private const string ChainTag = "chains";
-    private const string PlatformTag = "platforms";
-    private const string FeedTag = "feeds";
-    private const string OrganizationTag = "orgs";
-
-    public string[] GetTokens(StorageContext storage)
-    {
-        var list = GetSystemList(TokenTag, storage);
-        return list.All<string>();
-    }
-
-    public string[] GetChains(StorageContext storage)
-    {
-        var list = GetSystemList(ChainTag, storage);
-        return list.All<string>();
-    }
-
-    public string[] GetPlatforms(StorageContext storage)
-    {
-        var list = GetSystemList(PlatformTag, storage);
-        return list.All<string>();
-    }
-
-    public string[] GetFeeds(StorageContext storage)
-    {
-        var list = GetSystemList(FeedTag, storage);
-        return list.All<string>();
-    }
-
+#region ORGANIZATIONS
+    /// <summary>
+    /// Get all organizations
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <returns></returns>
     public string[] GetOrganizations(StorageContext storage)
     {
         var list = GetSystemList(OrganizationTag, storage);
         return list.All<string>();
     }
-
-    public byte[] GetNexusKey(string key)
+    
+    /// <summary>
+    /// Create organization
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <param name="ID"></param>
+    /// <param name="name"></param>
+    /// <param name="script"></param>
+    public void CreateOrganization(StorageContext storage, string ID, string name, byte[] script)
     {
-        var bytes = System.Text.Encoding.UTF8.GetBytes($".nexus.{key}");
-        return bytes;
+        var organizationList = GetSystemList(OrganizationTag, storage);
+
+        var organization = new Organization(ID, storage);
+        organization.Init(name, script);
+
+        // add to persistent list of tokens
+        organizationList.Add(ID);
+
+        var organizationMap = GetSystemMap(OrganizationTag, storage);
+        organizationMap.Set<Address, string>(organization.Address, ID);
     }
 
-    public string[] GetAddressesBySymbol(string symbol)
+    /// <summary>
+    /// Organization exists
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    public bool OrganizationExists(StorageContext storage, string name) // name in this case is actually the id....
     {
-        List<string> addresses = new List<string>();
-        var prefix = BalanceSheet.MakePrefix(symbol);
-
-        RootStorage.Visit((key, value) =>
-        {
-            var keyString = Encoding.UTF8.GetString(key);
-            if (keyString.Contains($".balances.{symbol}"))
-            {
-                byte[] addrChunk = key[prefix.Length..];
-                addresses.Add(Address.FromBytes(addrChunk).Text);
-            }
-        });
-        
-        return addresses.ToArray();
+        var orgs = GetOrganizations(storage);
+        return orgs.Contains(name);
     }
 
-    public Hash GetGenesisHash(StorageContext storage)
+    /// <summary>
+    /// Get organization by name
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    public IOrganization GetOrganizationByName(StorageContext storage, string name) // name in this case is actually the id....
     {
-        var key = GetNexusKey("hash");
-        if (storage.Has(key))
+        if (OrganizationExists(storage, name))
         {
-            return storage.Get<Hash>(key);
+            var org = new Organization(name, storage);
+            return org;
         }
 
-        return Hash.Null;
+        return null;
     }
+    
+    /// <summary>
+    /// Get organization by address
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <param name="address"></param>
+    /// <returns></returns>
+    public IOrganization GetOrganizationByAddress(StorageContext storage, Address address)
+    {
+        var organizationMap = GetSystemMap(OrganizationTag, storage);
+        if (organizationMap.ContainsKey<Address>(address))
+        {
+            var name = organizationMap.Get<Address, string>(address);
+            return GetOrganizationByName(storage, name);
+        }
 
-    public Block GetGenesisBlock()
+        return null;
+    }
+#endregion
+    
+#region Governance
+    /// <summary>
+    /// Get governance value
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    public BigInteger GetGovernanceValue(StorageContext storage, string name)
     {
         if (HasGenesis())
         {
-            var genesisHash = GetGenesisHash(RootStorage);
-            return RootChain.GetBlockByHash(genesisHash);
+            return OptimizedGetGovernanceValue(storage, name);
         }
 
-        return null;
-    }
-
-    public bool TokenExistsOnPlatform(string symbol, string platform, StorageContext storage)
-    {
-        var key = GetNexusKey($"{symbol}.{platform}.hash");
-        if (storage.Has(key))
+        if (_genesisValues != null)
         {
-            return true;
-        }
-
-        return false;
-    }
-
-    public Hash GetTokenPlatformHash(string symbol, string platform, StorageContext storage)
-    {
-        if (platform == DomainSettings.PlatformName)
-        {
-            return Hash.FromString(symbol);
-        }
-
-        var key = GetNexusKey($"{symbol}.{platform}.hash");
-        if (storage.Has(key))
-        {
-            return storage.Get<Hash>(key);
-        }
-
-        return Hash.Null;
-    }
-
-    public Hash[] GetPlatformTokenHashes(string platform, StorageContext storage)
-    {
-        var tokens = GetTokens(storage);
-
-        var hashes = new List<Hash>();
-
-        if (platform == DomainSettings.PlatformName)
-        {
-            foreach (var token in tokens)
+            foreach (var entry in _genesisValues)
             {
-                hashes.Add(Hash.FromString(token));
-            }
-            return hashes.ToArray();
-        }
-
-        foreach (var token in tokens)
-        {
-            var key = GetNexusKey($"{token}.{platform}.hash");
-            if (storage.Has(key))
-            {
-                var tokenHash = storage.Get<Hash>(key);
-                if (tokenHash != Hash.Null)
+                if (entry.Key == name)
                 {
-                    hashes.Add(tokenHash);
+                    return entry.Value.Key;
                 }
             }
         }
 
-        return hashes.Distinct().ToArray();
+        return 0;
+        //throw new ChainException("Cannot read governance values without a genesis block");
     }
 
-    public string GetPlatformTokenByHash(Hash hash, string platform, StorageContext storage)
-    {
-        var tokens = GetTokens(storage);
+    private static byte[] _optimizedGovernanceKey = null;
 
-        if (platform == DomainSettings.PlatformName)
+    /// <summary>
+    /// Get governance value Optimized
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    /// <exception cref="ChainException"></exception>
+    private BigInteger OptimizedGetGovernanceValue(StorageContext storage, string name)
+    {
+        if (_optimizedGovernanceKey == null)
         {
-            foreach (var token in tokens)
+            var governanceContractName = NativeContractKind.Governance.GetContractName();
+            _optimizedGovernanceKey = Encoding.UTF8.GetBytes($".{governanceContractName}._valueMap");
+        }
+
+        var valueMap = new StorageMap(_optimizedGovernanceKey, storage);
+
+        if (!valueMap.ContainsKey(name))
+        {
+            if (name == GovernanceContract.GasMinimumFeeTag)
             {
-                if (Hash.FromString(token) == hash)
-                    return token;
+                return DomainSettings.DefaultMinimumGasFee;
             }
+
+            throw new ChainException("invalid governance value name: " + name);            
         }
 
-        foreach (var token in tokens)
-        {
-            var key = GetNexusKey($"{token}.{platform}.hash");
-            if (HasTokenPlatformHash(token, platform, storage))
-            {
-                var tokenHash = storage.Get<Hash>(key);
-                if (tokenHash == hash)
-                {
-                    return token;
-                }
-            }
-        }
-
-        Log.Warning($"Token hash {hash} doesn't exist!");
-        return null;
+        var value = valueMap.Get<string, BigInteger>(name);
+        return value;
     }
-
-    public void SetPlatformTokenHash(string symbol, string platform, Hash hash, StorageContext storage)
-    {
-        var tokenKey = GetTokenInfoKey(symbol);
-        if (!storage.Has(tokenKey))
-        {
-            throw new ChainException($"Token does not exist ({symbol})");
-        }
-
-        if (platform == DomainSettings.PlatformName)
-        {
-            throw new ChainException($"cannot set token hash of {symbol} for native platform");
-        }
-
-        var bytes = storage.Get(tokenKey);
-        var info = Serialization.Unserialize<TokenInfo>(bytes);
-
-        if (!info.Flags.HasFlag(TokenFlags.Swappable))
-        {
-            info.Flags |= TokenFlags.Swappable;
-            EditToken(storage, symbol, info);
-        }
-
-        var hashKey = GetNexusKey($"{symbol}.{platform}.hash");
-
-        //should be updateable since a foreign token hash could change
-        if (storage.Has(hashKey))
-        {
-            Log.Warning($"Token hash of {symbol} already set for platform {platform}, updating to {hash}");
-        }
-
-        storage.Put<Hash>(hashKey, hash);
-    }
-
-    public bool HasTokenPlatformHash(string symbol, string platform, StorageContext storage)
-    {
-        if (platform == DomainSettings.PlatformName)
-        {
-            return true;
-        }
-
-        var key = GetNexusKey($"{symbol}.{platform}.hash");
-        return storage.Has(key);
-    }
-
-    public IToken GetTokenInfo(StorageContext storage, Address contractAddress)
-    {
-        var symbols = GetTokens(storage);
-        foreach (var symbol in symbols)
-        {
-            var tokenAddress = TokenUtils.GetContractAddress(symbol);
-
-            if (tokenAddress == contractAddress)
-            {
-                var token = GetTokenInfo(storage, symbol);
-                return token;
-            }
-        }
-
-        return null;
-    }
-
-    public void MigrateTokenOwner(StorageContext storage, Address oldOwner, Address newOwner)
-    {
-        var symbols = GetTokens(storage);
-        foreach (var symbol in symbols)
-        {
-            var token = (TokenInfo) GetTokenInfo(storage, symbol);
-            if (token.Owner == oldOwner)
-            {
-                token.Owner = newOwner;
-                EditToken(storage, symbol, token);
-            }
-        }
-    }
-
-    public void UpgradeTokenContract(StorageContext storage, string symbol, byte[] script, ContractInterface abi)
-    {
-        var key = GetTokenInfoKey(symbol);
-        if (!storage.Has(key))
-        {
-            throw new ChainException($"Cannot upgrade non-existing token contract: {symbol}");
-        }
-
-        if (IsDangerousSymbol(symbol))
-        {
-            throw new ChainException($"Forbidden to upgrade token contract: {symbol}");
-        }
-
-        var bytes = storage.Get(key);
-        var info = Serialization.Unserialize<TokenInfo>(bytes);
-
-        info = new TokenInfo(info.Symbol, info.Name, info.Owner, info.MaxSupply, info.Decimals, info.Flags, script, abi);
-        bytes = Serialization.Serialize(info);
-        storage.Put(key, bytes);
-    }
-
-    public SmartContract GetTokenContract(StorageContext storage, string symbol)
-    {
-        if (TokenExists(storage, symbol))
-        {
-            var token = GetTokenInfo(storage, symbol);
-
-            return new CustomContract(symbol, token.Script, token.ABI);
-        }
-
-        return null;
-    }
-
-    public SmartContract GetTokenContract(StorageContext storage, Address contractAddress)
-    {
-        var token = GetTokenInfo(storage, contractAddress);
-        if (token != null)
-        {
-            return new CustomContract(token.Symbol, token.Script, token.ABI);
-        }
-
-        return null;
-    }
-
-    public uint GetProtocolVersion(StorageContext storage)
-    {
-        if (!HasGenesis())
-        {
-            return DomainSettings.Phantasma30Protocol;
-        }
-
-        return (uint)this.GetGovernanceValue(storage, NexusProtocolVersionTag);
-    }
+#endregion
 
 }

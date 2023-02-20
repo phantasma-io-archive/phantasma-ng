@@ -110,9 +110,7 @@ public class ChainTests
 
         simulator.TransferOwnerAssetsToAddress(randomKey.Address);
     }
-
-
-
+    
     [Fact]
     public void CreateToken()
     {

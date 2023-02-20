@@ -13,6 +13,7 @@ namespace Phantasma.Core.Domain
         ITransaction Transaction { get; }
         public Timestamp Time { get; }
         public StorageContext Storage { get; }
+        public StorageFactory StorageFactory { get; }
         public StorageContext RootStorage { get; }
         public bool IsTrigger { get; }
         public int TransactionIndex { get; }
