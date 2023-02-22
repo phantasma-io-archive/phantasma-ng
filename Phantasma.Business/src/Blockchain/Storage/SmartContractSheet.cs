@@ -49,7 +49,7 @@ public class SmartContractSheet
 
     private byte[] GetContractKey(Address contractAddress, string field)
     {
-        var bytes = Encoding.ASCII.GetBytes(field);
+        var bytes = ByteArrayUtils.ConcatBytes(Encoding.ASCII.GetBytes(field), contractAddress.ToByteArray());
         var key = ByteArrayUtils.ConcatBytes(_prefix, bytes);
         return key;
     }

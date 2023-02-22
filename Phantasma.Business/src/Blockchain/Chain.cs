@@ -632,7 +632,7 @@ namespace Phantasma.Business.Blockchain
                 throw new ChainException("Block protocol is not the same as the current block");
             }
             
-            if ( !Nexus.IsPrimaryValidator(block.Validator, Timestamp.Now) )
+            if ( !Nexus.IsPrimaryValidator(block.Validator, block.Timestamp) )
             {
                 throw new ChainException("Block validator is not a valid validator");
             }
