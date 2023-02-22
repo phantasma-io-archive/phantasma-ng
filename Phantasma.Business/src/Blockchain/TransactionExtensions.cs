@@ -78,7 +78,7 @@ namespace Phantasma.Business.Blockchain
             return whitelistedMethods.Contains(method.MethodName);
         }
         
-        public static bool IsValid(this Transaction tx, IChain chain)
+        public static bool IsValid(this ITransaction tx, IChain chain)
         {
             return (chain.Name == tx.ChainName && chain.Nexus.Name == tx.NexusName);
         }

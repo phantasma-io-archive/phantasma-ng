@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;

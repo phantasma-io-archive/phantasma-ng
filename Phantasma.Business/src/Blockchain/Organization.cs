@@ -244,7 +244,7 @@ namespace Phantasma.Business.Blockchain
             return true;
         }
 
-        public bool IsWitness(Transaction transaction)
+        public bool IsWitness(ITransaction transaction)
         {
             var size = this.Size;
             if (size < 1)
@@ -262,6 +262,34 @@ namespace Phantasma.Business.Blockchain
 
             var members = new List<Address>(this.GetMembers());
             var msg = transaction.ToByteArray(false);
+
+            /*
+             Different way of validating the SOURCE of the transaction
+             
+             var validSignatures = 0;
+            Signature lastSignature = null;
+            var signatures = transaction.Signatures.ToList();
+                    
+            foreach (var member in members )
+            {
+                if (validSignatures >= majorityCount)
+                {
+                    break;
+                }
+                
+                foreach ( var signature in signatures )
+                {
+                    if ( signature.Verify(msg, member) )
+                    {
+                        validSignatures++;
+                        lastSignature = signature;
+                        break;
+                    }
+                }
+                
+                if ( lastSignature != null)
+                    signatures.Remove(lastSignature);
+            }*/
 
             foreach (var sig in transaction.Signatures)
             {
@@ -291,7 +319,7 @@ namespace Phantasma.Business.Blockchain
 
             if (to.IsSystem)
             {
-                Runtime.Expect(to!= this.Address, "can't add organization as member of itself");
+                Runtime.Expect(to != this.Address, "can't add organization as member of itself");
             }
 
             var list = GetMemberList();

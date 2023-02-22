@@ -166,7 +166,7 @@ public class StakeContractTestLegacy
 
         var accountBalance = MinimumValidStake * 100;
 
-        Transaction tx = null;
+        ITransaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, BaseKCALBalance);
@@ -325,7 +325,7 @@ public class StakeContractTestLegacy
 
         var accountBalance = MinimumValidStake * 10;
 
-        Transaction tx = null;
+        ITransaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, accountBalance);
@@ -392,7 +392,7 @@ public class StakeContractTestLegacy
 
         var accountBalance = MinimumValidStake * 10;
 
-        Transaction tx = null;
+        ITransaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, accountBalance);
@@ -447,7 +447,7 @@ public class StakeContractTestLegacy
         var accountBalance = MinimumValidStake * 10;
         var minKCAL = UnitConversion.ToBigInteger(1, 10);
         
-        Transaction tx = null;
+        ITransaction tx = null;
         BigInteger fees = 0;
 
         simulator.BeginBlock();
@@ -511,7 +511,7 @@ public class StakeContractTestLegacy
 
         var accountBalance = MinimumValidStake * 10;
 
-        Transaction tx = null;
+        ITransaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, BaseKCALBalance);
@@ -875,7 +875,7 @@ public class StakeContractTestLegacy
 
         var accountBalance = MinimumValidStake * 100;
 
-        Transaction tx = null;
+        ITransaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, BaseKCALBalance);
@@ -938,7 +938,7 @@ public class StakeContractTestLegacy
 
         var accountBalance = MinimumValidStake * 100;
 
-        Transaction tx = null;
+        ITransaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, BaseKCALBalance);
@@ -1022,7 +1022,7 @@ public class StakeContractTestLegacy
 
         var accountBalance = MinimumValidStake * 5000;
 
-        Transaction tx = null;
+        ITransaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, BaseKCALBalance);
@@ -1162,7 +1162,7 @@ public class StakeContractTestLegacy
 
         var accountBalance = MinimumValidStake * 100;
 
-        Transaction tx = null;
+        ITransaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, BaseKCALBalance);
@@ -1265,7 +1265,7 @@ public class StakeContractTestLegacy
             var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUserA.Address).AsNumber();
             Assert.True(unclaimedAmount == 0);
 
-            Transaction tx = null;
+            ITransaction tx = null;
 
             BigInteger accountBalance = UnitConversion.ToBigInteger(50000, DomainSettings.StakingTokenDecimals);
 
@@ -1370,7 +1370,7 @@ public class StakeContractTestLegacy
             var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUserA.Address).AsNumber();
             Assert.True(unclaimedAmount == 0);
 
-            Transaction tx = null;
+            ITransaction tx = null;
 
             BigInteger accountBalance = UnitConversion.ToBigInteger(50000, DomainSettings.StakingTokenDecimals);
 
@@ -1716,7 +1716,7 @@ public class StakeContractTestLegacy
             var unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUserA.Address).AsNumber();
             Assert.True(unclaimedAmount == 0);
 
-            Transaction tx = null;
+            ITransaction tx = null;
 
             var masterAccountThreshold = UnitConversion.ToBigInteger(50000, DomainSettings.StakingTokenDecimals);
             BigInteger accountBalance = 2 * masterAccountThreshold;

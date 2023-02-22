@@ -545,6 +545,9 @@ namespace Phantasma.Business.Blockchain
             if (vm.ProtocolVersion >= 13)
             {
                 vm.Expect(vm.Transaction.Signatures.Length > 0, "No signatures found in transaction");
+                
+                vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
+                vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
             }
 
             var obj = vm.Stack.Pop();
@@ -582,6 +585,9 @@ namespace Phantasma.Business.Blockchain
             if (vm.ProtocolVersion >= 13)
             {
                 vm.Expect(vm.Transaction.Signatures.Length > 0, "No signatures found in transaction");
+                
+                vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
+                vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
             }
 
             var field = vm.PopString("field");
@@ -611,6 +617,10 @@ namespace Phantasma.Business.Blockchain
             vm.ExpectStackSize(4);
 
             var contractName = vm.PopString("contract");
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
+            }
 
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -640,7 +650,11 @@ namespace Phantasma.Business.Blockchain
             vm.ExpectStackSize(4);
 
             var contractName = vm.PopString("contract");
-
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
+            }
+            
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
 
@@ -678,6 +692,12 @@ namespace Phantasma.Business.Blockchain
             // for security reasons we don't accept the caller to specify a contract name
             var contractName = vm.CurrentContext.Name;
             vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
+            
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
+                vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
+            }
 
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -706,6 +726,13 @@ namespace Phantasma.Business.Blockchain
 
             // for security reasons we don't accept the caller to specify a contract name
             var contractName = contextName;
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
+
+                vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
+                vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
+            }
 
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -729,6 +756,13 @@ namespace Phantasma.Business.Blockchain
 
             // for security reasons we don't accept the caller to specify a contract name
             var contractName = vm.CurrentContext.Name;
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
+
+                vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
+                vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
+            }
 
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -747,6 +781,13 @@ namespace Phantasma.Business.Blockchain
             vm.ExpectStackSize(2);
 
             var contractName = vm.PopString("contract");
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
+
+                vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
+                vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
+            }
 
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -767,6 +808,10 @@ namespace Phantasma.Business.Blockchain
             vm.ExpectStackSize(2);
 
             var contractName = vm.PopString("contract");
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
+            }
 
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -789,6 +834,10 @@ namespace Phantasma.Business.Blockchain
             vm.ExpectStackSize(4);
 
             var contractName = vm.PopString("contract");
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
+            }
 
             var field = vm.PopString("field");
             var listKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -828,6 +877,12 @@ namespace Phantasma.Business.Blockchain
             var contractName = vm.CurrentContext.Name;
             vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
 
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
+                vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
+            }
+
             var field = vm.PopString("field");
             var listKey = SmartContract.GetKeyForField(contractName, field, false);
 
@@ -852,6 +907,12 @@ namespace Phantasma.Business.Blockchain
             var contractName = vm.CurrentContext.Name;
             vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
 
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
+                vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
+            }
+            
             var field = vm.PopString("field");
             var listKey = SmartContract.GetKeyForField(contractName, field, false);
 
@@ -877,6 +938,14 @@ namespace Phantasma.Business.Blockchain
 
             // for security reasons we don't accept the caller to specify a contract name
             var contractName = vm.CurrentContext.Name;
+            
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
+
+                vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
+                vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
+            }
 
             var field = vm.PopString("field");
             var listKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -900,6 +969,13 @@ namespace Phantasma.Business.Blockchain
 
             // for security reasons we don't accept the caller to specify a contract name
             var contractName = contextName;
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
+
+                vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
+                vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
+            }
 
             var field = vm.PopString("field");
             var listKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -917,6 +993,10 @@ namespace Phantasma.Business.Blockchain
             vm.ExpectStackSize(2);
 
             var contractName = vm.PopString("contract");
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
+            }
 
             var field = vm.PopString("field");
             var listKey = SmartContract.GetKeyForField(contractName, field, false);
@@ -932,7 +1012,6 @@ namespace Phantasma.Business.Blockchain
         #endregion
         
         #region Token Interactions
-
         private static ExecutionState Runtime_GetBalance(RuntimeVM vm)
         {
             vm.ExpectStackSize(2);
@@ -992,6 +1071,8 @@ namespace Phantasma.Business.Blockchain
         private static ExecutionState Runtime_SwapTokens(RuntimeVM vm)
         {
             vm.ExpectStackSize(5);
+            
+            vm.Expect(vm.ProtocolVersion < 13, "this method is obsolete");
 
             VMObject temp;
 
@@ -1306,6 +1387,12 @@ namespace Phantasma.Business.Blockchain
                 throw new VMException(vm, $"Write token {symbol} not allowed from this context");
             }*/
 
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(!Nexus.IsDangerousSymbol(symbol.ToUpper()), $"contract {symbol} is not allowed to use this function");
+                vm.Expect(!Nexus.IsNativeContract(symbol.ToLower()), $"contract {symbol} is not allowed to use this function");
+            }
+            
             vm.WriteToken(from, symbol, tokenID, ram);
 
             return ExecutionState.Running;
@@ -1542,6 +1629,11 @@ namespace Phantasma.Business.Blockchain
 
             bool isNative = Nexus.IsNativeContract(contractName);
             vm.ExpectWarning(!isNative, "cannot upgrade native contract", from);
+
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), "cannot upgrade dangerous symbol");
+            }
 
             bool isToken = ValidationUtils.IsValidTicker(contractName);
 

@@ -220,7 +220,7 @@ public class ConcensusContractTests
         var payload = "Consensus";
         time = time + TimeSpan.FromHours(12);
 
-        var transaction = new Transaction(nexusName, chainName, script, time, payload);
+        ITransaction transaction = new Transaction(nexusName, chainName, script, time, payload);
         transaction.Sign(owner);
         List<Address> addresses = new List<Address>();
         addresses.Add(owner.Address);
@@ -296,7 +296,7 @@ public class ConcensusContractTests
 
         var test = Serialization.Unserialize<VMObject>(txResult);
         var toTransactionBytes = test.AsByteArray();
-        var result = Transaction.Unserialize(toTransactionBytes); 
+        var result = Transaction.Unserialize(toTransactionBytes);
         Assert.NotNull(result);
         
         Assert.Equal(transaction.Expiration, result.Expiration);

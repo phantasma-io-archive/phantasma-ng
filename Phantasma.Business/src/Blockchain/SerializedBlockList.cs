@@ -10,7 +10,7 @@ namespace Phantasma.Business.Blockchain;
 public class SerializedBlockList {
 
     public Dictionary<BigInteger, Block> Blocks { get; set; }
-    public Dictionary<BigInteger,List<Transaction>> BlockTransactions { get; set; }
+    public Dictionary<BigInteger,List<ITransaction>> BlockTransactions { get; set; }
 
 
     public SerializedBlockList() {
@@ -83,7 +83,7 @@ public class SerializedBlockList {
             this.Blocks[i] = block;
 
             var txCount = (int)reader.ReadVarInt();
-            List<Transaction> txs = new ();
+            List<ITransaction> txs = new ();
             for (int j = 0; j < txCount; j++)
             {
                 var serializedTx = reader.ReadByteArray();

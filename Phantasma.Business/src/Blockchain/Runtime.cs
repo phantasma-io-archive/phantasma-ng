@@ -19,7 +19,7 @@ namespace Phantasma.Business.Blockchain
     public class RuntimeVM : GasMachine, IRuntime
     {
         public Timestamp Time { get; private set; }
-        public Transaction Transaction { get; private set; }
+        public ITransaction Transaction { get; private set; }
         public IChain Chain { get; private set; }
         public IChain ParentChain { get; private set; }
         public IOracleReader Oracle { get; private set; }
@@ -56,7 +56,7 @@ namespace Phantasma.Business.Blockchain
         private readonly RuntimeVM _parentMachine;
 
         public RuntimeVM(int index, byte[] script, uint offset, IChain chain, Address validator, Timestamp time,
-                Transaction transaction, StorageChangeSetContext changeSet, IOracleReader oracle, IChainTask currentTask,
+                ITransaction transaction, StorageChangeSetContext changeSet, IOracleReader oracle, IChainTask currentTask,
                 bool delayPayment = false, string contextName = null, RuntimeVM parentMachine = null)
             : base(script, offset, contextName)
         {
@@ -108,7 +108,7 @@ namespace Phantasma.Business.Blockchain
 
         IChain IRuntime.Chain => this.Chain;
 
-        Transaction IRuntime.Transaction => this.Transaction;
+        ITransaction IRuntime.Transaction => this.Transaction;
 
         private Dictionary<string, int> _registedCallArgCounts = new Dictionary<string, int>();
 
@@ -909,7 +909,7 @@ namespace Phantasma.Business.Blockchain
             return GetBlockByHash(hash);
         }
 
-        public Transaction GetTransaction(Hash hash)
+        public ITransaction GetTransaction(Hash hash)
         {
             ExpectHashSize(hash, nameof(hash));
             return Chain.GetTransactionByHash(hash);
@@ -1394,7 +1394,6 @@ namespace Phantasma.Business.Blockchain
             // burn the "cost" tokens
             BurnTokens(DomainSettings.FuelTokenSymbol, from, fuelCost);*/
 
-
             this.Notify(EventKind.OrganizationCreate, from, ID);
         }
 
@@ -1668,6 +1667,8 @@ namespace Phantasma.Business.Blockchain
 
         public void SwapTokens(string sourceChain, Address from, string targetChain, Address to, string symbol, BigInteger value)
         {
+            Expect(ProtocolVersion < 13, "this method is obsolete");
+            
             ExpectNameLength(sourceChain, nameof(sourceChain));
             ExpectAddressSize(from, nameof(from));
             ExpectNameLength(targetChain, nameof(targetChain));

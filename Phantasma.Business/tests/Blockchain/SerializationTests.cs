@@ -5,6 +5,7 @@ using System.Collections.Generic;
 
 using Phantasma.Core.Types;
 using System.Text;
+using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Domain;
