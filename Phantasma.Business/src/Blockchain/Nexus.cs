@@ -651,7 +651,7 @@ public class Nexus : INexus
 
     private static readonly string[] _dangerousSymbols = new[]
     {
-        DomainSettings.StakingTokenSymbol ,
+        DomainSettings.StakingTokenSymbol,
         DomainSettings.FuelTokenSymbol,
         DomainSettings.FiatTokenSymbol,
         DomainSettings.RewardTokenSymbol,

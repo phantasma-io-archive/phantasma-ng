@@ -1661,6 +1661,11 @@ namespace Phantasma.Business.Blockchain
             bool isNative = Nexus.IsNativeContract(contractName);
             vm.ExpectWarning(!isNative, "cannot upgrade native contract", from);
 
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), "cannot upgrade dangerous symbol");
+            }
+
             bool isToken = ValidationUtils.IsValidTicker(contractName);
 
             script = vm.PopBytes("contractScript");

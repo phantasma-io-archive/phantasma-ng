@@ -8,6 +8,7 @@ using System.Text;
 using System.Transactions;
 using Google.Protobuf;
 using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core;
@@ -534,7 +535,7 @@ namespace Phantasma.Business.Blockchain
 
         public IContract[] GetContracts(StorageContext storage)
         {
-            var contractList = new StorageList(GetContractListKey(), storage);
+            var contractList = new StorageList(SmartContractSheet.GetContractListKey(), storage);
             var addresses = contractList.All<Address>();
             return addresses.Select(x => this.GetContractByAddress(storage, x)).ToArray();
         }
@@ -1022,8 +1023,8 @@ namespace Phantasma.Business.Blockchain
                 return false;
             }
 
-            var key = GetContractKey(contractAddress, "script");
-            if (storage.Has(key))
+            var contract = new SmartContractSheet(contractAddress);
+            if (contract.HasScript(storage))
             {
                 return true;
             }
@@ -1034,28 +1035,25 @@ namespace Phantasma.Business.Blockchain
 
         public bool DeployContractScript(StorageContext storage, Address contractOwner, string name, Address contractAddress, byte[] script, ContractInterface abi)
         {
-            var scriptKey = GetContractKey(contractAddress, "script");
-            if (storage.Has(scriptKey))
+            var contract = new SmartContractSheet(name, contractAddress);
+            if (contract.HasScript(storage))
             {
                 return false;
             }
 
-            storage.Put(scriptKey, script);
-
+            contract.PutScript(storage, script);
+            
             var ownerBytes = contractOwner.ToByteArray();
-            var ownerKey = GetContractKey(contractAddress, "owner");
-            storage.Put(ownerKey, ownerBytes);
+            contract.PutOwner(storage, ownerBytes);
+
 
             var abiBytes = abi.ToByteArray();
-            var abiKey = GetContractKey(contractAddress, "abi");
-            storage.Put(abiKey, abiBytes);
+            contract.PutABI(storage, abiBytes);
 
             var nameBytes = Encoding.ASCII.GetBytes(name);
-            var nameKey = GetContractKey(contractAddress, "name");
-            storage.Put(nameKey, nameBytes);
-
-            var contractList = new StorageList(GetContractListKey(), storage);
-            contractList.Add<Address>(contractAddress);
+            contract.PutName(storage, nameBytes);
+            
+            contract.AddToList(storage, contractAddress);
 
             FlushExtCalls();
 
@@ -1064,12 +1062,11 @@ namespace Phantasma.Business.Blockchain
 
         public SmartContract GetContractByAddress(StorageContext storage, Address contractAddress)
         {
-            var nameKey = GetContractKey(contractAddress, "name");
+            var contract = new SmartContractSheet(contractAddress);
 
-            if (storage.Has(nameKey))
+            if (contract.HasName(storage))
             {
-                var nameBytes = storage.Get(nameKey);
-
+                var nameBytes = contract.GetName(storage);
                 var name = Encoding.ASCII.GetString(nameBytes);
                 return GetContractByName(storage, name);
             }
@@ -1097,16 +1094,15 @@ namespace Phantasma.Business.Blockchain
             }
 
             var address = SmartContract.GetAddressFromContractName(name);
-            var scriptKey = GetContractKey(address, "script");
-            if (!storage.Has(scriptKey))
+            var contract = new SmartContractSheet(address);
+            if (!contract.HasScript(storage))
             {
                 return null;
             }
 
-            var script = storage.Get(scriptKey);
+            var script = contract.GetScript(storage);
 
-            var abiKey = GetContractKey(address, "abi");
-            var abiBytes = storage.Get(abiKey);
+            var abiBytes = contract.GetABI(storage);
             var abi = ContractInterface.FromBytes(abiBytes);
 
             return new CustomContract(name, script, abi);
@@ -1125,13 +1121,12 @@ namespace Phantasma.Business.Blockchain
             }
 
             var address = SmartContract.GetAddressFromContractName(name);
+            var contract = new SmartContractSheet(address);
 
-            var scriptKey = GetContractKey(address, "script");
-            storage.Put(scriptKey, script);
+            contract.PutScript(storage, script);
 
-            var abiKey = GetContractKey(address, "abi");
             var abiBytes = abi.ToByteArray();
-            storage.Put(abiKey, abiBytes);
+            contract.PutABI(storage, abiBytes);
 
             FlushExtCalls();
         }
@@ -1149,25 +1144,27 @@ namespace Phantasma.Business.Blockchain
             }
 
             var address = SmartContract.GetAddressFromContractName(name);
-
-            var scriptKey = GetContractKey(address, "script");
-            storage.Delete(scriptKey);
-
-            var abiKey = GetContractKey(address, "abi");
-            storage.Delete(abiKey);
+            var contract = new SmartContractSheet(address);
+            
+            contract.DeleteScript(storage);
+            contract.DeleteABI(storage);
+            //contract.DeleteName(storage);
+            //contract.DeleteOwner(storage);
+            
 
             // TODO clear other storage used by contract (global variables, maps, lists, etc)
+            // contract.DeleteContract(storage);
         }
 
         public Address GetContractOwner(StorageContext storage, Address contractAddress)
         {
             if (contractAddress.IsSystem)
             {
-                var ownerKey = GetContractKey(contractAddress, "owner");
-                var bytes = storage.Get(ownerKey);
-                if (bytes != null)
+                var contract = new SmartContractSheet(contractAddress);
+                var owner = contract.GetOwner(storage);
+                if (owner != Address.Null)
                 {
-                    return Address.FromBytes(bytes);
+                    return owner;
                 }
 
                 var token = Nexus.GetTokenInfo(storage, contractAddress);

@@ -18,7 +18,7 @@ public static class RuntimeWriteExtensions
     /// <returns></returns>
     private static byte[] GetUsedQuotaKey(Address target)
     {
-        return  SmartContract.GetKeyForField(NativeContractKind.Storage, "_dataQuotas", true);; 
+        return SmartContract.GetKeyForField(NativeContractKind.Storage, "_dataQuotas", true);; 
     }
     
     /// <summary>

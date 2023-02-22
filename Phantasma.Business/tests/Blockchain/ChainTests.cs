@@ -1403,7 +1403,7 @@ public class ChainTests
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
 
         // kill it
