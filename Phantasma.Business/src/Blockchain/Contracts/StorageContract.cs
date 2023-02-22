@@ -281,9 +281,9 @@ namespace Phantasma.Business.Blockchain.Contracts
             var usedQuota = _dataQuotas.Get<Address, BigInteger>(target);
 
             BigInteger deleteSize = 0;
-            if (Runtime.StorageFactory.ContractsStorage.Has(key))
+            if (Runtime.StorageCollection.ContractsStorage.Has(key))
             {
-                var oldData = Runtime.StorageFactory.ContractsStorage.Get(key);
+                var oldData = Runtime.StorageCollection.ContractsStorage.Get(key);
                 deleteSize = oldData.Length;
             }
 
@@ -295,7 +295,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 Runtime.Expect(availableSize >= diff, $"not enough storage space available: requires " + diff + ", only have: " + availableSize);
             }
 
-            Runtime.StorageFactory.ContractsStorage.Put(key, value);
+            Runtime.StorageCollection.ContractsStorage.Put(key, value);
 
             usedQuota -= deleteSize;
             usedQuota += writeSize;
@@ -309,7 +309,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             _dataQuotas.Set<Address, BigInteger>(target, usedQuota);
 
-            var temp = Runtime.StorageFactory.ContractsStorage.Get(key);
+            var temp = Runtime.StorageCollection.ContractsStorage.Get(key);
             Runtime.Expect(temp.Length == value.Length, "storage write corruption");
         }
 
@@ -319,12 +319,12 @@ namespace Phantasma.Business.Blockchain.Contracts
             
             ValidateKey(key);
 
-            Runtime.Expect(Runtime.StorageFactory.ContractsStorage.Has(key), "key does not exist");
+            Runtime.Expect(Runtime.StorageCollection.ContractsStorage.Has(key), "key does not exist");
 
-            var value = Runtime.StorageFactory.ContractsStorage.Get(key);
+            var value = Runtime.StorageCollection.ContractsStorage.Get(key);
             var deleteSize = value.Length;
 
-            Runtime.StorageFactory.ContractsStorage.Delete(key);
+            Runtime.StorageCollection.ContractsStorage.Delete(key);
 
             var usedQuota = _dataQuotas.Get<Address, BigInteger>(target);
             usedQuota -= deleteSize;

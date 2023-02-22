@@ -49,7 +49,7 @@ public class SupplySheet
         }
     }
 
-    private void Set(StorageContext storage, string name, BigInteger value)
+    public void Set(StorageContext storage, string name, BigInteger value)
     {
         lock (storage)
         {

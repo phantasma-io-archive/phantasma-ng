@@ -47,12 +47,13 @@ namespace Phantasma.Business.Blockchain
         public IChainTask CurrentTask { get; private set; }
 
         private readonly StorageChangeSetContext changeSet;
-        private readonly StorageFactory storageFactory;
+        private readonly StorageCollectionChangeSet _collectionChangeSet;
+        private readonly StorageCollection _storageCollection;
 
         private int _baseChangeSetCount;
         private BigInteger _randomSeed;
 
-        public StorageContext RootStorage => this.IsRootChain() ? this.Storage : StorageFactory.MainStorage;
+        public StorageContext RootStorage => this.IsRootChain() ? this.Storage : StorageCollection.MainStorage;
 
         private readonly RuntimeVM _parentMachine;
 
@@ -87,7 +88,8 @@ namespace Phantasma.Business.Blockchain
             this.ExceptionMessage = null;
             this.IsError = false;
 
-            this.storageFactory = this.Chain.StorageFactory;
+            this._storageCollection = this.Chain.StorageCollection;
+            //this._collectionChangeSet;
 
             if (this.Chain != null && !Chain.IsRoot)
             {
@@ -99,7 +101,60 @@ namespace Phantasma.Business.Blockchain
                 this.ParentChain = null;
             }
 
-            this.ProtocolVersion = Nexus.GetProtocolVersion(this.StorageFactory.ContractsStorage);
+            this.ProtocolVersion = Nexus.GetProtocolVersion(this.StorageCollection.ContractsStorage);
+            this.MinimumFee = GetGovernanceValue(GovernanceContract.GasMinimumFeeTag);
+
+            this.MaxGas = 600;  // a minimum amount required for allowing calls to Gas contract etc
+
+            ExtCalls.RegisterWithRuntime(this);
+        }
+        
+        public RuntimeVM(int index, byte[] script, uint offset, IChain chain, Address validator, Timestamp time,
+                ITransaction transaction, StorageCollectionChangeSet collectionChangeSet, IOracleReader oracle, IChainTask currentTask,
+                bool delayPayment = false, string contextName = null, RuntimeVM parentMachine = null)
+            : base(script, offset, contextName)
+        {
+            this.changeSet = collectionChangeSet.MainStorage;
+            Core.Throw.IfNull(chain, nameof(chain));
+            Core.Throw.IfNull(changeSet, nameof(changeSet));
+
+            _baseChangeSetCount = (int)changeSet.Count();
+
+            // NOTE: block and transaction can be null, required for Chain.InvokeContract
+            //Throw.IfNull(block, nameof(block));
+            //Throw.IfNull(transaction, nameof(transaction));
+
+            this.TransactionIndex = index;
+            this.GasPrice = 0;
+            this.PaidGas = 0;
+            this.GasTarget = Address.Null;
+            this.CurrentTask = currentTask;
+            this.DelayPayment = delayPayment;
+            this.Validator = validator;
+            this._parentMachine = parentMachine;
+
+            this.Time = time;
+            this.Chain = chain;
+            this.Transaction = transaction;
+            this.Oracle = oracle;
+            this.changeSet = changeSet;
+            this.ExceptionMessage = null;
+            this.IsError = false;
+
+            this._storageCollection = this.Chain.StorageCollection;
+            this._collectionChangeSet = collectionChangeSet;
+
+            if (this.Chain != null && !Chain.IsRoot)
+            {
+                var parentName = this.Chain.Nexus.GetParentChainByName(chain.Name);
+                this.ParentChain = this.Chain.Nexus.GetChainByName(parentName);
+            }
+            else
+            {
+                this.ParentChain = null;
+            }
+
+            this.ProtocolVersion = Nexus.GetProtocolVersion(this.StorageCollection.ContractsStorage);
             this.MinimumFee = GetGovernanceValue(GovernanceContract.GasMinimumFeeTag);
 
             this.MaxGas = 600;  // a minimum amount required for allowing calls to Gas contract etc
@@ -116,7 +171,7 @@ namespace Phantasma.Business.Blockchain
         private Dictionary<string, int> _registedCallArgCounts = new Dictionary<string, int>();
 
         public StorageContext Storage => this.changeSet;
-        public StorageFactory StorageFactory => storageFactory;
+        public StorageCollection StorageCollection => _storageCollection;
 
         public override string ToString()
         {
@@ -442,7 +497,7 @@ namespace Phantasma.Business.Blockchain
                 return UnitConversion.GetUnitValue(DomainSettings.FiatTokenDecimals);
             }
 
-            Core.Throw.If(!Nexus.TokenExists(this.StorageFactory.ContractsStorage, symbol), "cannot read price for invalid token");
+            Core.Throw.If(!Nexus.TokenExists(this.StorageCollection.ContractsStorage, symbol), "cannot read price for invalid token");
             var token = GetToken(symbol);
 
             Core.Throw.If(Oracle == null, "cannot read price from null oracle");
@@ -559,7 +614,7 @@ namespace Phantasma.Business.Blockchain
 
             if (address.IsSystem)
             {
-                var contract = Chain.GetContractByAddress(this.StorageFactory.ContractsStorage, address);
+                var contract = Chain.GetContractByAddress(this.StorageCollection.ContractsStorage, address);
                 if (contract != null)
                 {
                     if (contract.ABI.HasMethod(triggerName))
@@ -620,7 +675,7 @@ namespace Phantasma.Business.Blockchain
         {
             PrepareOptimizedScriptMapKey();
 
-            var scriptMap = new StorageMap(_optimizedScriptMapKey, this.StorageFactory.AddressStorage);
+            var scriptMap = new StorageMap(_optimizedScriptMapKey, this.StorageCollection.AddressStorage);
 
             if (scriptMap.ContainsKey(target))
                 return scriptMap.Get<Address, byte[]>(target);
@@ -637,7 +692,7 @@ namespace Phantasma.Business.Blockchain
                 _optimizedABIMapKey = Encoding.UTF8.GetBytes($".{accountContractName}._abiMap");
             }
 
-            var abiMap = new StorageMap(_optimizedABIMapKey, this.StorageFactory.ContractsStorage);
+            var abiMap = new StorageMap(_optimizedABIMapKey, this.StorageCollection.ContractsStorage);
 
             if (abiMap.ContainsKey(target))
             {
@@ -676,7 +731,7 @@ namespace Phantasma.Business.Blockchain
                 return TriggerResult.Missing;
             }
 
-            var runtime = new RuntimeVM(-1, script, (uint)method.offset, this.Chain, this.Validator, this.Time, this.Transaction, this.changeSet, this.Oracle, ChainTask.Null, true, contextName, this);
+            var runtime = new RuntimeVM(-1, script, (uint)method.offset, this.Chain, this.Validator, this.Time, this.Transaction, this._collectionChangeSet, this.Oracle, ChainTask.Null, true, contextName, this);
 
             for (int i = args.Length - 1; i >= 0; i--)
             {
@@ -758,30 +813,30 @@ namespace Phantasma.Business.Blockchain
         public IContract GetContract(string name)
         {
             ExpectNameLength(name, nameof(name));
-            return Chain.GetContractByName(this.StorageFactory.ContractsStorage, name);
+            return Chain.GetContractByName(this.StorageCollection.ContractsStorage, name);
         }
         
         public bool ContractDeployed(string name)
         {
             ExpectNameLength(name, nameof(name));
-            return Chain.IsContractDeployed(this.StorageFactory.ContractsStorage, name);
+            return Chain.IsContractDeployed(this.StorageCollection.ContractsStorage, name);
         }
 
         public bool ContractExists(string name)
         {
             ExpectNameLength(name, nameof(name));
-            return Nexus.ContractExists(this.StorageFactory.ContractsStorage, name);
+            return Nexus.ContractExists(this.StorageCollection.ContractsStorage, name);
         }
         
         public IContract[] GetContracts()
         {
-            return Chain.GetContracts(this.StorageFactory.ContractsStorage);
+            return Chain.GetContracts(this.StorageCollection.ContractsStorage);
         }
         
         public Address GetContractOwner(Address address)
         {
             ExpectAddressSize(address, nameof(address));
-            return Chain.GetContractOwner(this.StorageFactory.ContractsStorage, address);
+            return Chain.GetContractOwner(this.StorageCollection.ContractsStorage, address);
         }
 
 #endregion
@@ -790,25 +845,25 @@ namespace Phantasma.Business.Blockchain
         public bool ArchiveExists(Hash hash)
         {
             ExpectHashSize(hash, nameof(hash));
-            return Nexus.ArchiveExists(this.StorageFactory.ArchiveStorage, hash);
+            return Nexus.ArchiveExists(this.StorageCollection.ArchiveStorage, hash);
         }
 
         public IArchive GetArchive(Hash hash)
         {
             ExpectHashSize(hash, nameof(hash));
-            return Nexus.GetArchive(this.StorageFactory.ArchiveStorage, hash);
+            return Nexus.GetArchive(this.StorageCollection.ArchiveStorage, hash);
         }
 
         public bool DeleteArchive(Hash hash)
         {
             ExpectHashSize(hash, nameof(hash));
 
-            var archive = Nexus.GetArchive(this.StorageFactory.ArchiveStorage, hash);
+            var archive = Nexus.GetArchive(this.StorageCollection.ArchiveStorage, hash);
             if (archive == null)
             {
                 return false;
             }
-            return Nexus.DeleteArchive(this.StorageFactory.ArchiveStorage, archive);
+            return Nexus.DeleteArchive(this.StorageCollection.ArchiveStorage, archive);
         }
 
         public bool AddOwnerToArchive(Hash hash, Address address)
@@ -816,13 +871,13 @@ namespace Phantasma.Business.Blockchain
             ExpectHashSize(hash, nameof(hash));
             ExpectAddressSize(address, nameof(address));
 
-            var archive = Nexus.GetArchive(this.StorageFactory.ArchiveStorage, hash);
+            var archive = Nexus.GetArchive(this.StorageCollection.ArchiveStorage, hash);
             if (archive == null)
             {
                 return false;
             }
 
-            Nexus.AddOwnerToArchive(this.StorageFactory.ArchiveStorage, archive, address);
+            Nexus.AddOwnerToArchive(this.StorageCollection.ArchiveStorage, archive, address);
 
             this.Notify(EventKind.OwnerAdded, address, hash);
 
@@ -834,13 +889,13 @@ namespace Phantasma.Business.Blockchain
             ExpectHashSize(hash, nameof(hash));
             ExpectAddressSize(address, nameof(address));
 
-            var archive = Nexus.GetArchive(this.StorageFactory.ArchiveStorage, hash);
+            var archive = Nexus.GetArchive(this.StorageCollection.ArchiveStorage, hash);
             if (archive == null)
             {
                 return false;
             }
 
-            Nexus.RemoveOwnerFromArchive(this.StorageFactory.ArchiveStorage, archive, address);
+            Nexus.RemoveOwnerFromArchive(this.StorageCollection.ArchiveStorage, archive, address);
 
             if (archive.OwnerCount == 0)
             {
@@ -861,7 +916,7 @@ namespace Phantasma.Business.Blockchain
             ExpectNameLength(name, nameof(name));
 
             // TODO validation
-            var archive = Nexus.CreateArchive(this.StorageFactory.ArchiveStorage, merkleTree, owner, name, size, time, encryption);
+            var archive = Nexus.CreateArchive(this.StorageCollection.ArchiveStorage, merkleTree, owner, name, size, time, encryption);
 
             this.Notify(EventKind.FileCreate, owner, archive.Hash);
 
@@ -893,7 +948,7 @@ namespace Phantasma.Business.Blockchain
         public bool ChainExists(string name)
         {
             ExpectNameLength(name, nameof(name));
-            return Nexus.ChainExists(this.StorageFactory.MainStorage, name);
+            return Nexus.ChainExists(this.StorageCollection.MainStorage, name);
         }
 
         public int GetIndexOfChain(string name)
@@ -936,7 +991,7 @@ namespace Phantasma.Business.Blockchain
 
             Expect(!name.Equals(parentChain, StringComparison.OrdinalIgnoreCase), "same name as parent");
 
-            Nexus.CreateChain(this.StorageFactory.MainStorage, organization, name, parentChain);
+            Nexus.CreateChain(this.StorageCollection.MainStorage, organization, name, parentChain);
             this.Notify(EventKind.ChainCreate, creator, name);
         }
         
@@ -1004,7 +1059,7 @@ namespace Phantasma.Business.Blockchain
         
         public string[] GetChains()
         {
-            return Nexus.GetChains(this.StorageFactory.MainStorage);
+            return Nexus.GetChains(this.StorageCollection.MainStorage);
         }
 #endregion
 
@@ -1012,25 +1067,25 @@ namespace Phantasma.Business.Blockchain
         public Address LookUpName(string name)
         {
             ExpectNameLength(name, nameof(name));
-            return Chain.LookUpName(this.StorageFactory.AddressStorage, name, Time);
+            return Chain.LookUpName(this.StorageCollection.AddressStorage, name, Time);
         }
 
         public bool HasAddressScript(Address from)
         {
             ExpectAddressSize(from, nameof(from));
-            return Nexus.HasAddressScript(this.StorageFactory.AddressStorage, from, Time);
+            return Nexus.HasAddressScript(this.StorageCollection.AddressStorage, from, Time);
         }
 
         public byte[] GetAddressScript(Address from)
         {
             ExpectAddressSize(from, nameof(from));
-            return Nexus.LookUpAddressScript(this.StorageFactory.AddressStorage, from, Time);
+            return Nexus.LookUpAddressScript(this.StorageCollection.AddressStorage, from, Time);
         }
 
         public string GetAddressName(Address from)
         {
             ExpectAddressSize(from, nameof(from));
-            return Chain.GetNameFromAddress(this.StorageFactory.AddressStorage, from, Time);
+            return Chain.GetNameFromAddress(this.StorageCollection.AddressStorage, from, Time);
         }
 
         public Hash[] GetTransactionHashesForAddress(Address address)
@@ -1083,23 +1138,23 @@ namespace Phantasma.Business.Blockchain
 #region  Genesis
         public string NexusName => Nexus.Name;
         public uint ProtocolVersion { get; private set; }
-        public Hash GenesisHash => Nexus.GetGenesisHash(this.StorageFactory.MainStorage);      
+        public Hash GenesisHash => Nexus.GetGenesisHash(this.StorageCollection.MainStorage);      
         
         public bool IsStakeMaster(Address address)
         {
             ExpectAddressSize(address, nameof(address));
-            return Nexus.IsStakeMaster(this.StorageFactory.ContractsStorage, address, Time);
+            return Nexus.IsStakeMaster(this.StorageCollection.ContractsStorage, address, Time);
         }
 
         public BigInteger GetStake(Address address)
         {
             ExpectAddressSize(address, nameof(address));
-            return Nexus.GetStakeFromAddress(this.StorageFactory.ContractsStorage, address, Time);
+            return Nexus.GetStakeFromAddress(this.StorageCollection.ContractsStorage, address, Time);
         }
 
         public BigInteger GenerateUID()
         {
-            return this.Chain.GenerateUID(this.StorageFactory.MainStorage);
+            return this.Chain.GenerateUID(this.StorageCollection.MainStorage);
         }
         
         public bool IsWitness(Address address)
@@ -1131,7 +1186,7 @@ namespace Phantasma.Business.Blockchain
                     }
                 }
 
-                var org = Nexus.GetOrganizationByAddress(this.StorageFactory.AddressStorage, address);
+                var org = Nexus.GetOrganizationByAddress(this.StorageCollection.AddressStorage, address);
                 if (org != null)
                 {
                     ConsumeGas(10000);
@@ -1160,7 +1215,7 @@ namespace Phantasma.Business.Blockchain
             {
                 accountResult = true;
             }
-            else if (address.IsUser && HasGenesis && OptimizedHasAddressScript(this.StorageFactory.AddressStorage, address))
+            else if (address.IsUser && HasGenesis && OptimizedHasAddressScript(this.StorageCollection.AddressStorage, address))
             {
                 TriggerResult triggerResult;
                 triggerResult = InvokeTriggerOnAccount(false, address, AccountTrigger.OnWitness, address);
@@ -1236,7 +1291,7 @@ namespace Phantasma.Business.Blockchain
         {
             ExpectNameLength(name, nameof(name));
 
-            var value = Nexus.GetGovernanceValue(this.StorageFactory.ContractsStorage, name);
+            var value = Nexus.GetGovernanceValue(this.StorageCollection.ContractsStorage, name);
             return value;
         }
         
@@ -1262,7 +1317,7 @@ namespace Phantasma.Business.Blockchain
             ExpectAddressSize(address, nameof(address));
             ExpectTokenExists(symbol);
             var token = GetToken(symbol);
-            return Chain.GetTokenBalance(this.StorageFactory.AddressBalancesStorage, token, address);
+            return Chain.GetTokenBalance(this.StorageCollection.AddressBalancesStorage, token, address);
         }
 
         public BigInteger[] GetOwnerships(string symbol, Address address)
@@ -1270,14 +1325,14 @@ namespace Phantasma.Business.Blockchain
             ExpectNameLength(symbol, nameof(symbol));
             ExpectAddressSize(address, nameof(address));
             ExpectTokenExists(symbol);
-            return Chain.GetOwnedTokens(this.StorageFactory.AddressBalancesNFTStorage, symbol, address);
+            return Chain.GetOwnedTokens(this.StorageCollection.AddressBalancesNFTStorage, symbol, address);
         }
 
         public BigInteger GetTokenSupply(string symbol)
         {
             ExpectNameLength(symbol, nameof(symbol));
             ExpectTokenExists(symbol);
-            return Chain.GetTokenSupply(this.StorageFactory.ContractsStorage, symbol);
+            return Chain.GetTokenSupply(this.StorageCollection.ContractsStorage, symbol);
         }
 
 #endregion
@@ -1337,7 +1392,7 @@ namespace Phantasma.Business.Blockchain
         public bool IsPlatformAddress(Address address)
         {
             ExpectAddressSize(address, nameof(address));
-            return Nexus.IsPlatformAddress(this.StorageFactory.PlatformsStorage, address);
+            return Nexus.IsPlatformAddress(this.StorageCollection.PlatformsStorage, address);
         }
 
         public void RegisterPlatformAddress(string platform, Address localAddress, string externalAddress)
@@ -1346,7 +1401,7 @@ namespace Phantasma.Business.Blockchain
             ExpectAddressSize(localAddress, nameof(localAddress));
             ExpectUrlLength(externalAddress, nameof(externalAddress));
             Expect(Chain.Name == DomainSettings.RootChainName, "must be in root chain");
-            Nexus.RegisterPlatformAddress(this.StorageFactory.PlatformsStorage, platform, localAddress, externalAddress);
+            Nexus.RegisterPlatformAddress(this.StorageCollection.PlatformsStorage, platform, localAddress, externalAddress);
         }
         
         public Hash GetTokenPlatformHash(string symbol, IPlatform platform)
@@ -1359,13 +1414,13 @@ namespace Phantasma.Business.Blockchain
                 return Hash.Null;
             }
 
-            return Nexus.GetTokenPlatformHash(symbol, platform.Name, this.StorageFactory.PlatformsStorage);
+            return Nexus.GetTokenPlatformHash(symbol, platform.Name, this.StorageCollection.PlatformsStorage);
         }
 
         public IPlatform GetPlatformByName(string name)
         {
             ExpectNameLength(name, nameof(name));
-            return Nexus.GetPlatformInfo(this.StorageFactory.PlatformsStorage, name);
+            return Nexus.GetPlatformInfo(this.StorageCollection.PlatformsStorage, name);
         }
 
         public IPlatform GetPlatformByIndex(int index)
@@ -1383,13 +1438,13 @@ namespace Phantasma.Business.Blockchain
         
         public string[] GetPlatforms()
         {
-            return Nexus.GetPlatforms(this.StorageFactory.PlatformsStorage);
+            return Nexus.GetPlatforms(this.StorageCollection.PlatformsStorage);
         }
 
         public bool PlatformExists(string name)
         {
             ExpectNameLength(name, nameof(name));
-            return Nexus.PlatformExists(this.StorageFactory.PlatformsStorage, name);
+            return Nexus.PlatformExists(this.StorageCollection.PlatformsStorage, name);
         }
 
         #endregion
@@ -1455,7 +1510,7 @@ namespace Phantasma.Business.Blockchain
                 Expect(decimals == 0, "indivisible token can't have decimals");
             }
 
-            var token = Nexus.CreateToken(this.StorageFactory.ContractsStorage, symbol, name, owner, maxSupply, decimals, flags, script, abi);
+            var token = Nexus.CreateToken(this.StorageCollection.ContractsStorage, symbol, name, owner, maxSupply, decimals, flags, script, abi);
 
             var constructor = abi.FindMethod(SmartContract.ConstructorName);
 
@@ -1466,7 +1521,7 @@ namespace Phantasma.Business.Blockchain
 
             var rootChain = (Chain)this.GetRootChain();
             var currentOwner = owner;
-            TokenUtils.FetchProperty(this.StorageFactory.ContractsStorage, rootChain, "getOwner", script, abi, (prop, value) =>
+            TokenUtils.FetchProperty(this.StorageCollection.ContractsStorage, rootChain, "getOwner", script, abi, (prop, value) =>
             {
                 currentOwner = value.AsAddress();
             });
@@ -1490,13 +1545,13 @@ namespace Phantasma.Business.Blockchain
         public bool TokenExists(string symbol)
         {
             ExpectNameLength(symbol, nameof(symbol));
-            return Nexus.TokenExists(this.StorageFactory.ContractsStorage, symbol);
+            return Nexus.TokenExists(this.StorageCollection.ContractsStorage, symbol);
         }
 
         public bool NFTExists(string symbol, BigInteger tokenID)
         {
             ExpectNameLength(symbol, nameof(symbol));
-            return Nexus.HasNFT(this.StorageFactory.ContractsStorage, symbol, tokenID);
+            return Nexus.HasNFT(this.StorageCollection.ContractsStorage, symbol, tokenID);
         }
 
         public bool TokenExists(string symbol, string platform)
@@ -1504,13 +1559,13 @@ namespace Phantasma.Business.Blockchain
             ExpectNameLength(symbol, nameof(symbol));
             ExpectNameLength(platform, nameof(platform));
 
-            return Nexus.TokenExistsOnPlatform(symbol, platform, this.StorageFactory.ContractsStorage);
+            return Nexus.TokenExistsOnPlatform(symbol, platform, this.StorageCollection.ContractsStorage);
         }
         
         public IToken GetToken(string symbol)
         {
             ExpectNameLength(symbol, nameof(symbol));
-            return Nexus.GetTokenInfo(this.StorageFactory.ContractsStorage, symbol);
+            return Nexus.GetTokenInfo(this.StorageCollection.ContractsStorage, symbol);
         }
         
         public void MintTokens(string symbol, Address from, Address target, BigInteger amount)
@@ -1637,7 +1692,7 @@ namespace Phantasma.Business.Blockchain
         public ITokenSeries GetTokenSeries(string symbol, BigInteger seriesID)
         {
             ExpectNameLength(symbol, nameof(symbol));
-            return Nexus.GetTokenSeries(this.StorageFactory.ContractsStorage, symbol, seriesID);
+            return Nexus.GetTokenSeries(this.StorageCollection.ContractsStorage, symbol, seriesID);
         }
 
         public ITokenSeries CreateTokenSeries(string symbol, Address from, BigInteger seriesID, BigInteger maxSupply, TokenSeriesMode mode, byte[] script, ContractInterface abi)
@@ -1658,7 +1713,7 @@ namespace Phantasma.Business.Blockchain
             Expect(IsWitness(from), "invalid witness");
             Expect(InvokeTriggerOnToken(false, token, TokenTrigger.OnSeries, from) != TriggerResult.Failure, $"trigger {TokenTrigger.OnSeries} on token {symbol} failed for {from}");
 
-            return Nexus.CreateSeries(this.StorageFactory.ContractsStorage, token, seriesID, maxSupply, mode, script, abi);
+            return Nexus.CreateSeries(this.StorageCollection.ContractsStorage, token, seriesID, maxSupply, mode, script, abi);
         }
 
         public void TransferTokens(string symbol, Address source, Address destination, BigInteger amount)
@@ -1823,7 +1878,7 @@ namespace Phantasma.Business.Blockchain
         
         public string[] GetTokens()
         {
-            return Nexus.GetTokens(this.StorageFactory.ContractsStorage);
+            return Nexus.GetTokens(this.StorageCollection.ContractsStorage);
         }
         #endregion
         
@@ -1845,7 +1900,7 @@ namespace Phantasma.Business.Blockchain
             Expect(IsStakeMaster(owner), "needs to be master");
             Expect(IsWitness(owner), "invalid witness");
 
-            Expect(Nexus.CreateFeed(this.StorageFactory.MainStorage, owner, name, mode), "feed creation failed");
+            Expect(Nexus.CreateFeed(this.StorageCollection.MainStorage, owner, name, mode), "feed creation failed");
 
             this.Notify(EventKind.FeedCreate, owner, name);
         }
@@ -1853,18 +1908,18 @@ namespace Phantasma.Business.Blockchain
         public bool FeedExists(string name)
         {
             ExpectNameLength(name, nameof(name));
-            return Nexus.FeedExists(this.StorageFactory.MainStorage, name);
+            return Nexus.FeedExists(this.StorageCollection.MainStorage, name);
         }
         
         public IFeed GetFeed(string name)
         {
             ExpectNameLength(name, nameof(name));
-            return Nexus.GetFeedInfo(this.StorageFactory.MainStorage, name);
+            return Nexus.GetFeedInfo(this.StorageCollection.MainStorage, name);
         }
         
         public string[] GetFeeds()
         {
-            return Nexus.GetFeeds(this.StorageFactory.MainStorage);
+            return Nexus.GetFeeds(this.StorageCollection.MainStorage);
         }
 #endregion
 
@@ -1930,19 +1985,23 @@ namespace Phantasma.Business.Blockchain
 
             Expect(ValidationUtils.IsValidIdentifier(ID), "invalid organization name");
 
-            Expect(!Nexus.OrganizationExists(this.StorageFactory.OrganizationStorage, ID), "organization already exists");
+            Expect(!Nexus.OrganizationExists(this.StorageCollection.OrganizationStorage, ID), "organization already exists");
 
-            Nexus.CreateOrganization(this.StorageFactory.OrganizationStorage, ID, name, script);
+            Nexus.CreateOrganization(this.StorageCollection.OrganizationStorage, ID, name, script);
             
             var org = GetOrganization(ID) as Organization;
             org.InitCreator(from);
 
-            // TODO org cost
-            /*var fuelCost = GetGovernanceValue(DomainSettings.FuelPerOrganizationDeployTag);
-            // governance value is in usd fiat, here convert from fiat to fuel amount
-            fuelCost = this.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
-            // burn the "cost" tokens
-            BurnTokens(DomainSettings.FuelTokenSymbol, from, fuelCost);*/
+            if (HasGenesis)
+            {
+                // TODO org cost
+                var fuelCost = GetGovernanceValue(DomainSettings.FuelPerOrganizationDeployTag);
+                // governance value is in usd fiat, here convert from fiat to fuel amount
+                fuelCost = this.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
+                // burn the "cost" tokens
+                BurnTokens(DomainSettings.FuelTokenSymbol, from, fuelCost);
+            }
+          
 
             this.Notify(EventKind.OrganizationCreate, from, ID);
         }
@@ -1955,7 +2014,7 @@ namespace Phantasma.Business.Blockchain
         public bool OrganizationExists(string name)
         {
             ExpectNameLength(name, nameof(name));
-            return Nexus.OrganizationExists(this.StorageFactory.OrganizationStorage, name);
+            return Nexus.OrganizationExists(this.StorageCollection.OrganizationStorage, name);
         }
 
         /// <summary>
@@ -1966,7 +2025,7 @@ namespace Phantasma.Business.Blockchain
         public IOrganization GetOrganization(string name)
         {
             ExpectNameLength(name, nameof(name));
-            return Nexus.GetOrganizationByName(this.StorageFactory.OrganizationStorage, name);
+            return Nexus.GetOrganizationByName(this.StorageCollection.OrganizationStorage, name);
         }
 
         /// <summary>
@@ -1982,7 +2041,7 @@ namespace Phantasma.Business.Blockchain
             ExpectAddressSize(admin, nameof(admin));
             ExpectAddressSize(target, nameof(target));
 
-            var org = Nexus.GetOrganizationByName(this.StorageFactory.OrganizationStorage, organization);
+            var org = Nexus.GetOrganizationByName(this.StorageCollection.OrganizationStorage, organization);
             return org.AddMember(this, admin, target);
         }
 
@@ -1999,7 +2058,7 @@ namespace Phantasma.Business.Blockchain
             ExpectAddressSize(admin, nameof(admin));
             ExpectAddressSize(target, nameof(target));
 
-            var org = Nexus.GetOrganizationByName(this.StorageFactory.OrganizationStorage, organization);
+            var org = Nexus.GetOrganizationByName(this.StorageCollection.OrganizationStorage, organization);
             return org.RemoveMember(this, admin, target);
         }
 
@@ -2013,7 +2072,7 @@ namespace Phantasma.Business.Blockchain
             ExpectAddressSize(from, nameof(from));
             ExpectAddressSize(to, nameof(to));
 
-            this.Nexus.MigrateTokenOwner(this.StorageFactory.ContractsStorage, from, to);
+            this.Nexus.MigrateTokenOwner(this.StorageCollection.ContractsStorage, from, to);
         }
 
         /// <summary>
@@ -2030,7 +2089,7 @@ namespace Phantasma.Business.Blockchain
             ExpectAddressSize(source, nameof(source));
             ExpectAddressSize(destination, nameof(destination));
 
-            var org = Nexus.GetOrganizationByName(this.StorageFactory.OrganizationStorage, organization);
+            var org = Nexus.GetOrganizationByName(this.StorageCollection.OrganizationStorage, organization);
             org.MigrateMember(this, admin, source, destination);
         }
         
@@ -2040,7 +2099,7 @@ namespace Phantasma.Business.Blockchain
         /// <returns></returns>
         public string[] GetOrganizations()
         {
-            return Nexus.GetOrganizations(this.StorageFactory.OrganizationStorage);
+            return Nexus.GetOrganizations(this.StorageCollection.OrganizationStorage);
         }
 #endregion
 
@@ -2060,7 +2119,7 @@ namespace Phantasma.Business.Blockchain
 
             Expect(method.returnType == VMType.Bool, "method used in task must have bool as return type");
 
-            var contract = Chain.GetContractByName(this.StorageFactory.ContractsStorage, contractName);
+            var contract = Chain.GetContractByName(this.StorageCollection.ContractsStorage, contractName);
             Expect(contract != null, "contract not found: " + contractName);
 
             Expect(contract is CustomContract, "contract used for task must be custom");
@@ -2077,7 +2136,7 @@ namespace Phantasma.Business.Blockchain
 
             Expect(IsWitness(from), "invalid witness");
 
-            var result = Chain.StartTask(this.StorageFactory.TasksStorage, from, contractName, method, frequency, delay, mode, gasLimit);
+            var result = Chain.StartTask(this.StorageCollection.TasksStorage, from, contractName, method, frequency, delay, mode, gasLimit);
             Expect(result != null, "could not start task");
 
             this.Notify(EventKind.TaskStart, from, result.ID);
@@ -2090,7 +2149,7 @@ namespace Phantasma.Business.Blockchain
             ExpectValidChainTask(task);
 
             Expect(IsWitness(task.Owner), "invalid witness");
-            Expect(Chain.StopTask(this.StorageFactory.TasksStorage, task.ID), "failed to stop task");
+            Expect(Chain.StopTask(this.StorageCollection.TasksStorage, task.ID), "failed to stop task");
 
             this.Notify(EventKind.TaskStop, task.Owner, task.ID);
         }
@@ -2107,7 +2166,7 @@ namespace Phantasma.Business.Blockchain
                 return CurrentTask;
             }
 
-            return Chain.GetTask(this.StorageFactory.TasksStorage, taskID);
+            return Chain.GetTask(this.StorageCollection.TasksStorage, taskID);
         }
 #endregion
 
@@ -2369,7 +2428,7 @@ namespace Phantasma.Business.Blockchain
                     return null;
                 }
 
-                var series = Nexus.GetTokenSeries(this.StorageFactory.ContractsStorage, symbol, seriesID);
+                var series = Nexus.GetTokenSeries(this.StorageCollection.ContractsStorage, symbol, seriesID);
                 if (series == null)
                 {
                     throw new VMException(this, $"Could not find {symbol} series #{seriesID}");
@@ -2381,7 +2440,7 @@ namespace Phantasma.Business.Blockchain
             }
             else
             {
-                var contract = this.Chain.GetContractByName(this.StorageFactory.ContractsStorage, contextName);
+                var contract = this.Chain.GetContractByName(this.StorageCollection.ContractsStorage, contextName);
                 if (contract != null)
                 {
                     return Chain.GetContractContext(this.changeSet, contract);
@@ -2460,12 +2519,12 @@ namespace Phantasma.Business.Blockchain
         
         public VMObject InvokeContractAtTimestamp(NativeContractKind nativeContract, string methodName, params object[] args)
         {
-            return Chain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, Time, nativeContract, methodName, args);
+            return Chain.InvokeContractAtTimestamp(this.StorageCollection.ContractsStorage, Time, nativeContract, methodName, args);
         }
 
         public VMObject InvokeContractAtTimestamp(string contractName, string methodName, params object[] args)
         {
-            return Chain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, Time, contractName, methodName, args);
+            return Chain.InvokeContractAtTimestamp(this.StorageCollection.ContractsStorage, Time, contractName, methodName, args);
         }
 #endregion
     }

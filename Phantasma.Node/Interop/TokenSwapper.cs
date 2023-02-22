@@ -204,14 +204,14 @@ namespace Phantasma.Node.Interop
             var nexus = NexusAPI.GetNexus();
 
             var hash = Hash.FromUnpaddedHex(asset);
-            var symbols = nexus.GetTokens(nexus.RootChain.StorageFactory.ContractsStorage);
+            var symbols = nexus.GetTokens(nexus.RootChain.StorageCollection.ContractsStorage);
 
             foreach (var symbol in symbols)
             {
-                var otherHash = nexus.GetTokenPlatformHash(symbol, platform, nexus.RootChain.StorageFactory.PlatformsStorage);
+                var otherHash = nexus.GetTokenPlatformHash(symbol, platform, nexus.RootChain.StorageCollection.PlatformsStorage);
                 if (hash == otherHash)
                 {
-                    return nexus.GetTokenInfo(nexus.RootChain.StorageFactory.ContractsStorage, symbol);
+                    return nexus.GetTokenInfo(nexus.RootChain.StorageCollection.ContractsStorage, symbol);
                 }
             }
 
@@ -281,8 +281,8 @@ namespace Phantasma.Node.Interop
                         return;
                     }
 
-                    var platforms = nexus.GetPlatforms(nexus.RootChain.StorageFactory.PlatformsStorage);
-                    this.platforms = platforms.Select(x => nexus.GetPlatformInfo(nexus.RootChain.StorageFactory.PlatformsStorage, x)).ToArray();
+                    var platforms = nexus.GetPlatforms(nexus.RootChain.StorageCollection.PlatformsStorage);
+                    this.platforms = platforms.Select(x => nexus.GetPlatformInfo(nexus.RootChain.StorageCollection.PlatformsStorage, x)).ToArray();
 
                     if (this.platforms.Length == 0)
                     {
@@ -291,11 +291,11 @@ namespace Phantasma.Node.Interop
                     }
 
                     _swappers["neo"] = new NeoInterop(this, neoAPI, interopBlocks["neo"], Settings.Instance.Oracle.NeoQuickSync);
-                    var platformInfo = nexus.GetPlatformInfo(nexus.RootChain.StorageFactory.PlatformsStorage, "neo");
+                    var platformInfo = nexus.GetPlatformInfo(nexus.RootChain.StorageCollection.PlatformsStorage, "neo");
                     SwapAddresses["neo"] = platformInfo.InteropAddresses.Select(x => x.ExternalAddress).ToArray();
 
-                    _swappers["ethereum"] = new EthereumInterop(this, ethAPI, interopBlocks["ethereum"], nexus.GetPlatformTokenHashes("ethereum", nexus.RootChain.StorageFactory.PlatformsStorage).Select(x => x.ToString().Substring(0, 40)).ToArray(), Settings.Instance.Oracle.EthConfirmations);
-                    platformInfo = nexus.GetPlatformInfo(nexus.RootChain.StorageFactory.PlatformsStorage, "ethereum");
+                    _swappers["ethereum"] = new EthereumInterop(this, ethAPI, interopBlocks["ethereum"], nexus.GetPlatformTokenHashes("ethereum", nexus.RootChain.StorageCollection.PlatformsStorage).Select(x => x.ToString().Substring(0, 40)).ToArray(), Settings.Instance.Oracle.EthConfirmations);
+                    platformInfo = nexus.GetPlatformInfo(nexus.RootChain.StorageCollection.PlatformsStorage, "ethereum");
                     SwapAddresses["ethereum"] = platformInfo.InteropAddresses.Select(x => x.ExternalAddress).ToArray();
 
                     Log.Information("Available swap addresses:");
@@ -515,7 +515,7 @@ namespace Phantasma.Node.Interop
 
             var nexus = NexusAPI.GetNexus();
 
-            var hash = (Hash)nexus.RootChain.InvokeContractAtTimestamp(nexus.RootChain.StorageFactory.ContractsStorage, Timestamp.Now, "interop", nameof(InteropContract.GetSettlement), sourcePlatform, sourceHash).ToObject();
+            var hash = (Hash)nexus.RootChain.InvokeContractAtTimestamp(nexus.RootChain.StorageCollection.ContractsStorage, Timestamp.Now, "interop", nameof(InteropContract.GetSettlement), sourcePlatform, sourceHash).ToObject();
             if (hash != Hash.Null && !settlements.ContainsKey<Hash>(sourceHash))
             {
                 // This modification should be locked when GetSettleHash() is called from SettleSwap(),
@@ -648,7 +648,7 @@ namespace Phantasma.Node.Interop
 
             var nexus = NexusAPI.GetNexus();
 
-            var token = nexus.GetTokenInfo(nexus.RootChain.StorageFactory.ContractsStorage, transfer.Symbol);
+            var token = nexus.GetTokenInfo(nexus.RootChain.StorageCollection.ContractsStorage, transfer.Symbol);
 
             lock (StateModificationLock)
             {

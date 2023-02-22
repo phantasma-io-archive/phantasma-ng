@@ -67,7 +67,7 @@ public class BlockContractTests
     [Fact]
     public void TestBlock()
     {
-        var token = nexus.GetTokenInfo(nexus.StorageFactory.ContractsStorage, DomainSettings.StakingTokenSymbol);
+        var token = nexus.GetTokenInfo(nexus.StorageCollection.ContractsStorage, DomainSettings.StakingTokenSymbol);
         var amount = UnitConversion.ToBigInteger(100, token.Decimals);
         var KcalAmount = UnitConversion.ToBigInteger(1000, DomainSettings.FuelTokenDecimals);
         var stakeAmount = UnitConversion.ToBigInteger(3, DomainSettings.StakingTokenDecimals);

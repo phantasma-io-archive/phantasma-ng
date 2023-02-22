@@ -17,7 +17,7 @@ public interface IChain
     Address ValidatorAddress { get; }
     BigInteger Height { get; }
     StorageContext Storage { get; }
-    StorageFactory StorageFactory { get; }
+    StorageCollection StorageCollection { get; }
     bool IsRoot { get; }
     IContract[] GetContracts(StorageContext storage);
     void AddBlock(Block block, IEnumerable<ITransaction> transactions, StorageChangeSetContext changeSet);

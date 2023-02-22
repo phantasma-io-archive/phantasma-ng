@@ -142,7 +142,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             {
                 var nexus = NexusAPI.GetNexus();
 
-                var chains = nexus.GetChains(nexus.RootChain.StorageFactory.MainStorage);
+                var chains = nexus.GetChains(nexus.RootChain.StorageCollection.MainStorage);
                 foreach (var chainName in chains)
                 {
                     var chain = nexus.GetChainByName(chainName);

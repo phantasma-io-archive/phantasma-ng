@@ -2,7 +2,7 @@ using Phantasma.Core.Domain;
 
 namespace Phantasma.Core.Storage.Context;
 
-public class StorageFactory
+public class StorageCollection
 {
     private readonly INexus _nexus;
     public StorageContext MainStorage { get; private set; }
@@ -19,7 +19,7 @@ public class StorageFactory
     public StorageContext ArchiveStorage { get; private set; }
     public StorageContext PlatformsStorage { get; private set; }
 
-    public StorageFactory(INexus Nexus, string name)
+    public StorageCollection(INexus Nexus, string name)
     {
         _nexus = Nexus;
         this.MainStorage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(name));

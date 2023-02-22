@@ -188,7 +188,8 @@ public class ChainTests
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
         
-        simulator.GetFundsInTheFuture(owner);
+        simulator.GetFundsInTheFuture(owner, 2);
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var symbol = "BLA";
 
@@ -890,14 +891,14 @@ public class ChainTests
 
         var block = simulator.EndBlock().FirstOrDefault();
         Assert.NotNull(block);
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var evts = block.GetEventsForTransaction(tx.Hash);
         Assert.True(evts.Any(x => x.Kind == EventKind.TokenReceive && x.Address == chainAddress));
 
-        var token = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, symbol);
+        var token = simulator.Nexus.GetTokenInfo(simulator.Nexus.StorageCollection.ContractsStorage, symbol);
 
-        var initialBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, chainAddress);
+        var initialBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.StorageCollection.AddressBalancesStorage, token, chainAddress);
         Assert.True(initialBalance > 10000);
 
         string[] scriptString = new string[]
@@ -939,7 +940,7 @@ public class ChainTests
         simulator.EndBlock();
         Assert.False(simulator.LastBlockWasSuccessful());
 
-        var finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, simulator.Nexus.RootChain.Address);
+        var finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.StorageCollection.AddressBalancesStorage, token, simulator.Nexus.RootChain.Address);
         Assert.True(initialBalance == finalBalance);
     }
 
@@ -1309,7 +1310,7 @@ public class ChainTests
         var nexus = simulator.Nexus;
         
         simulator.GetFundsInTheFuture(owner, 10);
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         simulator.blockTimeSkip = TimeSpan.FromSeconds(5);
 
@@ -1448,7 +1449,7 @@ public class ChainTests
                 }
             }
 
-            Assert.True(inflation);
+            Assert.True(inflation, simulator.FailedTxReason);
         });
     }
 }

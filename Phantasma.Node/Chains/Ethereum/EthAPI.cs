@@ -161,7 +161,7 @@ namespace Phantasma.Node.Chains.Ethereum
                     nativeAsset = true;
                 }
 
-                var hash = nexus.GetTokenPlatformHash(symbol, "ethereum", nexus.RootChain.StorageFactory.PlatformsStorage);
+                var hash = nexus.GetTokenPlatformHash(symbol, "ethereum", nexus.RootChain.StorageCollection.PlatformsStorage);
 
                 if (hash.IsNull)
                 {

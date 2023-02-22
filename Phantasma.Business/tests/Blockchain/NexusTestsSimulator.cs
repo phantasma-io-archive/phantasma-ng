@@ -274,7 +274,7 @@ public class NexusTestsSimulator
     [Fact]
     public void TestGetUnclaimedFuelFromAddress()
     {
-        var fuel = nexus.GetUnclaimedFuelFromAddress(nexus.StorageFactory.ContractsStorage, owner.Address, simulator.CurrentTime);
+        var fuel = nexus.GetUnclaimedFuelFromAddress(nexus.StorageCollection.ContractsStorage, owner.Address, simulator.CurrentTime);
         
         // Assert
         Assert.NotNull(fuel);

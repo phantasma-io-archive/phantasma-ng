@@ -103,7 +103,7 @@ public static class NexusExtensions
             {
                 Runtime.Expect(Runtime.CurrentContext.Name != VirtualMachine.EntryContextName, "moving funds from system address if forbidden");
 
-                var sourceContract = Runtime.Chain.GetContractByAddress(Runtime.StorageFactory.ContractsStorage, source);
+                var sourceContract = Runtime.Chain.GetContractByAddress(Runtime.StorageCollection.ContractsStorage, source);
                 Runtime.Expect(sourceContract != null, "cannot find matching contract for address: " + source);
 
                 var isKnownExceptionToRule = false;
@@ -115,7 +115,7 @@ public static class NexusExtensions
                         isKnownExceptionToRule = true;
                     }
                     else
-                    if (Nexus.TokenExists(Runtime.StorageFactory.ContractsStorage, sourceContract.Name))
+                    if (Nexus.TokenExists(Runtime.StorageCollection.ContractsStorage, sourceContract.Name))
                     {
                         isKnownExceptionToRule = true;
                     }
@@ -130,7 +130,7 @@ public static class NexusExtensions
             {
                 Runtime.Expect(Runtime.CurrentContext.Name != VirtualMachine.EntryContextName, "moving funds from system address if forbidden");
                 var isKnownExceptionToRule = false;
-                var sourceContract = Runtime.Chain.GetContractByAddress(Runtime.StorageFactory.ContractsStorage, source);
+                var sourceContract = Runtime.Chain.GetContractByAddress(Runtime.StorageCollection.ContractsStorage, source);
                 Runtime.Expect(sourceContract != null, "cannot find matching contract for address: " + source);
             
                 if (Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
@@ -141,7 +141,7 @@ public static class NexusExtensions
                         isKnownExceptionToRule = true;
                     }
                     else
-                    if (Nexus.TokenExists(Runtime.StorageFactory.ContractsStorage, sourceContract.Name))
+                    if (Nexus.TokenExists(Runtime.StorageCollection.ContractsStorage, sourceContract.Name))
                     {
                         isKnownExceptionToRule = true;
                     }

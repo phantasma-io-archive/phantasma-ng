@@ -44,7 +44,7 @@ public class GasContractTests
         reward = new StakeReward(user.Address, Timestamp.Now);
         InitializeSimulator();
 
-        startBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.StorageFactory.AddressBalancesStorage, DomainSettings.StakingTokenSymbol, user.Address);
+        startBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.StorageCollection.AddressBalancesStorage, DomainSettings.StakingTokenSymbol, user.Address);
     }
         
     protected void InitializeSimulator()
@@ -128,7 +128,7 @@ public class GasContractTests
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
 
-        var myValue = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.StorageFactory.AddressBalancesStorage, "SOUL", user.Address);
+        var myValue = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.StorageCollection.AddressBalancesStorage, "SOUL", user.Address);
         Assert.NotEqual(0, myValue);
     }
 

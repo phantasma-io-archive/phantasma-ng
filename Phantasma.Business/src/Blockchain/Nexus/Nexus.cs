@@ -72,7 +72,7 @@ public class Nexus : INexus
     }
     
     public StorageContext RootStorage { get; init;  }
-    public StorageFactory StorageFactory { get; init; }
+    public StorageCollection StorageCollection { get; init; }
     
     private KeyValueStore<Hash, byte[]> _archiveContents;
 
@@ -89,7 +89,7 @@ public class Nexus : INexus
 
         var storage = new KeyStoreStorage(GetChainStorage(DomainSettings.RootChainName));
         RootStorage = storage;
-        this.StorageFactory = new StorageFactory(this, DomainSettings.RootChainName);
+        this.StorageCollection = new StorageCollection(this, DomainSettings.RootChainName);
 
         if (!ValidationUtils.IsValidIdentifier(name))
         {
@@ -112,7 +112,7 @@ public class Nexus : INexus
         {
             InitGenesisValues();
 
-            var tokens = GetTokens(StorageFactory.ContractsStorage);
+            var tokens = GetTokens(StorageCollection.ContractsStorage);
             _migratingNexus = tokens.Any(x => x.Equals(DomainSettings.StakingTokenSymbol));
 
             if (_migratingNexus)
@@ -167,7 +167,7 @@ public class Nexus : INexus
 
     public Block FindBlockByTransactionHash(Hash hash)
     {
-        var chainNames = this.GetChains(this.StorageFactory.MainStorage);
+        var chainNames = this.GetChains(this.StorageCollection.MainStorage);
         foreach (var chainName in chainNames)
         {
             var chain = GetChainByName(chainName);
@@ -264,7 +264,7 @@ public class Nexus : INexus
         List<string> addresses = new List<string>();
         var prefix = BalanceSheet.MakePrefix(symbol);
 
-        this.StorageFactory.AddressBalancesStorage.Visit((key, value) =>
+        this.StorageCollection.AddressBalancesStorage.Visit((key, value) =>
         {
             var keyString = Encoding.UTF8.GetString(key);
             if (keyString.Contains($".balances.{symbol}"))
@@ -299,7 +299,7 @@ public class Nexus : INexus
 #region TRANSACTIONS
     public ITransaction FindTransactionByHash(Hash hash)
     {
-        var chainNames = this.GetChains(this.StorageFactory.MainStorage);
+        var chainNames = this.GetChains(this.StorageCollection.MainStorage);
         foreach (var chainName in chainNames)
         {
             var chain = GetChainByName(chainName);
@@ -385,9 +385,9 @@ public class Nexus : INexus
     public string LookUpChainNameByAddress(Address address)
     {
         var key = ChainAddressMapKey + address.Text;
-        if (this.StorageFactory.AddressStorage.Has(key))
+        if (this.StorageCollection.MainStorage.Has(key))
         {
-            var bytes = this.StorageFactory.AddressStorage.Get(key);
+            var bytes = this.StorageCollection.MainStorage.Get(key);
             return Encoding.UTF8.GetString(bytes);
         }
 
@@ -431,9 +431,9 @@ public class Nexus : INexus
         }
 
         var key = ChainParentNameKey + chainName;
-        if (this.StorageFactory.MainStorage.Has(key))
+        if (this.StorageCollection.MainStorage.Has(key))
         {
-            var bytes = this.StorageFactory.MainStorage.Get(key);
+            var bytes = this.StorageCollection.MainStorage.Get(key);
             var parentName = Encoding.UTF8.GetString(bytes);
             return parentName;
         }
@@ -444,9 +444,9 @@ public class Nexus : INexus
     public string GetChainOrganization(string chainName)
     {
         var key = ChainOrgKey + chainName;
-        if (this.StorageFactory.OrganizationStorage.Has(key))
+        if (this.StorageCollection.OrganizationStorage.Has(key))
         {
-            var bytes = this.StorageFactory.OrganizationStorage.Get(key);
+            var bytes = this.StorageCollection.OrganizationStorage.Get(key);
             var orgName = Encoding.UTF8.GetString(bytes);
             return orgName;
         }
@@ -514,7 +514,7 @@ public class Nexus : INexus
             return _chainCache[name];
         }
 
-        if (ChainExists(this.StorageFactory.MainStorage, name))
+        if (ChainExists(this.StorageCollection.MainStorage, name))
         {
             var chain = new Chain(this, name);
             _chainCache[name] = chain;
@@ -533,7 +533,7 @@ public class Nexus : INexus
 
     public int GetIndexOfChain(string name)
     {
-        var chains = this.GetChains(this.StorageFactory.MainStorage);
+        var chains = this.GetChains(this.StorageCollection.MainStorage);
         int index = 0;
         foreach (var chain in chains)
         {
@@ -655,7 +655,7 @@ public class Nexus : INexus
         tokenList.Add(symbol);
 
         // we need to flush every chain ABI cache otherwise calls to the new token methods wont work
-        var chainNames = GetChains(this.StorageFactory.MainStorage);
+        var chainNames = GetChains(this.StorageCollection.MainStorage);
         foreach (var chainName in chainNames)
         {
             var chain = GetChainByName(chainName) as Chain;
@@ -795,7 +795,7 @@ public class Nexus : INexus
                                 $"minting of {token.Symbol} can only happen if the destination is a validator.",
                                 source);
 
-                            var org = GetOrganizationByName(Runtime.StorageFactory.OrganizationStorage, DomainSettings.ValidatorsOrganizationName);
+                            var org = GetOrganizationByName(Runtime.StorageCollection.OrganizationStorage, DomainSettings.ValidatorsOrganizationName);
                             Runtime.ExpectWarning(org != null, "moving funds from null org currently not possible",
                                 source);
 
@@ -863,10 +863,10 @@ public class Nexus : INexus
         var isSettlement = sourceChain != Runtime.Chain.Name;
 
         var supply = new SupplySheet(token.Symbol, Runtime.Chain, this);
-        Runtime.Expect(supply.Mint(Runtime.StorageFactory.ContractsStorage, amount, token.MaxSupply), "mint supply failed");
+        Runtime.Expect(supply.Mint(Runtime.StorageCollection.ContractsStorage, amount, token.MaxSupply), "mint supply failed");
 
         var balances = new BalanceSheet(token);
-        Runtime.Expect(balances.Add(Runtime.StorageFactory.AddressBalancesStorage, destination, amount), "balance add failed");
+        Runtime.Expect(balances.Add(Runtime.StorageCollection.AddressBalancesStorage, destination, amount), "balance add failed");
 
         if (!Runtime.IsSystemToken(token.Symbol))
         {
@@ -898,10 +898,10 @@ public class Nexus : INexus
         var isSettlement = sourceChain != Runtime.Chain.Name;
 
         var supply = new SupplySheet(token.Symbol, Runtime.Chain, this);
-        Runtime.Expect(supply.Mint(Runtime.StorageFactory.ContractsStorage, 1, token.MaxSupply), "supply mint failed");
+        Runtime.Expect(supply.Mint(Runtime.StorageCollection.ContractsStorage, 1, token.MaxSupply), "supply mint failed");
 
         var ownerships = new OwnershipSheet(token.Symbol);
-        Runtime.Expect(ownerships.Add(Runtime.StorageFactory.AddressBalancesNFTStorage, destination, tokenID), "ownership add failed");
+        Runtime.Expect(ownerships.Add(Runtime.StorageCollection.AddressBalancesNFTStorage, destination, tokenID), "ownership add failed");
         
         if (!Runtime.IsSystemToken(token.Symbol))
         {
@@ -1006,10 +1006,10 @@ public class Nexus : INexus
 
         var supply = new SupplySheet(token.Symbol, Runtime.Chain, this);
 
-        Runtime.Expect(supply.Burn(Runtime.StorageFactory.ContractsStorage, amount), $"{token.Symbol} burn failed");
+        Runtime.Expect(supply.Burn(Runtime.StorageCollection.ContractsStorage, amount), $"{token.Symbol} burn failed");
 
         var balances = new BalanceSheet(token);
-        Runtime.Expect(balances.Subtract(Runtime.StorageFactory.AddressBalancesStorage, source, amount), $"{token.Symbol} balance subtract failed from {source.Text}");
+        Runtime.Expect(balances.Subtract(Runtime.StorageCollection.AddressBalancesStorage, source, amount), $"{token.Symbol} balance subtract failed from {source.Text}");
 
         // If trigger is missing the code will be executed
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, isSettlement ? TokenTrigger.OnSend : TokenTrigger.OnBurn, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token trigger failed");
@@ -1024,7 +1024,7 @@ public class Nexus : INexus
         }
         else
         {
-            UpdateBurnedSupply(Runtime.StorageFactory.ContractsStorage, token.Symbol, amount);
+            UpdateBurnedSupply(Runtime.StorageCollection.ContractsStorage, token.Symbol, amount);
             Runtime.Notify(EventKind.TokenBurn, source, new TokenEventData(token.Symbol, amount, Runtime.Chain.Name));
         }
     }
@@ -1055,14 +1055,14 @@ public class Nexus : INexus
         var chain = RootChain;
         var supply = new SupplySheet(token.Symbol, chain, this);
 
-        Runtime.Expect(supply.Burn(Runtime.StorageFactory.ContractsStorage, 1), "supply burning failed");
+        Runtime.Expect(supply.Burn(Runtime.StorageCollection.ContractsStorage, 1), "supply burning failed");
         
         if (Runtime.ProtocolVersion <= DomainSettings.Phantasma30Protocol)
         {
             DestroyNFTIfSettlement(Runtime, token, source, destination, tokenID, isSettlement);
             
             var ownerships = new OwnershipSheet(token.Symbol);
-            Runtime.Expect(ownerships.Remove(Runtime.StorageFactory.AddressBalancesNFTStorage, source, tokenID), "ownership removal failed");
+            Runtime.Expect(ownerships.Remove(Runtime.StorageCollection.AddressBalancesNFTStorage, source, tokenID), "ownership removal failed");
 
             ValidateBurnTriggers(Runtime, token, source, destination, targetChain, tokenID, isSettlement);
             
@@ -1074,7 +1074,7 @@ public class Nexus : INexus
             DestroyNFTIfSettlement(Runtime, token, source, destination, tokenID, isSettlement);
             
             var ownerships = new OwnershipSheet(token.Symbol);
-            Runtime.Expect(ownerships.Remove(Runtime.StorageFactory.AddressBalancesNFTStorage, source, tokenID), "ownership removal failed");
+            Runtime.Expect(ownerships.Remove(Runtime.StorageCollection.AddressBalancesNFTStorage, source, tokenID), "ownership removal failed");
         }
 
         if (isSettlement)
@@ -1085,8 +1085,8 @@ public class Nexus : INexus
         }
         else
         {
-            UpdateBurnedSupply(Runtime.StorageFactory.ContractsStorage, token.Symbol, 1);
-            UpdateBurnedSupplyForSeries(Runtime.StorageFactory.ContractsStorage, token.Symbol, 1, nft.SeriesID);
+            UpdateBurnedSupply(Runtime.StorageCollection.ContractsStorage, token.Symbol, 1);
+            UpdateBurnedSupplyForSeries(Runtime.StorageCollection.ContractsStorage, token.Symbol, 1, nft.SeriesID);
             Runtime.Notify(EventKind.TokenBurn, source, new TokenEventData(token.Symbol, tokenID, Runtime.Chain.Name));
         }
     }
@@ -1214,7 +1214,7 @@ public class Nexus : INexus
         
         if (destination.IsSystem)
         {
-            var destName = Runtime.Chain.GetNameFromAddress(Runtime.StorageFactory.AddressStorage, destination, Runtime.Time);
+            var destName = Runtime.Chain.GetNameFromAddress(Runtime.StorageCollection.MainStorage, destination, Runtime.Time);
             Runtime.Expect(destName != ValidationUtils.ANONYMOUS_NAME, "anonymous system address as destination");
         }
 
@@ -1228,8 +1228,8 @@ public class Nexus : INexus
         Runtime.Expect(allowed, "invalid witness or allowance");
 
         var balances = new BalanceSheet(token);
-        Runtime.Expect(balances.Subtract(Runtime.StorageFactory.AddressBalancesStorage, source, amount), $"{token.Symbol} balance subtract failed from {source.Text}");
-        Runtime.Expect(balances.Add(Runtime.StorageFactory.AddressBalancesStorage, destination, amount), $"{token.Symbol} balance add failed to {destination.Text}");
+        Runtime.Expect(balances.Subtract(Runtime.StorageCollection.AddressBalancesStorage, source, amount), $"{token.Symbol} balance subtract failed from {source.Text}");
+        Runtime.Expect(balances.Add(Runtime.StorageCollection.AddressBalancesStorage, destination, amount), $"{token.Symbol} balance add failed to {destination.Text}");
 
 #if ALLOWANCE_OPERATIONS
         Runtime.AddAllowance(destination, token.Symbol, amount);
@@ -1275,9 +1275,9 @@ public class Nexus : INexus
         Runtime.Expect(nft.CurrentOwner != Address.Null, "nft already destroyed");
 
         var ownerships = new OwnershipSheet(token.Symbol);
-        Runtime.Expect(ownerships.Remove(Runtime.StorageFactory.AddressBalancesNFTStorage, source, tokenID), "ownership remove failed");
+        Runtime.Expect(ownerships.Remove(Runtime.StorageCollection.AddressBalancesNFTStorage, source, tokenID), "ownership remove failed");
 
-        Runtime.Expect(ownerships.Add(Runtime.StorageFactory.AddressBalancesNFTStorage, destination, tokenID), "ownership add failed");
+        Runtime.Expect(ownerships.Add(Runtime.StorageCollection.AddressBalancesNFTStorage, destination, tokenID), "ownership add failed");
 
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnSend, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "token send trigger failed");
 
@@ -1507,7 +1507,7 @@ public class Nexus : INexus
 
         Runtime.Expect(seriesID >= 0, "invalid series ID");
 
-        var series = GetTokenSeries(Runtime.StorageFactory.ContractsStorage, symbol, seriesID);
+        var series = GetTokenSeries(Runtime.StorageCollection.ContractsStorage, symbol, seriesID);
         Runtime.Expect(series != null, $"{symbol} series {seriesID} does not exist");
 
         BigInteger mintID = series.GenerateMintID();
@@ -1543,7 +1543,7 @@ public class Nexus : INexus
             Runtime.Expect(rom != null && rom.Length > 0, "invalid nft rom");
         }
 
-        WriteTokenSeries(Runtime.StorageFactory.ContractsStorage, symbol, seriesID, series);
+        WriteTokenSeries(Runtime.StorageCollection.ContractsStorage, symbol, seriesID, series);
 
         var token = Runtime.GetToken(symbol);
 
@@ -1557,9 +1557,10 @@ public class Nexus : INexus
         }
 
         var content = new TokenContent(seriesID, mintID, chainName, targetAddress, targetAddress, rom, ram, Runtime.Time, null, series.Mode);
-
+        SmartContractSheet contract = new SmartContractSheet(Runtime.CurrentContext.Address);
+        
         var tokenKey = GetKeyForNFT(symbol, content.TokenID);
-        Runtime.Expect(!Runtime.StorageFactory.ContractsStorage.Has(tokenKey), "duplicated nft");
+        Runtime.Expect(!Runtime.StorageCollection.ContractsStorage.Has(tokenKey), "duplicated nft");
 
         var contractAddress = token.GetContractAddress();
 
@@ -1600,7 +1601,7 @@ public class Nexus : INexus
 
         foreach (var asset in tokenContent.Infusion)
         {
-            var assetInfo = this.GetTokenInfo(Runtime.StorageFactory.ContractsStorage, asset.Symbol);
+            var assetInfo = this.GetTokenInfo(Runtime.StorageCollection.ContractsStorage, asset.Symbol);
 
 #if ALLOWANCE_OPERATIONS
             Runtime.AddAllowance(infusionAddress, asset.Symbol, asset.Value);
@@ -1648,11 +1649,11 @@ public class Nexus : INexus
             Runtime.Expect(Runtime.Transaction.Signatures.Length > 0, "No signatures found in transaction");
         }
 
-        if (Runtime.RootStorage.Has(tokenKey))
+        if (Runtime.StorageCollection.ContractsStorage.Has(tokenKey))
         {
-            var content = ReadNFTRaw(Runtime.StorageFactory.ContractsStorage, tokenKey, Runtime.ProtocolVersion);
+            var content = ReadNFTRaw(Runtime.StorageCollection.ContractsStorage, tokenKey, Runtime.ProtocolVersion);
 
-            var series = GetTokenSeries(Runtime.StorageFactory.ContractsStorage, symbol, content.SeriesID);
+            var series = GetTokenSeries(Runtime.StorageCollection.ContractsStorage, symbol, content.SeriesID);
             Runtime.Expect(series != null, $"could not find series {seriesID} for {symbol}");
 
             switch (series.Mode)
@@ -1694,7 +1695,7 @@ public class Nexus : INexus
 
     public TokenContent ReadNFT(IRuntime Runtime, string symbol, BigInteger tokenID)
     {
-        return ReadNFT(Runtime.StorageFactory.ContractsStorage, symbol, tokenID, Runtime.ProtocolVersion);
+        return ReadNFT(Runtime.StorageCollection.ContractsStorage, symbol, tokenID, Runtime.ProtocolVersion);
     }
 
     public TokenContent ReadNFT(StorageContext storage, string symbol, BigInteger tokenID)
@@ -1859,7 +1860,7 @@ public class Nexus : INexus
         }
         
         // Deploy LP Contract
-        if (this.GetProtocolVersion(this.StorageFactory.MainStorage) <= 8)
+        if (this.GetProtocolVersion(this.StorageCollection.MainStorage) <= 8)
         {
             sb.CallInterop("Nexus.CreateToken", owner.Address, Base16.Decode(OLD_LP_CONTRACT_PVM),  Base16.Decode(OLD_LP_CONTRACT_ABI));
         }
@@ -1886,7 +1887,7 @@ public class Nexus : INexus
     /// <param name="owner"></param>
     public void BeginInitialize(IRuntime vm, Address owner)
     {
-        var storage = this.StorageFactory.ContractsStorage;
+        var storage = this.StorageCollection.ContractsStorage;
 
         storage.Put(GetNexusKey("owner"), owner);
 
@@ -1895,21 +1896,21 @@ public class Nexus : INexus
 
         if (!_migratingNexus)
         {
-            CreateToken(this.StorageFactory.ContractsStorage, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenName, owner, 0, DomainSettings.StakingTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Stakable, tokenScript, abi);
-            CreateToken(this.StorageFactory.ContractsStorage, DomainSettings.FuelTokenSymbol, DomainSettings.FuelTokenName, owner, 0, DomainSettings.FuelTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Burnable | TokenFlags.Fuel, tokenScript, abi);
-            CreateToken(this.StorageFactory.ContractsStorage, DomainSettings.RewardTokenSymbol, DomainSettings.RewardTokenName, owner, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
-            CreateToken(this.StorageFactory.ContractsStorage, DomainSettings.FiatTokenSymbol, DomainSettings.FiatTokenName, owner, 0, DomainSettings.FiatTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Fiat, tokenScript, abi);
+            CreateToken(this.StorageCollection.ContractsStorage, DomainSettings.StakingTokenSymbol, DomainSettings.StakingTokenName, owner, 0, DomainSettings.StakingTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Stakable, tokenScript, abi);
+            CreateToken(this.StorageCollection.ContractsStorage, DomainSettings.FuelTokenSymbol, DomainSettings.FuelTokenName, owner, 0, DomainSettings.FuelTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Burnable | TokenFlags.Fuel, tokenScript, abi);
+            CreateToken(this.StorageCollection.ContractsStorage, DomainSettings.RewardTokenSymbol, DomainSettings.RewardTokenName, owner, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
+            CreateToken(this.StorageCollection.ContractsStorage, DomainSettings.FiatTokenSymbol, DomainSettings.FiatTokenName, owner, 0, DomainSettings.FiatTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Fiat, tokenScript, abi);
 
-            CreateToken(this.StorageFactory.ContractsStorage, "NEO", "NEO", owner, UnitConversion.ToBigInteger(100000000, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite, tokenScript, abi);
-            CreateToken(this.StorageFactory.ContractsStorage, "GAS", "GAS", owner, UnitConversion.ToBigInteger(100000000, 8), 8, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Finite, tokenScript, abi);
-            CreateToken(this.StorageFactory.ContractsStorage, "ETH", "Ethereum", owner, UnitConversion.ToBigInteger(0, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible, tokenScript, abi);
+            CreateToken(this.StorageCollection.ContractsStorage, "NEO", "NEO", owner, UnitConversion.ToBigInteger(100000000, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite, tokenScript, abi);
+            CreateToken(this.StorageCollection.ContractsStorage, "GAS", "GAS", owner, UnitConversion.ToBigInteger(100000000, 8), 8, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Finite, tokenScript, abi);
+            CreateToken(this.StorageCollection.ContractsStorage, "ETH", "Ethereum", owner, UnitConversion.ToBigInteger(0, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible, tokenScript, abi);
             //CreateToken(storage, "DAI", "Dai Stablecoin", owner, UnitConversion.ToBigInteger(0, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Foreign, tokenScript, abi);
             //GenerateToken(_owner, "EOS", "EOS", "EOS", UnitConversion.ToBigInteger(1006245120, 18), 18, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite | TokenFlags.Divisible | TokenFlags.External, tokenScript, abi);
 
-            SetPlatformTokenHash(DomainSettings.StakingTokenSymbol, "neo", Hash.FromUnpaddedHex("ed07cffad18f1308db51920d99a2af60ac66a7b3"), StorageFactory.ContractsStorage);
-            SetPlatformTokenHash("NEO", "neo", Hash.FromUnpaddedHex("c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b"), StorageFactory.ContractsStorage);
-            SetPlatformTokenHash("GAS", "neo", Hash.FromUnpaddedHex("602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7"), StorageFactory.ContractsStorage);
-            SetPlatformTokenHash("ETH", "ethereum", Hash.FromString("ETH"), StorageFactory.ContractsStorage);
+            SetPlatformTokenHash(DomainSettings.StakingTokenSymbol, "neo", Hash.FromUnpaddedHex("ed07cffad18f1308db51920d99a2af60ac66a7b3"), StorageCollection.ContractsStorage);
+            SetPlatformTokenHash("NEO", "neo", Hash.FromUnpaddedHex("c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b"), StorageCollection.ContractsStorage);
+            SetPlatformTokenHash("GAS", "neo", Hash.FromUnpaddedHex("602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7"), StorageCollection.ContractsStorage);
+            SetPlatformTokenHash("ETH", "ethereum", Hash.FromString("ETH"), StorageCollection.ContractsStorage);
             //SetPlatformTokenHash("DAI", "ethereum", Hash.FromUnpaddedHex("6b175474e89094c44da98b954eedeac495271d0f"), StorageFactory.PlatformsStorage);
         }
     }
@@ -1926,7 +1927,7 @@ public class Nexus : INexus
             return;
         }
 
-        var storage = this.StorageFactory.ContractsStorage;
+        var storage = this.StorageCollection.ContractsStorage;
 
         var symbols = GetTokens(storage);
         foreach (var symbol in symbols)
@@ -2123,7 +2124,7 @@ public class Nexus : INexus
     /// <returns></returns>
     public ITransaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner)
     {
-        var version = (int)GetProtocolVersion(this.StorageFactory.MainStorage);
+        var version = (int)GetProtocolVersion(this.StorageCollection.MainStorage);
         return CreateGenesisTransaction(timestamp, owner, version);
     }
 
@@ -2167,7 +2168,7 @@ public class Nexus : INexus
     {
         if (HasGenesis())
         {
-            var genesisHash = GetGenesisHash(this.StorageFactory.MainStorage);
+            var genesisHash = GetGenesisHash(this.StorageCollection.MainStorage);
             return RootChain.GetBlockByHash(genesisHash);
         }
 
@@ -2192,7 +2193,7 @@ public class Nexus : INexus
     public bool HasGenesis()
     {
         var key = GetNexusKey("hash");
-        return this.StorageFactory.MainStorage.Has(key);
+        return this.StorageCollection.MainStorage.Has(key);
     }
 
     /// <summary>
@@ -2203,7 +2204,7 @@ public class Nexus : INexus
     {
         Throw.If(HasGenesis(), "genesis already exists");
         var key = GetNexusKey("hash");
-        this.StorageFactory.MainStorage.Put(key, hash);
+        this.StorageCollection.MainStorage.Put(key, hash);
         _genesisValues.Clear();
     }
     
@@ -2251,20 +2252,20 @@ public class Nexus : INexus
     public ValidatorEntry[] GetValidators(Timestamp timestamp)
     {
         ValidatorEntry[] validators = null;
-        if (this.GetProtocolVersion(this.StorageFactory.ContractsStorage) > 8)
+        if (this.GetProtocolVersion(this.StorageCollection.ContractsStorage) > 8)
         {
-            validators = RootChain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToArray<ValidatorEntry>();
+            validators = RootChain.InvokeContractAtTimestamp(this.StorageCollection.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToArray<ValidatorEntry>();
         }
         else
         {
-            validators = (ValidatorEntry[]) RootChain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToObject();
+            validators = (ValidatorEntry[]) RootChain.InvokeContractAtTimestamp(this.StorageCollection.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidators)).ToObject();
         }
         return validators;
     }
 
     public int GetPrimaryValidatorCount(Timestamp timestamp)
     {
-        var count = RootChain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
+        var count = RootChain.InvokeContractAtTimestamp(this.StorageCollection.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
         if (count < 1)
         {
             return 1;
@@ -2274,13 +2275,13 @@ public class Nexus : INexus
 
     public int GetSecondaryValidatorCount(Timestamp timestamp)
     {
-        var count = RootChain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
+        var count = RootChain.InvokeContractAtTimestamp(this.StorageCollection.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorCount), ValidatorType.Primary).AsNumber();
         return (int)count;
     }
 
     public ValidatorType GetValidatorType(Address address, Timestamp timestamp)
     {
-        var result = RootChain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorType), address).AsEnum<ValidatorType>();
+        var result = RootChain.InvokeContractAtTimestamp(this.StorageCollection.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorType), address).AsEnum<ValidatorType>();
         return result;
     }
 
@@ -2355,7 +2356,7 @@ public class Nexus : INexus
             return -1;
         }
 
-        var result = (int)RootChain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetIndexOfValidator), address).AsNumber();
+        var result = (int)RootChain.InvokeContractAtTimestamp(this.StorageCollection.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetIndexOfValidator), address).AsNumber();
         return result;
     }
 
@@ -2373,7 +2374,7 @@ public class Nexus : INexus
 
         Throw.If(index < 0, "invalid validator index");
 
-        var result = (ValidatorEntry)RootChain.InvokeContractAtTimestamp(this.RootChain.StorageFactory.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorByIndex), (BigInteger)index).ToObject();
+        var result = (ValidatorEntry)RootChain.InvokeContractAtTimestamp(this.RootChain.StorageCollection.ContractsStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorByIndex), (BigInteger)index).ToObject();
         return result;
     }
     
@@ -2524,7 +2525,7 @@ public class Nexus : INexus
         _archiveContents.Set(hash, content);
 
         archive.AddMissingBlock(blockIndex);
-        ModifyArchive(this.StorageFactory.ArchiveStorage, archive);
+        ModifyArchive(this.StorageCollection.ArchiveStorage, archive);
     }
 
     public byte[] ReadArchiveBlock(IArchive archive, int blockIndex)
@@ -2581,7 +2582,7 @@ public class Nexus : INexus
         var chain = RootChain;
         try
         {
-            var result = chain.InvokeContractAtTimestamp(this.StorageFactory.ContractsStorage, timestamp, "relay", "GetBalance", address).AsNumber();
+            var result = chain.InvokeContractAtTimestamp(this.StorageCollection.ContractsStorage, timestamp, "relay", "GetBalance", address).AsNumber();
             return result;
         }
         catch

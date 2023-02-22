@@ -83,7 +83,7 @@ namespace Phantasma.Business.Blockchain
                 try
                 {            
                     native.SetRuntime(runtime);
-                    native.LoadFromStorage(runtime.StorageFactory.ContractsStorage);
+                    native.LoadFromStorage(runtime.StorageCollection.ContractsStorage);
 
                     result = InternalCall(native, method, frame, stack);
                     native.SaveChangesToStorage();

@@ -131,13 +131,13 @@ namespace Phantasma.Business.Blockchain
                 {
                     var obj = (ISerializable)field.GetValue(this);
                     var bytes = obj.Serialize();
-                    this.Runtime.StorageFactory.ContractsStorage.Put(baseKey, bytes);
+                    this.Runtime.StorageCollection.ContractsStorage.Put(baseKey, bytes);
                 }
                 else
                 {
                     var obj = field.GetValue(this);
                     var bytes = Serialization.Serialize(obj);
-                    this.Runtime.StorageFactory.ContractsStorage.Put(baseKey, bytes);
+                    this.Runtime.StorageCollection.ContractsStorage.Put(baseKey, bytes);
                 }
             }
         }

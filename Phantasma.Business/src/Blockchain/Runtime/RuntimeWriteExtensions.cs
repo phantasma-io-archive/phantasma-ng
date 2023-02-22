@@ -61,7 +61,7 @@ public static class RuntimeWriteExtensions
         var usedQuota = Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.GetUsedDataQuota), target).AsNumber();
 
         BigInteger deleteSize = 0;
-        if (Runtime.StorageFactory.ContractsStorage.Has(Key))
+        if (Runtime.StorageCollection.ContractsStorage.Has(Key))
         {
             var oldData = Runtime.Storage.Get(Key);
             deleteSize = oldData.Length;
@@ -75,7 +75,7 @@ public static class RuntimeWriteExtensions
             Runtime.Expect(availableSize >= diff, $"not enough storage space available: requires " + diff + ", only have: " + availableSize);
         }
 
-        Runtime.StorageFactory.ContractsStorage.Put(Key, value);
+        Runtime.StorageCollection.ContractsStorage.Put(Key, value);
 
         usedQuota -= deleteSize;
         usedQuota += writeSize;
@@ -87,7 +87,7 @@ public static class RuntimeWriteExtensions
         
         Runtime.SetDataQuotas(target, usedQuota);
         
-        var temp = Runtime.StorageFactory.ContractsStorage.Get(Key);
+        var temp = Runtime.StorageCollection.ContractsStorage.Get(Key);
         Runtime.Expect(temp.Length == value.Length, "storage write corruption");
     }
 
@@ -101,12 +101,12 @@ public static class RuntimeWriteExtensions
     {
         ValidateKey(Runtime, key);
 
-        Runtime.Expect(Runtime.StorageFactory.ContractsStorage.Has(key), "key does not exist");
+        Runtime.Expect(Runtime.StorageCollection.ContractsStorage.Has(key), "key does not exist");
 
-        var value = Runtime.StorageFactory.ContractsStorage.Get(key);
+        var value = Runtime.StorageCollection.ContractsStorage.Get(key);
         var deleteSize = value.Length;
 
-        Runtime.StorageFactory.ContractsStorage.Delete(key);
+        Runtime.StorageCollection.ContractsStorage.Delete(key);
 
         var usedQuota = Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.GetUsedDataQuota), target).AsNumber();
         usedQuota -= deleteSize;

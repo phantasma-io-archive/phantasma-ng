@@ -66,7 +66,7 @@ public class BlockOracleTests
     public void TestBlockOracleInstance()
     {
         var wallet = PhantasmaKeys.Generate();
-        nexus.CreatePlatform(nexus.RootChain.StorageFactory.PlatformsStorage, "", wallet.Address, "neo", "GAS");
+        nexus.CreatePlatform(nexus.RootChain.StorageCollection.PlatformsStorage, "", wallet.Address, "neo", "GAS");
         var block = nexus.RootChain.GetBlockByHash(nexus.RootChain.GetLastBlockHash());
         var oracle = new BlockOracleReader(nexus, block);
 
@@ -79,7 +79,7 @@ public class BlockOracleTests
     public void TestRead()
     {
         var wallet = PhantasmaKeys.Generate();
-        nexus.CreatePlatform(nexus.RootChain.StorageFactory.PlatformsStorage, "", wallet.Address, "neo", "GAS");
+        nexus.CreatePlatform(nexus.RootChain.StorageCollection.PlatformsStorage, "", wallet.Address, "neo", "GAS");
         var block = nexus.RootChain.GetBlockByHash(nexus.RootChain.GetLastBlockHash());
         var oracle = new BlockOracleReader(nexus, block);
         nexus.SetOracleReader(oracle);

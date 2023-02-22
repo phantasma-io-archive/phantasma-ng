@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.VM;
@@ -199,8 +200,10 @@ namespace Phantasma.Business.Blockchain.Tokens
                 changeSet = new StorageChangeSetContext(storage);
             }
 
+            StorageCollectionChangeSet collection = new StorageCollectionChangeSet(chain.StorageCollection);
+
             var oracle = chain.Nexus.GetOracleReader();
-            var vm = new RuntimeVM(-1, script, (uint)method.offset, chain, Address.Null, Timestamp.Now, Transaction.Null, changeSet, oracle, ChainTask.Null);
+            var vm = new RuntimeVM(-1, script, (uint)method.offset, chain, Address.Null, Timestamp.Now, Transaction.Null, collection, oracle, ChainTask.Null);
 
             //var vm = new GasMachine(script, (uint)method.offset);
 

@@ -357,7 +357,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             lastBlock = _nexus.RootChain.GetBlockByHash(lastBlockHash);
             try
             {
-                version = _nexus.GetProtocolVersion(_nexus.StorageFactory.ContractsStorage);
+                version = _nexus.GetProtocolVersion(_nexus.StorageCollection.ContractsStorage);
             }catch(Exception e)
             {
                 Log.Information("Error getting info {Exception}", e);

@@ -33,7 +33,7 @@ namespace Phantasma.Node.Oracles
             this.nexus = nexus;
             this.apiToken = apiToken;
 
-            var key = InteropUtils.GenerateInteropKeys(keys, this.nexus.GetGenesisHash(this.nexus.RootChain.StorageFactory.MainStorage), platformName);
+            var key = InteropUtils.GenerateInteropKeys(keys, this.nexus.GetGenesisHash(this.nexus.RootChain.StorageCollection.MainStorage), platformName);
             this.platformAddress = key.Address;
         }
 
