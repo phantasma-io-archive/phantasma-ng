@@ -1708,6 +1708,8 @@ namespace Phantasma.Business.Blockchain
 
         public void SwapTokens(string sourceChain, Address from, string targetChain, Address to, string symbol, BigInteger value)
         {
+            Expect(ProtocolVersion < 13, "this method is obsolete");
+            
             ExpectNameLength(sourceChain, nameof(sourceChain));
             ExpectAddressSize(from, nameof(from));
             ExpectNameLength(targetChain, nameof(targetChain));

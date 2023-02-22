@@ -138,5 +138,8 @@ namespace Phantasma.Core.Domain
         public const int ArgsMax = 64;
         public const int AddressMaxSize = 34;
         public const int ScriptMaxSize = short.MaxValue;
+        public const int FieldMaxLength = 80;
+        public const int FieldMinLength = 1;
+
     }
 }
