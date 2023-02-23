@@ -60,7 +60,7 @@ namespace Phantasma.Core.Domain
 
     public static class DomainSettings
     {
-        public const int LatestKnownProtocol = 12;
+        public const int LatestKnownProtocol = 13;
 
         public const int Phantasma20Protocol = 7;
         public const int Phantasma30Protocol = 8;
@@ -138,5 +138,8 @@ namespace Phantasma.Core.Domain
         public const int ArgsMax = 64;
         public const int AddressMaxSize = 34;
         public const int ScriptMaxSize = short.MaxValue;
+        public const int FieldMaxLength = 80;
+        public const int FieldMinLength = 1;
+
     }
 }

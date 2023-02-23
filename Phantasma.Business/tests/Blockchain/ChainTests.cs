@@ -121,7 +121,7 @@ public class ChainTests
         var nexus = simulator.Nexus;
         
         simulator.GetFundsInTheFuture(owner);
-
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var accountChain = nexus.GetChainByName("account");
         var symbol = "BLA";
@@ -173,6 +173,7 @@ public class ChainTests
         });
         var block = simulator.EndBlock().FirstOrDefault();
         Assert.NotNull(block);
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var callResultBytes = block.GetResultForTransaction(tx.Hash);
         var callResult = Serialization.Unserialize<VMObject>(callResultBytes);
@@ -198,7 +199,7 @@ public class ChainTests
         simulator.GenerateToken(owner, symbol, "BlaToken", tokenSupply, 0, TokenFlags.Transferable | TokenFlags.Fungible | TokenFlags.Finite);
         simulator.MintTokens(owner, owner.Address, symbol, tokenSupply);
         simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var token = nexus.GetTokenInfo(nexus.RootStorage, symbol);
 
@@ -272,7 +273,7 @@ public class ChainTests
                     SpendGas(firstOwner.Address).
                     EndScript());
             simulator.EndBlock();
-            Assert.True(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
             var newToken = nexus.GetTokenInfo(nexus.RootStorage, DomainSettings.RewardTokenSymbol);
             Assert.True(newToken.Owner == secondOwner.Address);
@@ -962,7 +963,7 @@ public class ChainTests
         simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
         simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
         simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         // Send from user A to user B
         simulator.BeginBlock();
@@ -1309,7 +1310,7 @@ public class ChainTests
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
         
-        simulator.GetFundsInTheFuture(owner);
+        simulator.GetFundsInTheFuture(owner, 10);
         Assert.True(simulator.LastBlockWasSuccessful());
 
         simulator.blockTimeSkip = TimeSpan.FromSeconds(5);
@@ -1402,7 +1403,7 @@ public class ChainTests
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
 
         // kill it

@@ -63,6 +63,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         // For all purposes, any transfer coming from another swap address of same platform into this one shall not being considered a "swap"        
         public void RegisterAddress(Address from, string platform, Address localAddress, string externalAddress)
         {
+            Runtime.Expect(Runtime.ProtocolVersion < 13, "this method is obsolete");
             Runtime.Expect(false, "not allowed for now");
             //Runtime.Expect(from == Runtime.GenesisAddress, "only genesis allowed");
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
@@ -73,6 +74,8 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public void SettleTransaction(Address from, string platform, string chain, Hash hash)
         {
+            Runtime.Expect(Runtime.ProtocolVersion < 13, "this method is obsolete");
+
             Runtime.Expect(!Filter.Enabled, "swap settlements disabled");
 
             PlatformSwapAddress[] swapAddresses;
@@ -204,6 +207,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         // send to external chain
         public void WithdrawTokens(Address from, Address to, string symbol, BigInteger value)
         {
+            Runtime.Expect(Runtime.ProtocolVersion < 13, "this method is obsolete");
+
             Runtime.Expect(!Filter.Enabled, "swap withdraws disabled");
 
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");

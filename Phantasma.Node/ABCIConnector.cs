@@ -157,6 +157,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         var chain = _nexus.RootChain as Chain;
 
         var txString = request.Tx.ToStringUtf8();
+        
         var newTx = Transaction.Unserialize(Base16.Decode(txString));
 
         var result = chain.DeliverTx(newTx);

@@ -82,6 +82,8 @@ public class MarketContractTestLegacy
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, initialFuel);
         simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+
 
         var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
         Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
@@ -308,6 +310,8 @@ public class MarketContractTestLegacy
         simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
         simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+
 
         var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
         Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
@@ -583,6 +587,8 @@ public class MarketContractTestLegacy
         simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
         simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+
 
         var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
         Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
@@ -712,6 +718,8 @@ public class MarketContractTestLegacy
         simulator.GenerateTransfer(owner, testUser2.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
         simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+
 
         var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
         Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
@@ -894,11 +902,11 @@ public class MarketContractTestLegacy
 
         var symbol = "COOL";
 
-
         // Create the token CoolToken as an NFT
         simulator.BeginBlock();
         simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
         Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
@@ -1189,13 +1197,16 @@ public class MarketContractTestLegacy
         var symbol = "COOL";
 
         //var testUser = PhantasmaKeys.Generate();
-
+        simulator.GetFundsInTheFuture(owner, 20);
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        
         // Create the token CoolToken as an NFT
         simulator.BeginBlock();
         //simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.FuelTokenSymbol, 10000000000);
         //simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain as Chain, DomainSettings.StakingTokenSymbol, 1000000);
         simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
         Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
@@ -1319,6 +1330,7 @@ public class MarketContractTestLegacy
         simulator.BeginBlock();
         simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
         Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");
@@ -1473,6 +1485,7 @@ public class MarketContractTestLegacy
     {
         var chain = nexus.RootChain;
         simulator.GetFundsInTheFuture(owner);
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var symbol = "COOL";
         var tokenTicker = "MKNI";
@@ -1483,10 +1496,15 @@ public class MarketContractTestLegacy
         // Create the token CoolToken as an NFT
         simulator.BeginBlock();
         simulator.GenerateToken(owner, tokenTicker, "MKNI", 10000000, 0, TokenFlags.Transferable | TokenFlags.Fungible);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        
+        simulator.BeginBlock();
         simulator.MintTokens(owner, owner.Address, tokenTicker, 10000000);
         simulator.GenerateTransfer(owner, user.Address, nexus.RootChain as Chain, tokenTicker, 10000);
         simulator.GenerateToken(owner, symbol, "CoolToken", 0, 0, TokenFlags.Transferable);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var token = simulator.Nexus.GetTokenInfo(nexus.RootStorage, symbol);
         Assert.True(nexus.TokenExists(nexus.RootStorage, symbol), "Can't find the token symbol");

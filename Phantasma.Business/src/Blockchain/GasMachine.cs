@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Phantasma.Business.VM;
 using Phantasma.Core.Domain;
 
@@ -116,7 +117,46 @@ namespace Phantasma.Business.Blockchain
         public override ExecutionState ValidateOpcode(Opcode opcode)
         {
             var gasCost = GetGasCostForOpcode(opcode);
+
+            if (this is RuntimeVM)
+            {
+                var Runtime = this as RuntimeVM;
+                if (Runtime != null)
+                {
+                    if (Runtime.ProtocolVersion >= 13)
+                    {
+                        gasCost = GetGasCostForOpcodeV2(opcode);
+                        return ConsumeGas(gasCost);
+                    }
+                }
+            }
+            
             return ConsumeGas(gasCost);
+        }
+
+        internal static BigInteger GetGasCostForOpcodeV2(Opcode opcode)
+        {
+            switch (opcode)
+            {
+                case Opcode.GET:
+                case Opcode.PUT:
+                case Opcode.CALL:
+                case Opcode.LOAD:
+                    return 5;
+
+                case Opcode.EXTCALL:
+                case Opcode.CTX:
+                    return 10;
+
+                case Opcode.SWITCH:
+                    return 100;
+
+                case Opcode.NOP:
+                case Opcode.RET:
+                    return 0;
+
+                default: return 1;
+            }
         }
 
         public static BigInteger GetGasCostForOpcode(Opcode opcode)

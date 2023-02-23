@@ -85,7 +85,7 @@ public class TokenTests
         simulator.BeginBlock();
         var tx = simulator.GenerateTransfer(testUserA, testUserB.Address, nexus.RootChain as Chain, symbol, amount);
         simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         // verify test user balance
         var transferBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUserB.Address);

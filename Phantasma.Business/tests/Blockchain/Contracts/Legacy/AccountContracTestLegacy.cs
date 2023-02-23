@@ -456,6 +456,7 @@ public class AccountContracTestLegacy
                  EndScript();
         });
         simulator.EndBlock().FirstOrDefault();
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         currentName = nexus.RootChain.GetNameFromAddress(nexus.RootStorage, testUser.Address, simulator.CurrentTime);
         Assert.False(currentName == targetName);
