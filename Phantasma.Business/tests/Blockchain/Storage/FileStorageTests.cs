@@ -78,7 +78,7 @@ public class FileStorageTests
 
         var accountBalance = MinimumValidStake * 5;
 
-        ITransaction tx = null;
+        Transaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(20,DomainSettings.FuelTokenDecimals));
@@ -157,7 +157,7 @@ public class FileStorageTests
         BigInteger accountBalance = (DomainSettings.ArchiveMaxSize / 1024) / KilobytesPerStake;  //provide enough account balance for max file size available space
         accountBalance *= UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
 
-        ITransaction tx = null;
+        Transaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(20,DomainSettings.FuelTokenDecimals));
@@ -214,7 +214,7 @@ public class FileStorageTests
 
         var accountBalance = MinimumValidStake * 100;
 
-        ITransaction tx = null;
+        Transaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(20,DomainSettings.FuelTokenDecimals));
@@ -287,7 +287,7 @@ public class FileStorageTests
 
         var accountBalance = MinimumValidStake * 100;
 
-        ITransaction tx = null;
+        Transaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(20,DomainSettings.FuelTokenDecimals));
@@ -374,7 +374,7 @@ public class FileStorageTests
 
         var accountBalance = MinimumValidStake * 100;
 
-        ITransaction tx = null;
+        Transaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(20,DomainSettings.FuelTokenDecimals));
@@ -476,7 +476,7 @@ public class FileStorageTests
 
         var accountBalance = MinimumValidStake * 100;
 
-        ITransaction tx = null;
+        Transaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(20,DomainSettings.FuelTokenDecimals));
@@ -567,7 +567,7 @@ public class FileStorageTests
 
         var accountBalance = MinimumValidStake * 100;
 
-        ITransaction tx = null;
+        Transaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(20,DomainSettings.FuelTokenDecimals));
@@ -659,7 +659,7 @@ public class FileStorageTests
 
         var accountBalance = MinimumValidStake * 100;
 
-        ITransaction tx = null;
+        Transaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(20,DomainSettings.FuelTokenDecimals));
@@ -735,7 +735,7 @@ public class FileStorageTests
 
         var accountBalance = MinimumValidStake * 100;
 
-        ITransaction tx = null;
+        Transaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(20,DomainSettings.FuelTokenDecimals));
@@ -815,7 +815,7 @@ public class FileStorageTests
 
         var accountBalance = MinimumValidStake * 100;
 
-        ITransaction tx = null;
+        Transaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(20,DomainSettings.FuelTokenDecimals));
@@ -875,7 +875,7 @@ public class FileStorageTests
 
         var accountBalance = MinimumValidStake * 100;
 
-        ITransaction tx = null;
+        Transaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(20,DomainSettings.FuelTokenDecimals));
@@ -954,7 +954,7 @@ public class FileStorageTests
 
         var accountBalance = MinimumValidStake * 100;
 
-        ITransaction tx = null;
+        Transaction tx = null;
 
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(20,DomainSettings.FuelTokenDecimals));

@@ -411,11 +411,11 @@ public class NexusSimulator
         //EndBlock();
     }
 
-    private List<ITransaction> transactions = new List<ITransaction>();
+    private List<Transaction> transactions = new List<Transaction>();
 
     // there are more elegant ways of doing this...
     private Dictionary<Hash, Chain> txChainMap = new Dictionary<Hash, Chain>();
-    private Dictionary<Hash, ITransaction> txHashMap = new Dictionary<Hash, ITransaction>();
+    private Dictionary<Hash, Transaction> txHashMap = new Dictionary<Hash, Transaction>();
 
     private HashSet<Address> pendingNames = new HashSet<Address>();
 
@@ -505,7 +505,7 @@ public class NexusSimulator
                 var hashes = txChainMap.Where((p) => p.Value == chain).Select(x => x.Key);
                 if (hashes.Any())
                 {
-                    var txs = new List<ITransaction>();
+                    var txs = new List<Transaction>();
                     foreach (var hash in hashes)
                     {
                         txs.Add(txHashMap[hash]);
@@ -657,14 +657,14 @@ public class NexusSimulator
         return Enumerable.Empty<Block>();
     }
 
-    private ITransaction MakeTransaction(IEnumerable<IKeyPair> signees, ProofOfWork pow, IChain chain, byte[] script)
+    private Transaction MakeTransaction(IEnumerable<IKeyPair> signees, ProofOfWork pow, IChain chain, byte[] script)
     {
         if (!blockOpen)
         {
             throw new Exception("Call BeginBlock first");
         }
         
-        ITransaction tx = null;
+        Transaction tx = null;
         if (DomainSettings.LatestKnownProtocol <= 12)
         {
             tx = new Transaction(Nexus.Name, chain.Name, script, CurrentTime + TimeSpan.FromSeconds(40));
@@ -706,29 +706,29 @@ public class NexusSimulator
         return tx;
     }
 
-    private void AddTransactionToPendingBlock(ITransaction tx, IChain chain)
+    private void AddTransactionToPendingBlock(Transaction tx, IChain chain)
     {
         txChainMap[tx.Hash] = chain as Chain;
         txHashMap[tx.Hash] = tx;
         transactions.Add(tx);
     }
 
-    private ITransaction MakeTransaction(IKeyPair source, ProofOfWork pow, IChain chain, byte[] script)
+    private Transaction MakeTransaction(IKeyPair source, ProofOfWork pow, IChain chain, byte[] script)
     {
         return MakeTransaction(new IKeyPair[] { source }, pow, chain, script);
     }
 
-    public void SendRawTransaction(ITransaction tx)
+    public void SendRawTransaction(Transaction tx)
     {
         AddTransactionToPendingBlock(tx, Nexus.RootChain as Chain);
     }
 
-    public ITransaction GenerateCustomTransaction(IKeyPair owner, ProofOfWork pow, Func<byte[]> scriptGenerator)
+    public Transaction GenerateCustomTransaction(IKeyPair owner, ProofOfWork pow, Func<byte[]> scriptGenerator)
     {
         return GenerateCustomTransaction(owner, pow, Nexus.RootChain as Chain, scriptGenerator);
     }
 
-    public ITransaction GenerateCustomTransaction(IKeyPair owner, ProofOfWork pow, Chain chain, Func<byte[]> scriptGenerator)
+    public Transaction GenerateCustomTransaction(IKeyPair owner, ProofOfWork pow, Chain chain, Func<byte[]> scriptGenerator)
     {
         var script = scriptGenerator();
 
@@ -736,19 +736,19 @@ public class NexusSimulator
         return tx;
     }
 
-    public ITransaction GenerateCustomTransaction(IEnumerable<PhantasmaKeys> owners, ProofOfWork pow, Func<byte[]> scriptGenerator)
+    public Transaction GenerateCustomTransaction(IEnumerable<PhantasmaKeys> owners, ProofOfWork pow, Func<byte[]> scriptGenerator)
     {
         return GenerateCustomTransaction(owners, pow, Nexus.RootChain as Chain, scriptGenerator);
     }
 
-    public ITransaction GenerateCustomTransaction(IEnumerable<PhantasmaKeys> owners, ProofOfWork pow, Chain chain, Func<byte[]> scriptGenerator)
+    public Transaction GenerateCustomTransaction(IEnumerable<PhantasmaKeys> owners, ProofOfWork pow, Chain chain, Func<byte[]> scriptGenerator)
     {
         var script = scriptGenerator();
         var tx = MakeTransaction(owners, pow, chain, script);
         return tx;
     }
 
-    public ITransaction GenerateToken(PhantasmaKeys owner, string symbol, string name, BigInteger totalSupply,
+    public Transaction GenerateToken(PhantasmaKeys owner, string symbol, string name, BigInteger totalSupply,
             int decimals, TokenFlags flags, byte[] tokenScript = null, Dictionary<string, int> labels = null, IEnumerable<ContractMethod> customMethods = null, uint seriesID = 0)
     {
         var version = Nexus.GetGovernanceValue(Nexus.RootStorage, Nexus.NexusProtocolVersionTag);
@@ -913,7 +913,7 @@ public class NexusSimulator
         return tx;
     }
 
-    public ITransaction MintTokens(PhantasmaKeys owner, Address destination, string symbol, BigInteger amount)
+    public Transaction MintTokens(PhantasmaKeys owner, Address destination, string symbol, BigInteger amount)
     {
         var chain = Nexus.RootChain;
 
@@ -929,7 +929,7 @@ public class NexusSimulator
         return tx;
     }
 
-    public ITransaction GenerateSideChainSend(PhantasmaKeys source, string tokenSymbol, IChain sourceChain, Address targetAddress, IChain targetChain, BigInteger amount, BigInteger fee)
+    public Transaction GenerateSideChainSend(PhantasmaKeys source, string tokenSymbol, IChain sourceChain, Address targetAddress, IChain targetChain, BigInteger amount, BigInteger fee)
     {
         Throw.IfNull(source, nameof(source));
         Throw.If(!Nexus.TokenExists(Nexus.RootStorage, tokenSymbol), "Token does not exist: "+ tokenSymbol);
@@ -965,7 +965,7 @@ public class NexusSimulator
         return tx;
     }
 
-    public ITransaction GenerateSideChainSettlement(PhantasmaKeys source, IChain sourceChain, IChain destChain, ITransaction transaction)
+    public Transaction GenerateSideChainSettlement(PhantasmaKeys source, IChain sourceChain, IChain destChain, Transaction transaction)
     {
         var script = ScriptUtils.
             BeginScript().
@@ -977,7 +977,7 @@ public class NexusSimulator
         return tx;
     }
 
-    public ITransaction GenerateAccountRegistration(PhantasmaKeys source, string name)
+    public Transaction GenerateAccountRegistration(PhantasmaKeys source, string name)
     {
         var sourceChain = this.Nexus.RootChain;
         var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit).CallContract(NativeContractKind.Account, nameof(AccountContract.RegisterName), source.Address, name).SpendGas(source.Address).EndScript();
@@ -987,7 +987,7 @@ public class NexusSimulator
         return tx;
     }
 
-    public ITransaction GenerateChain(PhantasmaKeys source, string organization, string parentchain, string name)
+    public Transaction GenerateChain(PhantasmaKeys source, string organization, string parentchain, string name)
     {
         Throw.IfNull(parentchain, nameof(parentchain));
 
@@ -1000,7 +1000,7 @@ public class NexusSimulator
         return tx;
     }
 
-    public ITransaction DeployContracts(PhantasmaKeys source, Chain chain, params string[] contracts)
+    public Transaction DeployContracts(PhantasmaKeys source, Chain chain, params string[] contracts)
     {
 
         var sb = ScriptUtils.BeginScript().
@@ -1018,7 +1018,7 @@ public class NexusSimulator
         return tx;
     }
 
-    public ITransaction GenerateTransfer(PhantasmaKeys source, Address dest, IChain chain, string tokenSymbol, BigInteger amount, List<PhantasmaKeys> signees = null)
+    public Transaction GenerateTransfer(PhantasmaKeys source, Address dest, IChain chain, string tokenSymbol, BigInteger amount, List<PhantasmaKeys> signees = null)
     {
         signees = signees ?? new List<PhantasmaKeys>();
         var found = false;
@@ -1045,7 +1045,7 @@ public class NexusSimulator
         return tx;
     }
 
-    public ITransaction GenerateSwapFee(PhantasmaKeys source, IChain chain, string fromSymbol, BigInteger amount)
+    public Transaction GenerateSwapFee(PhantasmaKeys source, IChain chain, string fromSymbol, BigInteger amount)
     {
         var tx = GenerateCustomTransaction(source, ProofOfWork.None, () => 
             ScriptUtils.BeginScript()
@@ -1057,7 +1057,7 @@ public class NexusSimulator
         return tx;
     }
     
-    public ITransaction GenerateSwap(PhantasmaKeys source, IChain chain, string fromSymbol, string toSymbol, BigInteger amount)
+    public Transaction GenerateSwap(PhantasmaKeys source, IChain chain, string fromSymbol, string toSymbol, BigInteger amount)
     {
         var script = ScriptUtils.BeginScript().
             CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapTokens), source.Address, fromSymbol, toSymbol, amount).
@@ -1068,21 +1068,21 @@ public class NexusSimulator
         return tx;
     }
 
-    public ITransaction GenerateNftTransfer(PhantasmaKeys source, Address dest, IChain chain, string tokenSymbol, BigInteger tokenId)
+    public Transaction GenerateNftTransfer(PhantasmaKeys source, Address dest, IChain chain, string tokenSymbol, BigInteger tokenId)
     {
         var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit).CallInterop("Runtime.TransferToken", source.Address, dest, tokenSymbol, tokenId).SpendGas(source.Address).EndScript();
         var tx = MakeTransaction(source, ProofOfWork.None, chain, script);
         return tx;
     }
 
-    public ITransaction GenerateNftBurn(PhantasmaKeys source, IChain chain, string tokenSymbol, BigInteger tokenId)
+    public Transaction GenerateNftBurn(PhantasmaKeys source, IChain chain, string tokenSymbol, BigInteger tokenId)
     {
         var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit).CallInterop("Runtime.BurnToken", source.Address, tokenSymbol, tokenId).SpendGas(source.Address).EndScript();
         var tx = MakeTransaction(source, ProofOfWork.None, chain, script);
         return tx;
     }
 
-    public ITransaction GenerateNftSale(PhantasmaKeys source, IChain chain, string tokenSymbol, BigInteger tokenId, BigInteger price)
+    public Transaction GenerateNftSale(PhantasmaKeys source, IChain chain, string tokenSymbol, BigInteger tokenId, BigInteger price)
     {
         Timestamp endDate = this.CurrentTime + TimeSpan.FromDays(5);
         var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit).CallContract(NativeContractKind.Market, nameof(MarketContract.SellToken), source.Address, tokenSymbol, DomainSettings.FuelTokenSymbol, tokenId, price, endDate).SpendGas(source.Address).EndScript();
@@ -1090,7 +1090,7 @@ public class NexusSimulator
         return tx;
     }
 
-    public ITransaction MintNonFungibleToken(PhantasmaKeys owner, Address destination, string tokenSymbol, byte[] rom, byte[] ram, BigInteger seriesID)
+    public Transaction MintNonFungibleToken(PhantasmaKeys owner, Address destination, string tokenSymbol, byte[] rom, byte[] ram, BigInteger seriesID)
     {
         var chain = Nexus.RootChain;
         var script = ScriptUtils.
@@ -1104,7 +1104,7 @@ public class NexusSimulator
         return tx;
     }
 
-    public ITransaction InfuseNonFungibleToken(PhantasmaKeys owner, string tokenSymbol, BigInteger tokenID, string infuseSymbol, BigInteger value)
+    public Transaction InfuseNonFungibleToken(PhantasmaKeys owner, string tokenSymbol, BigInteger tokenID, string infuseSymbol, BigInteger value)
     {
         var chain = Nexus.RootChain;
         var script = ScriptUtils.
@@ -1118,7 +1118,7 @@ public class NexusSimulator
         return tx;
     }
 
-    public ITransaction GenerateSetTokenMetadata(PhantasmaKeys source, string tokenSymbol, string key, string value)
+    public Transaction GenerateSetTokenMetadata(PhantasmaKeys source, string tokenSymbol, string key, string value)
     {
         var chain = Nexus.RootChain;
         var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, MinimumFee, DefaultGasLimit).CallInterop("Runtime.SetMetadata", source.Address, tokenSymbol, key, value).SpendGas(source.Address).EndScript();

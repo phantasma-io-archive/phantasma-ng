@@ -205,7 +205,7 @@ public class Nexus : INexus
         return result;
     }
 
-    public Block FindBlockByTransaction(ITransaction tx)
+    public Block FindBlockByTransaction(Transaction tx)
     {
         return FindBlockByTransactionHash(tx.Hash);
     }
@@ -283,7 +283,7 @@ public class Nexus : INexus
     #endregion
 
     #region TRANSACTIONS
-    public ITransaction FindTransactionByHash(Hash hash)
+    public Transaction FindTransactionByHash(Hash hash)
     {
         var chainNames = this.GetChains(RootStorage);
         foreach (var chainName in chainNames)
@@ -1666,6 +1666,8 @@ public class Nexus : INexus
             CreateToken(storage, DomainSettings.FuelTokenSymbol, DomainSettings.FuelTokenName, owner, 0, DomainSettings.FuelTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Burnable | TokenFlags.Fuel, tokenScript, abi);
             CreateToken(storage, DomainSettings.RewardTokenSymbol, DomainSettings.RewardTokenName, owner, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
             CreateToken(storage, DomainSettings.FiatTokenSymbol, DomainSettings.FiatTokenName, owner, 0, DomainSettings.FiatTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Fiat, tokenScript, abi);
+            var lpABI = ContractInterface.FromBytes(Base16.Decode(NEW_LP_CONTRACT_ABI));
+            //CreateToken(storage, "LP", "Phantasma Liquidity Provider", owner, 0, 0, TokenFlags.Transferable | TokenFlags.Mintable | TokenFlags.Swappable | TokenFlags.Burnable, Base16.Decode(NEW_LP_CONTRACT_PVM), lpABI );
 
             CreateToken(storage, "NEO", "NEO", owner, UnitConversion.ToBigInteger(100000000, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite, tokenScript, abi);
             CreateToken(storage, "GAS", "GAS", owner, UnitConversion.ToBigInteger(100000000, 8), 8, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Finite, tokenScript, abi);
@@ -1873,7 +1875,7 @@ public class Nexus : INexus
         };
     }
 
-    public ITransaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner)
+    public Transaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner)
     {
         var version = (int)GetProtocolVersion(RootStorage);
         return CreateGenesisTransaction(timestamp, owner, version);
@@ -2793,7 +2795,7 @@ public class Nexus : INexus
     {
         if (!HasGenesis())
         {
-            return DomainSettings.Phantasma30Protocol;
+            return DomainSettings.Phantasma30Protocol; // DomainSettings.LatestKnownProtocol;
         }
 
         return (uint)this.GetGovernanceValue(storage, NexusProtocolVersionTag);

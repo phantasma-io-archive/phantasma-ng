@@ -86,7 +86,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                 uint totalPages = (uint)Math.Ceiling(numberRecords / (double)pageSize);
                 //
 
-                List<ITransaction> txs = new List<ITransaction>();
+                List<Transaction> txs = new List<Transaction>();
                 foreach (var txHash in txHashes)
                 {
                     var tx = chain.GetTransactionByHash(txHash);

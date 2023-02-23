@@ -10,7 +10,7 @@ namespace Phantasma.Core.Domain
     {
         public Stack<VMObject> Stack { get; }
         IChain Chain { get; }
-        ITransaction Transaction { get; }
+        Transaction Transaction { get; }
         public Timestamp Time { get; }
         public StorageContext Storage { get; }
         public StorageContext RootStorage { get; }
@@ -46,7 +46,7 @@ namespace Phantasma.Core.Domain
         public Hash GenesisHash { get; }
         public Timestamp GetGenesisTime();
 
-        public ITransaction GetTransaction(Hash hash);
+        public Transaction GetTransaction(Hash hash);
 
         public string[] GetTokens();
         public string[] GetChains();

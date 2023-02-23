@@ -276,7 +276,7 @@ public static class NexusAPI
         };
     }
 
-    public static TransactionResult FillTransaction(ITransaction tx)
+    public static TransactionResult FillTransaction(Transaction tx)
     {
         RequireNexus();
 

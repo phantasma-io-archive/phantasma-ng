@@ -84,7 +84,7 @@ namespace Phantasma.Core.Domain
 
         public Hash Hash { get; private set; }
         
-        public TransactionGas TransactionGas { get; private set; }
+        //public TransactionGas TransactionGas { get; private set; }
 
         public static Transaction? Unserialize(byte[] bytes)
         {
@@ -119,14 +119,14 @@ namespace Phantasma.Core.Domain
             writer.Write(this.Expiration.Value);
             writer.WriteByteArray(this.Payload);
 
-            if (TransactionGas.Null.GasPayer != TransactionGas.GasPayer  &&
+            /*if (TransactionGas.Null.GasPayer != TransactionGas.GasPayer  &&
                 TransactionGas.Null.GasLimit != TransactionGas.GasLimit && TransactionGas.Null.GasPrice != TransactionGas.GasPrice)
             {
                 writer.WriteAddress(this.TransactionGas.GasPayer);
                 writer.WriteAddress(this.TransactionGas.GasTarget);
                 writer.WriteBigInteger(this.TransactionGas.GasLimit);
                 writer.WriteBigInteger(this.TransactionGas.GasPrice);
-            }
+            }*/
 
             if (withSignature)
             {
@@ -147,7 +147,7 @@ namespace Phantasma.Core.Domain
         public Transaction()
         {
             this.Hash = Hash.Null;
-            this.TransactionGas = TransactionGas.Null;
+            //this.TransactionGas = TransactionGas.Null;
         }
 
         public Transaction(
@@ -201,7 +201,7 @@ namespace Phantasma.Core.Domain
             this.Script = script;
             this.Expiration = expiration;
             this.Payload = payload != null ? payload :new byte[0];
-            this.TransactionGas = TransactionGas.Null;
+            //this.TransactionGas = TransactionGas.Null;
 
             this.Signatures = new Signature[0];
 
@@ -225,13 +225,13 @@ namespace Phantasma.Core.Domain
             this.ChainName = chainName;
             this.Script = script;
             this.Expiration = expiration;
-            this.TransactionGas = new TransactionGas
+            /*this.TransactionGas = new TransactionGas
             {
                 GasPayer = gasPayer,
                 GasTarget = gasTarget,
                 GasLimit = gasLimit,
                 GasPrice = gasPrice
-            };
+            };*/
             
             this.Payload = payload != null ? payload :new byte[0];
 
@@ -350,7 +350,7 @@ namespace Phantasma.Core.Domain
             this.Payload = reader.ReadByteArray();
             var pointer = reader.BaseStream.Position;
 
-            try
+            /*try
             {
                 var gasPayer = reader.ReadAddress();
                 var gasTarget = reader.ReadAddress();
@@ -373,7 +373,7 @@ namespace Phantasma.Core.Domain
                 Console.WriteLine($"Error:{e.Message} || {e.StackTrace}");
                 this.TransactionGas = TransactionGas.Null;
                 reader.BaseStream.Position = pointer;
-            }
+            }*/
 
             // check if we have some signatures attached
             try

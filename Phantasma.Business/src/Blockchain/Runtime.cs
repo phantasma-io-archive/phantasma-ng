@@ -19,7 +19,7 @@ namespace Phantasma.Business.Blockchain
     public class RuntimeVM : GasMachine, IRuntime
     {
         public Timestamp Time { get; private set; }
-        public ITransaction Transaction { get; private set; }
+        public Transaction Transaction { get; private set; }
         public IChain Chain { get; private set; }
         public IChain ParentChain { get; private set; }
         public IOracleReader Oracle { get; private set; }
@@ -56,7 +56,7 @@ namespace Phantasma.Business.Blockchain
         private readonly RuntimeVM _parentMachine;
 
         public RuntimeVM(int index, byte[] script, uint offset, IChain chain, Address validator, Timestamp time,
-                ITransaction transaction, StorageChangeSetContext changeSet, IOracleReader oracle, IChainTask currentTask,
+                Transaction transaction, StorageChangeSetContext changeSet, IOracleReader oracle, IChainTask currentTask,
                 bool delayPayment = false, string contextName = null, RuntimeVM parentMachine = null)
             : base(script, offset, contextName)
         {
@@ -108,7 +108,7 @@ namespace Phantasma.Business.Blockchain
 
         IChain IRuntime.Chain => this.Chain;
 
-        ITransaction IRuntime.Transaction => this.Transaction;
+        Transaction IRuntime.Transaction => this.Transaction;
 
         private Dictionary<string, int> _registedCallArgCounts = new Dictionary<string, int>();
 
@@ -950,7 +950,7 @@ namespace Phantasma.Business.Blockchain
             return GetBlockByHash(hash);
         }
 
-        public ITransaction GetTransaction(Hash hash)
+        public Transaction GetTransaction(Hash hash)
         {
             ExpectHashSize(hash, nameof(hash));
             return Chain.GetTransactionByHash(hash);

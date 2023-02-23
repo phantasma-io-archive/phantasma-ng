@@ -822,7 +822,7 @@ public class ChainTests
         var balance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, sender.Address);
         Assert.True(balance == originalAmount);
 
-        ITransaction txA = null, txB = null;
+        Transaction txA = null, txB = null;
 
         // do a side chain send using test user balance from root to account chain
         simulator.BeginBlock();

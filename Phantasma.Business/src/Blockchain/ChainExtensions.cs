@@ -9,7 +9,7 @@ namespace Phantasma.Business.Blockchain;
 
 public static class ChainExtensions
 {
-    internal static (CodeType, string) ExtractGasInformation(this IChain chain, ITransaction tx, out Address from, out Address target, 
+    internal static (CodeType, string) ExtractGasInformation(this IChain chain, Transaction tx, out Address from, out Address target, 
         out BigInteger gasPrice, out BigInteger gasLimit, IEnumerable<DisasmMethodCall> methods, Dictionary<string, int> _methodTableForGasExtraction)
     {
         if (!TransactionExtensions.ExtractGasDetailsFromMethods(methods, out from, out target, out gasPrice, out gasLimit, _methodTableForGasExtraction))
