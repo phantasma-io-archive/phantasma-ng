@@ -1386,6 +1386,22 @@ namespace Phantasma.Business.Blockchain.Contracts
         }
 
         /// <summary>
+        /// Method to just upgrade to new version not setupPools
+        /// </summary>
+        public void Migrate()
+        {
+            Runtime.Expect(_DEXversion == 0, "Migration failed, wrong version");
+            
+            var existsLP = Runtime.TokenExists(DomainSettings.LiquidityTokenSymbol);
+            Runtime.Expect(existsLP, "LP token doesn't exist!");
+            
+            Runtime.Expect(Runtime.PreviousContext.Name.ToLower() == "lp", "Migration failed, wrong context");
+            Runtime.Expect(Runtime.IsWitness(SmartContract.GetAddressFromContractName("LP")), "Only LP can migrate");
+            
+            _DEXversion = 1;
+        }
+
+        /// <summary>
         /// Method use to Migrate to the new SwapMechanism
         /// </summary>
         public void MigrateToV3()
