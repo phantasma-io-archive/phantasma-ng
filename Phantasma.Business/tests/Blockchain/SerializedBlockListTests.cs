@@ -18,7 +18,7 @@ public class SerializedBlockListTests
             // Add some blocks to the dictionary
         };
 
-        var blockTransactions = new Dictionary<BigInteger, List<ITransaction>>()
+        var blockTransactions = new Dictionary<BigInteger, List<Transaction>>()
         {
             // Add some transactions to the dictionary
         };

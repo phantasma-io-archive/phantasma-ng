@@ -12,10 +12,10 @@ public class SmartContractSheet
 {
     public const string ContractListTag = ".contracts.";
     public const string ContractTag = ".contract.";
-    public const string OwnerTag = "owner.";
-    public const string ContractNameTag = "name.";
-    public const string ContractScriptTag = "script.";
-    public const string ContractAbiTag = "abi.";
+    public const string OwnerTag = "owner";
+    public const string ContractNameTag = "name";
+    public const string ContractScriptTag = "script";
+    public const string ContractAbiTag = "abi";
 
     private byte[] _prefix;
     private string _contractName;
@@ -49,7 +49,7 @@ public class SmartContractSheet
 
     private byte[] GetContractKey(Address contractAddress, string field)
     {
-        var bytes = ByteArrayUtils.ConcatBytes(Encoding.ASCII.GetBytes(field), contractAddress.ToByteArray());
+        var bytes = Encoding.ASCII.GetBytes(field);
         var key = ByteArrayUtils.ConcatBytes(_prefix, bytes);
         return key;
     }

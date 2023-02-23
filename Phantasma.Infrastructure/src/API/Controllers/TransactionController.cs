@@ -86,10 +86,24 @@ namespace Phantasma.Infrastructure.API.Controllers
                 uint totalPages = (uint)Math.Ceiling(numberRecords / (double)pageSize);
                 //
 
-                var txs = txHashes.Select(x => chain.GetTransactionByHash(x))
+                List<Transaction> txs = new List<Transaction>();
+                foreach (var txHash in txHashes)
+                {
+                    var tx = chain.GetTransactionByHash(txHash);
+                    if (tx != null)
+                    {
+                        txs.Add(tx);
+                    }
+                }
+
+                txs = txs.OrderByDescending(tx => nexus.FindBlockByTransaction(tx).Timestamp.Value)
+                    .Skip((int)((page - 1) * pageSize))
+                    .Take((int)pageSize).ToList();
+                
+                /*var txs = txHashes.Select(x => chain.GetTransactionByHash(x))
                     .OrderByDescending(tx => nexus.FindBlockByTransaction(tx).Timestamp.Value)
                     .Skip((int)((page - 1) * pageSize))
-                    .Take((int)pageSize);
+                    .Take((int)pageSize);*/
 
                 var result = new AccountTransactionsResult
                 {

@@ -94,7 +94,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
             var chain = _nexus.RootChain as Chain;
 
-            IEnumerable<ITransaction> systemTransactions;
+            IEnumerable<Transaction> systemTransactions;
             if (chain.CurrentBlock != null)
             {
                 Log.Information("Requesting the block because it is not null");

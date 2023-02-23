@@ -244,7 +244,7 @@ namespace Phantasma.Business.Blockchain
             return true;
         }
 
-        public bool IsWitness(ITransaction transaction)
+        public bool IsWitness(Transaction transaction)
         {
             var size = this.Size;
             if (size < 1)
