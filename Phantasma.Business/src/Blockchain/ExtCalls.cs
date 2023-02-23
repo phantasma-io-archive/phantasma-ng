@@ -1264,15 +1264,29 @@ namespace Phantasma.Business.Blockchain
             else
             {
                 vm.Expect(deployed, $"{symbol} does not exist");
-            
-                if (Nexus.IsDangerousSymbol(symbol))
+                if (vm.ProtocolVersion <= 12)
                 {
-                    if (!(symbol == DomainSettings.LiquidityTokenSymbol && 
-                          (vm.CurrentContext.Name == DomainSettings.LiquidityTokenSymbol 
-                           || vm.CurrentContext.Name == NativeContractKind.Exchange.GetContractName())))
+                    if (Nexus.IsDangerousSymbol(symbol))
                     {
-                        vm.ExpectWarning(false, $"Tried to burn LP tokens from this context {vm.CurrentContext.Name}", source);
+                        if (!(symbol == DomainSettings.LiquidityTokenSymbol && 
+                              (vm.CurrentContext.Name == DomainSettings.LiquidityTokenSymbol 
+                               || vm.CurrentContext.Name == NativeContractKind.Exchange.GetContractName())))
+                        {
+                            vm.ExpectWarning(false, $"Tried to burn LP tokens from this context {vm.CurrentContext.Name}", source);
+                        }
                     }
+                }
+                else
+                {
+                    if (symbol == DomainSettings.LiquidityTokenSymbol)
+                    {
+                        if ((vm.CurrentContext.Name == DomainSettings.LiquidityTokenSymbol
+                             || vm.CurrentContext.Name == NativeContractKind.Exchange.GetContractName()))
+                        {
+                            vm.ExpectWarning(false, $"Tried to burn LP tokens from this context {vm.CurrentContext.Name}", source);
+                        }
+                    }
+                    // Do nothing. We allow burning of any token from any context.
                 }
             }
             

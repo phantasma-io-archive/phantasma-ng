@@ -1387,12 +1387,15 @@ namespace Phantasma.Business.Blockchain
             var org = GetOrganization(ID) as Organization;
             org.InitCreator(from);
 
-            // TODO org cost
-            /*var fuelCost = GetGovernanceValue(DomainSettings.FuelPerOrganizationDeployTag);
-            // governance value is in usd fiat, here convert from fiat to fuel amount
-            fuelCost = this.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
-            // burn the "cost" tokens
-            BurnTokens(DomainSettings.FuelTokenSymbol, from, fuelCost);*/
+            if (Nexus.HasGenesis())
+            {
+                var fuelCost = GetGovernanceValue(DomainSettings.FuelPerOrganizationDeployTag);
+               // governance value is in usd fiat, here convert from fiat to fuel amount
+               fuelCost = this.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
+               // burn the "cost" tokens
+               BurnTokens(DomainSettings.FuelTokenSymbol, from, fuelCost);
+            }
+           
 
             this.Notify(EventKind.OrganizationCreate, from, ID);
         }
