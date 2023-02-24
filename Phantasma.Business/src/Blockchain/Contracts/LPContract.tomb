@@ -85,6 +85,11 @@ token LP {
         Call.contract<none>("exchange", "MigrateToV3");
 	}
 	
+	public upgradeToDexNoPool(from: address){
+        Runtime.expect(Runtime.isWitness(owner), "witness failed");
+        Call.contract<none>("exchange", "Migrate");
+	}
+	
 	trigger onUpgrade(from:address) 
     {	
         Runtime.expect(Runtime.isWitness(owner), "witness failed");
