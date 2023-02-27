@@ -1232,6 +1232,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void SwapFee(Address from, string fromSymbol, BigInteger feeAmount)
         {
             Runtime.Expect(_DEXversion >= 1, "call migrateToV3 first");
+            Runtime.Expect(fromSymbol != DomainSettings.FuelTokenSymbol, "cannot swap fuel token");
             var feeSymbol = DomainSettings.FuelTokenSymbol;
 
             // Need to remove the fees
@@ -1239,7 +1240,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             BigInteger minAmount;
             
             var feeBalance = Runtime.GetBalance(feeSymbol, from);
-            feeAmount -= UnitConversion.ConvertDecimals(feeBalance, DomainSettings.FuelTokenDecimals, token.Decimals);
+            //feeAmount -= UnitConversion.ConvertDecimals(feeBalance, DomainSettings.FuelTokenDecimals, token.Decimals);
             if (feeAmount <= 0)
             {
                 return;
