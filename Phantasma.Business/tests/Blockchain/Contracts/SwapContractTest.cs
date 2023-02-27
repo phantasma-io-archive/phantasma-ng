@@ -51,7 +51,9 @@ public class SwapContractTest
         simulator = new NexusSimulator(owner);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
-        simulator.GetFundsInTheFuture(owner);
+        simulator.GetFundsInTheFuture(owner, 5);
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.BeginScript()
