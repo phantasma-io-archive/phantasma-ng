@@ -189,6 +189,48 @@ namespace Phantasma.Business.Blockchain
             return systemTransactions;
         }
 
+        private (CodeType, string) HandleWhitelistedMethods(IEnumerable<DisasmMethodCall> methods, Timestamp timestamp, uint protocolVersion)
+        {
+            if (methods.Any(x => x.MethodName.Equals(nameof(SwapContract.SwapFee)) || x.MethodName.Equals(nameof(ExchangeContract.SwapFee))))
+            {
+                var existsLPToken = Nexus.TokenExists(Storage, DomainSettings.LiquidityTokenSymbol);
+                BigInteger exchangeVersion = 0;
+                if (protocolVersion >= 14)
+                {
+                    try
+                    {
+                        exchangeVersion = this.InvokeContractAtTimestamp(Storage, timestamp, NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVersion)).AsNumber();
+                    }
+                    catch ( Exception e)
+                    {
+                        Log.Error("Error getting exchange version {Exception}", e);
+                    }
+                }
+                else
+                {
+                    exchangeVersion = this.InvokeContractAtTimestamp(Storage, CurrentBlock.Timestamp, NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVersion)).AsNumber();
+                }
+                
+                if (existsLPToken && exchangeVersion >= 1) // Check for the Exchange contract
+                {
+                    var exchangePot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Exchange));
+                    if (exchangePot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
+                        return (CodeType.Error, $"Empty pot Exchange");
+                    }
+                }
+                else
+                {
+                    // Run the Swap contract
+                    var pot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Swap));
+                    if (pot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
+                        return (CodeType.Error, $"Empty pot Swap");
+                    }
+                }
+            }
+            
+            return (CodeType.Ok, "");
+        }
+
         public (CodeType, string) CheckTx(Transaction tx, Timestamp timestamp)
         {
             uint protocolVersion = Nexus.GetProtocolVersion(Storage);
@@ -289,25 +331,10 @@ namespace Phantasma.Business.Blockchain
                 var whitelisted = TransactionExtensions.IsWhitelisted(methods);
                 if (whitelisted)
                 {
-                    if (methods.Any(x => x.MethodName.Equals(nameof(SwapContract.SwapFee)) || x.MethodName.Equals(nameof(ExchangeContract.SwapFee))))
+                    var cosmicResult = HandleWhitelistedMethods(methods, timestamp, protocolVersion);
+                    if ( cosmicResult.Item1 != CodeType.Ok)
                     {
-                        var existsLPToken = Nexus.TokenExists(Storage, DomainSettings.LiquidityTokenSymbol);
-                        var exchangeVersion = this.InvokeContractAtTimestamp(Storage, CurrentBlock.Timestamp, NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVerion)).AsNumber();
-                        if (existsLPToken && exchangeVersion >= 1) // Check for the Exchange contract
-                        {
-                            var exchangePot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Exchange));
-                            if (exchangePot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
-                                return (CodeType.Error, $"Empty pot Exchange");
-                            }
-                        }
-                        else
-                        {
-                            // Run the Swap contract
-                            var pot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Swap));
-                            if (pot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
-                                return (CodeType.Error, $"Empty pot Swap");
-                            }
-                        }
+                        return (cosmicResult.Item1, cosmicResult.Item2);
                     }
                 }
                 else

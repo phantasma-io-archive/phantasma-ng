@@ -1049,6 +1049,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         #region Dex
         
         internal BigInteger _DEXversion;
+
+        public BigInteger GetDexVersion() => GetDexVerion();
         
         public BigInteger GetDexVerion()
         {
