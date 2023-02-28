@@ -214,7 +214,7 @@ namespace Phantasma.Business.Blockchain
             {
                 if (Runtime.ProtocolVersion >= 14)
                 {
-                    Quota = 500000;
+                    Quota = 500000; // 500k
                 }
                 
                 Runtime.CheckWarning(worth <= Filter.Threshold, $"{msg} over quota: {worth} {token.Symbol}", from);
