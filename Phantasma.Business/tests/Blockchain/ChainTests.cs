@@ -13,11 +13,12 @@ using Phantasma.Core.Numerics;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM;
 using Phantasma.Infrastructure.Pay.Chains;
+using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Business.Blockchain.VM;
 
 namespace Phantasma.Business.Tests.Blockchain;
 

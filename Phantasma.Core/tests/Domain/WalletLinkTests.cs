@@ -5,7 +5,6 @@ using System.Text.Json.Nodes;
 using System.Text.Unicode;
 using System.Threading;
 using Phantasma.Business.Blockchain;
-using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Numerics;
@@ -19,6 +18,7 @@ namespace Phantasma.Core.Tests.Domain;
 using Xunit;
 
 using Phantasma.Core.Domain;
+using Phantasma.Business.Blockchain.Contracts.Native;
 
 public class WalletLinkTests
 {

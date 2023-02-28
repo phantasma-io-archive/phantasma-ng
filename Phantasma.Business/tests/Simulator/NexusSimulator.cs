@@ -9,7 +9,6 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Business.VM.Utils;
-using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Blockchain.Tokens;
@@ -21,6 +20,7 @@ using Xunit;
 using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Node.Chains.Neo2;
 using Tendermint.Abci;
+using Phantasma.Business.Blockchain.Contracts.Native;
 
 namespace Phantasma.Business.Tests.Simulator;
 
