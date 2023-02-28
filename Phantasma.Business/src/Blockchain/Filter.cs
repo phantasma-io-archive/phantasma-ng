@@ -17,8 +17,8 @@ namespace Phantasma.Business.Blockchain
         private static readonly string FilterQuota = "filter.quota.";
 
         public static bool Enabled = true;
-        public static decimal Quota = 50000;
-        public static decimal Threshold = 10000;
+        public static decimal Quota = 50000; // Default quota is 50k
+        public static decimal Threshold = 10000; // Default threshold is 10k
 
         private static readonly object Lock = new object();
 
@@ -212,6 +212,11 @@ namespace Phantasma.Business.Blockchain
             }
             else
             {
+                if (Runtime.ProtocolVersion >= 14)
+                {
+                    Quota = 500000;
+                }
+                
                 Runtime.CheckWarning(worth <= Filter.Threshold, $"{msg} over quota: {worth} {token.Symbol}", from);
                 
                 Runtime.CheckWarning(total <= Filter.Quota, $"{msg} quota exceeded, tried to move {total} {token.Symbol} over last 24h", from);
