@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Domain;
 using Xunit;

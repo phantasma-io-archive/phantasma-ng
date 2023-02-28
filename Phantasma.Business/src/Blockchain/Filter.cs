@@ -6,6 +6,7 @@ using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
+using System.Collections.Generic;
 
 namespace Phantasma.Business.Blockchain
 {
@@ -15,6 +16,7 @@ namespace Phantasma.Business.Blockchain
         private static readonly string FilterRedStorage = "filter.red";
         private static readonly string FilterGreenStorage = "filter.green";
         private static readonly string FilterQuota = "filter.quota.";
+        private static readonly string FilterQuotaData = "filter.quota_date.";
 
         public static bool Enabled = true;
         public static decimal Quota = 50000; // Default quota is 50k
@@ -142,12 +144,33 @@ namespace Phantasma.Business.Blockchain
             Runtime.CheckWarning(condition, msg, address);
             Runtime.ExpectFiltered(condition, $"{msg} expected Warning", address);
         }
-        
+
+        private static Dictionary<Address, Timestamp> _notificationTimes = new Dictionary<Address, Timestamp>();
+
         // This is just for warning not to stop the execution
         public static void CheckWarning(this IRuntime Runtime, bool condition, string msg, Address address ){
 
             if (!condition) {
+
+                var currentTime = Timestamp.Now;
+
+                if (_notificationTimes.ContainsKey(address))
+                {
+                    var lastTime = _notificationTimes[address];
+
+                    var diff = currentTime - lastTime;
+
+                    var expectedTimeBetweenNotifications = 60 * 60; // 60 seconds * 60 minutes, 1 hour
+
+                    if (diff < expectedTimeBetweenNotifications)
+                    {
+                        return; // if an hour has not passed yet, prevent spam
+                    }
+                }
+
                 Webhook.Notify($"[{((DateTime) Runtime.Time).ToLongDateString()}] reason -> {msg} by [{address.Text}]");
+
+                _notificationTimes[address] = currentTime;
             }
         }
 

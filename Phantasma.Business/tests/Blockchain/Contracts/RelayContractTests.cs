@@ -15,9 +15,7 @@ using Phantasma.Core.Utils;
 namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
 using Xunit;
-
-using Phantasma.Business.Blockchain.Contracts;
-
+using Phantasma.Business.Blockchain.Contracts.Native;
 
 [Collection(nameof(SystemTestCollectionDefinition))]
 public class RelayContractTests

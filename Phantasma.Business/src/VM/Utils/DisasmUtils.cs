@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Phantasma.Business.Blockchain;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.VM;
 using Phantasma.Core.Domain;
 
 namespace Phantasma.Business.VM.Utils
