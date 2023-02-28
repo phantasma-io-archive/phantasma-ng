@@ -112,11 +112,11 @@ public class GovernanceContractTests
         Assert.True(simulator.LastBlockWasSuccessful());
         
         // GetNames
-        var names2 = simulator.InvokeContract(NativeContractKind.Governance, nameof(GovernanceContract.GetNames)).AsStruct<string[]>();
+        var names2 = simulator.InvokeContract(NativeContractKind.Governance, nameof(GovernanceContract.GetNames)).ToArray<string>();
         Assert.Contains(name, names2);
         
         // GetValues
-        var values2 = simulator.InvokeContract(NativeContractKind.Governance, nameof(GovernanceContract.GetValues)).AsStruct<GovernancePair[]>();
+        var values2 = simulator.InvokeContract(NativeContractKind.Governance, nameof(GovernanceContract.GetValues)).ToArray<GovernancePair>();
         var governancePair2 = values2.First(x => x.Name == name && x.Value == value2);
         Assert.Equal(name, governancePair2.Name);
         Assert.Equal(value2, governancePair2.Value);
@@ -134,11 +134,11 @@ public class GovernanceContractTests
         Assert.True(hasName);
         
         // GetNames
-        var names = simulator.InvokeContract(NativeContractKind.Governance, nameof(GovernanceContract.GetNames)).AsStruct<string[]>();
+        var names = simulator.InvokeContract(NativeContractKind.Governance, nameof(GovernanceContract.GetNames)).ToArray<string>();
         Assert.Contains(name, names);
         
         // GetValues
-        var values = simulator.InvokeContract(NativeContractKind.Governance, nameof(GovernanceContract.GetValues)).AsStruct<GovernancePair[]>();
+        var values = simulator.InvokeContract(NativeContractKind.Governance, nameof(GovernanceContract.GetValues)).ToArray<GovernancePair>();
         var governancePair = values.First(x => x.Name == name && x.Value == value2);
         Assert.Equal(name, governancePair.Name);
         Assert.Equal(value2, governancePair.Value);

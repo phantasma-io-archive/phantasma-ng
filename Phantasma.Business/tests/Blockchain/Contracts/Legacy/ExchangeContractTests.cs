@@ -1996,13 +1996,16 @@ public class ExchangeContractTests
 
             // Create users
             var poolOwner = new ExchangeUser(baseSymbol, quoteSymbol, core);
+            var poolOwner2 = new ExchangeUser(baseSymbol, quoteSymbol, core);
 
             // Give Users tokens
-            poolOwner.FundUser(soul: 500, 0);
+            poolOwner.FundUser(soul: 4, 0);
+            poolOwner2.FundUser(soul: 4, 0.05m);
 
             var originalBalance = poolOwner.GetBalance(DomainSettings.FuelTokenSymbol);
+            var originalBalanceUser2 = poolOwner.GetBalance(DomainSettings.FuelTokenSymbol);
 
-            var swapAmount = UnitConversion.ToBigInteger(15, DomainSettings.StakingTokenDecimals);
+            var swapAmount = UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals);
 
             var kcalRate = core.simulator.InvokeContract(NativeContractKind.Exchange, nameof(ExchangeContract.GetRate),
                 baseSymbol, quoteSymbol, swapAmount).AsNumber();
@@ -2010,7 +2013,7 @@ public class ExchangeContractTests
             core.simulator.BeginBlock();
             var tx = core.simulator.GenerateCustomTransaction(poolOwner.userKeys, ProofOfWork.Minimal, () =>
                 ScriptUtils.BeginScript()
-                    .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.SwapFee),
+                    .CallContract(NativeContractKind.Swap, nameof(ExchangeContract.SwapFee),
                         poolOwner.userKeys.Address, baseSymbol, swapAmount)
                     .AllowGas(poolOwner.userKeys.Address, Address.Null, core.simulator.MinimumFee, 999)
                     .SpendGas(poolOwner.userKeys.Address)
@@ -2024,6 +2027,27 @@ public class ExchangeContractTests
             var finalBalance = poolOwner.GetBalance(DomainSettings.FuelTokenSymbol);
             Assert.True(finalBalance >= originalBalance + kcalRate - txCost,
                 $"{finalBalance} > {originalBalance + kcalRate - txCost}");
+            
+            var kcalRate2 = core.simulator.InvokeContract(NativeContractKind.Exchange, nameof(ExchangeContract.GetRate),
+                baseSymbol, quoteSymbol, swapAmount).AsNumber();
+            
+            core.simulator.BeginBlock();
+            var tx2 = core.simulator.GenerateCustomTransaction(poolOwner2.userKeys, ProofOfWork.Minimal, () =>
+                ScriptUtils.BeginScript()
+                    .CallContract(NativeContractKind.Swap, nameof(ExchangeContract.SwapFee),
+                        poolOwner2.userKeys.Address, baseSymbol, swapAmount)
+                    .AllowGas(poolOwner2.userKeys.Address, Address.Null, core.simulator.MinimumFee, 210000)
+                    .SpendGas(poolOwner2.userKeys.Address)
+                    .EndScript()
+            );
+            //core.simulator.GenerateSwapFee(poolOwner.userKeys, core.nexus.RootChain, DomainSettings.StakingTokenSymbol, swapAmount);
+            core.simulator.EndBlock();
+            Assert.True(core.simulator.LastBlockWasSuccessful());
+            var txCost2 = core.simulator.Nexus.RootChain.GetTransactionFee(tx2);
+            
+            var finalBalance2 = poolOwner2.GetBalance(DomainSettings.FuelTokenSymbol);
+            Assert.True(finalBalance2 >= originalBalanceUser2 + kcalRate2 - txCost2,
+                $"{finalBalance2} > {originalBalanceUser2 + kcalRate2 - txCost2}");
         });
     }
     /*
@@ -2177,9 +2201,7 @@ public class ExchangeContractTests
         core.simulator.GenerateTransfer(core.owner, SmartContract.GetAddressForNative(NativeContractKind.Swap), core.simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100m, kcal.Decimals));
         core.simulator.EndBlock();
         Assert.True(core.simulator.LastBlockWasSuccessful());
-        
-        
-        
+
         // SwapFee
         core.simulator.BeginBlock();
         core.simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
@@ -2255,7 +2277,8 @@ public class ExchangeContractTests
             var owner3 = PhantasmaKeys.Generate();
             simulator = new NexusSimulator(new []{owner, owner1, owner2, owner3});
             nexus = simulator.Nexus;
-            simulator.GetFundsInTheFuture(owner);
+            simulator.GetFundsInTheFuture(owner, 10);
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
             
             simulator.BeginBlock();
@@ -2270,8 +2293,11 @@ public class ExchangeContractTests
             Assert.True(simulator.LastBlockWasSuccessful());
             
             var balanceBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol, owner.Address);
-            simulator.GetFundsInTheFuture(owner);
-            simulator.GetFundsInTheFuture(owner);
+            simulator.GetFundsInTheFuture(owner, 10);
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+
+            simulator.GetFundsInTheFuture(owner, 10);
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
             //simulator.TransferOwnerAssetsToAddress(owner.Address);
             var balanceAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol, owner.Address);
 
@@ -2330,7 +2356,8 @@ public class ExchangeContractTests
             }
             simulator.EndBlock();
             
-            simulator.GetFundsInTheFuture(owner);
+            simulator.GetFundsInTheFuture(owner, 10);
+            Assert.True(simulator.LastBlockWasSuccessful());
             
             simulator.BeginBlock();
             simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, soul.Symbol, poolAmount0*2);
@@ -2339,7 +2366,6 @@ public class ExchangeContractTests
             simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, bnb.Symbol, poolAmount3);
             simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, neo.Symbol, poolAmount4);
             simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, gas.Symbol, poolAmount5);
-            
             simulator.EndBlock();
             Assert.True(simulator.LastBlockWasSuccessful());
             //Migrate();
@@ -2986,7 +3012,7 @@ public class ExchangeContractTests
         // Get OTC Orders
         public ExchangeOrder[] GetOTC()
         {
-            return (ExchangeOrder[])simulator.InvokeContract( NativeContractKind.Exchange, nameof(ExchangeContract.GetOTC)).ToObject();
+            return simulator.InvokeContract( NativeContractKind.Exchange, nameof(ExchangeContract.GetOTC)).ToArray<ExchangeOrder>();
         }
         #endregion
         

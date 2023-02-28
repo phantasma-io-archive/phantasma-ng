@@ -199,6 +199,7 @@ public class FileStorageTests
                 SpendGas(testUser.Address).EndScript());
         //System.IO.File.WriteAllText(@"D:\Repos\bug_vm.txt", string.Join('\n', new VM.Disassembler(tx.Script).Instructions));
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var usedSpace = simulator.InvokeContract( "storage", "GetUsedSpace", testUser.Address).AsNumber();
 
@@ -1050,19 +1051,21 @@ public class FileStorageTests
         var testMsg = sb.ToString();
         var textFile = System.Text.Encoding.UTF8.GetBytes(testMsg);
         var key = ArchiveExtensions.Uncompressed;
+        var merkle = new MerkleTree(textFile);
 
         simulator.BeginBlock();
         var tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
         ScriptUtils.
               BeginScript().
               AllowGas(testUser.Address, Address.Null,simulator.MinimumFee, simulator.MinimumGasLimit).
-              CallContract("storage", "WriteData", testUser.Address, "test.txt", textFile, key).
+              CallContract("storage", "CreateFile", testUser.Address, "test.txt", textFile.Length, Serialization.Serialize(merkle), key).
               SpendGas(testUser.Address).
               EndScript()
         );
         var block = simulator.EndBlock().FirstOrDefault();
+        Assert.True(simulator.LastBlockWasSuccessful());
 
         var usedSpace = simulator.InvokeContract( "storage", "GetUsedSpace", testUser.Address).AsNumber();
-        Assert.True(usedSpace == textFile.Length);
+        Assert.Equal(usedSpace, textFile.Length);
     }
 }

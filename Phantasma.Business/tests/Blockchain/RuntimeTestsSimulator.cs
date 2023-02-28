@@ -91,7 +91,7 @@ public class RuntimeTestsSimulator
         Assert.Equal(SmartContract.GetAddressForNative(NativeContractKind.Exchange).Text, runtime.LookUpName("exchange").Text);
         Assert.Equal(true, runtime.TokenExists("NEO", "neo"));
         Assert.NotEmpty(runtime.GetValidators());
-        Assert.Equal(1, runtime.GetPrimaryValidatorCount());
+        Assert.Equal(2, runtime.GetPrimaryValidatorCount());
         Assert.Throws<ChainException>(() =>runtime.GetPlatformByName("eth"));
         Assert.Null(runtime.GetPlatformByIndex(0));
         Assert.Null(runtime.GetPlatformByIndex(-1));

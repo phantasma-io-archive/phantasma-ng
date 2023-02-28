@@ -26,6 +26,8 @@ public static class NexusAPI
     public static ITokenSwapper TokenSwapper { get; set; }
     public static NodeRpcClient TRPC { get; set; }
 
+    public static List<ValidatorSettings> Validators { get; set; }
+
     public static bool ApiLog { get; set; }
 
     public const int PaginationMaxResults = 99999;
@@ -529,7 +531,7 @@ public static class NexusAPI
 
         if (storage.used > 0)
         {
-            var files = (Hash[])Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetFiles), address).ToObject();
+            var files = Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetFiles), address).ToArray<Hash>();
 
             Hash avatarHash = Hash.Null;
             storage.archives = files.Select(x => {

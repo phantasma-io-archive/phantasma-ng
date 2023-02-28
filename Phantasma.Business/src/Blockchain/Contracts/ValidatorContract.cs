@@ -129,8 +129,14 @@ namespace Phantasma.Business.Blockchain.Contracts
                 return 0;
             }
 
-            var max = GetMaxPrimaryValidators();
             var count = 0;
+            var max = GetMaxPrimaryValidators();
+            
+            if (Runtime.ProtocolVersion >= 10)
+            {
+                max = GetMaxTotalValidators();
+            }
+            
             for (int i = 0; i < max; i++)
             {
                 var validator = GetValidatorByIndex(i);
@@ -139,7 +145,9 @@ namespace Phantasma.Business.Blockchain.Contracts
                     count++;
                 }
             }
+            
             return count;
+
         }
 
         public BigInteger GetMaxPrimaryValidators()
@@ -147,15 +155,44 @@ namespace Phantasma.Business.Blockchain.Contracts
             if (Runtime.HasGenesis)
             {
                 var maxValidators = Runtime.GetGovernanceValue(ValidatorSlotsTag);
-
-                var result = (maxValidators * 10) / 25;
-
-                if (maxValidators > 0 && result < 1)
+                
+                if ( Runtime.ProtocolVersion <= DomainSettings.Phantasma30Protocol )
                 {
-                    result = 1;
-                }
+                    // This timestamp was 2023-02-07 16:30:00 UTC (1675787400 unix timestamp)
+                    // This was needed because it was not using the correct governance value and with this it will be fixed.
+                    if (Runtime.Time >= 1675787400)
+                    {
+                        return maxValidators;
+                    }
+                    else
+                    {
+                        var result = (maxValidators * 10) / 25;
 
-                return result;
+                        if (maxValidators > 0 && result < 1)
+                        {
+                            result = 1;
+                        }
+
+                        return result;
+                    }
+                }
+                else if ( Runtime.ProtocolVersion == 9)
+                {
+                    // This timestamp was 2023-02-07 16:30:00 UTC (1675787400 unix timestamp)
+                    // this was just to make sure that we could still use the old protocol version
+                    return maxValidators;
+                }
+                else
+                {
+                    var result = (maxValidators * 10) / 25;
+
+                    if (maxValidators > 0 && result < 1)
+                    {
+                        result = 1;
+                    }
+
+                    return result;
+                }
             }
 
             return _initialValidatorCount;

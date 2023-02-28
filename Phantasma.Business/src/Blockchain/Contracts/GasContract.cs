@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM;
@@ -38,7 +39,9 @@ namespace Phantasma.Business.Blockchain.Contracts
         internal BigInteger _rewardAccum;
 
         internal Timestamp _lastInflationDate;
+        internal Timestamp _nextInflationDate;
         internal bool _inflationReady;
+        internal bool _fixedInflation;
 
         private readonly int InflationPerYear = 133;
         private readonly int SMInflationPercentage = 10;
@@ -75,6 +78,10 @@ namespace Phantasma.Business.Blockchain.Contracts
             if (_lastInflationDate == 0)
             {
                 _lastInflationDate = Runtime.GetGenesisTime();
+                if (Runtime.ProtocolVersion >= 12)
+                {
+                    _nextInflationDate = new Timestamp(_lastInflationDate.Value + (SecondsInDay * 90));
+                }
             }
 
             Runtime.Expect(Runtime.PreviousContext.Name == VirtualMachine.EntryContextName, $"must be entry context {Runtime.PreviousContext.Name}");
@@ -135,9 +142,19 @@ namespace Phantasma.Business.Blockchain.Contracts
             {
                 var masterDate = Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetMasterDate), addr).AsTimestamp();
 
-                if (masterDate <= _lastInflationDate)
+                if (Runtime.ProtocolVersion >= 12)
                 {
-                    rewardList.Add(addr);
+                    if (masterDate <= _nextInflationDate)
+                    {
+                        rewardList.Add(addr);
+                    }
+                }
+                else
+                {
+                    if (masterDate <= _lastInflationDate)
+                    {
+                        rewardList.Add(addr);
+                    }
                 }
             }
 
@@ -166,6 +183,11 @@ namespace Phantasma.Business.Blockchain.Contracts
                 foreach (var addr in rewardList)
                 {
                     var reward = new StakeReward(addr, Runtime.Time);
+                    if (Runtime.ProtocolVersion >= 12)
+                    {
+                        reward = new StakeReward(addr, _nextInflationDate.Value);
+                    }
+
                     var rom = Serialization.Serialize(reward);
 
                     var tokenID = Runtime.MintToken(DomainSettings.RewardTokenSymbol, this.Address, this.Address, rom, new byte[0], 0);
@@ -224,12 +246,30 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Notify(EventKind.Inflation, from, new TokenEventData(DomainSettings.StakingTokenSymbol, mintedAmount, Runtime.Chain.Name));
 
-            _lastInflationDate = Runtime.Time;
-            _inflationReady = false;
+            if (Runtime.ProtocolVersion >= 12)
+            {
+                var inflationPeriod = SecondsInDay * 90;
+                _lastInflationDate = _nextInflationDate;
+                _nextInflationDate = new Timestamp( _nextInflationDate.Value + inflationPeriod);
+                if (Runtime.Time >= _nextInflationDate)
+                {
+                    _inflationReady = true;
+                }
+                else
+                {
+                    _inflationReady = false;
+                }
+            }
+            else
+            {
+                _lastInflationDate = Runtime.Time;
+
+                _inflationReady = false;
+            }
         }
 
         /// <summary>
-        /// 
+        /// Spend the Gas consumed by the scripts that were executed.
         /// </summary>
         public void SpendGas(Address from)
         {
@@ -337,16 +377,79 @@ namespace Phantasma.Business.Blockchain.Contracts
             {
                 var genesisTime = Runtime.GetGenesisTime();
                 _lastInflationDate = genesisTime;
+                if (Runtime.ProtocolVersion >= 12)
+                {
+                    _nextInflationDate = new Timestamp(genesisTime.Value + (SecondsInDay * 90));
+                }
             }
             else if (!_inflationReady)
             {
-                var infDiff = Runtime.Time - _lastInflationDate;
-                var inflationPeriod = SecondsInDay * 90;
-                if (infDiff >= inflationPeriod)
+                if (Runtime.ProtocolVersion <= 11)
                 {
-                    _inflationReady = true;
+                    var infDiff = Runtime.Time - _lastInflationDate;
+                    var inflationPeriod = SecondsInDay * 90;
+                    if (infDiff >= inflationPeriod)
+                    {
+                        _inflationReady = true;
+                    }
+                }
+                else if (Runtime.ProtocolVersion >= 12)
+                {
+                    if (Runtime.Time >= _nextInflationDate)
+                    {
+                        _inflationReady = true;
+                    }
                 }
             }
+        }
+
+        /// <summary>
+        /// This method is used to fix the inflation timing.
+        /// </summary>
+        public void FixInflationTiming(Address from, Timestamp lastInflationDate)
+        {
+            Runtime.ExpectWarning(!_fixedInflation, "inflation timing already fixed", from);
+            
+            // Validate Validaotrs and orgs and Multi signature
+            var org = Runtime.GetOrganization(DomainSettings.ValidatorsOrganizationName);
+            Runtime.Expect(org != null, "no validators org");
+            Runtime.Expect(org.IsMember(from), "not a validator");
+            Runtime.Expect(Runtime.IsPrimaryValidator(from), "not a primary validator");
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+
+            var size = org.Size;
+            var numberOfSignaturesNeeded = org.Size;
+            Runtime.Expect(Runtime.Transaction.Signatures.Length == numberOfSignaturesNeeded, "invalid number of signatures");
+            
+            var validSignatures = 0;
+            Signature lastSignature = null;
+            var signatures = Runtime.Transaction.Signatures.ToList();
+            var members = org.GetMembers();
+            var msg = Runtime.Transaction.ToByteArray(false);
+            
+            foreach (var member in members )
+            {
+                foreach ( var signature in signatures )
+                {
+                    if ( signature.Verify(msg, member) )
+                    {
+                        validSignatures++;
+                        lastSignature = signature;
+                        break;
+                    }
+                }
+                
+                if ( lastSignature != null)
+                    signatures.Remove(lastSignature);
+            }
+            
+            Runtime.Expect(validSignatures == numberOfSignaturesNeeded, "invalid signatures");
+            
+            // Fix Values
+            _fixedInflation = true;
+            _lastInflationDate = lastInflationDate - (SecondsInDay * 90);
+            _nextInflationDate = lastInflationDate;
+            _inflationReady = true;
         }
 
         /// <summary>
@@ -356,6 +459,24 @@ namespace Phantasma.Business.Blockchain.Contracts
         public Timestamp GetLastInflationDate()
         {
             return _lastInflationDate;
+        }
+        
+        /// <summary>
+        /// Method used to return the last inflation date.
+        /// </summary>
+        /// <returns></returns>
+        public Timestamp GetNextInflationDate()
+        {
+            return _nextInflationDate;
+        }
+        
+        /// <summary>
+        /// Method use to return how many days are left until the next distribution.
+        /// </summary>
+        /// <returns></returns>
+        public uint GetDaysNextUntilDistribution()
+        {
+            return Runtime.Time - _nextInflationDate;
         }
 
         /// <summary>

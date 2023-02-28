@@ -143,4 +143,23 @@ public class BlockOracleReaderTests
 
         Assert.Throws<NotImplementedException>(() => reader.Clear());
     }
+    
+    [Fact(Skip = "Not implemented")]
+    public void TestRead()
+    {
+        simulator.BeginBlock();
+        simulator.GenerateTransfer(owner, user.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
+        
+        var block = simulator.EndBlock().First();
+        Assert.True(simulator.LastBlockWasSuccessful());
+
+        var url = "price://KCAL";
+        BlockOracleReader reader = new BlockOracleReader(nexus, block);
+
+        Assert.Throws<NotImplementedException>(() =>
+        {
+            String x = ((OracleReader) reader).Read<String>(Timestamp.Now, url);
+            return;
+        } );
+    }
 }

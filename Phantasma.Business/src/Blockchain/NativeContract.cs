@@ -271,19 +271,63 @@ namespace Phantasma.Business.Blockchain
                 }
                 else
                 {
-                    var dic = (Dictionary<VMObject, VMObject>)arg;
-                    var elementType = expectedType.GetElementType();
-                    var array = Array.CreateInstance(elementType, dic.Count);
-                    for (int i = 0; i < array.Length; i++)
+                    if (Runtime.ProtocolVersion >= 11)
                     {
-                        var key = new VMObject();
-                        key.SetValue(i);
+                        var elementType = expectedType.GetElementType();
 
-                        var val = dic[key].Data;
-                        val = CastArgument(runtime, val, elementType);
-                        array.SetValue(val, i);
+                        if (arg == typeof(Dictionary<VMObject, VMObject>))
+                        {
+                            var dic = (Dictionary<VMObject, VMObject>)arg;
+                            var array = Array.CreateInstance(elementType, dic.Count);
+                            for (int i = 0; i < array.Length; i++)
+                            {
+                                var key = new VMObject();
+                                key.SetValue(i);
+
+                                var val = dic[key].Data;
+                                val = CastArgument(runtime, val, elementType);
+                                array.SetValue(val, i);
+                            }
+                            return array;
+                        }
+                        else if (arg == typeof(VMObject))
+                        {
+                            var vmObj = (VMObject)arg;
+                            var array = vmObj.ToArray(elementType);
+                            return array;
+                        }
+                        else if ( Runtime.ProtocolVersion >= 12)
+                        {
+                            var dic = (Dictionary<VMObject, VMObject>)arg;
+                            var array = Array.CreateInstance(elementType, dic.Count);
+                            for (int i = 0; i < array.Length; i++)
+                            {
+                                var key = new VMObject();
+                                key.SetValue(i);
+
+                                var val = dic[key].Data;
+                                val = CastArgument(runtime, val, elementType);
+                                array.SetValue(val, i);
+                            }
+                            return array;
+                        }
                     }
-                    return array;
+                    else
+                    {
+                        var dic = (Dictionary<VMObject, VMObject>)arg;
+                        var elementType = expectedType.GetElementType();
+                        var array = Array.CreateInstance(elementType, dic.Count);
+                        for (int i = 0; i < array.Length; i++)
+                        {
+                            var key = new VMObject();
+                            key.SetValue(i);
+
+                            var val = dic[key].Data;
+                            val = CastArgument(runtime, val, elementType);
+                            array.SetValue(val, i);
+                        }
+                        return array;
+                    }
                 }
             }
 
@@ -328,33 +372,39 @@ namespace Phantasma.Business.Blockchain
                     }
                 }
             }
-            
-            if (expectedType == typeof(Timestamp))
+
+            if (Runtime.ProtocolVersion > 8)
             {
-                if (receivedType == typeof(string))
+
+                if (expectedType == typeof(Timestamp))
                 {
-                    var value = (string)arg;
-                    if (uint.TryParse(value, out uint timestamp))
+                    if (receivedType == typeof(string))
                     {
-                        arg = new Timestamp(timestamp);
+                        var value = (string)arg;
+                        if (uint.TryParse(value, out uint timestamp))
+                        {
+                            arg = new Timestamp(timestamp);
+                        }
                     }
-                }
-                else if (receivedType == typeof(BigInteger))
-                {
-                    var value = (BigInteger)arg;
-                    arg = new Timestamp((uint)value);
-                }
-                else if (receivedType == typeof(Timestamp))
-                {
-                    return arg;
-                }else if (receivedType == typeof(DateTime))
-                {
-                    var value = (DateTime)arg;
-                    arg = (Timestamp)(value);
-                }else if (receivedType == typeof(uint))
-                {
-                    var value = (uint)arg;
-                    arg = (Timestamp)(value);
+                    else if (receivedType == typeof(BigInteger))
+                    {
+                        var value = (BigInteger)arg;
+                        arg = new Timestamp((uint)value);
+                    }
+                    else if (receivedType == typeof(Timestamp))
+                    {
+                        return arg;
+                    }
+                    else if (receivedType == typeof(DateTime))
+                    {
+                        var value = (DateTime)arg;
+                        arg = (Timestamp)(value);
+                    }
+                    else if (receivedType == typeof(uint))
+                    {
+                        var value = (uint)arg;
+                        arg = (Timestamp)(value);
+                    }
                 }
             }
 

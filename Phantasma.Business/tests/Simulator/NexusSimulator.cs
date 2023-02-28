@@ -13,6 +13,7 @@ using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Core.Storage.Context;
 using Phantasma.Infrastructure.Pay.Chains;
 using VMType = Phantasma.Core.Domain.VMType;
 
@@ -52,9 +53,12 @@ public class NexusSimulator
 
     public IEnumerable<Address> CurrentValidatorAddresses => _validators.Select(x => x.Address);
 
-    public static BigInteger DefaultGasLimit = 99999;
+    public static BigInteger DefaultGasLimit = 100000;
 
     private Chain bankChain;
+    
+    public bool FailedTx { get; private set; }
+    public string FailedTxReason { get; private set; }
 
     private static readonly string[] accountNames = {
         "aberration", "absence", "aceman", "acid", "alakazam", "alien", "alpha", "angel", "angler", "anomaly", "answer", "antsharer", "aqua", "archangel",
@@ -68,7 +72,7 @@ public class NexusSimulator
 
     public TimeSpan blockTimeSkip = TimeSpan.FromSeconds(10);
     public int MinimumFee => DomainSettings.DefaultMinimumGasFee;
-    public BigInteger MinimumGasLimit => 99999;
+    public BigInteger MinimumGasLimit => 100000;
 
     public NexusSimulator(PhantasmaKeys owner, int seed = 1234, Nexus nexus = null) : this(new PhantasmaKeys[] { owner }, seed, nexus, DomainSettings.LatestKnownProtocol)
     {
@@ -185,23 +189,23 @@ public class NexusSimulator
         this.Nexus.RootChain.ValidatorKeys = _currentValidator;
     }
 
-    public void GetFundsInTheFuture(PhantasmaKeys target)
+    public void GetFundsInTheFuture(PhantasmaKeys target, int times = 40)
     {
-        for(int i = 0; i < 40; i++)
+        for(int i = 0; i < times; i++)
             TimeSkipDays(90);
 
-        BeginBlock();
         foreach (var validator in _validators)
         {
+            BeginBlock();
             GenerateCustomTransaction(validator, ProofOfWork.None, () =>
-                ScriptUtils.BeginScript()
-                    .AllowGas(validator.Address, Address.Null, MinimumFee, DefaultGasLimit)
-                    .CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), validator.Address, validator.Address)
-                    .SpendGas(validator.Address)
-                    .EndScript());
+                    ScriptUtils.BeginScript()
+                        .AllowGas(validator.Address, Address.Null, MinimumFee, DefaultGasLimit)
+                        .CallContract(NativeContractKind.Stake, nameof(StakeContract.Claim), validator.Address, validator.Address)
+                        .SpendGas(validator.Address)
+                        .EndScript());
+            var block = EndBlock();
         }
-        var block = EndBlock();
-
+        
         TransferOwnerAssetsToAddress(target.Address);
     }
 
@@ -209,13 +213,14 @@ public class NexusSimulator
     {
         var rootChain = Nexus.RootChain;
 
-        BeginBlock();
         foreach (var validator in _validators)
         {
             if (validator.Address == target)
             {
                 continue;
             }
+            BeginBlock();
+
 
             var balance = rootChain.GetTokenBalance(Nexus.RootStorage, DomainSettings.StakingTokenSymbol, validator.Address);
             if (balance > 0)
@@ -228,8 +233,9 @@ public class NexusSimulator
             {
                 GenerateTransfer(validator, target, rootChain, DomainSettings.FuelTokenSymbol, balanceKCAL - UnitConversion.ToBigInteger(5, DomainSettings.FuelTokenDecimals));
             }
+            EndBlock();
+
         }
-        EndBlock();
     }
 
     private void InitGenesis(int protocolVersion)
@@ -428,6 +434,9 @@ public class NexusSimulator
             throw new Exception("Simulator block not terminated");
         }
 
+        FailedTx = false;
+        FailedTxReason = "";
+
         this.blockValidator = validator;
 
         _currentValidator = validator;
@@ -532,7 +541,8 @@ public class NexusSimulator
 
                             if (check.Item1 != CodeType.Ok)
                             {
-                                throw new ChainException("Transaction rejected: "+ check.Item2);
+                                FailedTxReason += "Transaction rejected: " + check.Item2 + "\n";
+                                //throw new ChainException("Transaction rejected: "+ check.Item2);
                             }
 
                             var result = chain.DeliverTx(tx);
@@ -581,6 +591,7 @@ public class NexusSimulator
                             {
                                 // this is for debugging tests, feel free to put a breakpoint here or comment this line
                                 Console.WriteLine("Transaction failed to execute properly: " + result.Codespace);
+                                FailedTxReason += "Transaction failed to execute properly: " + result.Codespace + "\n";
                             }
                         }
 
@@ -600,6 +611,8 @@ public class NexusSimulator
                     }
                     catch (Exception e)
                     {
+                        FailedTx = true;
+                        FailedTxReason += $"{e.Message}\n";
                         reason = e.Message;
                         commited = false;
                     }
@@ -619,6 +632,8 @@ public class NexusSimulator
 
                         if (successCount == 0)
                         {
+                            FailedTxReason += "Success Count = 0 \n";
+
                             //throw new ChainException("Transaction failed to execute properly: " + result.Codespace);
                         }
 
@@ -628,7 +643,10 @@ public class NexusSimulator
                     }
                     else
                     {
-                        throw new ChainException($"add block @ {chain.Name} failed, reason: {reason}");
+                        FailedTx = true;
+                        FailedTxReason += $"add block @ {chain.Name} failed, reason: {reason} \n";
+
+                        //throw new ChainException($"add block @ {chain.Name} failed, reason: {reason}");
                     }
                 }
             }
@@ -645,15 +663,31 @@ public class NexusSimulator
         {
             throw new Exception("Call BeginBlock first");
         }
-
-        var tx = new Transaction(Nexus.Name, chain.Name, script, CurrentTime + TimeSpan.FromSeconds(40));
+        
+        Transaction tx = null;
+        if (DomainSettings.LatestKnownProtocol <= 12)
+        {
+            tx = new Transaction(Nexus.Name, chain.Name, script, CurrentTime + TimeSpan.FromSeconds(40));
+        }
+        else
+        {
+            tx = new Transaction(Nexus.Name, chain.Name, script, CurrentTime + TimeSpan.FromSeconds(40));
+        }
 
         Throw.If(!signees.Any(), "at least one signer required");
-
+        
+        var _user =signees.First();
         Signature[] existing = tx.Signatures;
         var msg = tx.ToByteArray(false);
 
-        tx = new Transaction(Nexus.Name, chain.Name, script, CurrentTime + TimeSpan.FromSeconds(40));
+        if (DomainSettings.LatestKnownProtocol <= 12)
+        {
+            tx = new Transaction(Nexus.Name, chain.Name, script, CurrentTime + TimeSpan.FromSeconds(40));
+        }
+        else
+        {
+            tx = new Transaction(Nexus.Name, chain.Name, script, CurrentTime + TimeSpan.FromSeconds(40), (_user as PhantasmaKeys).Address, Address.Null, MinimumFee, MinimumGasLimit);
+        }
 
         tx.Mine((int)pow);
 
@@ -663,7 +697,6 @@ public class NexusSimulator
         }
 
         AddTransactionToPendingBlock(tx, chain);
-
 
         foreach (var signer in signees)
         {
@@ -1415,6 +1448,11 @@ public class NexusSimulator
 
     public bool LastBlockWasSuccessful()
     {
+        if ( FailedTx )
+        {
+            return false;
+        }
+        
         var chain = Nexus.RootChain;
         var block_hash = chain.GetBlockHashAtHeight(chain.Height);
         if (block_hash.IsNull)

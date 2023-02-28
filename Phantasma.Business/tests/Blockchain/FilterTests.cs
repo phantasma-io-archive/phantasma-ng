@@ -10,7 +10,7 @@ using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
-
+using Phantasma.Core.Storage.Context;
 using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
@@ -63,8 +63,11 @@ public class FilterTests
             simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         Assert.True(finalBalance == 0);
 
-        Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
-        Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+        if (nexus.GetProtocolVersion(nexus.RootStorage) <= 9)
+        {
+            Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
+            Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+        }
     }
 
     [Fact]
@@ -116,9 +119,12 @@ public class FilterTests
             simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         Assert.True(finalBalance == 0);
 
-        Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
-        Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
-
+        if (nexus.GetProtocolVersion(nexus.RootStorage) <= 9)
+        {
+            Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
+            Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+        }
+        
         Filter.RemoveRedFilteredAddress(simulator.Nexus.RootStorage, sender.Address, "User X");
 
         simulator.BeginBlock();
@@ -184,8 +190,11 @@ public class FilterTests
             simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         Assert.True(finalBalance == 0);
 
-        Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
-        Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+        if (nexus.GetProtocolVersion(nexus.RootStorage) <= 9)
+        {
+            Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
+            Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+        }
 
         Filter.AddGreenFilteredAddress(simulator.Nexus.RootStorage, sender.Address);
         Filter.AddRedFilteredAddress(simulator.Nexus.RootStorage, testUser.Address);
@@ -276,9 +285,13 @@ public class FilterTests
         var finalBalance =
             simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         Assert.True(finalBalance == expectedBalance);
-
-        Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
-        Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+        
+        if (nexus.GetProtocolVersion(nexus.RootStorage) <= 9)
+        {
+            Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
+            Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+        }
+        
     }
 
     [Fact]
@@ -365,6 +378,33 @@ public class FilterTests
 
         Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
         Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
+    }
+
+    [Fact]
+    public void AddRemoveMultipleTimes()
+    {
+        var owner = PhantasmaKeys.Generate();
+
+        var simulator = new NexusSimulator(owner);
+        var nexus = simulator.Nexus;
+
+        var testUser = PhantasmaKeys.Generate();
+
+        var fuelAmount = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
+
+        var sender = owner;
+
+        simulator.BeginBlock();
+        simulator.GenerateTransfer(sender, testUser.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol,
+            fuelAmount);
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        Filter.AddRedFilteredAddress(nexus.RootStorage, SmartContract.GetAddressForNative(NativeContractKind.Stake));
+        Filter.RemoveRedFilteredAddress(nexus.RootStorage, SmartContract.GetAddressForNative(NativeContractKind.Stake), "filter.red");
+        Filter.RemoveRedFilteredAddress(nexus.RootStorage, SmartContract.GetAddressForNative(NativeContractKind.Stake), "filter.red");
+        Filter.RemoveRedFilteredAddress(nexus.RootStorage, SmartContract.GetAddressForNative(NativeContractKind.Stake), "filter.red");
+        
     }
 
 }

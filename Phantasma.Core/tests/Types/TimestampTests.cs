@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 
 namespace Phantasma.Core.Tests.Types;
 
@@ -13,6 +14,23 @@ public class TimestampTests
     public void TestTimestamp()
     {
         var timestamp = new Timestamp(1234567890);
+        Assert.Equal((uint)1234567890, timestamp.Value);
+    }
+    
+    [Fact]
+    public void TestTimestampString()
+    {
+        var timestamp = new Timestamp("1234567890");
+        Assert.Equal((uint)1234567890, timestamp.Value);
+        
+        timestamp = new Timestamp("asjd");
+        Assert.Equal(Timestamp.Null.Value, timestamp.Value);
+    }
+    
+    [Fact]
+    public void TestTimestampBigInt()
+    {
+        var timestamp = new Timestamp((BigInteger)1234567890);
         Assert.Equal((uint)1234567890, timestamp.Value);
     }
     

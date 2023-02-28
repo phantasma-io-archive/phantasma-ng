@@ -243,7 +243,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 {
                     poll.state = PollState.Inactive;
                 }
-                else if (Runtime.Time >= poll.startTime && Runtime.Time<poll.endTime && poll.state == PollState.Inactive)
+                else if (Runtime.Time >= poll.startTime && Runtime.Time < poll.endTime && poll.state == PollState.Inactive)
                 {
                     poll.state = PollState.Active;
                     _pollList.Add<string>(subject);
@@ -522,11 +522,24 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             if (subject.StartsWith(SystemPoll))
             {
-                var validatorCount = Runtime.GetPrimaryValidatorCount();
-                if (validatorCount <= 1)
+                if (Runtime.ProtocolVersion < DomainSettings.Phantasma30Protocol)
                 {
-                    return false;
+                    var validatorCount = Runtime.GetPrimaryValidatorCount();
+                    if (validatorCount <= 1)
+                    {
+                        return false;
+                    }
                 }
+                else
+                {
+                    var validatorCount = Runtime.InvokeContractAtTimestamp(NativeContractKind.Validator,
+                        nameof(ValidatorContract.GetMaxTotalValidators)).AsNumber();
+                    if (validatorCount <= 1)
+                    {
+                        return false;
+                    }
+                }
+                
             }
 
             var rank = GetRank(subject, value);

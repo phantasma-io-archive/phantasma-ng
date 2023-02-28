@@ -34,6 +34,12 @@ namespace Phantasma.Business.Blockchain
 
         public static void ExpectFiltered(this IRuntime runtime, bool condition, string msg, Address address)
         {
+            if (runtime.ProtocolVersion >= 10)
+            {
+                runtime.Expect(condition, msg);
+                return;
+            }
+            
             if (!Enabled)
             {
                 return;
@@ -90,7 +96,9 @@ namespace Phantasma.Business.Blockchain
         private static bool RemoveFilteredAddress(StorageContext context, Address address, string tag)
         {
             var list = GetFilterStorageList(context, tag);
-            return list.Remove<Address>(address);
+            if (list.Contains(address))
+                return list.Remove<Address>(address);
+            return false;
         }
 
         public static bool IsGreenFilteredAddress(StorageContext context, Address address)
@@ -194,11 +202,21 @@ namespace Phantasma.Business.Blockchain
             var price = UnitConversion.ToDecimal(Runtime.GetTokenPrice(token.Symbol), DomainSettings.FiatTokenDecimals);
             var worth = UnitConversion.ToDecimal(amount, token.Decimals);
             worth *= price;
-            Runtime.CheckWarning(worth <= Filter.Threshold, $"{msg} over threshold: {worth} {token.Symbol}", from);
-
             var total = GetTotalForCurrentPeriod(Runtime, from) + worth;
-            Runtime.ExpectFiltered(total <= Filter.Quota, $"{msg} quota exceeded, tried to move {total} {token.Symbol} over last 24h", from);
+            
+            if (Runtime.ProtocolVersion <= 9)
+            {
+                Runtime.CheckWarning(worth <= Filter.Threshold, $"{msg} over threshold: {worth} {token.Symbol}", from);
 
+                Runtime.ExpectFiltered(total <= Filter.Quota, $"{msg} quota exceeded, tried to move {total} {token.Symbol} over last 24h", from);
+            }
+            else
+            {
+                Runtime.CheckWarning(worth <= Filter.Threshold, $"{msg} over quota: {worth} {token.Symbol}", from);
+                
+                Runtime.CheckWarning(total <= Filter.Quota, $"{msg} quota exceeded, tried to move {total} {token.Symbol} over last 24h", from);
+            }
+            
             AddToQuota(Runtime, from, worth);
         }
 

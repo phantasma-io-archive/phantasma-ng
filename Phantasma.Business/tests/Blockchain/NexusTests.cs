@@ -946,12 +946,19 @@ public class NexusTests : IDisposable
 
         // setup Chain
         runtimeMoq.Setup(r => r.Chain).Returns(Chain);
-
+        
+       // runtimeMoq.Setup(r => r.WriteData(It.IsAny<Address>(), It.IsAny<byte[]>(), It.IsAny<byte[]>())).Verifiable();
+        
         // setup GetToken
         runtimeMoq.Setup(r => r.GetToken(It.IsAny<string>())).Returns(NonFungibleToken);
 
         // setup allowance
         //runtimeMoq.Setup(r => r.SubtractAllowance(It.IsAny<Address>(), It.IsAny<string>(), It.IsAny<BigInteger>())).Returns(allowance);
+
+        runtimeMoq.Setup(r =>
+            r.CallContext(It.IsAny<string>(), It.IsAny<uint>(), It.IsAny<string>(),
+                It.IsAny<object[]>())).Returns(VMObject.FromObject(1));
+
 
         // setup witness 
         runtimeMoq.Setup(r => r.IsWitness(It.IsAny<Address>())).Returns(isWitness);

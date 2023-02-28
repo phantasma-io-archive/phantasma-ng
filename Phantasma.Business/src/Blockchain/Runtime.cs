@@ -63,7 +63,7 @@ namespace Phantasma.Business.Blockchain
             Core.Throw.IfNull(chain, nameof(chain));
             Core.Throw.IfNull(changeSet, nameof(changeSet));
 
-            _baseChangeSetCount = changeSet.Count();
+            _baseChangeSetCount = (int)changeSet.Count();
 
             // NOTE: block and transaction can be null, required for Chain.InvokeContract
             //Throw.IfNull(block, nameof(block));
@@ -1383,14 +1383,19 @@ namespace Phantasma.Business.Blockchain
             Expect(!Nexus.OrganizationExists(RootStorage, ID), "organization already exists");
 
             Nexus.CreateOrganization(RootStorage, ID, name, script);
+            
+            var org = GetOrganization(ID) as Organization;
+            org.InitCreator(from);
 
-            // TODO org cost
-            /*var fuelCost = GetGovernanceValue(DomainSettings.FuelPerOrganizationDeployTag);
-            // governance value is in usd fiat, here convert from fiat to fuel amount
-            fuelCost = this.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
-            // burn the "cost" tokens
-            BurnTokens(DomainSettings.FuelTokenSymbol, from, fuelCost);*/
-
+            if (Nexus.HasGenesis())
+            {
+                var fuelCost = GetGovernanceValue(DomainSettings.FuelPerOrganizationDeployTag);
+               // governance value is in usd fiat, here convert from fiat to fuel amount
+               fuelCost = this.GetTokenQuote(DomainSettings.FiatTokenSymbol, DomainSettings.FuelTokenSymbol, fuelCost);
+               // burn the "cost" tokens
+               BurnTokens(DomainSettings.FuelTokenSymbol, from, fuelCost);
+            }
+           
 
             this.Notify(EventKind.OrganizationCreate, from, ID);
         }
@@ -1665,6 +1670,8 @@ namespace Phantasma.Business.Blockchain
 
         public void SwapTokens(string sourceChain, Address from, string targetChain, Address to, string symbol, BigInteger value)
         {
+            Expect(ProtocolVersion < 13, "this method is obsolete");
+            
             ExpectNameLength(sourceChain, nameof(sourceChain));
             ExpectAddressSize(from, nameof(from));
             ExpectNameLength(targetChain, nameof(targetChain));

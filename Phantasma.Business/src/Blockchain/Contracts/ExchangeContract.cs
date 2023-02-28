@@ -1049,6 +1049,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         #region Dex
         
         internal BigInteger _DEXversion;
+
+        public BigInteger GetDexVersion() => GetDexVerion();
         
         public BigInteger GetDexVerion()
         {
@@ -1230,6 +1232,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void SwapFee(Address from, string fromSymbol, BigInteger feeAmount)
         {
             Runtime.Expect(_DEXversion >= 1, "call migrateToV3 first");
+            Runtime.Expect(fromSymbol != DomainSettings.FuelTokenSymbol, "cannot swap fuel token");
             var feeSymbol = DomainSettings.FuelTokenSymbol;
 
             // Need to remove the fees
@@ -1237,7 +1240,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             BigInteger minAmount;
             
             var feeBalance = Runtime.GetBalance(feeSymbol, from);
-            feeAmount -= UnitConversion.ConvertDecimals(feeBalance, DomainSettings.FuelTokenDecimals, token.Decimals);
+            //feeAmount -= UnitConversion.ConvertDecimals(feeBalance, DomainSettings.FuelTokenDecimals, token.Decimals);
             if (feeAmount <= 0)
             {
                 return;
@@ -1383,6 +1386,22 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(rate >= 0, "invalid swap rate");
 
             return rate;
+        }
+
+        /// <summary>
+        /// Method to just upgrade to new version not setupPools
+        /// </summary>
+        public void Migrate()
+        {
+            Runtime.Expect(_DEXversion == 0, "Migration failed, wrong version");
+            
+            var existsLP = Runtime.TokenExists(DomainSettings.LiquidityTokenSymbol);
+            Runtime.Expect(existsLP, "LP token doesn't exist!");
+            
+            Runtime.Expect(Runtime.PreviousContext.Name.ToLower() == "lp", "Migration failed, wrong context");
+            Runtime.Expect(Runtime.IsWitness(SmartContract.GetAddressFromContractName("LP")), "Only LP can migrate");
+            
+            _DEXversion = 1;
         }
 
         /// <summary>

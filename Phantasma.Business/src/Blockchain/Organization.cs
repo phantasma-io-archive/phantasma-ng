@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
@@ -68,6 +70,12 @@ namespace Phantasma.Business.Blockchain
             key = GetKey("script");
             this.Storage.Put(key, script);
         }
+        
+        public void InitCreator(Address creator)
+        {
+            var list = GetMemberList();
+            list.Add<Address>(creator);
+        }
 
         private byte[] GetKey(string key)
         {
@@ -96,7 +104,14 @@ namespace Phantasma.Business.Blockchain
         {
             if (from.IsSystem)
             {
-                Runtime.Expect(from != this.Address, "can't add organization as member of itself");
+                if (Runtime.ProtocolVersion <= 9)
+                {
+                    Runtime.Expect(from != this.Address, "can't add organization as member of itself");
+                }
+                else
+                {
+                    Runtime.Expect(target != this.Address, "can't add organization as member of itself");
+                }
             }
 
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
@@ -106,6 +121,52 @@ namespace Phantasma.Business.Blockchain
             if (list.Contains<Address>(target))
             {
                 return false;
+            }
+
+            if (Runtime.ProtocolVersion >= 10)
+            {
+                if (Runtime.CurrentContext.Name != "stake" && Runtime.CurrentContext.Name != "validator")
+                {
+                    Runtime.ExpectWarning(from == this.Address, "Only organization can add members", from);
+                    var orgMembers = GetMembers();
+                    var numberOfSignaturesNeeded = (int)Math.Round(((decimal)(orgMembers.Length * 75) / 100));
+                    if ( numberOfSignaturesNeeded <= 0 )
+                    {
+                        numberOfSignaturesNeeded = 1;
+                    }
+                    
+                    Runtime.ExpectWarning(Runtime.Transaction.Signatures.Length >= numberOfSignaturesNeeded,
+                        "must be signed by the majority org members", from);
+                    
+                    var msg = Runtime.Transaction.ToByteArray(false);
+                    var validSignatures = 0;
+                    Signature lastSignature = null;
+                    var signatures = Runtime.Transaction.Signatures.ToList();
+                    
+                    foreach (var member in orgMembers )
+                    {
+                        foreach ( var signature in signatures )
+                        {
+                            if ( signature.Verify(msg, member) )
+                            {
+                                validSignatures++;
+                                lastSignature = signature;
+                                break;
+                            }
+                        }
+                        if ( lastSignature != null)
+                            signatures.Remove(lastSignature);
+                    }
+
+                    Runtime.ExpectWarning(validSignatures == numberOfSignaturesNeeded, "Number of valid signatures don't match", from);
+                    
+                    /*Runtime.ExpectWarning(Runtime.IsWitness(from), $"Trying to add member {target.Text} without witness from {from.Text}", from);
+                    if (!list.Contains<Address>(from))
+                    {
+                        Runtime.ExpectWarning(false, $"Address {from.Text} is not a member of the DAO", from);
+                        return false;
+                    }*/
+                }
             }
 
             list.Add<Address>(target);
@@ -123,6 +184,58 @@ namespace Phantasma.Business.Blockchain
             if (!list.Contains<Address>(target))
             {
                 return false;
+            }
+            
+            if (Runtime.ProtocolVersion >= 10)
+            {
+                if (from.Text.Equals(target.Text))
+                {
+                    Runtime.ExpectWarning(Runtime.IsWitness(from), $"Address {from.Text} is not witness", from);
+                }
+                else if (Runtime.CurrentContext.Name != "stake" && Runtime.CurrentContext.Name != "validator")
+                {
+                    Runtime.ExpectWarning(from == this.Address, "Only organization can remove members", from);
+                    var orgMembers = GetMembers();
+                    
+                    var numberOfSignaturesNeeded = (int)Math.Round(((decimal)(orgMembers.Length * 75) / 100));
+                    if ( numberOfSignaturesNeeded <= 0 )
+                    {
+                        numberOfSignaturesNeeded = 1;
+                    }
+                    
+                    Runtime.ExpectWarning(Runtime.Transaction.Signatures.Length >= numberOfSignaturesNeeded,
+                        "must be signed by the majority org members", from);
+                    
+                    var msg = Runtime.Transaction.ToByteArray(false);
+                    var validSignatures = 0;
+                    Signature lastSignature = null;
+                    var signatures = Runtime.Transaction.Signatures.ToList();
+                    
+                    foreach (var member in orgMembers )
+                    {
+                        foreach ( var signature in signatures )
+                        {
+                            if ( signature.Verify(msg, member) )
+                            {
+                                validSignatures++;
+                                lastSignature = signature;
+                                break;
+                            }
+                        }
+                        if ( lastSignature != null)
+                            signatures.Remove(lastSignature);
+                    }
+
+                    Runtime.ExpectWarning(validSignatures == numberOfSignaturesNeeded, "Number of valid signatures don't match", from);
+                    
+                    /*Runtime.ExpectWarning(Runtime.IsWitness(from),
+                        $"Trying to remove member {target.Text} without witness from {from.Text}", from);
+                    if (!list.Contains<Address>(from))
+                    {
+                        Runtime.ExpectWarning(false, $"Address {from.Text} is not a member of the DAO", from);
+                        return false;
+                    }*/
+                }
             }
 
             list.Remove<Address>(target);
@@ -150,6 +263,34 @@ namespace Phantasma.Business.Blockchain
             var members = new List<Address>(this.GetMembers());
             var msg = transaction.ToByteArray(false);
 
+            /*
+             Different way of validating the SOURCE of the transaction
+             
+             var validSignatures = 0;
+            Signature lastSignature = null;
+            var signatures = transaction.Signatures.ToList();
+                    
+            foreach (var member in members )
+            {
+                if (validSignatures >= majorityCount)
+                {
+                    break;
+                }
+                
+                foreach ( var signature in signatures )
+                {
+                    if ( signature.Verify(msg, member) )
+                    {
+                        validSignatures++;
+                        lastSignature = signature;
+                        break;
+                    }
+                }
+                
+                if ( lastSignature != null)
+                    signatures.Remove(lastSignature);
+            }*/
+
             foreach (var sig in transaction.Signatures)
             {
                 if (witnessCount >= majorityCount)
@@ -173,11 +314,12 @@ namespace Phantasma.Business.Blockchain
 
         public bool MigrateMember(IRuntime Runtime, Address admin, Address from, Address to)
         {
+
             Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
 
             if (to.IsSystem)
             {
-                Runtime.Expect(to!= this.Address, "can't add organization as member of itself");
+                Runtime.Expect(to != this.Address, "can't add organization as member of itself");
             }
 
             var list = GetMemberList();
@@ -189,6 +331,23 @@ namespace Phantasma.Business.Blockchain
 
             Runtime.Expect(!list.Contains<Address>(to), "target address is already a member of organization");
 
+            if ( Runtime.ProtocolVersion >= 10)
+            {
+                if (!admin.IsSystem)
+                {
+                    Runtime.ExpectWarning(Runtime.IsWitness(admin), $"Trying to migrate member {from.Text} without witness from {admin.Text}", admin);
+                    if (!list.Contains<Address>(admin))
+                    {
+                        Runtime.CheckWarning(false, $"Address {admin.Text} is not a member of the DAO", admin);
+                        return false;
+                    }
+                }
+                else
+                {
+                    Runtime.ExpectWarning(Runtime.PreviousContext.Name == "validator" || Runtime.PreviousContext.Name == "account", "invalid context", admin);
+                }
+            }
+            
             list.Remove<Address>(from);
             list.Add<Address>(to);
 

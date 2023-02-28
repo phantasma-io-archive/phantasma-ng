@@ -108,4 +108,52 @@ public class ValidationTests
     {
         ValidationUtils.IsValidMethod("getNumber", VMType.None).ShouldBeFalse();
     }
+
+    [Fact]
+    public void is_valid_method_testMethod()
+    {
+        Assert.True(ValidationUtils.IsValidMethod("testMethod", VMType.Bool));
+    }
+    
+    [Fact]
+    public void is_valid_identifier_null()
+    {
+        Assert.False(ValidationUtils.IsValidIdentifier(null));
+    }
+    
+    [Fact]
+    public void is_valid_identifier_anon_genesis_entry()
+    {
+        Assert.False(ValidationUtils.IsValidIdentifier(ValidationUtils.ANONYMOUS_NAME));
+    }
+    
+    [Fact]
+    public void is_valid_identifier_less_3()
+    {
+        Assert.False(ValidationUtils.IsValidIdentifier("ab"));
+    }
+    
+    [Fact]
+    public void is_valid_ticker_null()
+    {
+        Assert.False(ValidationUtils.IsValidTicker(null));
+    }
+    
+    [Fact]
+    public void is_reserved_identifier_infusionName()
+    {
+        Assert.True(ValidationUtils.IsReservedIdentifier(DomainSettings.InfusionName));
+    }
+    
+    [Fact]
+    public void is_reserved_identifier_null()
+    {
+        Assert.True(ValidationUtils.IsReservedIdentifier("null"));
+    }
+    
+    [Fact]
+    public void is_reserved_identifier_huawei()
+    {
+        Assert.True(ValidationUtils.IsReservedIdentifier("huawei"));
+    }
 }

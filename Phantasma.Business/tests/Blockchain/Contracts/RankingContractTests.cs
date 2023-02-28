@@ -148,7 +148,7 @@ public class RankingContractTests
             .AsStruct<Leaderboard>();
         
         var leaderboardRowBefore = simulator.InvokeContract(NativeContractKind.Ranking, nameof(RankingContract.GetRows), leaderboardName)
-            .AsStruct<LeaderboardRow[]>();
+            .ToArray<LeaderboardRow>();
         
         // Insert entry
         InsertEntry(leaderboardName, user2.Address, score);
@@ -157,7 +157,7 @@ public class RankingContractTests
             .AsStruct<Leaderboard>();
         
         var leaderboardRowAfter = simulator.InvokeContract(NativeContractKind.Ranking, nameof(RankingContract.GetRows), leaderboardName)
-            .AsStruct<LeaderboardRow[]>();
+            .ToArray<LeaderboardRow>();
         
         Assert.Equal(leaderboardName, leaderboardAfter.name);
         Assert.Equal(numberOfEntries, leaderboardAfter.size); 
@@ -183,7 +183,7 @@ public class RankingContractTests
         InsertEntry(leaderboardName, user2.Address, newScore);
         
         var leaderboardRowAfterChange = simulator.InvokeContract(NativeContractKind.Ranking,
-            nameof(RankingContract.GetRows), leaderboardName).AsStruct<LeaderboardRow[]>();
+            nameof(RankingContract.GetRows), leaderboardName).ToArray<LeaderboardRow>();
         
         Assert.Equal(newScore, leaderboardRowAfterChange.First().score);
     }
@@ -210,7 +210,7 @@ public class RankingContractTests
 
         var leaderboardRowAfter = simulator
             .InvokeContract(NativeContractKind.Ranking, nameof(RankingContract.GetRows), leaderboardName)
-            .AsStruct<LeaderboardRow[]>();
+            .ToArray<LeaderboardRow>();
         
         var leaderboardSize = simulator.InvokeContract(NativeContractKind.Ranking, nameof(RankingContract.GetSize), leaderboardName)
             .AsNumber();
@@ -233,7 +233,7 @@ public class RankingContractTests
         
         leaderboardRowAfter = simulator
             .InvokeContract(NativeContractKind.Ranking, nameof(RankingContract.GetRows), leaderboardName)
-            .AsStruct<LeaderboardRow[]>();
+            .ToArray<LeaderboardRow>();
         
         leaderboardSize = simulator.InvokeContract(NativeContractKind.Ranking, nameof(RankingContract.GetSize), leaderboardName)
             .AsNumber();
@@ -284,7 +284,7 @@ public class RankingContractTests
 
         var leaderboardRowAfter = simulator
             .InvokeContract(NativeContractKind.Ranking, nameof(RankingContract.GetRows), leaderboardName)
-            .AsStruct<LeaderboardRow[]>();
+            .ToArray<LeaderboardRow>();
 
         var leaderboardSize = simulator
             .InvokeContract(NativeContractKind.Ranking, nameof(RankingContract.GetSize), leaderboardName)
@@ -319,7 +319,7 @@ public class RankingContractTests
 
         leaderboardRowAfter = simulator
             .InvokeContract(NativeContractKind.Ranking, nameof(RankingContract.GetRows), leaderboardName)
-            .AsStruct<LeaderboardRow[]>();
+            .ToArray<LeaderboardRow>();
 
         leaderboardSize = simulator
             .InvokeContract(NativeContractKind.Ranking, nameof(RankingContract.GetSize), leaderboardName)

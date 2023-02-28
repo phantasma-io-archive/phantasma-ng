@@ -1,7 +1,9 @@
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Xunit;
 
@@ -123,6 +125,81 @@ public class ITokenTests
 
         // Assert
         Assert.Equal(newRom, tokenContent.ROM);
+    }
+    
+    [Fact]
+    public void TestTokenContentUpdateTokenID_Unique()
+    {
+        // Arrange
+        var seriesID = BigInteger.One;
+        var mintID = new BigInteger(2);
+        var creator = PhantasmaKeys.Generate().Address;
+        var currentChain = "chain";
+        var currentOwner = PhantasmaKeys.Generate().Address;
+        var rom = new byte[] { 0x01, 0x02, 0x03 };
+        var ram = new byte[] { 0x04, 0x05, 0x06 };
+        var timestamp = new Timestamp(12345);
+        var infusion = new[]
+            { new TokenInfusion("symbol1", BigInteger.One), new TokenInfusion("symbol2", 2) };
+        var mode = TokenSeriesMode.Unique;
+        var tokenContent = new TokenContent(seriesID, mintID, currentChain, creator, currentOwner, rom, ram, timestamp,
+            infusion, mode);
+
+        // Act
+        tokenContent.UpdateTokenID(TokenSeriesMode.Unique);
+        BigInteger newTokenID = Hash.FromBytes(rom);
+
+        // Assert
+        Assert.Equal(newTokenID, tokenContent.TokenID );
+    }
+    
+    [Fact]
+    public void TestTokenContentUpdateTokenID_Duplicated()
+    {
+        // Arrange
+        var seriesID = BigInteger.One;
+        var mintID = new BigInteger(2);
+        var creator = PhantasmaKeys.Generate().Address;
+        var currentChain = "chain";
+        var currentOwner = PhantasmaKeys.Generate().Address;
+        var rom = new byte[] { 0x01, 0x02, 0x03 };
+        var ram = new byte[] { 0x04, 0x05, 0x06 };
+        var timestamp = new Timestamp(12345);
+        var infusion = new[]
+            { new TokenInfusion("symbol1", BigInteger.One), new TokenInfusion("symbol2", 2) };
+        var mode = TokenSeriesMode.Unique;
+        var tokenContent = new TokenContent(seriesID, mintID, currentChain, creator, currentOwner, rom, ram, timestamp,
+            infusion, mode);
+
+        // Act
+        tokenContent.UpdateTokenID(TokenSeriesMode.Duplicated);
+        BigInteger newTokenID = Hash.FromBytes(rom.Concat(seriesID.ToUnsignedByteArray())
+            .Concat(mintID.ToUnsignedByteArray()).ToArray());
+
+        // Assert
+        Assert.Equal(newTokenID, tokenContent.TokenID );
+    }
+    
+    [Fact]
+    public void TestTokenContentUpdateTokenID_Error()
+    {
+        // Arrange
+        var seriesID = BigInteger.One;
+        var mintID = new BigInteger(2);
+        var creator = PhantasmaKeys.Generate().Address;
+        var currentChain = "chain";
+        var currentOwner = PhantasmaKeys.Generate().Address;
+        var rom = new byte[] { 0x01, 0x02, 0x03 };
+        var ram = new byte[] { 0x04, 0x05, 0x06 };
+        var timestamp = new Timestamp(12345);
+        var infusion = new[]
+            { new TokenInfusion("symbol1", BigInteger.One), new TokenInfusion("symbol2", 2) };
+        var mode = TokenSeriesMode.Unique;
+        var tokenContent = new TokenContent(seriesID, mintID, currentChain, creator, currentOwner, rom, ram, timestamp,
+            infusion, mode);
+
+        // Act
+        Assert.Throws<ChainException>(() => tokenContent.UpdateTokenID((TokenSeriesMode) 3));
     }
     
     

@@ -136,6 +136,15 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             return GetMasterClaimDateFromReference(claimDistance, default(Timestamp));
         }
+        
+        public Timestamp GetMasterClaimDateForAddress(Address target)
+        {
+            if (_masterClaims.ContainsKey<Address>(target))
+            {
+                return _masterClaims.Get<Address, Timestamp>(target);
+            }
+            return new Timestamp(0);
+        }
 
         public Timestamp GetMasterDate(Address target)
         {
@@ -245,14 +254,18 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.MintTokens(token.Symbol, this.Address, this.Address, totalAmount);
 
             var masters = Runtime.GetOrganization(DomainSettings.MastersOrganizationName);
-
             var validMasterCount = GetClaimMasterCount(Runtime.Time);
+            
+            if (Runtime.ProtocolVersion >= 10)
+            {
+                validMasterCount = GetClaimMasterCount(thisClaimDate);
+            }
 
             var individualAmount = totalAmount / validMasterCount;
             var leftovers = totalAmount % validMasterCount;
-
+            
             var nextClaim = GetMasterClaimDateFromReference(1, thisClaimDate);
-
+            
             var addresses = masters.GetMembers();
             for (int i = 0; i < addresses.Length; i++)
             {
@@ -315,16 +328,37 @@ namespace Phantasma.Business.Blockchain.Contracts
                 {
                     var crownAddress = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
                     Runtime.Expect(!Nexus.IsDangerousAddress(from, crownAddress), "this address can't be used as source");
+                    if (Runtime.ProtocolVersion >= 12)
+                    {
+                        if (from != crownAddress)
+                        {
+                            if (Runtime.HasGenesis)
+                            {
+                                Runtime.Expect(Runtime.IsWitness(from), "witness failed");
+                            }
+                            else
+                            {
+                                Runtime.Expect(Runtime.IsPrimaryValidator(from), "only primary validators can stake during genesis");
+                            }
+                        }
+                        else
+                        {
+                            Runtime.Expect(Runtime.IsWitness(from), "witness failed");
+                        }
+                    }
                 }
             }
-
-            if (Runtime.HasGenesis)
+            
+            if ( Runtime.ProtocolVersion <= 11 )
             {
-                Runtime.Expect(Runtime.IsWitness(from), "witness failed");
-            }
-            else
-            {
-                Runtime.Expect(Runtime.IsPrimaryValidator(from), "only primary validators can stake during genesis");
+                if (Runtime.HasGenesis)
+                {
+                    Runtime.Expect(Runtime.IsWitness(from), "witness failed");
+                }
+                else
+                {
+                    Runtime.Expect(Runtime.IsPrimaryValidator(from), "only primary validators can stake during genesis");
+                }
             }
 
             var balance = Runtime.GetBalance(DomainSettings.StakingTokenSymbol, from);
@@ -429,7 +463,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             {
                 _stakeMap.Remove(from);
                 _voteHistory.Remove(from);
-
+                
                 Runtime.RemoveMember(DomainSettings.StakersOrganizationName, this.Address, from);
 
                 var name = Runtime.GetAddressName(from);
@@ -592,7 +626,18 @@ namespace Phantasma.Business.Blockchain.Contracts
             var crowns = Runtime.GetOwnerships(DomainSettings.RewardTokenSymbol, from);
 
             // calculate how many days each CROWN is hold at current address and use older ones first
-            crownDays = crowns.Select(id => (Runtime.Time - Runtime.ReadToken(DomainSettings.RewardTokenSymbol, id).Timestamp) / SecondsInDay).OrderByDescending(k => k).ToArray();
+            if (Runtime.ProtocolVersion <= 12)
+            {
+                crownDays = crowns.Select(id => (Runtime.Time - Runtime.ReadToken(DomainSettings.RewardTokenSymbol, id).Timestamp) / SecondsInDay).OrderByDescending(k => k).ToArray();
+            }
+            else
+            {
+                crownDays = crowns.Select(id => id != 0 ? 
+                    (
+                        (Runtime.Time - Runtime.ReadToken(DomainSettings.RewardTokenSymbol, id).Timestamp) / SecondsInDay) :
+                        (0)
+                    ).OrderBy(k => k).ToArray();
+            }
 
             var bonusPercent = (int)Runtime.GetGovernanceValue(StakeSingleBonusPercentTag);
             var maxPercent = (int)Runtime.GetGovernanceValue(StakeMaxBonusPercentTag);
@@ -808,6 +853,11 @@ namespace Phantasma.Business.Blockchain.Contracts
         public BigInteger GetRate()
         {
             return _currentEnergyRatioDivisor;
+        }
+
+        public Timestamp GetLastMasterClaim()
+        {
+            return _lastMasterClaim;
         }
     }
 }
