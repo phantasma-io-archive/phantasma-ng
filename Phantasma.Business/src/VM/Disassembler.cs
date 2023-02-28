@@ -113,13 +113,13 @@ namespace Phantasma.Business.VM
                         {
                             if (temp.Opcode == Opcode.JMP)
                             {
-                                var newPos = (short)Read16();
+                                var newPos = Read16();
                                 temp.Args = new object[] { newPos };
                             }
                             else
                             {
                                 var src = Read8();
-                                var newPos = (short)Read16();
+                                var newPos = Read16();
                                 temp.Args = new object[] { src, newPos };
                             }
                             break;

@@ -2,8 +2,10 @@ using System;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.VM;
 using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Shouldly;
 using Xunit;
@@ -205,4 +207,54 @@ public class DisassemblerTest
         // Assert
         result.ShouldNotBeNull();
     }
+
+
+    [Fact]
+    public void DetectFakeCallsInScripts()
+    {
+        var scriptBuilder = ScriptUtils.BeginScript();
+
+        var rndAddress = PhantasmaKeys.Generate().Address;
+        BigInteger price = 10000;
+        BigInteger limit = 9999;
+
+        scriptBuilder.EmitJump(Opcode.JMP, "call_skip");
+        //AllowGas(Address from, Address target, BigInteger price, BigInteger limit)
+        scriptBuilder.CallContract(NativeContractKind.Gas, nameof(GasContract.AllowGas), rndAddress, Address.Null, price, limit);
+        scriptBuilder.EmitLabel("call_skip");
+
+        var script = scriptBuilder.EndScript();
+
+        // here we should detect the method, since we're ignoring jumps
+        var methods1 = DisasmUtils.ExtractMethodCalls(script, detectAndUseJumps: false).ToArray();
+        Assert.Equal(1, methods1.Length);
+
+        // here we should not detect the method, since we're taking jumps into account
+        var methods2 = DisasmUtils.ExtractMethodCalls(script, detectAndUseJumps: true).ToArray();
+        Assert.Equal(0, methods2.Length);
+    }
+
+    [Fact]
+    public void DetectLoopsInScripts()
+    {
+        var scriptBuilder = ScriptUtils.BeginScript();
+
+        var rndAddress = PhantasmaKeys.Generate().Address;
+        BigInteger price = 10000;
+        BigInteger limit = 9999;
+
+        scriptBuilder.EmitLabel("call_skip");
+        //AllowGas(Address from, Address target, BigInteger price, BigInteger limit)
+        scriptBuilder.CallContract(NativeContractKind.Gas, nameof(GasContract.AllowGas), rndAddress, Address.Null, price, limit);
+        scriptBuilder.EmitJump(Opcode.JMP, "call_skip");
+
+        var script = scriptBuilder.EndScript();
+
+        Assert.Throws<ChainException>(() =>
+        {
+            // here we should not detect the method, since we're taking jumps into account
+            DisasmUtils.ExtractMethodCalls(script, detectAndUseJumps: true).ToArray();
+        });
+    }
+
 }
