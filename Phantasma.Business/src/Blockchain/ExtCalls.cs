@@ -1714,8 +1714,11 @@ namespace Phantasma.Business.Blockchain
             else
             {
                 vm.ExpectWarning(triggerResult == TriggerResult.Success || triggerResult == TriggerResult.Missing, triggerName + " trigger failed", from);
-                var contractOwner = vm.GetContractOwner(oldContract.Address);
-                vm.ExpectWarning(from == contractOwner, "Not owner of the contract", from);
+                if (triggerResult == TriggerResult.Missing)
+                {
+                    var contractOwner = vm.GetContractOwner(oldContract.Address);
+                    vm.ExpectWarning(from == contractOwner, "Not owner of the contract", from);
+                }
             }
 
             if (isToken)
