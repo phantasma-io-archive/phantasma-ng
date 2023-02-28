@@ -5,7 +5,7 @@ using AutoFixture;
 using AutoFixture.AutoMoq;
 using AutoFixture.Xunit2;
 using Moq;
-using Phantasma.Business.Blockchain;
+using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.VM;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Domain;

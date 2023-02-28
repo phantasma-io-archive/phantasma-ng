@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Types;
 

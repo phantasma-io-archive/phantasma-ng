@@ -5,14 +5,14 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Text;
-using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Core;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
+using Phantasma.Business.Blockchain.Contracts.Native;
 
-namespace Phantasma.Business.Blockchain
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public static class ContractPatch
     {
@@ -34,23 +34,23 @@ namespace Phantasma.Business.Blockchain
 
         public void SetRuntime(IRuntime runtime)
         {
-            if (this.Runtime != null && this.Runtime != runtime)
+            if (Runtime != null && Runtime != runtime)
             {
                 runtime.Throw("runtime already set on this contract");
             }
 
-            this.Runtime = runtime;
+            Runtime = runtime;
         }
 
         // here we auto-initialize any fields from storage
         public void LoadFromStorage(StorageContext storage)
         {
-            var contractType = this.GetType();
+            var contractType = GetType();
             FieldInfo[] fields = contractType.GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
 
             foreach (var field in fields)
             {
-                var baseKey = GetKeyForField(this.Name, field.Name, true);
+                var baseKey = GetKeyForField(Name, field.Name, true);
 
                 var isStorageField = typeof(IStorageCollection).IsAssignableFrom(field.FieldType);
                 if (isStorageField)
@@ -101,25 +101,25 @@ namespace Phantasma.Business.Blockchain
                 return storage.Get<T>(key);
             }
 
-            return default(T);
+            return default;
         }
 
         // here we persist any modifed fields back to storage
         public void SaveChangesToStorage()
         {
-            Throw.IfNull(this.Runtime, nameof(Runtime));
+            Throw.IfNull(Runtime, nameof(Runtime));
 
             if (Runtime.IsReadOnlyMode())
             {
                 return;
             }
 
-            var contractType = this.GetType();
+            var contractType = GetType();
             FieldInfo[] fields = contractType.GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
 
             foreach (var field in fields)
             {
-                var baseKey = GetKeyForField(this.Name, field.Name, true);
+                var baseKey = GetKeyForField(Name, field.Name, true);
 
                 var isStorageField = typeof(IStorageCollection).IsAssignableFrom(field.FieldType);
                 if (isStorageField)
@@ -131,13 +131,13 @@ namespace Phantasma.Business.Blockchain
                 {
                     var obj = (ISerializable)field.GetValue(this);
                     var bytes = obj.Serialize();
-                    this.Runtime.Storage.Put(baseKey, bytes);
+                    Runtime.Storage.Put(baseKey, bytes);
                 }
                 else
                 {
                     var obj = field.GetValue(this);
-                    var bytes = Serialization.Serialize(obj);
-                    this.Runtime.Storage.Put(baseKey, bytes);
+                    var bytes = obj.Serialize();
+                    Runtime.Storage.Put(baseKey, bytes);
                 }
             }
         }
@@ -145,7 +145,7 @@ namespace Phantasma.Business.Blockchain
         #region METHOD TABLE
         private void BuildMethodTable()
         {
-            var type = this.GetType();
+            var type = GetType();
 
             var srcMethods = type.GetMethods(BindingFlags.Public | BindingFlags.InvokeMethod | BindingFlags.Instance | BindingFlags.DeclaredOnly);
             var methods = new List<ContractMethod>();
@@ -200,7 +200,7 @@ namespace Phantasma.Business.Blockchain
                 }
             }
 
-            this.ABI = new ContractInterface(methods, Enumerable.Empty<ContractEvent>());
+            ABI = new ContractInterface(methods, Enumerable.Empty<ContractEvent>());
         }
 
         public bool HasInternalMethod(string methodName)
@@ -296,7 +296,7 @@ namespace Phantasma.Business.Blockchain
                             var array = vmObj.ToArray(elementType);
                             return array;
                         }
-                        else if ( Runtime.ProtocolVersion >= 12)
+                        else if (Runtime.ProtocolVersion >= 12)
                         {
                             var dic = (Dictionary<VMObject, VMObject>)arg;
                             var array = Array.CreateInstance(elementType, dic.Count);
@@ -398,12 +398,12 @@ namespace Phantasma.Business.Blockchain
                     else if (receivedType == typeof(DateTime))
                     {
                         var value = (DateTime)arg;
-                        arg = (Timestamp)(value);
+                        arg = (Timestamp)value;
                     }
                     else if (receivedType == typeof(uint))
                     {
                         var value = (uint)arg;
-                        arg = (Timestamp)(value);
+                        arg = (Timestamp)value;
                     }
                 }
             }

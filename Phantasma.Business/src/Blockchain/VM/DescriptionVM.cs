@@ -5,7 +5,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 
-namespace Phantasma.Business.Blockchain
+namespace Phantasma.Business.Blockchain.VM
 {
     public abstract class DescriptionVM : VirtualMachine
     {
@@ -51,13 +51,13 @@ namespace Phantasma.Business.Blockchain
 
                             var result = UnitConversion.ToDecimal(amount, info.Decimals);
 
-                            this.Stack.Push(VMObject.FromObject(result.ToString()));
+                            Stack.Push(VMObject.FromObject(result.ToString()));
                             return ExecutionState.Running;
                         }
 
                     case "Account":
                         {
-                            var temp = this.Stack.Pop();
+                            var temp = Stack.Pop();
                             Address addr;
                             if (temp.Type == VMType.String)
                             {
@@ -76,7 +76,7 @@ namespace Phantasma.Business.Blockchain
                             }
 
                             var result = OutputAddress(addr);
-                            this.Stack.Push(VMObject.FromObject(result.ToString()));
+                            Stack.Push(VMObject.FromObject(result.ToString()));
                             return ExecutionState.Running;
                         }
 
@@ -84,7 +84,7 @@ namespace Phantasma.Business.Blockchain
                         {
                             var symbol = this.PopString("symbol");
                             var result = OutputSymbol(symbol);
-                            this.Stack.Push(VMObject.FromObject(result.ToString()));
+                            Stack.Push(VMObject.FromObject(result.ToString()));
                             return ExecutionState.Running;
                         }
 

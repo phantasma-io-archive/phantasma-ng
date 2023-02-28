@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM;
 using Phantasma.Core;
@@ -13,7 +14,7 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 
-namespace Phantasma.Business.Blockchain
+namespace Phantasma.Business.Blockchain.VM
 {
     public delegate ExecutionState ExtcallDelegate(RuntimeVM vm);
 
@@ -28,7 +29,7 @@ namespace Phantasma.Business.Blockchain
             });
         }
 
-        internal static void IterateExtcalls(Action<string, int,ExtcallDelegate> callback)
+        internal static void IterateExtcalls(Action<string, int, ExtcallDelegate> callback)
         {
             callback("Runtime.TransactionHash", 0, Runtime_TransactionHash); // --> done
             callback("Runtime.Time", 0, Runtime_Time);
@@ -241,7 +242,7 @@ namespace Phantasma.Business.Blockchain
             {
                 return ExecutionState.Fault;
             }
-            
+
             url = url.Trim().ToLowerInvariant();
             if (string.IsNullOrEmpty(url))
             {
@@ -545,7 +546,7 @@ namespace Phantasma.Business.Blockchain
             if (vm.ProtocolVersion >= 13)
             {
                 vm.Expect(vm.Transaction.Signatures.Length > 0, "No signatures found in transaction");
-                
+
                 vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
                 vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
             }
@@ -585,7 +586,7 @@ namespace Phantasma.Business.Blockchain
             if (vm.ProtocolVersion >= 13)
             {
                 vm.Expect(vm.Transaction.Signatures.Length > 0, "No signatures found in transaction");
-                
+
                 vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
                 vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
             }
@@ -594,7 +595,7 @@ namespace Phantasma.Business.Blockchain
             var key = SmartContract.GetKeyForField(contractName, field, false);
 
             var contractAddress = SmartContract.GetAddressFromContractName(contractName);
-            
+
             if (vm.ProtocolVersion <= 12)
             {
                 vm.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.DeleteData), contractAddress,
@@ -654,7 +655,7 @@ namespace Phantasma.Business.Blockchain
             {
                 vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
             }
-            
+
             var field = vm.PopString("field");
             var mapKey = SmartContract.GetKeyForField(contractName, field, false);
 
@@ -692,7 +693,7 @@ namespace Phantasma.Business.Blockchain
             // for security reasons we don't accept the caller to specify a contract name
             var contractName = vm.CurrentContext.Name;
             vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
-            
+
             if (vm.ProtocolVersion >= 13)
             {
                 vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
@@ -743,7 +744,7 @@ namespace Phantasma.Business.Blockchain
 
             var map = new StorageMap(mapKey, vm.Storage);
 
-            map.Remove<byte[]>(entryKey);
+            map.Remove(entryKey);
 
             return ExecutionState.Running;
         }
@@ -912,7 +913,7 @@ namespace Phantasma.Business.Blockchain
                 vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
                 vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
             }
-            
+
             var field = vm.PopString("field");
             var listKey = SmartContract.GetKeyForField(contractName, field, false);
 
@@ -938,7 +939,7 @@ namespace Phantasma.Business.Blockchain
 
             // for security reasons we don't accept the caller to specify a contract name
             var contractName = vm.CurrentContext.Name;
-            
+
             if (vm.ProtocolVersion >= 13)
             {
                 vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
@@ -1010,7 +1011,7 @@ namespace Phantasma.Business.Blockchain
             return ExecutionState.Running;
         }
         #endregion
-        
+
         #region Token Interactions
         private static ExecutionState Runtime_GetBalance(RuntimeVM vm)
         {
@@ -1024,7 +1025,7 @@ namespace Phantasma.Business.Blockchain
             var result = new VMObject();
             result.SetValue(balance);
             vm.Stack.Push(result);
-            
+
             return ExecutionState.Running;
         }
 
@@ -1037,7 +1038,7 @@ namespace Phantasma.Business.Blockchain
 
             var symbol = vm.PopString("symbol");
             var amount = vm.PopNumber("amount");
-            
+
             // Add Validations here
             if (vm.ProtocolVersion >= 13)
             {
@@ -1071,7 +1072,7 @@ namespace Phantasma.Business.Blockchain
         private static ExecutionState Runtime_SwapTokens(RuntimeVM vm)
         {
             vm.ExpectStackSize(5);
-            
+
             vm.Expect(vm.ProtocolVersion < 13, "this method is obsolete");
 
             VMObject temp;
@@ -1123,7 +1124,7 @@ namespace Phantasma.Business.Blockchain
                 var tokenContext = vm.FindContext(symbol);
 
                 // TODO review this
-                if (tokenContext.Name != vm.CurrentContext.Name && vm.NexusName == DomainSettings.NexusMainnet) 
+                if (tokenContext.Name != vm.CurrentContext.Name && vm.NexusName == DomainSettings.NexusMainnet)
                 {
                     throw new VMException(vm, $"Minting token {symbol} not allowed from this context");
                 }
@@ -1147,14 +1148,14 @@ namespace Phantasma.Business.Blockchain
                     var isMinter = vm.IsMintingAddress(source, symbol);
                     vm.Expect(isMinter, $"{source} is not a valid minting address for {symbol}");
                 }
-                
+
             }
 
             vm.MintTokens(symbol, source, destination, amount);
 
             return ExecutionState.Running;
         }
-        
+
         private static ExecutionState Runtime_BurnTokens(RuntimeVM vm)
         {
             vm.ExpectStackSize(3);
@@ -1168,7 +1169,7 @@ namespace Phantasma.Business.Blockchain
 
                 if (vm.GetGovernanceValue(Nexus.NexusProtocolVersionTag) <= 8)
                 {
-                    if (tokenContext.Name != vm.CurrentContext.Name) 
+                    if (tokenContext.Name != vm.CurrentContext.Name)
                     {
                         throw new VMException(vm, $"Burning token {symbol} not allowed from this context");
                     }
@@ -1185,7 +1186,7 @@ namespace Phantasma.Business.Blockchain
         private static ExecutionState Runtime_TransferToken(RuntimeVM vm)
         {
             vm.ExpectStackSize(4);
-            
+
             VMObject temp;
 
             var source = vm.PopAddress();
@@ -1253,7 +1254,7 @@ namespace Phantasma.Business.Blockchain
             var tokenContext = vm.FindContext(symbol);
             var contractAddress = SmartContract.GetAddressFromContractName(symbol);
             var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
-            
+
             if (vm.ProtocolVersion <= 8)
             {
                 if (tokenContext.Name != vm.CurrentContext.Name && vm.NexusName == DomainSettings.NexusMainnet)
@@ -1268,8 +1269,8 @@ namespace Phantasma.Business.Blockchain
                 {
                     if (Nexus.IsDangerousSymbol(symbol))
                     {
-                        if (!(symbol == DomainSettings.LiquidityTokenSymbol && 
-                              (vm.CurrentContext.Name == DomainSettings.LiquidityTokenSymbol 
+                        if (!(symbol == DomainSettings.LiquidityTokenSymbol &&
+                              (vm.CurrentContext.Name == DomainSettings.LiquidityTokenSymbol
                                || vm.CurrentContext.Name == NativeContractKind.Exchange.GetContractName())))
                         {
                             vm.ExpectWarning(false, $"Tried to burn LP tokens from this context {vm.CurrentContext.Name}", source);
@@ -1280,8 +1281,8 @@ namespace Phantasma.Business.Blockchain
                 {
                     if (symbol == DomainSettings.LiquidityTokenSymbol)
                     {
-                        if ((vm.CurrentContext.Name == DomainSettings.LiquidityTokenSymbol
-                             || vm.CurrentContext.Name == NativeContractKind.Exchange.GetContractName()))
+                        if (vm.CurrentContext.Name == DomainSettings.LiquidityTokenSymbol
+                             || vm.CurrentContext.Name == NativeContractKind.Exchange.GetContractName())
                         {
                             vm.ExpectWarning(false, $"Tried to burn LP tokens from this context {vm.CurrentContext.Name}", source);
                         }
@@ -1289,7 +1290,7 @@ namespace Phantasma.Business.Blockchain
                     // Do nothing. We allow burning of any token from any context.
                 }
             }
-            
+
             vm.BurnToken(symbol, source, tokenID);
 
             return ExecutionState.Running;
@@ -1355,13 +1356,13 @@ namespace Phantasma.Business.Blockchain
                 var key = VMObject.FromObject(field);
                 fields[key] = VMObject.FromObject(obj);
             }
-            
+
             result.SetValue(fields);
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
         }
-         
+
         private static ExecutionState Runtime_ReadTokenRAM(RuntimeVM Runtime)
         {
             var content = Runtime_ReadTokenInternal(Runtime);
@@ -1395,7 +1396,7 @@ namespace Phantasma.Business.Blockchain
             var symbol = vm.PopString("symbol");
             var tokenID = vm.PopNumber("token ID");
             var ram = vm.PopBytes("ram");
-            
+
             /*if (symbol != vm.CurrentContext.Name)
             {
                 throw new VMException(vm, $"Write token {symbol} not allowed from this context");
@@ -1406,7 +1407,7 @@ namespace Phantasma.Business.Blockchain
                 vm.Expect(!Nexus.IsDangerousSymbol(symbol.ToUpper()), $"contract {symbol} is not allowed to use this function");
                 vm.Expect(!Nexus.IsNativeContract(symbol.ToLower()), $"contract {symbol} is not allowed to use this function");
             }
-            
+
             vm.WriteToken(from, symbol, tokenID, ram);
 
             return ExecutionState.Running;
@@ -1416,9 +1417,9 @@ namespace Phantasma.Business.Blockchain
         {
             vm.ExpectStackSize(1);
             var tag = vm.PopString("tag");
-        
+
             var val = vm.Nexus.GetGovernanceValue(vm.RootStorage, tag);
-        
+
             var result = new VMObject();
             result.SetValue(val);
             vm.Stack.Push(result);
@@ -1436,7 +1437,7 @@ namespace Phantasma.Business.Blockchain
             var mode = vm.PopEnum<TokenSeriesMode>("mode");
             var script = vm.PopBytes("script");
             var abiBytes = vm.PopBytes("abi bytes");
-            
+
             /*if (symbol != vm.CurrentContext.Name)
             {
                 throw new VMException(vm, $"Creating token series {symbol} not allowed from this context");
@@ -1537,7 +1538,7 @@ namespace Phantasma.Business.Blockchain
             var contractAddress = SmartContract.GetAddressFromContractName(contractName);
             var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
             vm.ExpectWarning(!deployed, $"{contractName} is already deployed", from);
-            
+
             // check if exists token with same name
             var tokenExists = vm.TokenExists(contractName.ToUpper());
             vm.ExpectWarning(!tokenExists, $"token with name {contractName} already exists", from);
@@ -1744,7 +1745,7 @@ namespace Phantasma.Business.Blockchain
 
             var triggerResult = vm.InvokeTrigger(false, customContract.Script, contract.Name, contract.ABI, triggerName,
                 new object[] { from });
-            if ( contractName == DomainSettings.LiquidityTokenSymbol )
+            if (contractName == DomainSettings.LiquidityTokenSymbol)
             {
                 vm.ExpectWarning(triggerResult == TriggerResult.Success || triggerResult == TriggerResult.Missing, triggerName + " trigger failed", from);
             }
@@ -1766,7 +1767,7 @@ namespace Phantasma.Business.Blockchain
 
             return ExecutionState.Running;
         }
-        
+
         private static ExecutionState Nexus_CreateToken(RuntimeVM vm)
         {
             Address owner = Address.Null;
@@ -1861,7 +1862,7 @@ namespace Phantasma.Business.Blockchain
             {
                 decimals = 0;
             }
-            
+
             // check if contract already exists
             var contractAddress = SmartContract.GetAddressFromContractName(symbol.ToLower());
             var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
@@ -1879,7 +1880,7 @@ namespace Phantasma.Business.Blockchain
             return ExecutionState.Running;
         }
         #endregion
-        
+
         #region CHAIN
 
         private static ExecutionState Nexus_BeginInit(RuntimeVM vm)
@@ -1955,9 +1956,9 @@ namespace Phantasma.Business.Blockchain
 
         //    return ExecutionState.Running;
         //}
-        
+
         #endregion
-        
+
         #region Organization
         private static ExecutionState Nexus_CreateOrganization(RuntimeVM vm)
         {
@@ -1968,20 +1969,20 @@ namespace Phantasma.Business.Blockchain
             var name = vm.PopString("name");
             //var ID = (new BigInteger(vm.Transaction.Hash.ToByteArray().Concat(Encoding.UTF8.GetBytes(name)).ToArray())).ToString();
             var script = vm.PopBytes("script");
-            
+
             if (vm.ProtocolVersion >= 10)
             {
                 var contractAddress = SmartContract.GetAddressFromContractName(ID.ToLower());
                 var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
                 vm.ExpectWarning(!deployed, $"{ID} already exists", source);
-            
+
                 bool isNative = Nexus.IsNativeContract(ID.ToLower());
                 vm.ExpectWarning(!isNative, "cannot create org with the same name as a native contract", source);
 
                 bool isToken = ValidationUtils.IsValidTicker(ID.ToUpper());
                 vm.ExpectWarning(!isToken, "cannot create org with the same name as a  token contract", source);
             }
-            
+
 
             vm.CreateOrganization(source, ID, name, script);
 
@@ -2000,13 +2001,13 @@ namespace Phantasma.Business.Blockchain
 
             return ExecutionState.Running;
         }
-        
+
         private static ExecutionState Organization_RemoveMember(RuntimeVM vm)
         {
             if (vm.ProtocolVersion <= 9) return ExecutionState.Fault;
-            
+
             vm.ExpectStackSize(3);
-            
+
             var source = vm.PopAddress();
             var name = vm.PopString("name");
             var target = vm.PopAddress();
@@ -2134,7 +2135,7 @@ namespace Phantasma.Business.Blockchain
             var result = vm.Chain.GetTransactionHashesForAddress(address);
 
             var dict = new Dictionary<VMObject, VMObject>();
-            for (int i=0; i< result.Length; i++)
+            for (int i = 0; i < result.Length; i++)
             {
                 var hash = result[i];
                 var temp = new VMObject();

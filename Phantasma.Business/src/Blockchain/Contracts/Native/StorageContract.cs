@@ -6,7 +6,7 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     public sealed class StorageContract : NativeContract
     {
@@ -14,9 +14,9 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public const string KilobytesPerStakeTag = "storage.stake.kb";
         public const string FreeStoragePerContractTag = "storage.contract.kb";
-        
-        public static readonly  BigInteger KilobytesPerStakeDefault = 40;
-        public static readonly  BigInteger FreeStoragePerContractDefault = 1024;
+
+        public static readonly BigInteger KilobytesPerStakeDefault = 40;
+        public static readonly BigInteger FreeStoragePerContractDefault = 1024;
 
 
         public const int DefaultForeignSpacedPercent = 20;
@@ -35,7 +35,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public BigInteger CalculateStorageSizeForStake(BigInteger stakeAmount)
         {
-            var kilobytesPerStake = (int)Runtime.GetGovernanceValue(StorageContract.KilobytesPerStakeTag);
+            var kilobytesPerStake = (int)Runtime.GetGovernanceValue(KilobytesPerStakeTag);
             var totalSize = stakeAmount * kilobytesPerStake * 1024;
             totalSize /= UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
 
@@ -106,7 +106,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
 
             var list = _storageMap.Get<Address, StorageList>(target);
-            list.Add<Hash>(archive.Hash);
+            list.Add(archive.Hash);
         }
 
         public void DeleteFile(Address from, Hash targetHash)
@@ -142,7 +142,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
 
             var permissions = _permissionMap.Get<Address, StorageList>(target);
-            return permissions.Contains<Address>(external);
+            return permissions.Contains(external);
         }
 
         public void AddPermission(Address from, Address externalAddr)
@@ -152,9 +152,9 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(from != externalAddr, "target must be different");
 
             var permissions = _permissionMap.Get<Address, StorageList>(from);
-            Runtime.Expect(!permissions.Contains<Address>(externalAddr), $"permission already exists");
+            Runtime.Expect(!permissions.Contains(externalAddr), $"permission already exists");
 
-            permissions.Add<Address>(externalAddr);
+            permissions.Add(externalAddr);
 
             Runtime.Notify(EventKind.AddressLink, from, externalAddr);
         }
@@ -166,9 +166,9 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(from != externalAddr, "target must be different");
 
             var permissions = _permissionMap.Get<Address, StorageList>(from);
-            Runtime.Expect(permissions.Contains<Address>(externalAddr), $"permission does not exist");
+            Runtime.Expect(permissions.Contains(externalAddr), $"permission does not exist");
 
-            permissions.Remove<Address>(externalAddr);
+            permissions.Remove(externalAddr);
 
             Runtime.Notify(EventKind.AddressUnlink, from, externalAddr);
         }
@@ -182,14 +182,14 @@ namespace Phantasma.Business.Blockchain.Contracts
             if (target != oldAddr)
             {
                 Runtime.Expect(HasPermission(oldAddr, target), $"not permissions from {oldAddr} for target {target}");
-                permissions.Remove<Address>(oldAddr);
+                permissions.Remove(oldAddr);
                 Runtime.Notify(EventKind.AddressUnlink, target, oldAddr);
             }
 
             if (newAddr != target)
             {
                 Runtime.Expect(!HasPermission(newAddr, target), $"{newAddr} already has permissions for target {target}");
-                permissions.Add<Address>(newAddr);
+                permissions.Add(newAddr);
                 Runtime.Notify(EventKind.AddressLink, target, newAddr);
             }
         }
@@ -200,7 +200,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
-            Runtime.Expect(!_dataQuotas.ContainsKey<Address>(target), "target address already in use");
+            Runtime.Expect(!_dataQuotas.ContainsKey(target), "target address already in use");
             _dataQuotas.Migrate<Address, BigInteger>(from, target);
 
             _permissionMap.Migrate<Address, StorageList>(from, target);
@@ -272,7 +272,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             var result = _dataQuotas.Get<Address, BigInteger>(address);
             return result;
         }
-        
+
         public void WriteData(Address target, byte[] key, byte[] value)
         {
             Runtime.Expect(Runtime.ProtocolVersion <= 12, "Method was deprecated in protocol version 13");
@@ -305,9 +305,9 @@ namespace Phantasma.Business.Blockchain.Contracts
                 usedQuota = writeSize; // fix for data written in previous protocol
             }
 
-            _dataQuotas.Set<Address, BigInteger>(target, usedQuota);
+            _dataQuotas.Set(target, usedQuota);
 
-            _dataQuotas.Set<Address, BigInteger>(target, usedQuota);
+            _dataQuotas.Set(target, usedQuota);
 
             var temp = Runtime.Storage.Get(key);
             Runtime.Expect(temp.Length == value.Length, "storage write corruption");
@@ -316,7 +316,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void DeleteData(Address target, byte[] key)
         {
             Runtime.Expect(Runtime.ProtocolVersion <= 12, "Method was deprecated in protocol version 13");
-            
+
             ValidateKey(key);
 
             Runtime.Expect(Runtime.Storage.Has(key), "key does not exist");
@@ -334,7 +334,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 usedQuota = 0;
             }
 
-            _dataQuotas.Set<Address, BigInteger>(target, usedQuota);
+            _dataQuotas.Set(target, usedQuota);
         }
 
         public static BigInteger CalculateRequiredSize(string fileName, BigInteger contentSize) => contentSize + Hash.Length + fileName.Length;

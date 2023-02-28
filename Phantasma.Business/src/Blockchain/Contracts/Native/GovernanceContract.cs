@@ -6,7 +6,7 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     public enum ConstraintKind
     {
@@ -35,7 +35,7 @@ namespace Phantasma.Business.Blockchain.Contracts
     public sealed class GovernanceContract : NativeContract
     {
         public override NativeContractKind Kind => NativeContractKind.Governance;
-        
+
 
 #pragma warning disable 0649
         private StorageMap _valueMap;
@@ -44,7 +44,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 #pragma warning restore 0649
 
         public const string GasMinimumFeeTag = "governance.gas.minimumfee";
-        
+
         public GovernanceContract() : base()
         {
         }
@@ -63,7 +63,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             var names = GetNames();
             var result = new GovernancePair[names.Length];
-            for (int i=0; i<result.Length; i++)
+            for (int i = 0; i < result.Length; i++)
             {
                 var name = names[i];
                 result[i] = new GovernancePair()
@@ -78,12 +78,12 @@ namespace Phantasma.Business.Blockchain.Contracts
         #region VALUES
         public bool HasValue(string name)
         {
-            return _valueMap.ContainsKey<string>(name);
+            return _valueMap.ContainsKey(name);
         }
 
         private void ValidateConstraints(string name, BigInteger previous, BigInteger current, ChainConstraint[] constraints, bool usePrevious)
         {
-            for (int i=0; i<constraints.Length; i++)
+            for (int i = 0; i < constraints.Length; i++)
             {
                 var constraint = constraints[i];
                 switch (constraint.Kind)
@@ -130,12 +130,12 @@ namespace Phantasma.Business.Blockchain.Contracts
                         {
                             Runtime.Expect(false, "deviation constraint not supported yet");
                             break;
-                        }               
-                 }
+                        }
+                }
             }
         }
 
-        public void CreateValue(Address from,  string name, BigInteger initial, byte[] serializedConstraints)
+        public void CreateValue(Address from, string name, BigInteger initial, byte[] serializedConstraints)
         {
             Runtime.Expect(!HasName(name), "name already exists");
 
@@ -152,9 +152,9 @@ namespace Phantasma.Business.Blockchain.Contracts
                 Runtime.Expect(initial == DomainSettings.InitialValidatorCount, $"The initial number of validators must always be {DomainSettings.InitialValidatorCount}.");
             }
 
-            _valueMap.Set<string, BigInteger>(name, initial);
-            _constraintMap.Set<string, ChainConstraint[]>(name, constraints);
-            _nameList.Add<string>(name);
+            _valueMap.Set(name, initial);
+            _constraintMap.Set(name, constraints);
+            _nameList.Add(name);
 
             Runtime.Notify(EventKind.ValueCreate, from, new ChainValueEventData() { Name = name, Value = initial });
         }
@@ -188,18 +188,18 @@ namespace Phantasma.Business.Blockchain.Contracts
                 {
                     pollName = ConsensusContract.SystemPoll + name;
                 }
-                
+
                 var rank = Runtime.CallNativeContext(NativeContractKind.Consensus, nameof(ConsensusContract.GetRank), pollName, Encoding.UTF8.GetBytes(value.ToString())).AsNumber();
                 Runtime.Expect(rank == 0, "consensus not reached");
             }
-            
+
             var previous = _valueMap.Get<string, BigInteger>(name);
             var constraints = _constraintMap.Get<string, ChainConstraint[]>(name);
             ValidateConstraints(name, previous, value, constraints, true);
 
-            _valueMap.Set<string, BigInteger>(name, value);
+            _valueMap.Set(name, value);
 
-            Runtime.Notify(EventKind.ValueUpdate, from, new ChainValueEventData() { Name = name, Value = value});
+            Runtime.Notify(EventKind.ValueUpdate, from, new ChainValueEventData() { Name = name, Value = value });
         }
         #endregion
     }

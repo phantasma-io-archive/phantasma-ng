@@ -10,7 +10,7 @@ using Phantasma.Core.Performance;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     public struct GasLoanEntry
     {
@@ -47,7 +47,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         private readonly int SMInflationPercentage = 10;
         private readonly int PhantasmaForcePercentage = 10;
         private readonly int TokensToCosmicSwapPercentage = 50;
-        
+
         /// <summary>
         /// Method to check if an address has allowed gas
         /// </summary>
@@ -80,7 +80,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 _lastInflationDate = Runtime.GetGenesisTime();
                 if (Runtime.ProtocolVersion >= 12)
                 {
-                    _nextInflationDate = new Timestamp(_lastInflationDate.Value + (SecondsInDay * 90));
+                    _nextInflationDate = new Timestamp(_lastInflationDate.Value + SecondsInDay * 90);
                 }
             }
 
@@ -100,16 +100,16 @@ namespace Phantasma.Business.Blockchain.Contracts
             allowance += maxAmount;
             _allowanceMap.Set(from, allowance);
             _allowanceTargets.Set(from, target);
-            
+
             BigInteger balance;
             balance = Runtime.GetBalance(DomainSettings.FuelTokenSymbol, from);
 
             Runtime.Expect(balance >= maxAmount, $"not enough {DomainSettings.FuelTokenSymbol} {balance} in address {from} {maxAmount}");
 
-            Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, from, this.Address, maxAmount);
+            Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, from, Address, maxAmount);
             Runtime.Notify(EventKind.GasEscrow, from, new GasEventData(target, price, limit));
         }
-        
+
         /// <summary>
         /// Method used to Apply Inflation and Mint Crowns and distribute them.
         /// </summary>
@@ -133,10 +133,10 @@ namespace Phantasma.Business.Blockchain.Contracts
             BigInteger mintedAmount = 0;
 
             Runtime.Expect(inflationAmount > 0, "invalid inflation amount");
-            
+
             var masterOrg = Runtime.GetOrganization(DomainSettings.MastersOrganizationName);
             var masters = masterOrg.GetMembers();
-            
+
             var rewardList = new List<Address>();
             foreach (var addr in masters)
             {
@@ -169,15 +169,15 @@ namespace Phantasma.Business.Blockchain.Contracts
 
                 _rewardAccum -= rewardList.Count * rewardFuel;
                 Runtime.Expect(_rewardAccum >= 0, "invalid reward leftover");
-                
+
                 BigInteger stakeAmount;
 
                 stakeAmount = UnitConversion.ToBigInteger(2, DomainSettings.StakingTokenDecimals);
 
-                Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, this.Address, rewardAmount);
+                Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, Address, rewardAmount);
 
                 var crownAddress = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
-                Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, crownAddress, stakeAmount);
+                Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, crownAddress, stakeAmount);
                 Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Stake), crownAddress, stakeAmount);
 
                 foreach (var addr in rewardList)
@@ -188,12 +188,12 @@ namespace Phantasma.Business.Blockchain.Contracts
                         reward = new StakeReward(addr, _nextInflationDate.Value);
                     }
 
-                    var rom = Serialization.Serialize(reward);
+                    var rom = reward.Serialize();
 
-                    var tokenID = Runtime.MintToken(DomainSettings.RewardTokenSymbol, this.Address, this.Address, rom, new byte[0], 0);
-                    Runtime.InfuseToken(DomainSettings.RewardTokenSymbol, this.Address, tokenID, DomainSettings.FuelTokenSymbol, rewardFuel);
-                    Runtime.InfuseToken(DomainSettings.RewardTokenSymbol, this.Address, tokenID, DomainSettings.StakingTokenSymbol, rewardStake);
-                    Runtime.TransferToken(DomainSettings.RewardTokenSymbol, this.Address, addr, tokenID);
+                    var tokenID = Runtime.MintToken(DomainSettings.RewardTokenSymbol, Address, Address, rom, new byte[0], 0);
+                    Runtime.InfuseToken(DomainSettings.RewardTokenSymbol, Address, tokenID, DomainSettings.FuelTokenSymbol, rewardFuel);
+                    Runtime.InfuseToken(DomainSettings.RewardTokenSymbol, Address, tokenID, DomainSettings.StakingTokenSymbol, rewardStake);
+                    Runtime.TransferToken(DomainSettings.RewardTokenSymbol, Address, addr, tokenID);
                 }
 
                 inflationAmount -= rewardAmount;
@@ -201,15 +201,15 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
 
             var refillAmount = inflationAmount / TokensToCosmicSwapPercentage;
-            var cosmicAddress = SmartContract.GetAddressForNative(NativeContractKind.Swap);
-            Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, cosmicAddress, refillAmount);
+            var cosmicAddress = GetAddressForNative(NativeContractKind.Swap);
+            Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, cosmicAddress, refillAmount);
             inflationAmount -= refillAmount;
 
             var phantomOrg = Runtime.GetOrganization(DomainSettings.PhantomForceOrganizationName);
             if (phantomOrg != null)
             {
                 var phantomFunding = inflationAmount / PhantasmaForcePercentage;
-                Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, phantomOrg.Address, phantomFunding);
+                Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, phantomOrg.Address, phantomFunding);
                 inflationAmount -= phantomFunding;
 
                 if (phantomOrg.Size == 1)
@@ -223,7 +223,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             {
                 if (Runtime.ProtocolVersion <= 8)
                 {
-                    Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, bpOrg.Address, inflationAmount);
+                    Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, bpOrg.Address, inflationAmount);
 
                     if (bpOrg.Size == 1)
                     {
@@ -238,8 +238,8 @@ namespace Phantasma.Business.Blockchain.Contracts
                     var bpReward = inflationAmount / bpSize;
                     foreach (var member in bpOrgMembers)
                     {
-                        if ( !member.IsNull )
-                            Runtime.MintTokens(DomainSettings.StakingTokenSymbol, this.Address, member, bpReward);
+                        if (!member.IsNull)
+                            Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, member, bpReward);
                     }
                 }
             }
@@ -250,7 +250,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             {
                 var inflationPeriod = SecondsInDay * 90;
                 _lastInflationDate = _nextInflationDate;
-                _nextInflationDate = new Timestamp( _nextInflationDate.Value + inflationPeriod);
+                _nextInflationDate = new Timestamp(_nextInflationDate.Value + inflationPeriod);
                 if (Runtime.Time >= _nextInflationDate)
                 {
                     _inflationReady = true;
@@ -307,7 +307,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             if (ged.address == Address.Null)
             {
-                ged = new GasEventData(targetAddress,  Runtime.GasPrice, Runtime.UsedGas);
+                ged = new GasEventData(targetAddress, Runtime.GasPrice, Runtime.UsedGas);
             }
 
             Runtime.Notify(EventKind.GasPayment, from, ged);
@@ -315,7 +315,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             // return leftover escrowed gas to transaction creator
             if (leftoverAmount > 0)
             {
-                Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, this.Address, from, leftoverAmount);
+                Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, Address, from, leftoverAmount);
             }
 
             Runtime.Expect(spentGas > 1, "gas spent too low");
@@ -324,10 +324,10 @@ namespace Phantasma.Business.Blockchain.Contracts
             if (burnGas > 0)
             {
                 BigInteger burnAmount;
-                
+
                 burnAmount = burnGas * Runtime.GasPrice;
 
-                Runtime.BurnTokens(DomainSettings.FuelTokenSymbol, this.Address, burnAmount);
+                Runtime.BurnTokens(DomainSettings.FuelTokenSymbol, Address, burnAmount);
                 spentGas -= burnGas;
             }
 
@@ -344,7 +344,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 }
                 else
                 {
-                    Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, this.Address, targetAddress, targetPayment);
+                    Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, Address, targetAddress, targetPayment);
                 }
                 spentGas -= targetGas;
             }
@@ -352,8 +352,8 @@ namespace Phantasma.Business.Blockchain.Contracts
             if (spentGas > 0)
             {
                 var validatorPayment = spentGas * Runtime.GasPrice;
-                var validatorAddress = SmartContract.GetAddressForNative(NativeContractKind.Block);
-                Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, this.Address, validatorAddress, validatorPayment);
+                var validatorAddress = GetAddressForNative(NativeContractKind.Block);
+                Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, Address, validatorAddress, validatorPayment);
                 spentGas = 0;
             }
 
@@ -379,7 +379,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 _lastInflationDate = genesisTime;
                 if (Runtime.ProtocolVersion >= 12)
                 {
-                    _nextInflationDate = new Timestamp(genesisTime.Value + (SecondsInDay * 90));
+                    _nextInflationDate = new Timestamp(genesisTime.Value + SecondsInDay * 90);
                 }
             }
             else if (!_inflationReady)
@@ -409,7 +409,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void FixInflationTiming(Address from, Timestamp lastInflationDate)
         {
             Runtime.ExpectWarning(!_fixedInflation, "inflation timing already fixed", from);
-            
+
             // Validate Validaotrs and orgs and Multi signature
             var org = Runtime.GetOrganization(DomainSettings.ValidatorsOrganizationName);
             Runtime.Expect(org != null, "no validators org");
@@ -420,34 +420,34 @@ namespace Phantasma.Business.Blockchain.Contracts
             var size = org.Size;
             var numberOfSignaturesNeeded = org.Size;
             Runtime.Expect(Runtime.Transaction.Signatures.Length == numberOfSignaturesNeeded, "invalid number of signatures");
-            
+
             var validSignatures = 0;
             Signature lastSignature = null;
             var signatures = Runtime.Transaction.Signatures.ToList();
             var members = org.GetMembers();
             var msg = Runtime.Transaction.ToByteArray(false);
-            
-            foreach (var member in members )
+
+            foreach (var member in members)
             {
-                foreach ( var signature in signatures )
+                foreach (var signature in signatures)
                 {
-                    if ( signature.Verify(msg, member) )
+                    if (signature.Verify(msg, member))
                     {
                         validSignatures++;
                         lastSignature = signature;
                         break;
                     }
                 }
-                
-                if ( lastSignature != null)
+
+                if (lastSignature != null)
                     signatures.Remove(lastSignature);
             }
-            
+
             Runtime.Expect(validSignatures == numberOfSignaturesNeeded, "invalid signatures");
-            
+
             // Fix Values
             _fixedInflation = true;
-            _lastInflationDate = lastInflationDate - (SecondsInDay * 90);
+            _lastInflationDate = lastInflationDate - SecondsInDay * 90;
             _nextInflationDate = lastInflationDate;
             _inflationReady = true;
         }
@@ -460,7 +460,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             return _lastInflationDate;
         }
-        
+
         /// <summary>
         /// Method used to return the last inflation date.
         /// </summary>
@@ -469,7 +469,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             return _nextInflationDate;
         }
-        
+
         /// <summary>
         /// Method use to return how many days are left until the next distribution.
         /// </summary>

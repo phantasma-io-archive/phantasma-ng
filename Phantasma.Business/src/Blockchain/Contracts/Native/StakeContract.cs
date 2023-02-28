@@ -10,7 +10,7 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     public struct EnergyStake
     {
@@ -61,13 +61,13 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public const string StakeMaxBonusPercentTag = "stake.bonus.max";
         public static readonly BigInteger StakeMaxBonusPercentDefault = 100;
-        
+
         public static readonly BigInteger MaxVotingPowerBonus = 1000;
         public static readonly BigInteger DailyVotingBonus = 1;
 
         public const uint DefaultEnergyRatioDivisor = 500; // used as 1/500, will initially generate 0.002 per staked token
-        
-        private static readonly string DesiredPreviousContext =  "account";
+
+        private static readonly string DesiredPreviousContext = "account";
 
         public StakeContract() : base()
         {
@@ -134,12 +134,12 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public Timestamp GetMasterClaimDate(BigInteger claimDistance)
         {
-            return GetMasterClaimDateFromReference(claimDistance, default(Timestamp));
+            return GetMasterClaimDateFromReference(claimDistance, default);
         }
-        
+
         public Timestamp GetMasterClaimDateForAddress(Address target)
         {
-            if (_masterClaims.ContainsKey<Address>(target))
+            if (_masterClaims.ContainsKey(target))
             {
                 return _masterClaims.Get<Address, Timestamp>(target);
             }
@@ -148,7 +148,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public Timestamp GetMasterDate(Address target)
         {
-            if (_masterAgeMap.ContainsKey<Address>(target))
+            if (_masterAgeMap.ContainsKey(target))
             {
                 return _masterAgeMap.Get<Address, Timestamp>(target);
             }
@@ -182,7 +182,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 referenceDate = _lastMasterClaim;
             }
 
-            var nextMasterClaim = (Timestamp)(new DateTime(referenceDate.Year, referenceDate.Month, 1, 0, 0, 0, DateTimeKind.Utc)).AddMonths((int)claimDistance);
+            var nextMasterClaim = (Timestamp)new DateTime(referenceDate.Year, referenceDate.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths((int)claimDistance);
             var dateTimeClaim = (DateTime)nextMasterClaim;
 
             if (dateTimeClaim.Hour == 23)
@@ -207,7 +207,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             if (validMasterCount != 0)
                 individualAmount = totalAmount / validMasterCount;
             else
-                individualAmount = totalAmount/ 1;
+                individualAmount = totalAmount / 1;
             var leftovers = totalAmount % validMasterCount;
             individualAmount += leftovers;
 
@@ -251,11 +251,11 @@ namespace Phantasma.Business.Blockchain.Contracts
             var token = Runtime.GetToken(symbol);
 
             var totalAmount = MasterClaimGlobalAmount;
-            Runtime.MintTokens(token.Symbol, this.Address, this.Address, totalAmount);
+            Runtime.MintTokens(token.Symbol, Address, Address, totalAmount);
 
             var masters = Runtime.GetOrganization(DomainSettings.MastersOrganizationName);
             var validMasterCount = GetClaimMasterCount(Runtime.Time);
-            
+
             if (Runtime.ProtocolVersion >= 10)
             {
                 validMasterCount = GetClaimMasterCount(thisClaimDate);
@@ -263,9 +263,9 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var individualAmount = totalAmount / validMasterCount;
             var leftovers = totalAmount % validMasterCount;
-            
+
             var nextClaim = GetMasterClaimDateFromReference(1, thisClaimDate);
-            
+
             var addresses = masters.GetMembers();
             for (int i = 0; i < addresses.Length; i++)
             {
@@ -283,16 +283,16 @@ namespace Phantasma.Business.Blockchain.Contracts
                     transferAmount += leftovers;
                 }
 
-                Runtime.TransferTokens(token.Symbol, this.Address, addr, transferAmount);
+                Runtime.TransferTokens(token.Symbol, Address, addr, transferAmount);
                 totalAmount -= transferAmount;
 
-                _masterClaims.Set<Address, Timestamp>(addr, nextClaim);
+                _masterClaims.Set(addr, nextClaim);
             }
 
             Runtime.Expect(totalAmount == 0, $"Error on calculations, totalAmount should have been zero but it was {totalAmount} instead");
 
             _lastMasterClaim = Runtime.Time;
-            
+
             Runtime.Notify(EventKind.MasterClaim, from, new MasterEventData(symbol, MasterClaimGlobalAmount, Runtime.Chain.Name, _lastMasterClaim));
         }
 
@@ -310,8 +310,8 @@ namespace Phantasma.Business.Blockchain.Contracts
                 if (Runtime.PreviousContext.Name == NativeContractKind.Gas.GetContractName())
                 {
                     var validAddresses = new List<Address>();
-                    var swapAddress = SmartContract.GetAddressForNative(NativeContractKind.Swap);
-                    var exchangeAddress = SmartContract.GetAddressForNative(NativeContractKind.Exchange);
+                    var swapAddress = GetAddressForNative(NativeContractKind.Swap);
+                    var exchangeAddress = GetAddressForNative(NativeContractKind.Exchange);
                     var crownAddress = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
                     var phantomOrg = Runtime.GetOrganization(DomainSettings.PhantomForceOrganizationName);
                     var bpOrg = Runtime.GetOrganization(DomainSettings.ValidatorsOrganizationName);
@@ -348,8 +348,8 @@ namespace Phantasma.Business.Blockchain.Contracts
                     }
                 }
             }
-            
-            if ( Runtime.ProtocolVersion <= 11 )
+
+            if (Runtime.ProtocolVersion <= 11)
             {
                 if (Runtime.HasGenesis)
                 {
@@ -365,11 +365,11 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Expect(balance >= stakeAmount, $"balance: {balance} stake: {stakeAmount} not enough balance to stake at {from}");
 
-            Runtime.TransferTokens(DomainSettings.StakingTokenSymbol, from, this.Address, stakeAmount);
+            Runtime.TransferTokens(DomainSettings.StakingTokenSymbol, from, Address, stakeAmount);
 
             EnergyStake stake;
 
-            if (_stakeMap.ContainsKey<Address>(from))
+            if (_stakeMap.ContainsKey(from))
             {
                 stake = _stakeMap.Get<Address, EnergyStake>(from);
             }
@@ -384,22 +384,22 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             stake.stakeTime = Runtime.Time;
             stake.stakeAmount += stakeAmount;
-            _stakeMap.Set<Address, EnergyStake>(from, stake);
+            _stakeMap.Set(from, stake);
 
-            Runtime.AddMember(DomainSettings.StakersOrganizationName, this.Address, from);
+            Runtime.AddMember(DomainSettings.StakersOrganizationName, Address, from);
 
             var claimList = _claimMap.Get<Address, StorageList>(from);
             var claimEntry = new EnergyClaim()
             {
                 stakeAmount = stakeAmount,
-                claimDate = this.Runtime.Time,
+                claimDate = Runtime.Time,
                 isNew = true,
             };
             claimList.Add(claimEntry);
 
             var logEntry = new VotingLogEntry()
             {
-                timestamp = this.Runtime.Time,
+                timestamp = Runtime.Time,
                 amount = stakeAmount
             };
             var votingLogbook = _voteHistory.Get<Address, StorageList>(from);
@@ -411,12 +411,12 @@ namespace Phantasma.Business.Blockchain.Contracts
             {
                 var nextClaim = GetMasterClaimDate(2);
 
-                Runtime.AddMember(DomainSettings.MastersOrganizationName, this.Address, from);
-                _masterClaims.Set<Address, Timestamp>(from, nextClaim);
+                Runtime.AddMember(DomainSettings.MastersOrganizationName, Address, from);
+                _masterClaims.Set(from, nextClaim);
 
-                _masterAgeMap.Set<Address, Timestamp>(from, Runtime.Time);
+                _masterAgeMap.Set(from, Runtime.Time);
             }
-            
+
             Runtime.Notify(EventKind.TokenStake, from, new TokenEventData(DomainSettings.StakingTokenSymbol, stakeAmount, Runtime.Chain.Name));
         }
 
@@ -427,7 +427,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Expect(!Nexus.IsDangerousAddress(from), "this address can't be used as source");
 
-            Runtime.Expect(_stakeMap.ContainsKey<Address>(from), "nothing to unstake");
+            Runtime.Expect(_stakeMap.ContainsKey(from), "nothing to unstake");
 
             var stake = _stakeMap.Get<Address, EnergyStake>(from);
             Runtime.Expect(stake.stakeAmount > 0, "nothing to unstake");
@@ -442,7 +442,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(stakedDays >= 1, "waiting period required");
 
             var token = Runtime.GetToken(DomainSettings.StakingTokenSymbol);
-            var balance = Runtime.GetBalance(token.Symbol, this.Address);
+            var balance = Runtime.GetBalance(token.Symbol, Address);
             Runtime.Expect(balance >= unstakeAmount, "not enough balance to unstake");
 
             var availableStake = stake.stakeAmount;
@@ -455,7 +455,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 Runtime.Expect(availableStake - unstakeAmount >= MinimumValidStake, "leftover stake would be below minimum staking amount");
             }
 
-            Runtime.TransferTokens(DomainSettings.StakingTokenSymbol, this.Address, from, unstakeAmount);
+            Runtime.TransferTokens(DomainSettings.StakingTokenSymbol, Address, from, unstakeAmount);
 
             stake.stakeAmount -= unstakeAmount;
 
@@ -463,8 +463,8 @@ namespace Phantasma.Business.Blockchain.Contracts
             {
                 _stakeMap.Remove(from);
                 _voteHistory.Remove(from);
-                
-                Runtime.RemoveMember(DomainSettings.StakersOrganizationName, this.Address, from);
+
+                Runtime.RemoveMember(DomainSettings.StakersOrganizationName, Address, from);
 
                 var name = Runtime.GetAddressName(from);
                 if (name != ValidationUtils.ANONYMOUS_NAME)
@@ -474,7 +474,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
             else
             {
-                _stakeMap.Set<Address, EnergyStake>(from, stake);
+                _stakeMap.Set(from, stake);
 
                 RemoveVotingPower(from, unstakeAmount);
             }
@@ -483,16 +483,16 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             if (stake.stakeAmount < masterAccountThreshold)
             {
-                Runtime.RemoveMember(DomainSettings.MastersOrganizationName, this.Address, from);
+                Runtime.RemoveMember(DomainSettings.MastersOrganizationName, Address, from);
 
-                if (_masterClaims.ContainsKey<Address>(from))
+                if (_masterClaims.ContainsKey(from))
                 {
-                    _masterClaims.Remove<Address>(from);
+                    _masterClaims.Remove(from);
                 }
 
-                if (_masterAgeMap.ContainsKey<Address>(from))
+                if (_masterAgeMap.ContainsKey(from))
                 {
-                    _masterAgeMap.Remove<Address>(from);
+                    _masterAgeMap.Remove(from);
                 }
             }
 
@@ -527,7 +527,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 {
                     subtractedAmount = unstakeAmount;
                     entry.stakeAmount -= subtractedAmount;
-                    claimList.Replace<EnergyClaim>(bestIndex, entry);
+                    claimList.Replace(bestIndex, entry);
                 }
                 else
                 {
@@ -540,7 +540,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 if (Runtime.Time >= entry.claimDate)
                 {
                     var claimDiff = Runtime.Time - entry.claimDate;
-                    var claimDays = (claimDiff / SecondsInDay);
+                    var claimDays = claimDiff / SecondsInDay;
                     if (!entry.isNew && claimDays > 0)
                     {
                         claimDays--;  // unless new (meaning was never claimed) we subtract the initial day due to instant claim
@@ -559,18 +559,18 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             if (leftovers > 0)
             {
-                if (_leftoverMap.ContainsKey<Address>(from))
+                if (_leftoverMap.ContainsKey(from))
                 {
                     leftovers += _leftoverMap.Get<Address, BigInteger>(from);
                 }
 
-                _leftoverMap.Set<Address, BigInteger>(from, leftovers);
+                _leftoverMap.Set(from, leftovers);
             }
         }
 
         public BigInteger GetTimeBeforeUnstake(Address from)
         {
-            if (!_stakeMap.ContainsKey<Address>(from))
+            if (!_stakeMap.ContainsKey(from))
             {
                 return 0;
             }
@@ -632,10 +632,10 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
             else
             {
-                crownDays = crowns.Select(id => id != 0 ? 
-                    (
-                        (Runtime.Time - Runtime.ReadToken(DomainSettings.RewardTokenSymbol, id).Timestamp) / SecondsInDay) :
-                        (0)
+                crownDays = crowns.Select(id => id != 0 ?
+
+                        (Runtime.Time - Runtime.ReadToken(DomainSettings.RewardTokenSymbol, id).Timestamp) / SecondsInDay :
+                        0
                     ).OrderBy(k => k).ToArray();
             }
 
@@ -650,7 +650,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 if (Runtime.Time >= entry.claimDate)
                 {
                     var claimDiff = Runtime.Time - entry.claimDate;
-                    var claimDays = (claimDiff / SecondsInDay);
+                    var claimDays = claimDiff / SecondsInDay;
                     if (entry.isNew)
                     {
                         claimDays++;
@@ -663,7 +663,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                         total += amount;
 
                         int bonusAccum = 0;
-                        var bonusAmount = (amount * bonusPercent) / 100;
+                        var bonusAmount = amount * bonusPercent / 100;
 
                         var dailyBonus = bonusAmount / claimDays;
 
@@ -678,7 +678,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                                 }
 
                                 var maxBonusDays = bonusDays > claimDays ? claimDays : bonusDays;
-                                total += dailyBonus * maxBonusDays;                                
+                                total += dailyBonus * maxBonusDays;
                             }
                         }
                     }
@@ -686,7 +686,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
 
 
-            if (_leftoverMap.ContainsKey<Address>(from))
+            if (_leftoverMap.ContainsKey(from))
             {
                 var leftover = _leftoverMap.Get<Address, BigInteger>(from);
                 total += leftover;
@@ -711,7 +711,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 Runtime.Expect(stakeAddress.IsSystem, "must claim from a system address");
             }
 
-            Runtime.MintTokens(DomainSettings.FuelTokenSymbol, this.Address, stakeAddress, fuelAmount);
+            Runtime.MintTokens(DomainSettings.FuelTokenSymbol, Address, stakeAddress, fuelAmount);
 
             var claimList = _claimMap.Get<Address, StorageList>(stakeAddress);
             var count = claimList.Count();
@@ -724,7 +724,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 if (Runtime.Time >= entry.claimDate)
                 {
                     var claimDiff = Runtime.Time - entry.claimDate;
-                    var clamDays = (claimDiff / SecondsInDay);
+                    var clamDays = claimDiff / SecondsInDay;
                     if (entry.isNew)
                     {
                         clamDays++;
@@ -734,24 +734,24 @@ namespace Phantasma.Business.Blockchain.Contracts
                     {
                         entry.claimDate = Runtime.Time;
                         entry.isNew = false;
-                        claimList.Replace<EnergyClaim>(i, entry);
+                        claimList.Replace(i, entry);
                     }
                 }
             }
 
             // remove any leftovers
-            if (_leftoverMap.ContainsKey<Address>(stakeAddress))
+            if (_leftoverMap.ContainsKey(stakeAddress))
             {
-                _leftoverMap.Remove<Address>(stakeAddress);
+                _leftoverMap.Remove(stakeAddress);
             }
 
             // mark date to prevent imediate unstake
             if (Runtime.Time >= ContractPatch.UnstakePatch)
             {
-                Runtime.Expect(_stakeMap.ContainsKey<Address>(stakeAddress), "invalid stake address");
+                Runtime.Expect(_stakeMap.ContainsKey(stakeAddress), "invalid stake address");
                 var stake = _stakeMap.Get<Address, EnergyStake>(stakeAddress);
                 stake.stakeTime = Runtime.Time;
-                _stakeMap.Set<Address, EnergyStake>(stakeAddress, stake);
+                _stakeMap.Set(stakeAddress, stake);
             }
         }
 
@@ -769,7 +769,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public BigInteger GetStorageStake(Address address)
         {
-            var usedStorageSize = Runtime.CallNativeContext( NativeContractKind.Storage, "GetUsedSpace", address).AsNumber();
+            var usedStorageSize = Runtime.CallNativeContext(NativeContractKind.Storage, "GetUsedSpace", address).AsNumber();
             var usedStake = usedStorageSize * UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals);
 
             var kilobytesPerStake = (int)Runtime.GetGovernanceValue(StorageContract.KilobytesPerStakeTag);
@@ -836,7 +836,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             votingMultiplier += DailyVotingBonus * votingBonus;
 
-            var votingPower = (entry.amount * votingMultiplier) / 100;
+            var votingPower = entry.amount * votingMultiplier / 100;
 
             return votingPower;
         }

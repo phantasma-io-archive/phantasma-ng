@@ -1,7 +1,7 @@
 ﻿using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     internal struct PrivacyQueue
     {

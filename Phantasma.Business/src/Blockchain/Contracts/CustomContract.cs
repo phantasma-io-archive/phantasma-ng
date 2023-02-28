@@ -1,7 +1,7 @@
 ﻿using Phantasma.Core;
 using Phantasma.Core.Domain;
 
-namespace Phantasma.Business.Blockchain
+namespace Phantasma.Business.Blockchain.Contracts
 {
     public sealed class CustomContract : SmartContract, ICustomContract
     {
@@ -13,11 +13,11 @@ namespace Phantasma.Business.Blockchain
         public CustomContract(string name, byte[] script, ContractInterface abi) : base()
         {
             Throw.IfNull(script, nameof(script));
-            this.Script = script;
+            Script = script;
 
             _name = name;
 
-            this.ABI = abi;
+            ABI = abi;
         }
     }
 }

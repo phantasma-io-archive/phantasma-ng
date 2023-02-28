@@ -1,4 +1,4 @@
-namespace Phantasma.Business.Blockchain.Storage;
+namespace Phantasma.Business.Blockchain.Contracts;
 
 using System;
 using System.Numerics;
@@ -23,28 +23,28 @@ public class SmartContractSheet
 
     public SmartContractSheet(string contractName)
     {
-        this._contractName = contractName;
-        this._contractAddress = SmartContract.GetAddressFromContractName(contractName);
-        this._prefix = MakePrefix(_contractAddress);
+        _contractName = contractName;
+        _contractAddress = SmartContract.GetAddressFromContractName(contractName);
+        _prefix = MakePrefix(_contractAddress);
     }
 
     public SmartContractSheet(Address address)
     {
-        this._contractName = address.Text;
-        this._contractAddress = address;
-        this._prefix = MakePrefix(_contractAddress);
+        _contractName = address.Text;
+        _contractAddress = address;
+        _prefix = MakePrefix(_contractAddress);
     }
 
 
     public SmartContractSheet(string contractName, Address address)
     {
-        this._contractName = contractName;
-        this._contractAddress = SmartContract.GetAddressFromContractName(contractName);
+        _contractName = contractName;
+        _contractAddress = SmartContract.GetAddressFromContractName(contractName);
         if (address != _contractAddress)
-        { 
+        {
             throw new Exception("Invalid contract address");
         }
-        this._prefix = MakePrefix(_contractAddress);
+        _prefix = MakePrefix(_contractAddress);
     }
 
     private byte[] GetContractKey(Address contractAddress, string field)
@@ -69,22 +69,22 @@ public class SmartContractSheet
 
     public bool HasScript(StorageContext storage)
     {
-        return storage.Has(this.GetScriptKey());
+        return storage.Has(GetScriptKey());
     }
 
     public bool HasOwner(StorageContext storage)
     {
-        return storage.Has(this.GetOwnerKey());
+        return storage.Has(GetOwnerKey());
     }
 
     public bool HasABI(StorageContext storage)
     {
-        return storage.Has(this.GetABIKey());
+        return storage.Has(GetABIKey());
     }
 
     public bool HasName(StorageContext storage)
     {
-        return storage.Has(this.GetNameKey());
+        return storage.Has(GetNameKey());
     }
     #endregion
 
@@ -102,22 +102,22 @@ public class SmartContractSheet
 
     public bool PutScript(StorageContext storage, byte[] value)
     {
-        return Put(storage, this.GetScriptKey(), value);
+        return Put(storage, GetScriptKey(), value);
     }
 
     public bool PutOwner(StorageContext storage, byte[] value)
     {
-        return Put(storage, this.GetOwnerKey(), value);
+        return Put(storage, GetOwnerKey(), value);
     }
 
     public bool PutABI(StorageContext storage, byte[] value)
     {
-        return Put(storage, this.GetABIKey(), value);
+        return Put(storage, GetABIKey(), value);
     }
 
     public bool PutName(StorageContext storage, byte[] value)
     {
-        return Put(storage, this.GetNameKey(), value);
+        return Put(storage, GetNameKey(), value);
     }
     #endregion
 
@@ -125,7 +125,7 @@ public class SmartContractSheet
     public void AddToList(StorageContext storage, Address address)
     {
         var contracts = GetContractList(storage);
-        contracts.Add<Address>(address);
+        contracts.Add(address);
     }
     #endregion
 
@@ -137,22 +137,22 @@ public class SmartContractSheet
 
     public void DeleteABI(StorageContext storage)
     {
-        storage.Delete(this.GetABIKey());
+        storage.Delete(GetABIKey());
     }
 
     public void DeleteScript(StorageContext storage)
     {
-        storage.Delete(this.GetScriptKey());
+        storage.Delete(GetScriptKey());
     }
 
     public void DeleteOwner(StorageContext storage)
     {
-        storage.Delete(this.GetOwnerKey());
+        storage.Delete(GetOwnerKey());
     }
 
     public void DeleteName(StorageContext storage)
     {
-        storage.Delete(this.GetNameKey());
+        storage.Delete(GetNameKey());
     }
 
     public void DeleteContract(StorageContext storage)
@@ -177,37 +177,37 @@ public class SmartContractSheet
 
     public byte[] GetOwnerKey()
     {
-        return GetContractKey(this._contractAddress, OwnerTag);
+        return GetContractKey(_contractAddress, OwnerTag);
     }
 
     public byte[] GetABIKey()
     {
-        return GetContractKey(this._contractAddress, ContractAbiTag);
+        return GetContractKey(_contractAddress, ContractAbiTag);
     }
 
     public byte[] GetABI(StorageContext storage)
     {
-        return storage.Get(this.GetABIKey());
+        return storage.Get(GetABIKey());
     }
 
     public byte[] GetNameKey()
     {
-        return GetContractKey(this._contractAddress, ContractNameTag);
+        return GetContractKey(_contractAddress, ContractNameTag);
     }
 
     public byte[] GetName(StorageContext storage)
     {
-        return storage.Get(this.GetNameKey());
+        return storage.Get(GetNameKey());
     }
 
     public byte[] GetScriptKey()
     {
-        return GetContractKey(this._contractAddress, ContractScriptTag);
+        return GetContractKey(_contractAddress, ContractScriptTag);
     }
 
     public byte[] GetScript(StorageContext storage)
     {
-        return storage.Get(this.GetScriptKey());
+        return storage.Get(GetScriptKey());
     }
 
     public StorageList GetContractList(StorageContext storage)
@@ -217,7 +217,7 @@ public class SmartContractSheet
 
     public Address GetOwner(StorageContext storage)
     {
-        var key = this.GetOwnerKey();
+        var key = GetOwnerKey();
         if (storage.Has(key))
         {
             var bytes = storage.Get(key);

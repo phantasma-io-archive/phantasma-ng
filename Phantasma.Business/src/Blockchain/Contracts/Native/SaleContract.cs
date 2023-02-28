@@ -7,7 +7,7 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     [Flags]
     public enum SaleFlags
@@ -117,7 +117,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             // TODO remove this later when Cosmic Swaps 2.0 are released
             Runtime.Expect(receiveSymbol == DomainSettings.StakingTokenSymbol, "invalid receive token symbol: " + receiveSymbol);
 
-            Runtime.TransferTokens(sellSymbol, from, this.Address, globalHardCap);
+            Runtime.TransferTokens(sellSymbol, from, Address, globalHardCap);
 
             var sale = new SaleInfo()
             {
@@ -135,7 +135,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 UserHardCap = userHardCap,
             };
 
-            var bytes = Serialization.Serialize(sale);
+            var bytes = sale.Serialize();
             var hash = Hash.FromBytes(bytes);
 
             _saleList.Add(hash);
@@ -190,12 +190,12 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             var addressMap = _whitelistedAddresses.Get<Hash, StorageList>(saleHash);
 
-            return addressMap.Contains<Address>(address);
+            return addressMap.Contains(address);
         }
 
         public void AddToWhitelist(Hash saleHash, Address target)
         {
-            Runtime.Expect(_saleMap.ContainsKey<Hash>(saleHash), "sale does not exist");
+            Runtime.Expect(_saleMap.ContainsKey(saleHash), "sale does not exist");
 
             var sale = _saleMap.Get<Hash, SaleInfo>(saleHash);
             Runtime.Expect(Runtime.Time < sale.EndDate, "sale has reached end date");
@@ -207,16 +207,16 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var addressMap = _whitelistedAddresses.Get<Hash, StorageList>(saleHash);
 
-            if (!addressMap.Contains<Address>(target))
+            if (!addressMap.Contains(target))
             {
-                addressMap.Add<Address>(target);
+                addressMap.Add(target);
                 Runtime.Notify(EventKind.Crowdsale, target, new SaleEventData() { kind = SaleEventKind.AddedToWhitelist, saleHash = saleHash });
             }
         }
 
         public void RemoveFromWhitelist(Hash saleHash, Address target)
         {
-            Runtime.Expect(_saleMap.ContainsKey<Hash>(saleHash), "sale does not exist");
+            Runtime.Expect(_saleMap.ContainsKey(saleHash), "sale does not exist");
 
             var sale = _saleMap.Get<Hash, SaleInfo>(saleHash);
             Runtime.Expect(Runtime.Time < sale.EndDate, "sale has reached end date");
@@ -227,9 +227,9 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var addressMap = _whitelistedAddresses.Get<Hash, StorageList>(saleHash);
 
-            if (addressMap.Contains<Address>(target))
+            if (addressMap.Contains(target))
             {
-                addressMap.Remove<Address>(target);
+                addressMap.Remove(target);
                 Runtime.Notify(EventKind.Crowdsale, target, new SaleEventData() { kind = SaleEventKind.RemovedFromWhitelist, saleHash = saleHash });
             }
         }
@@ -255,7 +255,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(Runtime.TokenExists(quoteSymbol), "token must exist: " + quoteSymbol);
             var quoteToken = Runtime.GetToken(quoteSymbol);
 
-            Runtime.Expect(_saleMap.ContainsKey<Hash>(saleHash), "sale does not exist");
+            Runtime.Expect(_saleMap.ContainsKey(saleHash), "sale does not exist");
             var sale = _saleMap.Get<Hash, SaleInfo>(saleHash);
 
             Runtime.Expect(Runtime.Time >= sale.StartDate, "sale has not started");
@@ -288,10 +288,10 @@ namespace Phantasma.Business.Blockchain.Contracts
                 nextSupply = 0;
             }
 
-            Runtime.TransferTokens(quoteSymbol, from, this.Address, quoteAmount);
+            Runtime.TransferTokens(quoteSymbol, from, Address, quoteAmount);
             Runtime.Notify(EventKind.Crowdsale, from, new SaleEventData() { kind = SaleEventKind.Participation, saleHash = saleHash });
 
-            _saleSupply.Set<Hash, BigInteger>(saleHash, nextSupply);
+            _saleSupply.Set(saleHash, nextSupply);
 
             if (nextSupply == 0)
             {
@@ -304,7 +304,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             if (quoteSymbol != sale.ReceiveSymbol)
             {
-                Runtime.CallNativeContext(NativeContractKind.Swap, nameof(SwapContract.SwapTokens), this.Address, quoteSymbol, sale.ReceiveSymbol, quoteAmount);
+                Runtime.CallNativeContext(NativeContractKind.Swap, nameof(SwapContract.SwapTokens), Address, quoteSymbol, sale.ReceiveSymbol, quoteAmount);
             }
 
             var amountMap = _buyerAmounts.Get<Hash, StorageMap>(saleHash);
@@ -323,12 +323,12 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
 
             var addressMap = _buyerAddresses.Get<Hash, StorageList>(saleHash);
-            if (!addressMap.Contains<Address>(from))
+            if (!addressMap.Contains(from))
             {
-                addressMap.Add<Address>(from);
+                addressMap.Add(from);
             }
 
-            amountMap.Set<Address, BigInteger>(from, newAmount);
+            amountMap.Set(from, newAmount);
         }
 
         // anyone can call this, not only manager, in order to be able to trigger refunds
@@ -359,17 +359,17 @@ namespace Phantasma.Business.Blockchain.Contracts
 
                     Runtime.Notify(EventKind.Crowdsale, buyer, new SaleEventData() { kind = SaleEventKind.Distribution, saleHash = saleHash });
 
-                    Runtime.TransferTokens(sale.SellSymbol, this.Address, buyer, amount);
+                    Runtime.TransferTokens(sale.SellSymbol, Address, buyer, amount);
                 }
 
                 var fundsAmount = Runtime.ConvertBaseToQuote(soldSupply, UnitConversion.GetUnitValue(receiveToken.Decimals), saleToken, receiveToken);
                 fundsAmount /= sale.Price;
 
                 Runtime.Notify(EventKind.Crowdsale, sale.Creator, new SaleEventData() { kind = SaleEventKind.Distribution, saleHash = saleHash });
-                Runtime.TransferTokens(sale.ReceiveSymbol, this.Address, sale.Creator, fundsAmount);
+                Runtime.TransferTokens(sale.ReceiveSymbol, Address, sale.Creator, fundsAmount);
 
                 var leftovers = sale.GlobalHardCap - soldSupply;
-                Runtime.TransferTokens(sale.SellSymbol, this.Address, sale.Creator, leftovers);
+                Runtime.TransferTokens(sale.SellSymbol, Address, sale.Creator, leftovers);
             }
             else // otherwise return funds to buyers and return tokens to sellers
             {
@@ -379,11 +379,11 @@ namespace Phantasma.Business.Blockchain.Contracts
 
                     amount = Runtime.ConvertBaseToQuote(amount, sale.Price, saleToken, receiveToken);
                     Runtime.Notify(EventKind.Crowdsale, buyer, new SaleEventData() { kind = SaleEventKind.Refund, saleHash = saleHash });
-                    Runtime.TransferTokens(sale.ReceiveSymbol, this.Address, buyer, amount);
+                    Runtime.TransferTokens(sale.ReceiveSymbol, Address, buyer, amount);
                 }
 
                 Runtime.Notify(EventKind.Crowdsale, sale.Creator, new SaleEventData() { kind = SaleEventKind.Refund, saleHash = saleHash });
-                Runtime.TransferTokens(sale.SellSymbol, this.Address, sale.Creator, sale.GlobalHardCap);
+                Runtime.TransferTokens(sale.SellSymbol, Address, sale.Creator, sale.GlobalHardCap);
             }
         }
 
@@ -420,7 +420,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(Runtime.Time < sale.EndDate, "sale already reached end date");
 
             sale.Price = price;
-            _saleMap.Set<Hash, SaleInfo>(saleHash, sale);
+            _saleMap.Set(saleHash, sale);
 
             Runtime.Notify(EventKind.Crowdsale, sale.Creator, new SaleEventData() { kind = SaleEventKind.PriceChange, saleHash = saleHash });
         }

@@ -4,16 +4,16 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     public sealed class SwapContract : NativeContract
     {
         public override NativeContractKind Kind => NativeContractKind.Swap;
-        
+
         public SwapContract() : base()
         {
         }
-        
+
         /// <summary>
         /// Check if the token is supported
         /// </summary>
@@ -42,7 +42,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public const string SwapMakerFeePercentTag = "swap.fee.maker";
         public const string SwapTakerFeePercentTag = "swap.fee.taker";
-        
+
         public static readonly BigInteger SwapMakerFeePercentDefault = 2;
         public static readonly BigInteger SwapTakerFeePercentDefault = 5;
 
@@ -52,7 +52,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             var exchangeVersion = Runtime.InvokeContractAtTimestamp(NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVersion)).AsNumber();
             if (existsLP && exchangeVersion >= 1)
             {
-                return  Runtime.CallNativeContext(NativeContractKind.Exchange, nameof(ExchangeContract.GetRate), fromSymbol,
+                return Runtime.CallNativeContext(NativeContractKind.Exchange, nameof(ExchangeContract.GetRate), fromSymbol,
                     toSymbol, amount).AsNumber();
             }
             else
@@ -60,7 +60,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 return GetRateV2(fromSymbol, toSymbol, amount);
             }
         }
-        
+
         /// <summary>
         /// Old Version to get rate.
         /// </summary>
@@ -87,7 +87,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             return rate;
         }
-        
+
         /// <summary>
         /// Method used to deposit tokens
         /// </summary>
@@ -105,7 +105,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             var unitAmount = UnitConversion.GetUnitValue(info.Decimals);
             Runtime.Expect(amount >= unitAmount, "invalid amount");
 
-            Runtime.TransferTokens(symbol, from, this.Address, amount);
+            Runtime.TransferTokens(symbol, from, Address, amount);
         }
 
         /// <summary>
@@ -128,7 +128,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 SwapFeeV2(from, fromSymbol, feeAmount);
             }
         }
-        
+
         /// <summary>
         /// Swap fee old
         /// </summary>
@@ -205,7 +205,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 Runtime.Expect(amount > 0, $"cannot reverse swap {fromSymbol}");
                 SwapTokens(from, fromSymbol, toSymbol, amount);
             }
-            
+
         }
 
         /// <summary>
@@ -229,7 +229,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 SwapTokensV2(from, fromSymbol, toSymbol, amount);
             }
         }
-        
+
         /// <summary>
         /// Swap token OldVersion
         /// </summary>
@@ -251,19 +251,19 @@ namespace Phantasma.Business.Blockchain.Contracts
             var toInfo = Runtime.GetToken(toSymbol);
             Runtime.Expect(IsSupportedToken(toSymbol), "destination token is unsupported");
 
-            var total =  GetRate(fromSymbol, toSymbol, amount);
+            var total = GetRate(fromSymbol, toSymbol, amount);
 
             Runtime.Expect(total > 0, "amount to swap needs to be larger than zero");
 
-            var toPotBalance = Runtime.GetBalance(toSymbol, this.Address);
+            var toPotBalance = Runtime.GetBalance(toSymbol, Address);
 
             if (toPotBalance < total && toSymbol == DomainSettings.FuelTokenSymbol)
             {
-                var gasAddress = SmartContract.GetAddressForNative(NativeContractKind.Gas);
+                var gasAddress = GetAddressForNative(NativeContractKind.Gas);
                 var gasBalance = Runtime.GetBalance(toSymbol, gasAddress);
                 if (gasBalance >= total)
                 {
-                    Runtime.TransferTokens(toSymbol, gasAddress, this.Address, total);
+                    Runtime.TransferTokens(toSymbol, gasAddress, Address, total);
                     toPotBalance = total;
                 }
             }
@@ -277,8 +277,8 @@ namespace Phantasma.Business.Blockchain.Contracts
             var half = toPotBalance / 2;
             Runtime.Expect(total < half, $"taking too much {toSymbol} from pot at once");
 
-            Runtime.TransferTokens(fromSymbol, from, this.Address, amount);
-            Runtime.TransferTokens(toSymbol, this.Address, from, total);
+            Runtime.TransferTokens(fromSymbol, from, Address, amount);
+            Runtime.TransferTokens(toSymbol, Address, from, total);
         }
     }
 }

@@ -7,7 +7,7 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     public sealed class AccountContract : NativeContract
     {
@@ -114,7 +114,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             _scriptMap.Set(target, script);
             _abiMap.Set(target, abiBytes);
 
-            var constructor = abi.FindMethod(SmartContract.ConstructorName);
+            var constructor = abi.FindMethod(ConstructorName);
 
             if (constructor != null)
             {
@@ -151,7 +151,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 return _scriptMap.Get<Address, byte[]>(target);
             }
 
-            return System.Array.Empty<byte>();
+            return Array.Empty<byte>();
         }
 
         public byte[] LookUpABI(Address target)
@@ -161,7 +161,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 return _abiMap.Get<Address, byte[]>(target);
             }
 
-            return System.Array.Empty<byte>();
+            return Array.Empty<byte>();
         }
 
         public Address LookUpName(string name)
@@ -219,13 +219,13 @@ namespace Phantasma.Business.Blockchain.Contracts
                         {
                             Runtime.TransferTokens(symbol, from, target, balance);
                         }
-                        else if ( symbol != DomainSettings.FuelTokenSymbol )
+                        else if (symbol != DomainSettings.FuelTokenSymbol)
                         {
                             Runtime.TransferTokens(symbol, from, target, balance);
                         }
                         else
                         {
-                            if ( balance  > UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals) * 2 )
+                            if (balance > UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals) * 2)
                                 Runtime.TransferTokens(symbol, from, target, balance - UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals));
                             else
                                 throw new ChainException("Can't migrate address with less than 2 fuel");
@@ -358,7 +358,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                         break;
 
                     default:
-                        throw new System.Exception("AddTriggerToABI: Unsupported trigger: " + trigger);
+                        throw new Exception("AddTriggerToABI: Unsupported trigger: " + trigger);
                 }
             }
 

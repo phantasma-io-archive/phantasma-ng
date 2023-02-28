@@ -3,7 +3,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     public sealed class RankingContract : NativeContract
     {
@@ -20,7 +20,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public bool Exists(string name)
         {
-            return _leaderboards.ContainsKey<string>(name);
+            return _leaderboards.ContainsKey(name);
         }
 
         public void CreateLeaderboard(Address from, string name, BigInteger size)
@@ -42,7 +42,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 size = size,
                 round = 0,
             };
-            _leaderboards.Set<string, Leaderboard>(name, leaderboard);
+            _leaderboards.Set(name, leaderboard);
 
             Runtime.Notify(EventKind.LeaderboardCreate, from, name);
         }
@@ -139,7 +139,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void InsertScore(Address from, Address target, string name, BigInteger score)
         {
             Runtime.Expect(Exists(name), "invalid leaderboard");
-            
+
             var leaderboard = _leaderboards.Get<string, Leaderboard>(name);
 
             Runtime.Expect(from == leaderboard.owner, "invalid leaderboard owner");
@@ -171,7 +171,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 for (int i = oldIndex; i <= count - 1; i++)
                 {
                     var entry = rows.Get<LeaderboardRow>(i + 1);
-                    rows.Replace<LeaderboardRow>(i, entry);
+                    rows.Replace(i, entry);
                 }
 
                 rows.RemoveAt(count);
@@ -219,11 +219,11 @@ namespace Phantasma.Business.Blockchain.Contracts
             {
                 if (count < leaderboard.size)
                 {
-                    rows.Add<LeaderboardRow>(newRow);
+                    rows.Add(newRow);
                     for (int i = (int)count; i > bestIndex; i--)
                     {
                         var entry = rows.Get<LeaderboardRow>(i - 1);
-                        rows.Replace<LeaderboardRow>(i, entry);
+                        rows.Replace(i, entry);
                     }
                 }
 
@@ -232,7 +232,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             else
             {
                 Runtime.Expect(bestIndex == count, "invalid insertion index");
-                rows.Add<LeaderboardRow>(newRow);
+                rows.Add(newRow);
             }
 
             rows = _rows.Get<string, StorageList>(name);

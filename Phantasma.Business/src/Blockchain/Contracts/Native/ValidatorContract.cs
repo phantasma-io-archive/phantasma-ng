@@ -4,19 +4,19 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     public sealed class ValidatorContract : NativeContract
     {
         public override NativeContractKind Kind => NativeContractKind.Validator;
 
         public const string ValidatorSlotsTag = "validator.slots";
-        
+
         public const string ValidatorRotationTimeTag = "validator.rotation.time";
         public static readonly BigInteger ValidatorRotationTimeDefault = 120;
 
         public const string ValidatorPollTag = "elections";
-        
+
 
 
 #pragma warning disable 0649
@@ -131,12 +131,12 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var count = 0;
             var max = GetMaxPrimaryValidators();
-            
+
             if (Runtime.ProtocolVersion >= 10)
             {
                 max = GetMaxTotalValidators();
             }
-            
+
             for (int i = 0; i < max; i++)
             {
                 var validator = GetValidatorByIndex(i);
@@ -145,7 +145,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                     count++;
                 }
             }
-            
+
             return count;
 
         }
@@ -155,8 +155,8 @@ namespace Phantasma.Business.Blockchain.Contracts
             if (Runtime.HasGenesis)
             {
                 var maxValidators = Runtime.GetGovernanceValue(ValidatorSlotsTag);
-                
-                if ( Runtime.ProtocolVersion <= DomainSettings.Phantasma30Protocol )
+
+                if (Runtime.ProtocolVersion <= DomainSettings.Phantasma30Protocol)
                 {
                     // This timestamp was 2023-02-07 16:30:00 UTC (1675787400 unix timestamp)
                     // This was needed because it was not using the correct governance value and with this it will be fixed.
@@ -166,7 +166,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                     }
                     else
                     {
-                        var result = (maxValidators * 10) / 25;
+                        var result = maxValidators * 10 / 25;
 
                         if (maxValidators > 0 && result < 1)
                         {
@@ -176,7 +176,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                         return result;
                     }
                 }
-                else if ( Runtime.ProtocolVersion == 9)
+                else if (Runtime.ProtocolVersion == 9)
                 {
                     // This timestamp was 2023-02-07 16:30:00 UTC (1675787400 unix timestamp)
                     // this was just to make sure that we could still use the old protocol version
@@ -184,7 +184,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 }
                 else
                 {
-                    var result = (maxValidators * 10) / 25;
+                    var result = maxValidators * 10 / 25;
 
                     if (maxValidators > 0 && result < 1)
                     {
@@ -316,7 +316,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 election = Runtime.Time,
                 type = type,
             };
-            _validators.Add<ValidatorEntry>(entry);
+            _validators.Add(entry);
 
             if (type == ValidatorType.Primary)
             {
@@ -331,7 +331,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             if (type != ValidatorType.Proposed)
             {
-                Runtime.AddMember(DomainSettings.ValidatorsOrganizationName, this.Address, target);
+                Runtime.AddMember(DomainSettings.ValidatorsOrganizationName, Address, target);
             }
 
             Runtime.Notify(type == ValidatorType.Proposed ? EventKind.ValidatorPropose : EventKind.ValidatorElect, Runtime.Chain.Address, target);
@@ -390,9 +390,9 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(entry.type == ValidatorType.Primary || entry.type == ValidatorType.Secondary, "not active validator");
 
             entry.address = to;
-            _validators.Replace<ValidatorEntry>(index, entry);
+            _validators.Replace(index, entry);
 
-            Runtime.MigrateMember(DomainSettings.ValidatorsOrganizationName, this.Address, from, to);
+            Runtime.MigrateMember(DomainSettings.ValidatorsOrganizationName, Address, from, to);
 
             Runtime.Notify(EventKind.ValidatorRemove, Runtime.Chain.Address, from);
             Runtime.Notify(EventKind.ValidatorElect, Runtime.Chain.Address, to);

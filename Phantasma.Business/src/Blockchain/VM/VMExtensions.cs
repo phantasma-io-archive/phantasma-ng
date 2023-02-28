@@ -7,7 +7,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 
-namespace Phantasma.Business.Blockchain
+namespace Phantasma.Business.Blockchain.VM
 {
     public static class VMExtensions
     {

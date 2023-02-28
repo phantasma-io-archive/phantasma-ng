@@ -3,7 +3,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     public sealed class MailContract : NativeContract
     {
@@ -45,7 +45,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         #region domains
         public bool DomainExists(string domainName)
         {
-            return _domainMap.ContainsKey<string>(domainName);
+            return _domainMap.ContainsKey(domainName);
         }
 
         public void RegisterDomain(Address from, string domainName)
@@ -55,7 +55,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Expect(!DomainExists(domainName), "domain already exists");
 
-            _domainMap.Set<string, Address>(domainName, from);
+            _domainMap.Set(domainName, from);
 
             JoinDomain(from, domainName);
 
@@ -70,7 +70,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
-            _domainMap.Remove<string>(domainName);
+            _domainMap.Remove(domainName);
 
             Runtime.Notify(EventKind.DomainDelete, from, domainName);
         }
@@ -86,7 +86,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
-            _domainMap.Set<string, Address>(domainName, target);
+            _domainMap.Set(domainName, target);
 
             var users = GetDomainUsers(domainName);
             foreach (var user in users)
@@ -115,9 +115,9 @@ namespace Phantasma.Business.Blockchain.Contracts
             var currentDomain = GetUserDomain(from);
             Runtime.Expect(string.IsNullOrEmpty(currentDomain), "already associated with domain: " + currentDomain);
 
-            _userMap.Set<Address, string>(from, domainName);
+            _userMap.Set(from, domainName);
             var list = _domainUsers.Get<string, StorageList>(domainName);
-            list.Add<Address>(from);
+            list.Add(from);
 
             Runtime.Notify(EventKind.AddressRegister, from, domainName);
         }
@@ -132,17 +132,17 @@ namespace Phantasma.Business.Blockchain.Contracts
             var currentDomain = GetUserDomain(from);
             Runtime.Expect(currentDomain == domainName, "not associated with domain: " + domainName);
 
-            _userMap.Remove<Address>(from);
+            _userMap.Remove(from);
 
             var list = _domainUsers.Get<string, StorageList>(domainName);
-            list.Remove<Address>(from);
+            list.Remove(from);
 
             Runtime.Notify(EventKind.AddressUnregister, from, domainName);
         }
 
         public string GetUserDomain(Address target)
         {
-            if (_userMap.ContainsKey<Address>(target))
+            if (_userMap.ContainsKey(target))
             {
                 return _userMap.Get<Address, string>(target);
             }

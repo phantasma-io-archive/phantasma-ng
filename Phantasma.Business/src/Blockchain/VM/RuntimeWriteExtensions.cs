@@ -1,13 +1,13 @@
 using System.Numerics;
 using System.Text;
-using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Utils;
 
-namespace Phantasma.Business.Blockchain;
+namespace Phantasma.Business.Blockchain.VM;
 
 public static class RuntimeWriteExtensions
 {
@@ -18,9 +18,9 @@ public static class RuntimeWriteExtensions
     /// <returns></returns>
     private static byte[] GetUsedQuotaKey(Address target)
     {
-        return SmartContract.GetKeyForField(NativeContractKind.Storage, "_dataQuotas", true);; 
+        return SmartContract.GetKeyForField(NativeContractKind.Storage, "_dataQuotas", true); ;
     }
-    
+
     /// <summary>
     /// Validate the key
     /// </summary>
@@ -32,7 +32,7 @@ public static class RuntimeWriteExtensions
         var firstChar = (char)key[0];
         Runtime.Expect(firstChar != '.', "permission denied"); // NOTE link correct PEPE here
     }
-    
+
     /// <summary>
     /// Set the used quota for a given address
     /// </summary>
@@ -46,7 +46,7 @@ public static class RuntimeWriteExtensions
         var storage = new StorageMap(GetUsedQuotaKey(target), Runtime.Storage);
         storage.Set(target, usedQuota);
     }
-    
+
     /// <summary>
     /// Write data to the storage of a given address
     /// </summary>
@@ -57,7 +57,7 @@ public static class RuntimeWriteExtensions
     internal static void WriteData(this IRuntime Runtime, Address target, byte[] Key, byte[] value)
     {
         ValidateKey(Runtime, Key);
-        
+
         var usedQuota = Runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.GetUsedDataQuota), target).AsNumber();
 
         BigInteger deleteSize = 0;
@@ -84,9 +84,9 @@ public static class RuntimeWriteExtensions
         {
             usedQuota = writeSize; // fix for data written in previous protocol
         }
-        
+
         Runtime.SetDataQuotas(target, usedQuota);
-        
+
         var temp = Runtime.Storage.Get(Key);
         Runtime.Expect(temp.Length == value.Length, "storage write corruption");
     }
@@ -115,7 +115,7 @@ public static class RuntimeWriteExtensions
         {
             usedQuota = 0;
         }
-        
+
         Runtime.SetDataQuotas(target, usedQuota);
     }
 }

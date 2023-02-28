@@ -6,7 +6,7 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     public struct MarketAuction
     {
@@ -71,7 +71,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var nft = Runtime.ReadToken(baseSymbol, tokenID);
             Runtime.Expect(nft.CurrentChain == Runtime.Chain.Name, "token not currently in this chain");
-            var marketAddress = SmartContract.GetAddressForNative(NativeContractKind.Market);
+            var marketAddress = GetAddressForNative(NativeContractKind.Market);
             Runtime.Expect(nft.CurrentOwner == marketAddress, "invalid owner");
 
             Runtime.Expect(price >= 0, "price has to be >= 0");
@@ -79,7 +79,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var auctionID = baseSymbol + "." + tokenID;
 
-            Runtime.Expect(_auctionMap.ContainsKey<string>(auctionID), "invalid auction");
+            Runtime.Expect(_auctionMap.ContainsKey(auctionID), "invalid auction");
 
             var auction = _auctionMap.Get<string, MarketAuction>(auctionID);
 
@@ -198,7 +198,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 type = TypeAuction.Fixed;
             }
 
-            Runtime.TransferToken(baseToken.Symbol, from, this.Address, tokenID);
+            Runtime.TransferToken(baseToken.Symbol, from, Address, tokenID);
 
             var auction = new MarketAuction(from, startDate, endDate, baseSymbol, quoteSymbol, tokenID, price, endPrice, extensionPeriod, type, listingFee, listingFeeAddress, 0, Address.Null, Address.Null);
             var auctionID = baseSymbol + "." + tokenID;
@@ -213,7 +213,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var auctionID = symbol + "." + tokenID;
 
-            Runtime.Expect(_auctionMap.ContainsKey<string>(auctionID), "invalid auction");
+            Runtime.Expect(_auctionMap.ContainsKey(auctionID), "invalid auction");
             var auction = _auctionMap.Get<string, MarketAuction>(auctionID);
 
             Runtime.Expect(price >= 0, "price has to be >= 0");
@@ -221,7 +221,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(buyingFee <= 5 && buyingFee >= 0, "buyingFee has to be <= 5% and >= 0%");
 
             Runtime.Expect(auction.StartDate < Runtime.Time, "you can not bid on an auction which has not started");
-            
+
 
             MarketAuction auctionNew;
 
@@ -251,7 +251,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                     }
                     else
                     {
-                        var minBid = (auction.EndPrice / 100) + auction.EndPrice;
+                        var minBid = auction.EndPrice / 100 + auction.EndPrice;
                         if (minBid == auction.EndPrice)
                             minBid = minBid + 1;
 
@@ -266,9 +266,9 @@ namespace Phantasma.Business.Blockchain.Contracts
                         startDateNew = Runtime.Time;
                         endDateNew = Runtime.Time + TimeSpan.FromDays(1);
                     }
-                    else if ((auction.EndDate - Runtime.Time) < auction.ExtensionPeriod) // extend timer if < extensionPeriod
+                    else if (auction.EndDate - Runtime.Time < auction.ExtensionPeriod) // extend timer if < extensionPeriod
                     {
-                        endDateNew = Runtime.Time + TimeSpan.FromSeconds((double) auction.ExtensionPeriod);
+                        endDateNew = Runtime.Time + TimeSpan.FromSeconds((double)auction.ExtensionPeriod);
                     }
 
                     // calculate listing & buying & refund fees
@@ -291,12 +291,12 @@ namespace Phantasma.Business.Blockchain.Contracts
                     combinedRefund += auction.EndPrice;
 
                     // transfer price + listing + buying fees to contract
-                    Runtime.TransferTokens(auction.QuoteSymbol, from, this.Address, combinedFees);
+                    Runtime.TransferTokens(auction.QuoteSymbol, from, Address, combinedFees);
 
                     // refund old bid amount + listing + buying fees to previous current winner if any
                     if (auction.CurrentBidWinner != Address.Null)
                     {
-                        Runtime.TransferTokens(auction.QuoteSymbol, this.Address, auction.CurrentBidWinner, combinedRefund);
+                        Runtime.TransferTokens(auction.QuoteSymbol, Address, auction.CurrentBidWinner, combinedRefund);
                     }
 
                     auctionNew = new MarketAuction(auction.Creator, startDateNew, endDateNew, auction.BaseSymbol, auction.QuoteSymbol, auction.TokenID, auction.Price, price, auction.ExtensionPeriod, auction.Type, auction.ListingFee, auction.ListingFeeAddress, buyingFee, buyingFeeAddress, from);
@@ -331,7 +331,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                     }
                     combinedFees += currentPrice;
 
-                    Runtime.TransferTokens(auction.QuoteSymbol, from, this.Address, combinedFees);
+                    Runtime.TransferTokens(auction.QuoteSymbol, from, Address, combinedFees);
 
                     auctionNew = new MarketAuction(auction.Creator, auction.StartDate, auction.EndDate, auction.BaseSymbol, auction.QuoteSymbol, auction.TokenID, auction.Price, currentPrice, auction.ExtensionPeriod, auction.Type, auction.ListingFee, auction.ListingFeeAddress, buyingFee, buyingFeeAddress, from);
                     _auctionMap.Set(auctionID, auctionNew);
@@ -375,7 +375,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Expect(price >= 0, "price has to be >= 0");
 
-            Runtime.TransferToken(baseToken.Symbol, from, this.Address, tokenID);
+            Runtime.TransferToken(baseToken.Symbol, from, Address, tokenID);
 
             var auction = new MarketAuction(from, Runtime.Time, endDate, baseSymbol, quoteSymbol, tokenID, price, 0, 0, TypeAuction.Fixed, 0, Address.Null, 0, Address.Null, Address.Null);
             var auctionID = baseSymbol + "." + tokenID;
@@ -391,7 +391,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var auctionID = symbol + "." + tokenID;
 
-            Runtime.Expect(_auctionMap.ContainsKey<string>(auctionID), "invalid auction");
+            Runtime.Expect(_auctionMap.ContainsKey(auctionID), "invalid auction");
             var auction = _auctionMap.Get<string, MarketAuction>(auctionID);
 
             Runtime.Expect(auction.Type == TypeAuction.Fixed, "BuyToken only supports fixed price listings");
@@ -413,7 +413,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             var auctionID = symbol + "." + tokenID;
 
-            Runtime.Expect(_auctionMap.ContainsKey<string>(auctionID), "invalid auction");
+            Runtime.Expect(_auctionMap.ContainsKey(auctionID), "invalid auction");
             var auction = _auctionMap.Get<string, MarketAuction>(auctionID);
 
             var from = auction.Creator;
@@ -434,7 +434,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                     Runtime.Expect(Runtime.Time < auction.StartDate || Runtime.Time > auction.EndDate, "auction can not be cancelled once it started, until it ends");
                 }
             }
-            else 
+            else
             {
                 if (auction.Type != TypeAuction.Fixed)
                 {
@@ -454,7 +454,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             var nft = Runtime.ReadToken(symbol, tokenID);
             Runtime.Expect(nft.CurrentChain == Runtime.Chain.Name, "token not currently in this chain");
-            Runtime.Expect(nft.CurrentOwner == this.Address, "invalid owner");
+            Runtime.Expect(nft.CurrentOwner == Address, "invalid owner");
 
             // if not a cancellation
             if (auction.Creator != from)
@@ -487,7 +487,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
                     Runtime.Expect(balance >= combinedFees, "not enough balance to pay the fees");
 
-                    Runtime.TransferTokens(auction.QuoteSymbol, from, this.Address, combinedFees);
+                    Runtime.TransferTokens(auction.QuoteSymbol, from, Address, combinedFees);
                 }
 
                 // handle royalties
@@ -505,33 +505,33 @@ namespace Phantasma.Business.Blockchain.Contracts
                         nftRoyalty = 50; // we don't allow more than 50% royalties fee
                     }
                     var royaltyFee = finalAmount * nftRoyalty / 100;
-                    Runtime.TransferTokens(quoteToken.Symbol, this.Address, nftData.Creator, royaltyFee);
+                    Runtime.TransferTokens(quoteToken.Symbol, Address, nftData.Creator, royaltyFee);
                     finalAmount -= royaltyFee;
                 }
 
                 // transfer sale amount
-                Runtime.TransferTokens(quoteToken.Symbol, this.Address, auction.Creator, finalAmount);
+                Runtime.TransferTokens(quoteToken.Symbol, Address, auction.Creator, finalAmount);
 
                 // transfer listing fees
                 if (listFee != 0)
                 {
-                    Runtime.TransferTokens(quoteToken.Symbol, this.Address, auction.ListingFeeAddress, listFee);
+                    Runtime.TransferTokens(quoteToken.Symbol, Address, auction.ListingFeeAddress, listFee);
                 }
 
                 // transfer buying fees
                 if (buyFee != 0)
                 {
-                    Runtime.TransferTokens(quoteToken.Symbol, this.Address, auction.BuyingFeeAddress, buyFee);
+                    Runtime.TransferTokens(quoteToken.Symbol, Address, auction.BuyingFeeAddress, buyFee);
                 }
 
             }
 
             // send nft to buyer
-            Runtime.TransferToken(baseToken.Symbol, this.Address, from, auction.TokenID);
+            Runtime.TransferToken(baseToken.Symbol, Address, from, auction.TokenID);
 
             var auctionID = symbol + "." + tokenID;
-            _auctionMap.Remove<string>(auctionID);
-            _auctionIds.Remove<string>(auctionID);
+            _auctionMap.Remove(auctionID);
+            _auctionIds.Remove(auctionID);
         }
 
         private BigInteger GetFee(string symbol, BigInteger price, BigInteger fee)
@@ -576,14 +576,14 @@ namespace Phantasma.Business.Blockchain.Contracts
         public bool HasAuction(string symbol, BigInteger tokenID)
         {
             var auctionID = symbol + "." + tokenID;
-            return _auctionMap.ContainsKey<string>(auctionID);
+            return _auctionMap.ContainsKey(auctionID);
         }
 
         public MarketAuction GetAuction(string symbol, BigInteger tokenID)
         {
             var auctionID = symbol + "." + tokenID;
 
-            Runtime.Expect(_auctionMap.ContainsKey<string>(auctionID), "invalid auction");
+            Runtime.Expect(_auctionMap.ContainsKey(auctionID), "invalid auction");
             var auction = _auctionMap.Get<string, MarketAuction>(auctionID);
             return auction;
         }

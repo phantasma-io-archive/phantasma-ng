@@ -4,7 +4,7 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     public enum InteropTransferStatus
     {
@@ -95,7 +95,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(from.IsUser, "must be user address");
 
             var chainHashes = _platformHashes.Get<string, StorageMap>(platform);
-            Runtime.Expect(!chainHashes.ContainsKey<Hash>(hash), "hash already seen");
+            Runtime.Expect(!chainHashes.ContainsKey(hash), "hash already seen");
 
             var interopTx = Runtime.ReadTransactionFromOracle(platform, chain, hash);
 
@@ -120,7 +120,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 if (index >= 0)
                 {
                     Runtime.Expect(Runtime.TokenExists(transfer.Symbol), "invalid token");
-                    var token = this.Runtime.GetToken(transfer.Symbol);
+                    var token = Runtime.GetToken(transfer.Symbol);
 
                     if (token.Flags.HasFlag(TokenFlags.Fungible))
                     {
@@ -139,7 +139,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
                     var org = Runtime.GetOrganization(DomainSettings.ValidatorsOrganizationName);
                     Runtime.Expect(org.IsMember(from), $"{from.Text} is not a validator node");
-                    Runtime.TransferTokens(withdraw.feeSymbol, this.Address, from, withdraw.feeAmount);
+                    Runtime.TransferTokens(withdraw.feeSymbol, Address, from, withdraw.feeAmount);
 
                     RegisterHistory(hash, withdraw.hash, DomainSettings.PlatformName, Runtime.Chain.Name, transfer.sourceAddress, hash, platform, chain, withdraw.destination, transfer.Symbol, transfer.Value);
                     swapCount++;
@@ -158,7 +158,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                             if (!isInternalTransfer)
                             {
                                 Runtime.Expect(Runtime.TokenExists(transfer.Symbol), "invalid token");
-                                var token = this.Runtime.GetToken(transfer.Symbol);
+                                var token = Runtime.GetToken(transfer.Symbol);
 
                                 if (token.Flags.HasFlag(TokenFlags.Fungible))
                                 {
@@ -169,7 +169,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                                     Runtime.Expect(Runtime.NFTExists(transfer.Symbol, transfer.Value), $"nft {transfer.Value} must exist");
                                 }
 
-                                
+
                                 Runtime.Expect(token.Flags.HasFlag(TokenFlags.Transferable), "token must be transferable");
                                 Runtime.Expect(token.Flags.HasFlag(TokenFlags.Swappable), "transfer token must be swappable");
 
@@ -181,7 +181,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                                 if (!token.Flags.HasFlag(TokenFlags.Fungible))
                                 {
                                     var externalNft = Runtime.ReadNFTFromOracle(platform, transfer.Symbol, transfer.Value);
-                                    var ram = Serialization.Serialize(externalNft);
+                                    var ram = externalNft.Serialize();
 
                                     var localNft = Runtime.ReadToken(transfer.Symbol, transfer.Value);
                                     Runtime.WriteToken(from, transfer.Symbol, transfer.Value, ram); // TODO "from" here might fail due to contract triggers, review this later
@@ -200,7 +200,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
 
             Runtime.Expect(swapCount > 0, "nothing to settle");
-            chainHashes.Set<Hash, Hash>(hash, Runtime.Transaction.Hash);
+            chainHashes.Set(hash, Runtime.Transaction.Hash);
             Runtime.Notify(EventKind.ChainSwap, from, new TransactionSettleEventData(hash, platform, chain));
         }
 
@@ -218,7 +218,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Expect(Runtime.TokenExists(symbol), "invalid token");
 
-            var transferTokenInfo = this.Runtime.GetToken(symbol);
+            var transferTokenInfo = Runtime.GetToken(symbol);
             Runtime.Expect(transferTokenInfo.Flags.HasFlag(TokenFlags.Transferable), "transfer token must be transferable");
             Runtime.Expect(transferTokenInfo.Flags.HasFlag(TokenFlags.Swappable), "transfer token must be swappable");
 
@@ -239,7 +239,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(platform != null, "invalid platform");
 
             int interopIndex = -1;
-            for (int i=0; i<platform.InteropAddresses.Length; i++)
+            for (int i = 0; i < platform.InteropAddresses.Length; i++)
             {
                 if (platform.InteropAddresses[i].LocalAddress == to)
                 {
@@ -256,7 +256,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             var feeSymbol = platform.Symbol;
             Runtime.Expect(Runtime.TokenExists(feeSymbol), "invalid fee token");
 
-            var feeTokenInfo = this.Runtime.GetToken(feeSymbol);
+            var feeTokenInfo = Runtime.GetToken(feeSymbol);
             Runtime.Expect(feeTokenInfo.Flags.HasFlag(TokenFlags.Fungible), "fee token must be fungible");
             Runtime.Expect(feeTokenInfo.Flags.HasFlag(TokenFlags.Transferable), "fee token must be transferable");
 
@@ -274,7 +274,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 Runtime.Expect(feeBalance >= feeAmount, $"missing {feeSymbol} for interop swap");
             }
 
-            Runtime.TransferTokens(feeSymbol, from, this.Address, feeAmount);
+            Runtime.TransferTokens(feeSymbol, from, Address, feeAmount);
 
             Runtime.SwapTokens(Runtime.Chain.Name, from, platform.Name, to, symbol, value);
 
@@ -288,13 +288,13 @@ namespace Phantasma.Business.Blockchain.Contracts
                 hash = Runtime.Transaction.Hash,
                 timestamp = Runtime.Time
             };
-            _withdraws.Add<InteropWithdraw>(withdraw);
+            _withdraws.Add(withdraw);
         }
 
         public Hash GetSettlement(string platformName, Hash hash)
         {
             var chainHashes = _platformHashes.Get<string, StorageMap>(platformName);
-            if (chainHashes.ContainsKey<Hash>(hash))
+            if (chainHashes.ContainsKey(hash))
             {
                 return chainHashes.Get<Hash, Hash>(hash);
             }
@@ -305,7 +305,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         public InteropTransferStatus GetStatus(string platformName, Hash hash)
         {
             var chainHashes = _platformHashes.Get<string, StorageMap>(platformName);
-            if (chainHashes.ContainsKey<Hash>(hash))
+            if (chainHashes.ContainsKey(hash))
             {
                 return InteropTransferStatus.Confirmed;
             }
@@ -325,7 +325,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         }
 
         #region SWAP HISTORY
-        private void RegisterHistory(Hash swapHash, Hash sourceHash, string sourcePlatform, string sourceChain, Address sourceAddress,  Hash destHash,  string destPlatform, string destChain,  Address destAddress, string symbol, BigInteger value) 
+        private void RegisterHistory(Hash swapHash, Hash sourceHash, string sourcePlatform, string sourceChain, Address sourceAddress, Hash destHash, string destPlatform, string destChain, Address destAddress, string symbol, BigInteger value)
         {
             var entry = new InteropHistory()
             {
@@ -341,7 +341,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 value = value,
             };
 
-            _swapMap.Set<Hash, InteropHistory>(swapHash, entry);
+            _swapMap.Set(swapHash, entry);
 
             AppendToHistoryMap(swapHash, sourceAddress);
             AppendToHistoryMap(swapHash, destAddress);
@@ -350,7 +350,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         private void AppendToHistoryMap(Hash swapHash, Address target)
         {
             var list = _historyMap.Get<Address, StorageList>(target);
-            list.Add<Hash>(swapHash);
+            list.Add(swapHash);
         }
 
         public InteropHistory[] GetSwapsForAddress(Address address)
@@ -359,7 +359,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             var count = (int)list.Count();
 
             var result = new InteropHistory[count];
-            for (int i=0; i<count; i++)
+            for (int i = 0; i < count; i++)
             {
                 var hash = list.Get<Hash>(i);
                 result[i] = _swapMap.Get<Hash, InteropHistory>(hash);

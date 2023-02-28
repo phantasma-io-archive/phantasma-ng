@@ -11,7 +11,7 @@ using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     public struct RelayMessage : ISerializable
     {
@@ -87,7 +87,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public static RelayReceipt FromMessage(RelayMessage msg, PhantasmaKeys keys)
         {
-            if(msg.script == null || msg.script.SequenceEqual(new byte[0]))
+            if (msg.script == null || msg.script.SequenceEqual(new byte[0]))
                 throw new Exception("RelayMessage script cannot be empty or null");
 
             var bytes = msg.ToByteArray();
@@ -125,7 +125,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public BigInteger GetBalance(Address from)
         {
-            if (_balances.ContainsKey<Address>(from))
+            if (_balances.ContainsKey(from))
             {
                 return _balances.Get<Address, BigInteger>(from);
             }
@@ -135,7 +135,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         public BigInteger GetIndex(Address from, Address to)
         {
             var key = MakeKey(from, to);
-            if (_indices.ContainsKey<string>(key))
+            if (_indices.ContainsKey(key))
             {
                 return _indices.Get<string, BigInteger>(key);
             }
@@ -145,7 +145,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public Address GetTopUpAddress(Address from)
         {
-            var bytes = Encoding.UTF8.GetBytes(from.Text+".relay");
+            var bytes = Encoding.UTF8.GetBytes(from.Text + ".relay");
             return Address.FromHash(bytes);
         }
 
@@ -212,16 +212,16 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void OpenChannel(Address from, byte[] publicKey)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
-            Runtime.Expect(!_keys.ContainsKey<Address>(from), "channel already open");
+            Runtime.Expect(!_keys.ContainsKey(from), "channel already open");
 
-            _keys.Set<Address, byte[]>(from, publicKey);
+            _keys.Set(from, publicKey);
 
             Runtime.Notify(EventKind.ChannelCreate, from, publicKey);
         }
 
         public byte[] GetKey(Address from)
         {
-            Runtime.Expect(_keys.ContainsKey<Address>(from), "channel not open");
+            Runtime.Expect(_keys.ContainsKey(from), "channel not open");
             return _keys.Get<Address, byte[]>(from);
         }
 
@@ -231,16 +231,16 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(count >= 1, "insufficient topup amount");
             var amount = RelayFeePerMessage * count;
 
-            Runtime.Expect(_keys.ContainsKey<Address>(from), "channel not open");
+            Runtime.Expect(_keys.ContainsKey(from), "channel not open");
 
             BigInteger balance = _balances.ContainsKey(from) ? _balances.Get<Address, BigInteger>(from) : 0;
 
             var availableBalance = Runtime.GetBalance(DomainSettings.FuelTokenSymbol, from);
             Runtime.Expect(availableBalance >= amount, $"insufficient balance in account {availableBalance}/{amount}");
-            Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, from, this.Address, amount);
+            Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, from, Address, amount);
             balance += amount;
             Runtime.Expect(balance >= 0, "invalid balance");
-            _balances.Set<Address, BigInteger>(from, balance);
+            _balances.Set(from, balance);
 
             Runtime.Notify(EventKind.ChannelRefill, from, count);
         }
@@ -265,19 +265,19 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(receipt.signature.Verify(bytes, receipt.message.sender), "invalid signature");
 
             balance -= expectedFee;
-            _balances.Set<Address, BigInteger>(receipt.message.sender, balance);
+            _balances.Set(receipt.message.sender, balance);
             var key = MakeKey(receipt.message.sender, receipt.message.receiver);
-            _indices.Set<string, BigInteger>(key, receipt.message.index + 1);
+            _indices.Set(key, receipt.message.index + 1);
 
             Runtime.Expect(expectedFee > 0, "invalid payout");
 
             var payout = expectedFee / 2;
 
             // send half to the chain
-            Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, this.Address, this.Address, payout);
+            Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, Address, Address, payout);
 
             // send half to the receiver
-            Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, this.Address, receipt.message.receiver, payout);
+            Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, Address, receipt.message.receiver, payout);
 
             Runtime.Notify(EventKind.ChannelSettle, receipt.message.sender, receiptCount);
         }

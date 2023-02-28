@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using Phantasma.Business.Blockchain;
+using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.VM;
 using Phantasma.Core.Domain;
 using Shouldly;

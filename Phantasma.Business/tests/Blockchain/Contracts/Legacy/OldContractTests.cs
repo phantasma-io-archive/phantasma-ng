@@ -7,11 +7,11 @@ using System.Collections.Generic;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
-using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM;
+using Phantasma.Business.Blockchain.Contracts.Native;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 

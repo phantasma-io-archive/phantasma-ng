@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.VM;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Performance;
 using Serilog;
 
-namespace Phantasma.Business.Blockchain
+namespace Phantasma.Business.Blockchain.VM
 {
     public class ChainExecutionContext : ExecutionContext
     {
@@ -17,14 +18,14 @@ namespace Phantasma.Business.Blockchain
 
         public ChainExecutionContext(SmartContract contract)
         {
-            this.Contract = contract;
+            Contract = contract;
         }
 
         public override ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack)
         {
-            if (this.Contract.ABI == null)
+            if (Contract.ABI == null)
             {
-                throw new VMException(frame.VM, $"VM nativecall failed: ABI is missing for contract '{this.Contract.Name}'");
+                throw new VMException(frame.VM, $"VM nativecall failed: ABI is missing for contract '{Contract.Name}'");
             }
 
             if (stack.Count <= 0)
@@ -34,20 +35,20 @@ namespace Phantasma.Business.Blockchain
 
             var stackObj = stack.Pop();
             var methodName = stackObj.AsString();
-            
+
             var runtime = (RuntimeVM)frame.VM;
 
             if (methodName.Equals(SmartContract.ConstructorName, StringComparison.OrdinalIgnoreCase) && runtime.HasGenesis)
             {
                 BigInteger usedQuota;
-                
-                if (Blockchain.Nexus.IsNativeContract(Contract.Name)) 
+
+                if (Nexus.IsNativeContract(Contract.Name))
                 {
                     usedQuota = 1024; // does not matter what number, just than its greater than 0
                 }
                 else
                 {
-                    usedQuota = runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.GetUsedDataQuota), this.Contract.Address).AsNumber();
+                    usedQuota = runtime.CallNativeContext(NativeContractKind.Storage, nameof(StorageContract.GetUsedDataQuota), Contract.Address).AsNumber();
                 }
 
                 if (usedQuota > 0)
@@ -56,11 +57,11 @@ namespace Phantasma.Business.Blockchain
                 }
             }
 
-            var method = this.Contract.ABI.FindMethod(methodName);
+            var method = Contract.ABI.FindMethod(methodName);
 
             if (method == null)
             {
-                throw new VMException(frame.VM, $"VM nativecall failed: contract '{this.Contract.Name}' does not have method '{methodName}' in its ABI");
+                throw new VMException(frame.VM, $"VM nativecall failed: contract '{Contract.Name}' does not have method '{methodName}' in its ABI");
             }
 
             if (stack.Count < method.parameters.Length)
@@ -77,28 +78,28 @@ namespace Phantasma.Business.Blockchain
                 return result;
             }
 
-                var native = Contract as NativeContract;
+            var native = Contract as NativeContract;
             if (native != null)
             {
                 try
-                {            
+                {
                     native.SetRuntime(runtime);
                     native.LoadFromStorage(runtime.Storage);
 
                     result = InternalCall(native, method, frame, stack);
                     native.SaveChangesToStorage();
-                 
+
                 }
                 catch (ArgumentException ex)
                 {
                     throw new VMException(frame.VM, $"VM nativecall failed: calling method {methodName} with arguments of wrong type, " + ex.ToString());
                 }
-                
+
             }
             else
             {
                 var custom = Contract as CustomContract;
-                
+
                 if (custom != null)
                 {
                     if (method.offset < 0)
@@ -143,13 +144,13 @@ namespace Phantasma.Business.Blockchain
             }
 
             object result;
-            result = contract.CallInternalMethod((RuntimeVM) frame.VM, method.name, args);
+            result = contract.CallInternalMethod((RuntimeVM)frame.VM, method.name, args);
 
             if (method.returnType != VMType.None)
             {
                 if (((RuntimeVM)frame.VM).ProtocolVersion > 8)
                 {
-                    if ( result is Array && result.GetType().GetElementType() != typeof(byte))
+                    if (result is Array && result.GetType().GetElementType() != typeof(byte))
                     {
                         /*foreach ( var item in (Array)result)
                         {

@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using Phantasma.Business.VM;
 using Phantasma.Core.Domain;
 
-namespace Phantasma.Business.Blockchain
+namespace Phantasma.Business.Blockchain.VM
 {
     internal class DummyExecutionContext : ExecutionContext
     {
@@ -15,7 +15,7 @@ namespace Phantasma.Business.Blockchain
 
         public DummyExecutionContext(string name)
         {
-            this._name = name;
+            _name = name;
         }
 
         public override ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack)
@@ -130,7 +130,7 @@ namespace Phantasma.Business.Blockchain
                     }
                 }
             }
-            
+
             return ConsumeGas(gasCost);
         }
 

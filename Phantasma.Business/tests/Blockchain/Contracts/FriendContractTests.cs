@@ -1,5 +1,4 @@
 using System.Numerics;
-using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
@@ -11,6 +10,7 @@ namespace Phantasma.Business.Tests.Blockchain.Contracts;
 using Xunit;
 
 using Phantasma.Business.Blockchain;
+using Phantasma.Business.Blockchain.Contracts.Native;
 
 [Collection(nameof(SystemTestCollectionDefinition))]
 public class FriendContractTests

@@ -10,7 +10,7 @@ using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
     public enum ConsensusMode
     {
@@ -32,7 +32,7 @@ namespace Phantasma.Business.Blockchain.Contracts
     public struct PollChoice : ISerializable
     {
         public byte[] value;
-        
+
         public PollChoice(byte[] value)
         {
             this.value = value;
@@ -54,14 +54,14 @@ namespace Phantasma.Business.Blockchain.Contracts
         public byte[] value;
         public BigInteger ranking;
         public BigInteger votes;
-        
+
         public PollValue(byte[] value, BigInteger ranking, BigInteger votes)
         {
             this.value = value;
             this.ranking = ranking;
             this.votes = votes;
         }
-        
+
         public void SerializeData(BinaryWriter writer)
         {
             writer.WriteByteArray(value);
@@ -81,13 +81,13 @@ namespace Phantasma.Business.Blockchain.Contracts
     {
         public BigInteger index;
         public BigInteger percentage;
-        
-        public PollVote (BigInteger index, BigInteger percentage)
+
+        public PollVote(BigInteger index, BigInteger percentage)
         {
             this.index = index;
             this.percentage = percentage;
         }
-        
+
         public void SerializeData(BinaryWriter writer)
         {
             writer.WriteBigInteger(index);
@@ -114,8 +114,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         public BigInteger choicesPerUser;
         public BigInteger totalVotes;
         public Timestamp consensusTime;
-        
-        public ConsensusPoll (string subject, string organization, ConsensusMode mode, PollState state, PollValue[] entries, BigInteger round, Timestamp startTime, Timestamp endTime, BigInteger choicesPerUser, BigInteger totalVotes, Timestamp consensusTime)
+
+        public ConsensusPoll(string subject, string organization, ConsensusMode mode, PollState state, PollValue[] entries, BigInteger round, Timestamp startTime, Timestamp endTime, BigInteger choicesPerUser, BigInteger totalVotes, Timestamp consensusTime)
         {
             this.subject = subject;
             this.organization = organization;
@@ -174,13 +174,13 @@ namespace Phantasma.Business.Blockchain.Contracts
     {
         public string subject;
         public BigInteger round;
-        
-        public PollPresence (string subject, BigInteger round)
+
+        public PollPresence(string subject, BigInteger round)
         {
             this.subject = subject;
             this.round = round;
         }
-        
+
         public void SerializeData(BinaryWriter writer)
         {
             writer.WriteVarString(subject);
@@ -200,7 +200,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
 #pragma warning disable 0649
         internal StorageMap _pollMap; //<string, Poll> 
-        internal StorageList _pollList; 
+        internal StorageList _pollList;
         internal StorageMap _presences; // address, List<PollPresence>
         internal StorageMap _transactionMap; // string, Transaction
         internal StorageMap _transactionMapRules; // string, List<Address>
@@ -246,7 +246,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 else if (Runtime.Time >= poll.startTime && Runtime.Time < poll.endTime && poll.state == PollState.Inactive)
                 {
                     poll.state = PollState.Active;
-                    _pollList.Add<string>(subject);
+                    _pollList.Add(subject);
                 }
                 else if ((Runtime.Time >= poll.endTime || poll.totalVotes >= MaxVotesPerPoll) && poll.state == PollState.Active)
                 {
@@ -263,7 +263,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                     var rankings = poll.entries.OrderByDescending(x => x.votes).ToArray();
 
                     var winner = rankings[0];
-                    
+
                     bool hasTies = rankings.Length > 1 && rankings[1].votes == winner.votes;
 
                     for (int i = 0; i < poll.entries.Length; i++)
@@ -279,11 +279,11 @@ namespace Phantasma.Business.Blockchain.Contracts
                             }
                         }
                         Runtime.Expect(index >= 0, "missing entry in poll rankings");
-                    
+
                         poll.entries[i].ranking = index;
                     }
-                    
-                    BigInteger percentage = (winner.votes * 100) / totalVotes;
+
+                    BigInteger percentage = winner.votes * 100 / totalVotes;
 
                     if (poll.mode == ConsensusMode.Unanimity && percentage < 100)
                     {
@@ -302,9 +302,9 @@ namespace Phantasma.Business.Blockchain.Contracts
                         poll.state = PollState.Consensus;
                     }
 
-                    _pollMap.Set<string, ConsensusPoll>(subject, poll);
+                    _pollMap.Set(subject, poll);
 
-                    Runtime.Notify(EventKind.PollClosed, this.Address, subject);
+                    Runtime.Notify(EventKind.PollClosed, Address, subject);
                 }
                 else
                 {
@@ -313,11 +313,11 @@ namespace Phantasma.Business.Blockchain.Contracts
                         if (Runtime.Time >= poll.endTime.Value + DefaultConsensusTime && poll.state == PollState.Consensus)
                         {
                             poll.state = PollState.Finished;
-                            _pollMap.Set<string, ConsensusPoll>(subject, poll);
+                            _pollMap.Set(subject, poll);
                         }
                     }
                 }
-                
+
             }
 
             return poll;
@@ -364,7 +364,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
             ConsensusPoll poll;
-            if (_pollMap.ContainsKey<string>(subject))
+            if (_pollMap.ContainsKey(subject))
             {
                 poll = FetchPoll(subject);
                 if (Runtime.ProtocolVersion <= 8)
@@ -375,7 +375,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 {
                     Runtime.Expect(poll.state == PollState.Consensus || poll.state == PollState.Failure || poll.state == PollState.Finished, "poll already in progress");
                 }
-                
+
                 poll.round += 1;
                 poll.state = PollState.Inactive;
             }
@@ -393,7 +393,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             poll.state = PollState.Inactive;
             poll.choicesPerUser = votesPerUser;
             poll.totalVotes = 0;
-            if ( Runtime.ProtocolVersion >= 8 )
+            if (Runtime.ProtocolVersion >= 8)
             {
                 poll.consensusTime = consensusTime;
             }
@@ -420,15 +420,15 @@ namespace Phantasma.Business.Blockchain.Contracts
                 };
             }
 
-            _pollMap.Set<string, ConsensusPoll>(subject, poll);
+            _pollMap.Set(subject, poll);
 
-            Runtime.Notify(EventKind.PollCreated, this.Address, subject);
+            Runtime.Notify(EventKind.PollCreated, Address, subject);
         }
 
         public void InitPoll(Address from, string subject, string organization, ConsensusMode mode, Timestamp startTime,
             Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser)
-        { 
-            this.InitPollV2(from, subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser, DefaultConsensusTime);
+        {
+            InitPollV2(from, subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser, DefaultConsensusTime);
         }
 
         public void SingleVote(Address from, string subject, BigInteger index)
@@ -438,7 +438,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public void MultiVote(Address from, string subject, PollVote[] choices)
         {
-            Runtime.Expect(_pollMap.ContainsKey<string>(subject), "invalid poll subject");
+            Runtime.Expect(_pollMap.ContainsKey(subject), "invalid poll subject");
 
             Runtime.Expect(choices.Length > 0, "invalid number of choices");
 
@@ -447,7 +447,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(poll.state == PollState.Active, "poll not active");
 
             var organization = Runtime.GetOrganization(poll.organization);
-            Runtime.Expect(organization.IsMember(from), "must be member of organization: "+poll.organization);
+            Runtime.Expect(organization.IsMember(from), "must be member of organization: " + poll.organization);
 
             Runtime.Expect(choices.Length <= poll.choicesPerUser, "too many choices");
 
@@ -458,7 +458,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             int index = -1;
             BigInteger round = 0;
 
-            for (int i=0; i<count; i++)
+            for (int i = 0; i < count; i++)
             {
                 var presence = presences.Get<PollPresence>(i);
                 if (presence.subject == subject)
@@ -487,9 +487,9 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Expect(votingPower > 0, "not enough voting power");
 
-            for (int i=0; i<choices.Length; i++)
+            for (int i = 0; i < choices.Length; i++)
             {
-                var votes = (votingPower * choices[i].percentage) / 100;
+                var votes = votingPower * choices[i].percentage / 100;
                 Runtime.Expect(votes > 0, "choice percentage is too low");
 
                 var targetIndex = (int)choices[i].index;
@@ -497,7 +497,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
 
             poll.totalVotes += 1;
-            _pollMap.Set<string, ConsensusPoll>(subject, poll);
+            _pollMap.Set(subject, poll);
 
             // finally add this voting round to the presences list
             var temp = new PollPresence()
@@ -508,7 +508,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             if (index >= 0)
             {
-                presences.Replace<PollPresence>(index, temp);
+                presences.Replace(index, temp);
             }
             else
             {
@@ -539,7 +539,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                         return false;
                     }
                 }
-                
+
             }
 
             var rank = GetRank(subject, value);
@@ -548,7 +548,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
         public BigInteger GetRank(string subject, byte[] value)
         {
-            Runtime.Expect(_pollMap.ContainsKey<string>(subject), "invalid poll subject");
+            Runtime.Expect(_pollMap.ContainsKey(subject), "invalid poll subject");
 
             var poll = FetchPoll(subject);
             Runtime.Expect(poll.state == PollState.Consensus, "no consensus reached");
@@ -561,7 +561,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                 }
             }
 
-            Runtime.Expect(_pollMap.ContainsKey<string>(subject), "invalid value");
+            Runtime.Expect(_pollMap.ContainsKey(subject), "invalid value");
             return -1;
         }
 
@@ -569,7 +569,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             return _pollMap.Get<string, ConsensusPoll>(subject);
         }
-        
+
         public ConsensusPoll[] GetConsensusPolls()
         {
             return _pollMap.AllValues<ConsensusPoll>();
@@ -587,7 +587,7 @@ namespace Phantasma.Business.Blockchain.Contracts
             
             return result;*/
         }
-        
+
         #region Multisignature Transactions
         /// <summary>
         /// Gets the multisignature transaction.
@@ -598,8 +598,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         public Transaction GetTransaction(Address from, string subject)
         {
             Runtime.Expect(Runtime.IsWitness(from), "not a valid witness");
-            Runtime.Expect(_transactionMap.ContainsKey<string>(subject), "transaction doesn't exist");
-            Runtime.Expect(_transactionMapRules.ContainsKey<string>(subject), "transaction doesn't exist");
+            Runtime.Expect(_transactionMap.ContainsKey(subject), "transaction doesn't exist");
+            Runtime.Expect(_transactionMapRules.ContainsKey(subject), "transaction doesn't exist");
             var transaction = _transactionMapSigned.Get<string, Transaction>(subject);
             var addresses = _transactionMapRules.Get<string, Address[]>(subject);
             Runtime.Expect(addresses.Contains(from), "not a valid witness for the transaction");
@@ -615,12 +615,12 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void CreateTransaction(Address from, string subject, Transaction transaction, Address[] listOfUsers)
         {
             Runtime.Expect(Runtime.IsWitness(from), "not a valid witness");
-            Runtime.Expect(!_transactionMap.ContainsKey<string>(subject), "transaction already exists");
-            Runtime.Expect(!_transactionMapSigned.ContainsKey<string>(subject), "transaction already exists");
-            
-            _transactionMap.Set<string, Transaction>(subject, transaction);
-            _transactionMapSigned.Set<string, Transaction>(subject, transaction);
-            _transactionMapRules.Set<string, Address[]>(subject, listOfUsers);
+            Runtime.Expect(!_transactionMap.ContainsKey(subject), "transaction already exists");
+            Runtime.Expect(!_transactionMapSigned.ContainsKey(subject), "transaction already exists");
+
+            _transactionMap.Set(subject, transaction);
+            _transactionMapSigned.Set(subject, transaction);
+            _transactionMapRules.Set(subject, listOfUsers);
         }
 
         /// <summary>
@@ -632,12 +632,12 @@ namespace Phantasma.Business.Blockchain.Contracts
         public void AddSignatureTransaction(Address from, string subject, byte[] signature)
         {
             Runtime.Expect(Runtime.IsWitness(from), "not a valid witness");
-            Runtime.Expect(_transactionMap.ContainsKey<string>(subject), "transaction doesn't exist");
-            Runtime.Expect(_transactionMapSigned.ContainsKey<string>(subject), "transaction doesn't exist");
-            Runtime.Expect(_transactionMapRules.ContainsKey<string>(subject), "transaction doesn't exist");
+            Runtime.Expect(_transactionMap.ContainsKey(subject), "transaction doesn't exist");
+            Runtime.Expect(_transactionMapSigned.ContainsKey(subject), "transaction doesn't exist");
+            Runtime.Expect(_transactionMapRules.ContainsKey(subject), "transaction doesn't exist");
             Runtime.Expect(signature != null, "null signature");
             Runtime.Expect(signature.Length != 0, "invalid signature length");
-            
+
             var transaction = _transactionMapSigned.Get<string, Transaction>(subject);
             var addresses = _transactionMapRules.Get<string, Address[]>(subject);
             if (signature.Length == 65)
@@ -646,11 +646,11 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Expect(addresses.Contains(from), "not a valid witness for the transaction");
             Runtime.Expect(!transaction.Signatures.Contains(sig), "User already signed the transaction");
-            
+
             var msg = transaction.ToByteArray(false);
             Runtime.Expect(sig.Verify(msg, from), "invalid signature");
             transaction.AddSignature(sig);
-            _transactionMapSigned.Set<string, Transaction>(subject, transaction);
+            _transactionMapSigned.Set(subject, transaction);
         }
 
         /// <summary>
@@ -663,9 +663,9 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(addresses.Length > 0, "invalid from");
             Runtime.Expect(subject != null, "invalid subject");
             Runtime.Expect(subject.Length > 0, "invalid subject");
-            Runtime.Expect(_transactionMap.ContainsKey<string>(subject), "transaction doesn't exist");
-            Runtime.Expect(_transactionMapSigned.ContainsKey<string>(subject), "transaction doesn't exist");
-            Runtime.Expect(_transactionMapRules.ContainsKey<string>(subject), "transaction doesn't exist");
+            Runtime.Expect(_transactionMap.ContainsKey(subject), "transaction doesn't exist");
+            Runtime.Expect(_transactionMapSigned.ContainsKey(subject), "transaction doesn't exist");
+            Runtime.Expect(_transactionMapRules.ContainsKey(subject), "transaction doesn't exist");
             var transactionAddresses = _transactionMapRules.Get<string, Address[]>(subject);
             bool isWitness = false;
             foreach (var address in addresses)
@@ -676,13 +676,13 @@ namespace Phantasma.Business.Blockchain.Contracts
                     isWitness = true;
                 }
             }
-            
+
             Runtime.Expect(isWitness, "not a valid witness");
-            _transactionMap.Remove<string>(subject);
-            _transactionMapSigned.Remove<string>(subject);
-            _transactionMapRules.Remove<string>(subject);
+            _transactionMap.Remove(subject);
+            _transactionMapSigned.Remove(subject);
+            _transactionMapRules.Remove(subject);
         }
-        
+
         /// <summary>
         /// To execute the transaction with multiple signatures
         /// </summary>

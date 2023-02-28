@@ -3,9 +3,9 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 
-namespace Phantasma.Business.Blockchain.Contracts
+namespace Phantasma.Business.Blockchain.Contracts.Native
 {
-    public sealed class BlockContract: NativeContract
+    public sealed class BlockContract : NativeContract
     {
         public override NativeContractKind Kind => NativeContractKind.Block;
 
@@ -14,10 +14,10 @@ namespace Phantasma.Business.Blockchain.Contracts
         }
 
         #region SETTLEMENTS
-        #pragma warning disable 0649
+#pragma warning disable 0649
         internal StorageMap _settledTransactions; //<Hash, Hash>
         internal StorageMap _swapMap; // <Address, List<Hash>>
-        #pragma warning restore 0649
+#pragma warning restore 0649
 
         public bool IsSettled(Hash hash)
         {
@@ -35,9 +35,9 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime.Expect(value > 0, "value must be greater than zero");
             Runtime.Expect(targetAddress.IsUser, "target must not user address");
 
-            Runtime.Expect(this.Runtime.TokenExists(symbol), "invalid token");
-            var tokenInfo = this.Runtime.GetToken(symbol);
-            
+            Runtime.Expect(Runtime.TokenExists(symbol), "invalid token");
+            var tokenInfo = Runtime.GetToken(symbol);
+
 
             /*if (tokenInfo.IsCapped())
             {
@@ -65,7 +65,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             Runtime.Expect(!IsSettled(hash), "hash already settled");
 
-            var sourceChain = this.Runtime.GetChainByAddress(sourceChainAddress);
+            var sourceChain = Runtime.GetChainByAddress(sourceChainAddress);
 
             var tx = Runtime.ReadTransactionFromOracle(DomainSettings.PlatformName, sourceChain.Name, hash);
 
@@ -73,7 +73,7 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             foreach (var transfer in tx.Transfers)
             {
-                if (transfer.destinationChain == this.Runtime.Chain.Name)
+                if (transfer.destinationChain == Runtime.Chain.Name)
                 {
                     DoSettlement(sourceChain, transfer.sourceAddress, transfer.destinationAddress, transfer.Symbol, transfer.Value, transfer.Data);
                     settlements++;
