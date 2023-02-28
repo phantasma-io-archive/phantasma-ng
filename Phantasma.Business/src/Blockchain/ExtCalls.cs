@@ -1675,7 +1675,20 @@ namespace Phantasma.Business.Blockchain
             var triggerName = AccountTrigger.OnUpgrade.ToString();
             vm.ValidateTriggerGuard($"{contractName}.{triggerName}");
 
-            vm.ExpectWarning(vm.InvokeTrigger(false, script, contractName, abi, triggerName, from) == TriggerResult.Success, triggerName + " trigger failed", from);
+            var triggerResult = vm.InvokeTrigger(false, script, contractName, abi, triggerName, from);
+            if (vm.ProtocolVersion <= 13)
+            {
+                vm.ExpectWarning(triggerResult == TriggerResult.Success, triggerName + " trigger failed", from);
+            }
+            else
+            {
+                vm.ExpectWarning(triggerResult == TriggerResult.Success || triggerResult == TriggerResult.Missing, triggerName + " trigger failed", from);
+                if (triggerResult == TriggerResult.Missing)
+                {
+                    var contractOwner = vm.GetContractOwner(oldContract.Address);
+                    vm.ExpectWarning(from == contractOwner, "Not owner of the contract", from);
+                }
+            }
 
             if (isToken)
             {
@@ -1741,7 +1754,7 @@ namespace Phantasma.Business.Blockchain
             var triggerName = AccountTrigger.OnKill.ToString();
 
             vm.ValidateTriggerGuard($"{contractName}.{triggerName}");
-
+            
             var triggerResult = vm.InvokeTrigger(false, customContract.Script, contract.Name, contract.ABI, triggerName,
                 new object[] { from });
             if ( contractName == DomainSettings.LiquidityTokenSymbol )

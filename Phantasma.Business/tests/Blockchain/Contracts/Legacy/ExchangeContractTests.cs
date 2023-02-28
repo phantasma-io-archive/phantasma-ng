@@ -1768,7 +1768,7 @@ public class ExchangeContractTests
                 $"{UnitConversion.ToDecimal(kcalToSwap, DomainSettings.FiatTokenDecimals)} {soul.Symbol} for {UnitConversion.ToDecimal(rate, kcal.Decimals)} {kcal.Symbol} | Swap ->  {UnitConversion.ToDecimal(rateByPool, kcal.Decimals)}");
 
             // Make Swap SOUL / KCAL (SwapFee)
-            poolOwner2.SwapFee(soul.Symbol, swapValueSOUL);
+            var txFee = poolOwner2.SwapFee(soul.Symbol, swapValueSOUL);
             Assert.True(core.simulator.LastBlockWasSuccessful());
 
             // Get the balances
@@ -1780,10 +1780,11 @@ public class ExchangeContractTests
 
             Console.WriteLine($"{beforeTXBalanceSOUL} != {afterTXBalanceSOUL} | {afterTXBalanceKCAL}");
 
+            Assert.Equal(beforeTXBalanceSOUL - swapValueSOUL , afterTXBalanceSOUL);
             Assert.True(
                 afterTXBalanceSOUL ==
-                beforeTXBalanceSOUL -
-                (kcalToSwap) /* + UnitConversion.ConvertDecimals(500,  kcal.Decimals, DomainSettings.FiatTokenDecimals))*/,
+                beforeTXBalanceSOUL - swapValueSOUL
+                /* + UnitConversion.ConvertDecimals(500,  kcal.Decimals, DomainSettings.FiatTokenDecimals))*/,
                 $"SOUL {afterTXBalanceSOUL} != {beforeTXBalanceSOUL - (kcalToSwap + UnitConversion.ConvertDecimals(500, kcal.Decimals, DomainSettings.FiatTokenDecimals))}");
             Assert.True(beforeTXBalanceKCAL + kcalfee + rate == afterTXBalanceKCAL,
                 $"KCAL {beforeTXBalanceKCAL + kcalfee + rate} != {afterTXBalanceKCAL}");
