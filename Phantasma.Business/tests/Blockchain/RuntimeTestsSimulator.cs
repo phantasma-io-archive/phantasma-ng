@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using Phantasma.Business.Blockchain;
+using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;

@@ -10,8 +10,7 @@ using Phantasma.Core.Numerics;
 namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
 using Xunit;
-
-using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Contracts.Native;
 
 [Collection(nameof(SystemTestCollectionDefinition))]
 public class MailContractTests

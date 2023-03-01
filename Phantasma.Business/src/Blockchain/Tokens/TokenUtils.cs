@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;

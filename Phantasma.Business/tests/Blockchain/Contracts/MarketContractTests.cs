@@ -1,6 +1,5 @@
 using NSubstitute;
 using Phantasma.Business.Blockchain;
-using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
@@ -15,6 +14,8 @@ using Moq;
 using Phantasma.Business.VM;
 using Shouldly;
 using Xunit;
+using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Business.Blockchain.VM;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts;
 

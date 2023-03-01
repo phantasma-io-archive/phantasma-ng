@@ -8,8 +8,9 @@ using System.Text;
 using System.Transactions;
 using Google.Protobuf;
 using Phantasma.Business.Blockchain.Contracts;
-using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
@@ -282,10 +283,21 @@ namespace Phantasma.Business.Blockchain
                 {
                     _methodTableForGasExtraction = GenerateMethodTable();
                 }
+
+                IEnumerable<DisasmMethodCall> methods;
                 
-                var methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction);
-                
-                
+                try
+                {
+                    methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: true);
+                }
+                catch (Exception ex)
+                {
+                    var type = CodeType.Error;
+                    Log.Information("check tx error {Error} {Hash}", type, tx.Hash);
+                    return (type, "Error pre-processing transaction script contents: " + ex.Message);
+                }
+
+
                 /*if (transaction.TransactionGas != TransactionGas.Null)
                     {
                         from = transaction.TransactionGas.GasPayer;
@@ -303,7 +315,7 @@ namespace Phantasma.Business.Blockchain
                             return (result.Item1, result.Item2);
                         }
                     }*/
-                
+
                 var result = this.ExtractGasInformation(tx, out from, out target, out gasPrice, out gasLimit, methods, _methodTableForGasExtraction);
 
                 if (result.Item1 != CodeType.Ok)

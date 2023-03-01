@@ -4,7 +4,6 @@ using System.Text;
 using System.Linq;
 using System.Numerics;
 using Phantasma.Business.Blockchain;
-using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Tests.Simulator;
@@ -16,6 +15,7 @@ using Phantasma.Core.Types;
 
 using Xunit;
 using Phantasma.Core.Utils;
+using Phantasma.Business.Blockchain.Contracts.Native;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 

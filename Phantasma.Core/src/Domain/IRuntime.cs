@@ -130,8 +130,6 @@ namespace Phantasma.Core.Domain
         public BigInteger GetGovernanceValue(string name);
 
         public BigInteger GenerateUID();
-        public BigInteger GenerateRandomNumber();
-        public void SetRandomSeed(BigInteger seed);
 
         public TriggerResult InvokeTrigger(bool allowThrow, byte[] script, string contextName, ContractInterface abi, string triggerName, params object[] args);
 
