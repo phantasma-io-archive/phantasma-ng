@@ -95,6 +95,7 @@ public class SaleContractTest
         simulator.GenerateTransfer(owner, otherSaleBuyer.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
         simulator.GenerateTransfer(owner, otherSaleBuyer.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, stakeAmount);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var saleSymbol = "DANK";
         var decimals = 18;
@@ -103,10 +104,13 @@ public class SaleContractTest
         simulator.BeginBlock();
         simulator.GenerateToken(owner, saleSymbol, "Dank Token", supply, decimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Finite);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         simulator.BeginBlock();
         simulator.MintTokens(owner, saleUser.Address, saleSymbol, supply);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+
 
         var oldSellerBalance = nexus.RootChain.GetTokenBalance(nexus.RootStorage, "SOUL", saleUser.Address);
 
@@ -117,10 +121,10 @@ public class SaleContractTest
             ScriptUtils.BeginScript().AllowGas(saleUser.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
                 .CallContract(NativeContractKind.Sale, nameof(SaleContract.CreateSale), saleUser.Address, "Dank pre-sale", SaleFlags.Whitelist, (Timestamp) simulator.CurrentTime, (Timestamp)( simulator.CurrentTime + TimeSpan.FromDays(2)), saleSymbol, "SOUL", saleRate, 0, supply, 0, UnitConversion.ToBigInteger(1500/saleRate, decimals)).
                 SpendGas(saleUser.Address).EndScript());
-        var block = simulator.EndBlock().First();
+        var blocks = simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
 
-        var resultBytes = block.GetResultForTransaction(tx.Hash);
+        var resultBytes = blocks.First().GetResultForTransaction(tx.Hash);
         var resultObj = Serialization.Unserialize<VMObject>(resultBytes);
         var saleHash = resultObj.AsInterop<Hash>();
 
@@ -131,6 +135,7 @@ public class SaleContractTest
                 .CallContract(NativeContractKind.Sale, nameof(SaleContract.AddToWhitelist), saleHash, otherSaleBuyer.Address).
                 SpendGas(saleUser.Address).EndScript());
         simulator.EndBlock().First();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var purchaseAmount = UnitConversion.ToBigInteger(50, DomainSettings.StakingTokenDecimals);
         BigInteger expectedAmount = 0;

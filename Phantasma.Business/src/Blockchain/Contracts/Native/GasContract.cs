@@ -350,18 +350,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
 
             if (spentGas > 0)
-            {
-                var validatorPayment = spentGas * Runtime.GasPrice;
-                if (Runtime.ProtocolVersion >= 14)
-                {
-                    
-                    Runtime.CallNativeContext(NativeContractKind.Block, nameof(BlockContract.TransferRewardsToValidator), from, validatorPayment);
-                }
-                else
-                {
-                    Address validatorAddress = GetAddressForNative(NativeContractKind.Block);
-                    Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, Address, validatorAddress, validatorPayment);
-                }
+            { 
+                EmitValidatorPayment(spentGas);
                 spentGas = 0;
             }
 
@@ -458,6 +448,30 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             _lastInflationDate = lastInflationDate - SecondsInDay * 90;
             _nextInflationDate = lastInflationDate;
             _inflationReady = true;
+        }
+
+        /// <summary>
+        /// Method used to emit the validator payment 
+        /// </summary>
+        /// <param name="spentGas"></param>
+        private void EmitValidatorPayment(BigInteger spentGas)
+        {
+            if ( spentGas == 0)
+                return;
+            
+            var validatorPayment = spentGas * Runtime.GasPrice;
+            if (Runtime.ProtocolVersion >= 14)
+            {
+                Address validatorAddress = Runtime.Chain.ValidatorAddress;
+                var eventData = new TokenEventData(DomainSettings.FuelTokenSymbol, validatorPayment, Runtime.Chain.Name);
+                Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, Address, validatorAddress, validatorPayment);
+                Runtime.Notify(EventKind.TokenClaim, validatorAddress, Serialization.Serialize(eventData), "block");
+            }
+            else
+            {
+                Address validatorAddress = GetAddressForNative(NativeContractKind.Block);
+                Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, Address, validatorAddress, validatorPayment);
+            }
         }
 
         /// <summary>

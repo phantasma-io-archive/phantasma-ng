@@ -13,19 +13,6 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
         }
 
-        /// <summary>
-        /// Transfer rewards to validator
-        /// </summary>
-        /// <param name="from"></param>
-        /// <param name="rewardAmount"></param>
-        public void TransferRewardsToValidator(Address from, BigInteger rewardAmount)
-        {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
-            Address validatorAddress = Runtime.Chain.CurrentBlock.Validator;
-            Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, Address, validatorAddress, rewardAmount);
-            Runtime.Notify(EventKind.TokenClaim, validatorAddress, new TokenEventData(DomainSettings.FuelTokenSymbol, rewardAmount, Runtime.Chain.Name));
-        }
-
         #region SETTLEMENTS
 #pragma warning disable 0649
         internal StorageMap _settledTransactions; //<Hash, Hash>

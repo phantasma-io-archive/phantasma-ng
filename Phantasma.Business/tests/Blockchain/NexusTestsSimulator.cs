@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 using Phantasma.Business.Blockchain;
@@ -563,6 +564,22 @@ public class NexusTestsSimulator
         simulator.SendRawTransaction(transaction);
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
+    }
+
+    [Fact]
+    public void TestGetBlockRewards()
+    {
+        simulator.GetFundsInTheFuture(owner, 20);
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        simulator.BeginBlock();
+        simulator.GenerateTransfer(owner, user.Address, simulator.Nexus.RootChain, DomainSettings.StakingTokenSymbol,  UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals));
+        simulator.GenerateTransfer(owner, user.Address, simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol,  UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals));
+        var blocks = simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        var rewards = simulator.Nexus.RootChain.GetBlockReward(blocks.First());
+        Assert.NotEqual(0, rewards);
     }
     
     private BigInteger MintTokens(PhantasmaKeys _user, Address gasAddress, Address fromAddress, Address toAddress, string symbol, BigInteger amount, bool shouldFail = false)
