@@ -88,6 +88,28 @@ namespace Phantasma.Business.Blockchain
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
         }
 
+        private uint GetCurrentProtocolVersion()
+        {
+            var lastBlockHash = this.GetLastBlockHash();
+            return GetCurrentProtocolVersion(lastBlockHash);
+        }
+
+        private uint GetCurrentProtocolVersion(Hash lastBlockHash)
+        {
+            uint protocol = DomainSettings.Phantasma30Protocol;
+            try
+            {
+                if (lastBlockHash != Hash.Null)
+                    protocol = Nexus.GetProtocolVersion(Nexus.RootStorage);
+            }
+            catch (Exception e)
+            {
+                Log.Information("Error getting info {Exception}", e);
+            }
+
+            return protocol;
+        }
+
         public IEnumerable<Transaction> BeginBlock(string proposerAddress, BigInteger height, BigInteger minimumFee, Timestamp timestamp, IEnumerable<Address> availableValidators)
         {
             // should never happen
@@ -100,16 +122,8 @@ namespace Phantasma.Business.Blockchain
             var lastBlockHash = this.GetLastBlockHash();
             var lastBlock = this.GetBlockByHash(lastBlockHash);
             var isFirstBlock = lastBlock == null;
-            uint protocol = DomainSettings.Phantasma30Protocol;
-            try
-            {
-                if (lastBlockHash != Hash.Null)
-                    protocol = Nexus.GetProtocolVersion(Nexus.RootStorage);
-            }
-            catch (Exception e)
-            {
-                Log.Information("Error getting info {Exception}", e);
-            }
+
+            var protocol = GetCurrentProtocolVersion(lastBlockHash);
             
             this.CurrentProposer = proposerAddress;
             var validator = Nexus.GetValidator(this.Storage, this.CurrentProposer);
@@ -286,15 +300,22 @@ namespace Phantasma.Business.Blockchain
 
                 IEnumerable<DisasmMethodCall> methods;
                 
-                try
+                if (protocolVersion >= 14)
                 {
-                    methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: true);
+                    try
+                    {
+                        methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        var type = CodeType.Error;
+                        Log.Information("check tx error {Error} {Hash}", type, tx.Hash);
+                        return (type, "Error pre-processing transaction script contents: " + ex.Message);
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    var type = CodeType.Error;
-                    Log.Information("check tx error {Error} {Hash}", type, tx.Hash);
-                    return (type, "Error pre-processing transaction script contents: " + ex.Message);
+                    methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: false);
                 }
 
 
