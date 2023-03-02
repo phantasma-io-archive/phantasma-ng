@@ -61,6 +61,18 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
         }
 
+        /// <summary>
+        /// Edit an auction
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="baseSymbol"></param>
+        /// <param name="quoteSymbol"></param>
+        /// <param name="tokenID"></param>
+        /// <param name="price"></param>
+        /// <param name="endPrice"></param>
+        /// <param name="startDate"></param>
+        /// <param name="endDate"></param>
+        /// <param name="extensionPeriod"></param>
         public void EditAuction(Address from, string baseSymbol, string quoteSymbol, BigInteger tokenID, BigInteger price, BigInteger endPrice, Timestamp startDate, Timestamp endDate, BigInteger extensionPeriod)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -131,6 +143,21 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.OrderCreated, auctionNew.Creator, new MarketEventData() { ID = auctionNew.TokenID, BaseSymbol = auctionNew.BaseSymbol, QuoteSymbol = auctionNew.QuoteSymbol, Price = auctionNew.Price, EndPrice = auctionNew.EndPrice, Type = auctionNew.Type });
         }
 
+        /// <summary>
+        /// List a token for sale
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="baseSymbol"></param>
+        /// <param name="quoteSymbol"></param>
+        /// <param name="tokenID"></param>
+        /// <param name="price"></param>
+        /// <param name="endPrice"></param>
+        /// <param name="startDate"></param>
+        /// <param name="endDate"></param>
+        /// <param name="extensionPeriod"></param>
+        /// <param name="typeAuction"></param>
+        /// <param name="listingFee"></param>
+        /// <param name="listingFeeAddress"></param>
         public void ListToken(Address from, string baseSymbol, string quoteSymbol, BigInteger tokenID, BigInteger price, BigInteger endPrice, Timestamp startDate, Timestamp endDate, BigInteger extensionPeriod, BigInteger typeAuction, BigInteger listingFee, Address listingFeeAddress)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -207,6 +234,16 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             Runtime.Notify(EventKind.OrderCreated, from, new MarketEventData() { ID = tokenID, BaseSymbol = baseSymbol, QuoteSymbol = quoteSymbol, Price = price, EndPrice = endPrice, Type = type });
         }
+        
+        /// <summary>
+        /// Bid on a token (Auction)
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="symbol"></param>
+        /// <param name="tokenID"></param>
+        /// <param name="price"></param>
+        /// <param name="buyingFee"></param>
+        /// <param name="buyingFeeAddress"></param>
         public void BidToken(Address from, string symbol, BigInteger tokenID, BigInteger price, BigInteger buyingFee, Address buyingFeeAddress)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -352,7 +389,26 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
         }
 
+        /*public void MakeOffer(Address from, string symbol, BigInteger tokenID, BigInteger price, BigInteger buyingFee,
+            Address buyingFeeAddress)
+        {
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(Runtime.TokenExists(symbol), "invalid token");
+            Runtime.Expect(Runtime.TokenExists(symbol), "invalid token");
+            var token = Runtime.GetToken(symbol);
+            Runtime.Expect(!token.Flags.HasFlag(TokenFlags.Fungible), "token must be non-fungible");
+            Runtime.Expect(Runtime.TokenExists(symbol), "invalid token");
+        }*/
 
+        /// <summary>
+        /// Sell a token on the market
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="baseSymbol"></param>
+        /// <param name="quoteSymbol"></param>
+        /// <param name="tokenID"></param>
+        /// <param name="price"></param>
+        /// <param name="endDate"></param>
         public void SellToken(Address from, string baseSymbol, string quoteSymbol, BigInteger tokenID, BigInteger price, Timestamp endDate)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -385,6 +441,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.OrderCreated, from, new MarketEventData() { ID = tokenID, BaseSymbol = baseSymbol, QuoteSymbol = quoteSymbol, Price = price, EndPrice = 0, Type = TypeAuction.Fixed });
         }
 
+        /// <summary>
+        /// Buy a token on the market
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="symbol"></param>
+        /// <param name="tokenID"></param>
         public void BuyToken(Address from, string symbol, BigInteger tokenID)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -409,6 +471,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.OrderFilled, from, new MarketEventData() { ID = auction.TokenID, BaseSymbol = auction.BaseSymbol, QuoteSymbol = auction.QuoteSymbol, Price = auction.Price, EndPrice = 0, Type = auction.Type });
         }
 
+        /// <summary>
+        /// Cancel a sale on the market
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="tokenID"></param>
         public void CancelSale(string symbol, BigInteger tokenID)
         {
             var auctionID = symbol + "." + tokenID;
@@ -446,6 +513,13 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.OrderCancelled, from, new MarketEventData() { ID = auction.TokenID, BaseSymbol = auction.BaseSymbol, QuoteSymbol = auction.QuoteSymbol, Price = auction.Price, EndPrice = 0, Type = auction.Type });
         }
 
+        /// <summary>
+        /// End a sale on the market
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="symbol"></param>
+        /// <param name="tokenID"></param>
+        /// <param name="auction"></param>
         private void EndSaleInternal(Address from, string symbol, BigInteger tokenID, MarketAuction auction)
         {
             Runtime.Expect(Runtime.TokenExists(auction.BaseSymbol), "invalid base token");
@@ -534,6 +608,13 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             _auctionIds.Remove(auctionID);
         }
 
+        /// <summary>
+        /// Get the fee amount
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="price"></param>
+        /// <param name="fee"></param>
+        /// <returns></returns>
         private BigInteger GetFee(string symbol, BigInteger price, BigInteger fee)
         {
             if (fee <= 0) return 0;
@@ -547,6 +628,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return listFee;
         }
 
+        /// <summary>
+        /// Get all auctions
+        /// </summary>
+        /// <returns></returns>
         public MarketAuction[] GetAuctions()
         {
             var ids = _auctionIds.AllValues<string>();
@@ -558,6 +643,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return auctions;
         }
 
+        /// <summary>
+        /// Check if the address is a seller
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
         public bool IsSeller(Address target)
         {
             var ids = _auctionIds.AllValues<string>();
@@ -573,12 +663,24 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return false;
         }
 
+        /// <summary>
+        /// Check if there's an auction for the token
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="tokenID"></param>
+        /// <returns></returns>
         public bool HasAuction(string symbol, BigInteger tokenID)
         {
             var auctionID = symbol + "." + tokenID;
             return _auctionMap.ContainsKey(auctionID);
         }
 
+        /// <summary>
+        /// Get the auction for the token
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="tokenID"></param>
+        /// <returns></returns>
         public MarketAuction GetAuction(string symbol, BigInteger tokenID)
         {
             var auctionID = symbol + "." + tokenID;
