@@ -981,7 +981,7 @@ namespace Phantasma.Business.Blockchain
             BigInteger total = 0;
             foreach (var evt in evts)
             {
-                if (evt.Kind == EventKind.TokenClaim && evt.Contract == "block")
+                if (evt.Kind == EventKind.TokenClaim)
                 {
                     var data = evt.GetContent<TokenEventData>();
                     total += data.Value;

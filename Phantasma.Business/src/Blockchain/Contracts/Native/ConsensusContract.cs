@@ -366,11 +366,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             Runtime.Expect(Runtime.IsRootChain(), "not root chain");
 
-            if ( Runtime.ProtocolVersion >= 14 )
-            {
-                Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
-            }
-            else
+            if ( Runtime.ProtocolVersion <= 13 )
             {
                 Runtime.Expect(organization == DomainSettings.ValidatorsOrganizationName, "community polls not yet");
             }
