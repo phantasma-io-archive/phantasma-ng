@@ -352,8 +352,16 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             if (spentGas > 0)
             {
                 var validatorPayment = spentGas * Runtime.GasPrice;
-                var validatorAddress = GetAddressForNative(NativeContractKind.Block);
-                Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, Address, validatorAddress, validatorPayment);
+                if (Runtime.ProtocolVersion >= 14)
+                {
+                    
+                    Runtime.CallNativeContext(NativeContractKind.Block, nameof(BlockContract.TransferRewardsToValidator), from, validatorPayment);
+                }
+                else
+                {
+                    Address validatorAddress = GetAddressForNative(NativeContractKind.Block);
+                    Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, Address, validatorAddress, validatorPayment);
+                }
                 spentGas = 0;
             }
 
