@@ -15,6 +15,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 #pragma warning restore 0649
 
         #region FRIENDLIST
+        /// <summary>
+        /// Add a friend to the target account
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="friend"></param>
         public void AddFriend(Address target, Address friend)
         {
             Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
@@ -31,6 +36,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.AddressLink, target, friend);
         }
 
+        /// <summary>
+        /// Remove a friend from the target account
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="friend"></param>
         public void RemoveFriend(Address target, Address friend)
         {
             Runtime.Expect(Runtime.IsWitness(target), "invalid witness");
@@ -43,6 +53,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.AddressUnlink, target, friend);
         }
 
+        /// <summary>
+        /// Get all friends of the target account
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
         public Address[] GetFriends(Address target)
         {
             var friendList = _friendMap.Get<Address, StorageList>(target);

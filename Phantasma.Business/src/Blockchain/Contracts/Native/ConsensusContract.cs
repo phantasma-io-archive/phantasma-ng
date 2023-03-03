@@ -222,6 +222,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
         }
 
+        /// <summary>
+        /// Migrate the contract to a new address
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="target"></param>
         public void Migrate(Address from, Address target)
         {
             Runtime.Expect(Runtime.PreviousContext.Name == NativeContractKind.Account.GetContractName(), "invalid context");
@@ -231,6 +236,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             _presences.Migrate<Address, StorageList>(from, target);
         }
 
+        /// <summary>
+        /// Fetch a poll by subject
+        /// </summary>
+        /// <param name="subject"></param>
+        /// <returns></returns>
         private ConsensusPoll FetchPoll(string subject)
         {
             var poll = _pollMap.Get<string, ConsensusPoll>(subject);
@@ -323,6 +333,18 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return poll;
         }
 
+        /// <summary>
+        /// Create a new poll (New version with the consensus time)
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="subject"></param>
+        /// <param name="organization"></param>
+        /// <param name="mode"></param>
+        /// <param name="startTime"></param>
+        /// <param name="endTime"></param>
+        /// <param name="serializedChoices"></param>
+        /// <param name="votesPerUser"></param>
+        /// <param name="consensusTime"></param>
         public void InitPollV2(Address from, string subject, string organization, ConsensusMode mode, Timestamp startTime, Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser, Timestamp consensusTime)
         {
             Runtime.Expect(Runtime.OrganizationExists(organization), "invalid organization");
@@ -344,7 +366,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             Runtime.Expect(Runtime.IsRootChain(), "not root chain");
 
-            Runtime.Expect(organization == DomainSettings.ValidatorsOrganizationName, "community polls not yet");
+            if ( Runtime.ProtocolVersion <= 13 )
+            {
+                Runtime.Expect(organization == DomainSettings.ValidatorsOrganizationName, "community polls not yet");
+            }
 
             var maxEntriesPerPoll = Runtime.GetGovernanceValue(MaxEntriesPerPollTag);
             Runtime.Expect(choices.Length > 1, "invalid amount of entries");
@@ -425,17 +450,40 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.PollCreated, Address, subject);
         }
 
+        /// <summary>
+        /// Initialize a new poll
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="subject"></param>
+        /// <param name="organization"></param>
+        /// <param name="mode"></param>
+        /// <param name="startTime"></param>
+        /// <param name="endTime"></param>
+        /// <param name="serializedChoices"></param>
+        /// <param name="votesPerUser"></param>
         public void InitPoll(Address from, string subject, string organization, ConsensusMode mode, Timestamp startTime,
             Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser)
         {
             InitPollV2(from, subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser, DefaultConsensusTime);
         }
 
+        /// <summary>
+        /// Vote for a single choice
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="subject"></param>
+        /// <param name="index"></param>
         public void SingleVote(Address from, string subject, BigInteger index)
         {
             MultiVote(from, subject, new PollVote[] { new PollVote() { index = index, percentage = 100 } });
         }
 
+        /// <summary>
+        /// Vote for multiple choices
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="subject"></param>
+        /// <param name="choices"></param>
         public void MultiVote(Address from, string subject, PollVote[] choices)
         {
             Runtime.Expect(_pollMap.ContainsKey(subject), "invalid poll subject");
@@ -518,6 +566,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.PollVote, from, subject);
         }
 
+        /// <summary>
+        /// Check if a value has consensus in a poll
+        /// </summary>
+        /// <param name="subject"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
         public bool HasConsensus(string subject, byte[] value)
         {
             if (subject.StartsWith(SystemPoll))
@@ -546,6 +600,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return rank == 0;
         }
 
+        /// <summary>
+        /// Get the rank of a value in a poll
+        /// </summary>
+        /// <param name="subject"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
         public BigInteger GetRank(string subject, byte[] value)
         {
             Runtime.Expect(_pollMap.ContainsKey(subject), "invalid poll subject");
@@ -565,11 +625,20 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return -1;
         }
 
+        /// <summary>
+        /// Get a ConsensusPoll by subject
+        /// </summary>
+        /// <param name="subject"></param>
+        /// <returns></returns>
         public ConsensusPoll GetConsensusPoll(string subject)
         {
             return _pollMap.Get<string, ConsensusPoll>(subject);
         }
-
+        
+        /// <summary>
+        /// Get all ConsensusPolls
+        /// </summary>
+        /// <returns></returns>
         public ConsensusPoll[] GetConsensusPolls()
         {
             return _pollMap.AllValues<ConsensusPoll>();

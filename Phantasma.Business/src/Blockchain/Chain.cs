@@ -285,17 +285,25 @@ namespace Phantasma.Business.Blockchain
                 }
 
                 IEnumerable<DisasmMethodCall> methods;
+
+                if (protocolVersion >= 14)
+                {
+                    try
+                    {
+                        methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        var type = CodeType.Error;
+                        Log.Information("check tx error {Error} {Hash}", type, tx.Hash);
+                        return (type, "Error pre-processing transaction script contents: " + ex.Message);
+                    }
+                }
+                else
+                {
+                    methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: false);
+                }
                 
-                try
-                {
-                    methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: true);
-                }
-                catch (Exception ex)
-                {
-                    var type = CodeType.Error;
-                    Log.Information("check tx error {Error} {Hash}", type, tx.Hash);
-                    return (type, "Error pre-processing transaction script contents: " + ex.Message);
-                }
 
 
                 /*if (transaction.TransactionGas != TransactionGas.Null)
@@ -384,11 +392,6 @@ namespace Phantasma.Business.Blockchain
                 Log.Information("check tx error {type} {Hash}", type, tx.Hash);
                 return (type, "Script attached to tx is invalid");
             }
-
-            //if (!VerifyBlockBeforeAdd(this.CurrentBlock))
-            //{
-            //    throw new BlockGenerationException($"block verification failed, would have overflown, hash:{this.CurrentBlock.Hash}");
-            //}
 
             Log.Information("check tx Successful {Hash}", tx.Hash);
             return (CodeType.Ok, "");
