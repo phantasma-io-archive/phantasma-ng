@@ -17,7 +17,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
         public const string ValidatorPollTag = "elections";
         public const string ValidatorMaxOfflineTime = "validator.max.offline.time";
-        public const uint ValidatorMaxOfflineTimeDefault = 3600 * 2; // 2 hours
+        public static BigInteger ValidatorMaxOfflineTimeDefault = 7200; // 2 hours
 
 
 

@@ -1729,6 +1729,16 @@ public class Nexus : INexus
                      })
                  },
 
+                 { 
+                     ValidatorContract.ValidatorMaxOfflineTime,  new KeyValuePair<BigInteger, ChainConstraint[]>(
+                     ValidatorContract.ValidatorMaxOfflineTimeDefault, new ChainConstraint[]
+                     {
+                         new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 300},
+                         new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 604800},
+                     })
+                 
+                 },
+
                  {
                      ValidatorContract.ValidatorRotationTimeTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
                          ValidatorContract.ValidatorRotationTimeDefault, new ChainConstraint[]
