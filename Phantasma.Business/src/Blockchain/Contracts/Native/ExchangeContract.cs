@@ -1112,6 +1112,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="amount"></param>
         public void SwapTokens(Address from, string fromSymbol, string toSymbol, BigInteger amount)
         {
+            Runtime.Expect(_DEXversion >= 1, "call migrateV3 first");
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(amount > 0, $"invalid amount, need to be higher than 0 | {amount}");
 
@@ -2102,7 +2103,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(amount0 >= 0, "invalid amount 0");
             Runtime.Expect(amount1 >= 0, "invalid amount 1");
             Runtime.Expect(amount0 > 0 || amount1 > 0, "invalid amount, both amounts can't be 0");
-            Runtime.Expect(symbol0 != symbol1, "Symbols are the same...");
+            Runtime.Expect(symbol0 != symbol1, "Symbols cannot be the same...");
+            Runtime.Expect(_DEXversion >= 1, "call migrateV3 first");
+
 
             var token0Info = Runtime.GetToken(symbol0);
             Runtime.Expect(IsSupportedToken(symbol0), "source token is unsupported");
@@ -2247,6 +2250,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(amount0 >= 0, "invalid amount 0");
             Runtime.Expect(amount1 >= 0, "invalid amount 1");
             Runtime.Expect(amount0 > 0 || amount1 > 0, "invalid amount, both amounts can't be 0");
+            Runtime.Expect(symbol0 != symbol1, "Symbols cannot be the same...");
+            Runtime.Expect(_DEXversion >= 1, "call migrateV3 first");
 
             // Check if user has LP Token
             Runtime.Expect(UserHasLP(from, symbol0, symbol1), "User doesn't have LP");
