@@ -1877,8 +1877,8 @@ namespace Phantasma.Business.Blockchain.VM
             }
 
             // check if contract already exists
-            var contractAddress = SmartContract.GetAddressFromContractName(symbol.ToLower());
-            var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress);
+            var contractAddress = vm.Nexus.GetContractByName(vm.Storage, symbol.ToLower());
+            var deployed = vm.Chain.IsContractDeployed(vm.Storage, contractAddress.Address);
             vm.ExpectWarning(!deployed, $"{symbol} already exists", owner);
             vm.Expect(ValidationUtils.IsValidTicker(symbol), "missing or invalid token symbol");
             vm.Expect(!string.IsNullOrEmpty(name), "missing or invalid token name");
