@@ -1962,7 +1962,7 @@ public class Nexus : INexus
     public bool IsKnownValidator(Address address, Timestamp timestamp)
     {
         var result = GetValidatorType(address, timestamp);
-        return result != ValidatorType.Invalid;
+        return result != ValidatorType.Invalid && result != ValidatorType.Proposed;
     }
 
     public BigInteger GetStakeFromAddress(StorageContext storage, Address address, Timestamp timestamp)

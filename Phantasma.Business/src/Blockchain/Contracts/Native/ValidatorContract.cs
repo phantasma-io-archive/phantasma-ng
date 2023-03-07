@@ -16,6 +16,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public static readonly BigInteger ValidatorRotationTimeDefault = 120;
 
         public const string ValidatorPollTag = "elections";
+        public const string ValidatorMaxOfflineTime = "validator.max.offline.time";
+        public const uint ValidatorMaxOfflineTimeDefault = 3600 * 2; // 2 hours
 
 
 
@@ -337,29 +339,32 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(type == ValidatorType.Proposed ? EventKind.ValidatorPropose : EventKind.ValidatorElect, Runtime.Chain.Address, target);
         }
 
-        /*public void DemoteValidator(Address target)
+        public void DemoteValidator(Address target)
         {
             Runtime.Expect(false, "not fully implemented");
 
             Runtime.Expect(target.IsUser, "must be user address");
-            Runtime.Expect(IsKnownValidator(target), "not a validator");
+            Runtime.Expect(Runtime.IsKnownValidator(target), "not a validator");
 
-            var count = _validatorList.Count();
+            var count = _validators.Count();
             Runtime.Expect(count > 1, "cant remove last validator");
 
-            var entry = _validatorMap.Get<Address, ValidatorEntry>(target);
+            var index = this.GetIndexOfValidator(target);
+            var entry = this.GetValidatorByIndex(index);
 
             bool brokenRules = false;
 
-            var diff = Timestamp.Now - Runtime.Nexus.GetValidatorLastActivity(target);
-            var maxPeriod = 3600 * 2; // 2 hours
+            var diff = Runtime.Time - Runtime.Chain.Nexus.GetValidatorLastActivity(target);
+            var governanceValueOfflineTime = Runtime.GetGovernanceValue(ValidatorMaxOfflineTime);
+            var maxPeriod = governanceValueOfflineTime != 0 ? governanceValueOfflineTime : ValidatorMaxOfflineTimeDefault; // 2 hours
             if (diff > maxPeriod)
             {
                 brokenRules = true;
             }
 
-            var requiredStake = EnergyContract.MasterAccountThreshold;
-            var stakedAmount = (BigInteger)Runtime.CallContext(Nexus.StakeContractName, "GetStake", target);
+            var requiredStake = StakeContract.DefaultMasterThreshold;
+            
+            var stakedAmount = (BigInteger)Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetStake), target).AsNumber();
 
             if (stakedAmount < requiredStake)
             {
@@ -368,12 +373,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             Runtime.Expect(brokenRules, "no rules broken");
 
-            _validatorMap.Remove(target);
-            _validatorList.Remove(target);
+            entry.type = ValidatorType.Invalid;
+            _validators.Replace(index, entry);
 
             Runtime.Notify(EventKind.ValidatorRemove, Runtime.Chain.Address, target);
-            Runtime.RemoveMember(DomainSettings.ValidatorsOrganizationName, this.Address, from, to);
-        }*/
+            Runtime.RemoveMember(DomainSettings.ValidatorsOrganizationName, this.Address, target);
+        }
 
         public void Migrate(Address from, Address to)
         {
