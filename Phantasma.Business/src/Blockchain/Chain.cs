@@ -6,7 +6,6 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Transactions;
-using Google.Protobuf;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.Tokens;
@@ -21,6 +20,9 @@ using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 using Serilog;
 using Serilog.Core;
+using Tendermint.Abci;
+using Tendermint.Crypto;
+using Event = Phantasma.Core.Domain.Event;
 using Transaction = Phantasma.Core.Domain.Transaction;
 
 namespace Phantasma.Business.Blockchain
@@ -454,7 +456,69 @@ namespace Phantasma.Business.Blockchain
             }
             
             // TODO validator update
+            //if (typeof(T) == typeof(ValidatorUpdate))
+            {
+                return HandleValidatorUpdates() as List<T>;
+            }
+            
             return new List<T>();
+        }
+
+        private List<ValidatorUpdate> HandleValidatorUpdates()
+        {
+            if (!this.Nexus.HasGenesis()) return new List<ValidatorUpdate>();
+            var validators = this.Nexus.GetValidators(this.CurrentBlock.Timestamp);
+            if (validators.Length == 0) return new List<ValidatorUpdate>();;
+        
+            var validatorUpdateList = new List<ValidatorUpdate>();
+            Timestamp lastActivity;
+            uint timeDiference = uint.Parse(this.Nexus.GetGovernanceValue(this.Storage, ValidatorContract.ValidatorMaxOfflineTimeTag).ToString());
+            var validatorUpdate = new ValidatorUpdate();
+
+            foreach ( var validator in validators)
+            {
+                Log.Information("Validator {validator}", validator);
+                validatorUpdate = new ValidatorUpdate();
+                lastActivity = this.InvokeContractAtTimestamp(this.Storage, this.CurrentBlock.Timestamp,
+                    NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorLastActivity),
+                    validator.address).AsTimestamp();
+                
+                string jsonValidator = "{\"ed25519\":\""+Convert.ToBase64String(Encoding.UTF8.GetBytes(validator.address.TendermintAddress))+"\"}";
+                PublicKey validatorUpdatePubKey = PublicKey.Parser.ParseJson(jsonValidator);
+                
+                if ( lastActivity == Timestamp.Null)
+                {
+                    validatorUpdate.Power = 1;
+                    validatorUpdate.PubKey = validatorUpdatePubKey;
+                    validatorUpdateList.Add(validatorUpdate);
+                    
+                    this.Nexus.RegisterValidatorActivity(this.Storage, validator.address, 
+                        this.CurrentBlock.Validator, this.CurrentBlock.Timestamp, lastActivity);
+                    
+                    /*InvokeContractAtTimestamp(this.Storage, this.CurrentBlock.Timestamp,
+                        NativeContractKind.Validator, nameof(ValidatorContract.RegisterValidatorActivity),
+                        validator.address, this.CurrentBlock.Validator);*/
+                    continue;
+                }
+                
+                if (lastActivity.Value + timeDiference > this.CurrentBlock.Timestamp)
+                {
+                    validatorUpdate.Power = 1;
+                    validatorUpdate.PubKey = validatorUpdatePubKey;
+                    validatorUpdateList.Add(validatorUpdate);
+                    this.Nexus.RegisterValidatorActivity(this.Storage, validator.address, 
+                        this.CurrentBlock.Validator, this.CurrentBlock.Timestamp, lastActivity);
+                    continue;
+                }
+
+                validatorUpdate.Power = 0;
+                validatorUpdate.PubKey = validatorUpdatePubKey;
+                validatorUpdateList.Add(validatorUpdate);
+                this.Nexus.DemoteValidator(this.Storage, validator.address, 
+                    this.CurrentBlock.Validator, this.CurrentBlock.Timestamp, lastActivity);
+            }
+            
+            return validatorUpdateList;
         }
 
         public TransactionResult DeliverTx(Transaction tx)
@@ -544,6 +608,7 @@ namespace Phantasma.Business.Blockchain
             {
                 // Commit cannot throw anything, an error in this phase has to stop the node!
                 Log.Error("Critical failure {Error}", e);
+                Webhook.Notify($"[{((DateTime) CurrentBlock.Timestamp).ToLongDateString()}] reason -> Critical failure by [{e.Message}]");
                 Environment.Exit(-1);
             }
 
@@ -725,11 +790,6 @@ namespace Phantasma.Business.Blockchain
             // from here on, the block is accepted
             changeSet.Execute();
 
-            if (Nexus.HasGenesis())
-            {
-                
-            }
-            
             var hashList = new StorageList(BlockHeightListTag, this.Storage);
             hashList.Add<Hash>(block.Hash);
             

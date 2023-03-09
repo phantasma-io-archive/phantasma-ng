@@ -76,7 +76,7 @@ public interface INexus
     void FinishInitialize(IRuntime vm, Address owner);
     void SetInitialValidators(IEnumerable<Address> initialValidators);
     Transaction CreateGenesisTransaction(Timestamp timestamp, PhantasmaKeys owner);
-    Timestamp GetValidatorLastActivity(Address target);
+    Timestamp GetValidatorLastActivity(Address target, Timestamp timestamp);
     ValidatorEntry[] GetValidators(Timestamp timestamp);
     int GetPrimaryValidatorCount(Timestamp timestamp);
     int GetSecondaryValidatorCount(Timestamp timestamp);
