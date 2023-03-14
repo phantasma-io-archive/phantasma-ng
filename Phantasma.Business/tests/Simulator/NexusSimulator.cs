@@ -255,7 +255,7 @@ public class NexusSimulator
 
         var initialBalance = Nexus.RootChain.GetTokenBalance(Nexus.RootStorage, DomainSettings.StakingTokenSymbol, _currentValidator.Address);
         // check if the owner address got at least enough tokens to be a SM
-        Assert.True(initialBalance >= StakeContract.DefaultMasterThreshold);
+        Assert.True(initialBalance >= StakeContract.DefaultMasterThreshold, FailedTxReason);
 
         /*
         var neoPlatform = NeoWallet.NeoPlatform;
@@ -1424,6 +1424,7 @@ public class NexusSimulator
                 .EndScript());
         
         var blocks = EndBlock();
+        Assert.True(LastBlockWasSuccessful(), FailedTxReason);
 
 
         var txCost = Nexus.RootChain.GetTransactionFee(tx);

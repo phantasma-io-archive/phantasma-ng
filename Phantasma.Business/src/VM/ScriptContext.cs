@@ -423,7 +423,6 @@ namespace Phantasma.Business.VM
                 if (ex is NullReferenceException)
                 {
                     Log.Error("Critical exception: " + ex);
-                    Environment.Exit(-1);
                 }
 
                 ex = ex.ExpandInnerExceptions();

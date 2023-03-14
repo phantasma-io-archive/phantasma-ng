@@ -524,7 +524,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             BigInteger votingPower;
 
-            if (poll.organization == DomainSettings.StakersOrganizationName)
+            if (poll.organization == DomainSettings.StakersOrganizationName || poll.organization == DomainSettings.MastersOrganizationName)
             {
                 votingPower = Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetAddressVotingPower), from).AsNumber();
             }
@@ -642,19 +642,6 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public ConsensusPoll[] GetConsensusPolls()
         {
             return _pollMap.AllValues<ConsensusPoll>();
-
-            /*
-            var count = _pollList.Count();
-            var result = new ConsensusPoll[(int)count];
-            var pollList = _pollList.All<string>();
-            int index = 0;
-            foreach(var poll in pollList)
-            {
-                result[index] = _pollMap.Get<string, ConsensusPoll>(poll);
-                index++;
-            }
-            
-            return result;*/
         }
 
         #region Multisignature Transactions

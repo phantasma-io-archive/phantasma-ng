@@ -12,6 +12,7 @@ public interface IChain
     string Name { get; }
     Address Address { get; }
     Block CurrentBlock { get; }
+    Timestamp CurrentTime { get; }
     StorageChangeSetContext CurrentChangeSet { get; }
     PhantasmaKeys ValidatorKeys { get; set; }
     Address ValidatorAddress { get; }

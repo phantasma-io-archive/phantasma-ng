@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
@@ -16,11 +17,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public static readonly BigInteger ValidatorRotationTimeDefault = 120;
 
         public const string ValidatorPollTag = "elections";
-
-
+        public const string ValidatorMaxOfflineTimeTag = "validator.max.offline.time";
+        public static BigInteger ValidatorMaxOfflineTimeDefault = 7200; // 2 hours
 
 #pragma warning disable 0649
         private StorageList _validators; // <ValidatorInfo>
+        private StorageMap _validatorsActivity; // <Address, Timestamp>
 #pragma warning restore 0649
 
         private int _initialValidatorCount => DomainSettings.InitialValidatorCount;
@@ -317,6 +319,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 type = type,
             };
             _validators.Add(entry);
+            _validatorsActivity.Set<Address, Timestamp>(target, Runtime.Time);
 
             if (type == ValidatorType.Primary)
             {
@@ -337,29 +340,32 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(type == ValidatorType.Proposed ? EventKind.ValidatorPropose : EventKind.ValidatorElect, Runtime.Chain.Address, target);
         }
 
-        /*public void DemoteValidator(Address target)
+        public void DemoteValidator(Address from, Address target)
         {
-            Runtime.Expect(false, "not fully implemented");
-
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(target.IsUser, "must be user address");
-            Runtime.Expect(IsKnownValidator(target), "not a validator");
+            Runtime.Expect(Runtime.IsKnownValidator(target), "not a validator");
 
-            var count = _validatorList.Count();
+            var count = _validators.Count();
             Runtime.Expect(count > 1, "cant remove last validator");
 
-            var entry = _validatorMap.Get<Address, ValidatorEntry>(target);
+            var index = this.GetIndexOfValidator(target);
+            var entry = this.GetValidatorByIndex(index);
 
             bool brokenRules = false;
 
-            var diff = Timestamp.Now - Runtime.Nexus.GetValidatorLastActivity(target);
-            var maxPeriod = 3600 * 2; // 2 hours
+            var validatorLastActivity = 1;
+            var diff = Runtime.Time - Runtime.Chain.Nexus.GetValidatorLastActivity(target, Runtime.Time);
+            var governanceValueOfflineTime = Runtime.GetGovernanceValue(ValidatorMaxOfflineTimeTag);
+            var maxPeriod = governanceValueOfflineTime != 0 ? governanceValueOfflineTime : ValidatorMaxOfflineTimeDefault; // 2 hours
             if (diff > maxPeriod)
             {
                 brokenRules = true;
             }
 
-            var requiredStake = EnergyContract.MasterAccountThreshold;
-            var stakedAmount = (BigInteger)Runtime.CallContext(Nexus.StakeContractName, "GetStake", target);
+            var requiredStake = StakeContract.DefaultMasterThreshold;
+            
+            var stakedAmount = (BigInteger)Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetStake), target).AsNumber();
 
             if (stakedAmount < requiredStake)
             {
@@ -368,12 +374,42 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             Runtime.Expect(brokenRules, "no rules broken");
 
-            _validatorMap.Remove(target);
-            _validatorList.Remove(target);
+            entry.type = ValidatorType.Invalid;
+            _validators.Replace(index, entry);
 
             Runtime.Notify(EventKind.ValidatorRemove, Runtime.Chain.Address, target);
-            Runtime.RemoveMember(DomainSettings.ValidatorsOrganizationName, this.Address, from, to);
-        }*/
+            Runtime.RemoveMember(DomainSettings.ValidatorsOrganizationName, this.Address, target);
+        }
+
+        public void RegisterValidatorActivity(Address from, Address validatorAddress)
+        {
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(Runtime.IsKnownValidator(from), "not a validator");
+            Runtime.Expect(Runtime.IsKnownValidator(validatorAddress), "not a validator");
+            Runtime.Expect(from != validatorAddress, "Cannot register activity for yourself");
+            
+            var lastActivity = GetValidatorLastActivity(validatorAddress);
+            var governanceValueOfflineTime = Runtime.GetGovernanceValue(ValidatorMaxOfflineTimeTag);
+            uint maxPeriod = uint.Parse(governanceValueOfflineTime != 0 ? governanceValueOfflineTime.ToString() : ValidatorMaxOfflineTimeDefault.ToString()); // 2 hours
+            
+            if (lastActivity != Timestamp.Null && lastActivity.Value + maxPeriod <= Runtime.Time)
+            {
+                Runtime.Expect(false, "validator is offline");
+            }
+            
+            _validatorsActivity.Set(validatorAddress, Runtime.Time);
+        }
+
+        public Timestamp GetValidatorLastActivity(Address target)
+        {
+            if ( !Runtime.IsKnownValidator(target) )
+                return Timestamp.Null;
+
+            if (!_validatorsActivity.ContainsKey(target))
+                return Timestamp.Null;
+              
+            return _validatorsActivity.Get<Address, Timestamp>(target);
+        }
 
         public void Migrate(Address from, Address to)
         {

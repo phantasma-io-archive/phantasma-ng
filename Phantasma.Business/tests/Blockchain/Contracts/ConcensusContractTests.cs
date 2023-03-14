@@ -226,15 +226,18 @@ public class ConcensusContractTests
         addresses.Add(owner2.Address);
         addresses.Add(owner3.Address);
         addresses.Add(owner4.Address);
+
+        var scriptCreateTransaction = ScriptUtils.BeginScript()
+            .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+            .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.CreateTransaction), owner.Address,
+                subject, Serialization.Serialize(transaction), addresses.ToArray())
+            .SpendGas(owner.Address)
+            .EndScript();
         
         // Create Transaction
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-            ScriptUtils.BeginScript()
-                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
-                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.CreateTransaction), owner.Address, subject, Serialization.Serialize(transaction), addresses.ToArray())
-                .SpendGas(owner.Address)
-                .EndScript());
+            scriptCreateTransaction);
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
 
