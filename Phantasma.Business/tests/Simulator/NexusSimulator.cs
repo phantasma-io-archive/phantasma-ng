@@ -1424,6 +1424,7 @@ public class NexusSimulator
                 .EndScript());
         
         var blocks = EndBlock();
+        Assert.True(LastBlockWasSuccessful(), FailedTxReason);
 
 
         var txCost = Nexus.RootChain.GetTransactionFee(tx);

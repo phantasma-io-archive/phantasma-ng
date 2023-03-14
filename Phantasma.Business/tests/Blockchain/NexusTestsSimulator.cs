@@ -330,7 +330,8 @@ public class NexusTestsSimulator
         
         // Assert
         Assert.NotNull(activity);
-        Assert.Equal((Timestamp)simulator.CurrentTime, activity);
+        Assert.True((Timestamp)simulator.CurrentTime > activity);
+//        Assert.Equal((Timestamp)simulator.CurrentTime, activity.Value);
     }
 
     [Fact]

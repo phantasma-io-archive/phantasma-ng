@@ -48,7 +48,8 @@ namespace Phantasma.Business.Blockchain
         public string Name { get; private set; }
         public Address Address { get; private set; }
 
-        public Block CurrentBlock{ get; private set; }
+        public Block CurrentBlock { get; private set; }
+        public Timestamp CurrentTime { get; private set; }
         public IEnumerable<Transaction> Transactions => CurrentTransactions;
         public string CurrentProposer { get; private set; }
 
@@ -143,6 +144,8 @@ namespace Phantasma.Business.Blockchain
                 , validatorAddress
                 , new byte[0]
             );
+            
+            this.CurrentTime = timestamp;
 
             // create new storage context
             this.CurrentChangeSet = new StorageChangeSetContext(this.Storage);
@@ -456,7 +459,7 @@ namespace Phantasma.Business.Blockchain
             }
             
             // TODO validator update
-            //if (typeof(T) == typeof(ValidatorUpdate))
+            if (typeof(T) == typeof(ValidatorUpdate))
             {
                 return HandleValidatorUpdates() as List<T>;
             }
@@ -475,11 +478,11 @@ namespace Phantasma.Business.Blockchain
             uint timeDiference = uint.Parse(this.Nexus.GetGovernanceValue(this.Storage, ValidatorContract.ValidatorMaxOfflineTimeTag).ToString());
             var validatorUpdate = new ValidatorUpdate();
 
-            foreach ( var validator in validators)
+            foreach ( var validator in validators )
             {
                 Log.Information("Validator {validator}", validator);
                 validatorUpdate = new ValidatorUpdate();
-                lastActivity = this.InvokeContractAtTimestamp(this.Storage, this.CurrentBlock.Timestamp,
+                lastActivity = this.InvokeContractAtTimestamp(this.Storage, this.CurrentTime,
                     NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorLastActivity),
                     validator.address).AsTimestamp();
                 
@@ -491,9 +494,9 @@ namespace Phantasma.Business.Blockchain
                     validatorUpdate.Power = 1;
                     validatorUpdate.PubKey = validatorUpdatePubKey;
                     validatorUpdateList.Add(validatorUpdate);
-                    
+
                     this.Nexus.RegisterValidatorActivity(this.Storage, validator.address, 
-                        this.CurrentBlock.Validator, this.CurrentBlock.Timestamp, lastActivity);
+                        this.CurrentBlock.Validator, this.CurrentTime, lastActivity);
                     
                     /*InvokeContractAtTimestamp(this.Storage, this.CurrentBlock.Timestamp,
                         NativeContractKind.Validator, nameof(ValidatorContract.RegisterValidatorActivity),
@@ -507,7 +510,7 @@ namespace Phantasma.Business.Blockchain
                     validatorUpdate.PubKey = validatorUpdatePubKey;
                     validatorUpdateList.Add(validatorUpdate);
                     this.Nexus.RegisterValidatorActivity(this.Storage, validator.address, 
-                        this.CurrentBlock.Validator, this.CurrentBlock.Timestamp, lastActivity);
+                        this.CurrentBlock.Validator, this.CurrentTime, lastActivity);
                     continue;
                 }
 
@@ -515,7 +518,7 @@ namespace Phantasma.Business.Blockchain
                 validatorUpdate.PubKey = validatorUpdatePubKey;
                 validatorUpdateList.Add(validatorUpdate);
                 this.Nexus.DemoteValidator(this.Storage, validator.address, 
-                    this.CurrentBlock.Validator, this.CurrentBlock.Timestamp, lastActivity);
+                    this.CurrentBlock.Validator, this.CurrentTime, lastActivity);
             }
             
             return validatorUpdateList;

@@ -642,6 +642,7 @@ public class Nexus : INexus
 
             TokenUtils.FetchProperty(storage, this.RootChain, "getOwner", token, (prop, value) =>
             {
+                
                 token.Owner = value.AsAddress();
             });
 
@@ -1908,7 +1909,7 @@ public class Nexus : INexus
     public Timestamp GetValidatorLastActivity(Address target, Timestamp timestamp)
     {
         var lastActivity = RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorLastActivity), target).AsTimestamp();
-        return Timestamp.Null;
+        return lastActivity;
     }
 
     public ValidatorEntry[] GetValidators(Timestamp timestamp)

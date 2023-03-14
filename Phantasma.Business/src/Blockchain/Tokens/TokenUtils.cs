@@ -201,7 +201,7 @@ namespace Phantasma.Business.Blockchain.Tokens
             }
 
             var oracle = chain.Nexus.GetOracleReader();
-            var vm = new RuntimeVM(-1, script, (uint)method.offset, chain, Address.Null, chain.CurrentBlock.Timestamp, Transaction.Null, changeSet, oracle, ChainTask.Null);
+            var vm = new RuntimeVM(-1, script, (uint)method.offset, chain, Address.Null, chain.CurrentTime, Transaction.Null, changeSet, oracle, ChainTask.Null);
 
             //var vm = new GasMachine(script, (uint)method.offset);
 

@@ -307,7 +307,7 @@ public static class NexusExtensions
         Timestamp currentTime, Timestamp lastActivity)
     {
         // TODO: Add Validations.
-        Throw.If(source != validatorAddress, "Cannot register activity for yourself");
+        //Throw.If(source != validatorAddress, "Cannot register activity for yourself");
         
         var governanceValueOfflineTime = Nexus.GetGovernanceValue(Storage, ValidatorContract.ValidatorMaxOfflineTimeTag);
         uint maxPeriod = uint.Parse(governanceValueOfflineTime != 0 ? governanceValueOfflineTime.ToString() : ValidatorContract.ValidatorMaxOfflineTimeDefault.ToString()); // 2 hours
