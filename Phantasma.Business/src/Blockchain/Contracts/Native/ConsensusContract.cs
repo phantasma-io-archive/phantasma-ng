@@ -653,13 +653,31 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         public Transaction GetTransaction(Address from, string subject)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "not a valid witness");
+            if (Runtime.ProtocolVersion <= 13)
+            {
+                Runtime.Expect(Runtime.IsWitness(from), "not a valid witness");
+            }
             Runtime.Expect(_transactionMap.ContainsKey(subject), "transaction doesn't exist");
             Runtime.Expect(_transactionMapRules.ContainsKey(subject), "transaction doesn't exist");
             var transaction = _transactionMapSigned.Get<string, Transaction>(subject);
             var addresses = _transactionMapRules.Get<string, Address[]>(subject);
             Runtime.Expect(addresses.Contains(from), "not a valid witness for the transaction");
             return transaction;
+        }
+
+        /// <summary>
+        /// Gets the Addresses for a transaction.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="subject"></param>
+        /// <returns></returns>
+        public Address[] GetAddressesForTransaction(Address from, string subject)
+        {
+            Runtime.Expect(_transactionMap.ContainsKey(subject), "transaction doesn't exist");
+            Runtime.Expect(_transactionMapRules.ContainsKey(subject), "transaction doesn't exist");
+            var transaction = _transactionMapSigned.Get<string, Transaction>(subject);
+            var addresses = _transactionMapRules.Get<string, Address[]>(subject);
+            return addresses;
         }
 
         /// <summary>
