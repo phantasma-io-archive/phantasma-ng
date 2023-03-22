@@ -497,10 +497,6 @@ namespace Phantasma.Business.Blockchain
 
                     this.Nexus.RegisterValidatorActivity(this.Storage, validator.address, 
                         this.CurrentBlock.Validator, this.CurrentTime, lastActivity);
-                    
-                    /*InvokeContractAtTimestamp(this.Storage, this.CurrentBlock.Timestamp,
-                        NativeContractKind.Validator, nameof(ValidatorContract.RegisterValidatorActivity),
-                        validator.address, this.CurrentBlock.Validator);*/
                     continue;
                 }
                 
