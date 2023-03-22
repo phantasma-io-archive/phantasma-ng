@@ -1,16 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Storage.Context
 {
-    public struct StorageChangeSetEntry
+    public struct StorageChangeSetEntry : ISerializable
     {
         public byte[] oldValue;
         public byte[] newValue;
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.WriteByteArray(oldValue);
+            writer.WriteByteArray(newValue);
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            oldValue = reader.ReadByteArray();
+            newValue = reader.ReadByteArray();
+        }
     }
 
-    public class StorageChangeSetContext: StorageContext
+    public class StorageChangeSetContext: StorageContext, ISerializable
     {
         public StorageContext baseContext { get; private set; }
 
@@ -175,6 +189,28 @@ namespace Phantasma.Core.Storage.Context
                 }
 
             }, searchCount, prefix);
+        }
+
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.Write(_entries.Count);
+            foreach (KeyValuePair<StorageKey,StorageChangeSetEntry> valuePair in _entries)
+            {
+                writer.WriteByteArray(valuePair.Key.Serialize());
+                writer.WriteByteArray(valuePair.Value.Serialize());
+            }
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            _entries.Clear();
+            int count = reader.ReadInt32();
+            for (int i = 0; i < count; i++)
+            {
+                StorageKey key = Serialization.Unserialize<StorageKey>(reader.ReadByteArray());
+                StorageChangeSetEntry entry = Serialization.Unserialize<StorageChangeSetEntry>(reader.ReadByteArray());
+                _entries.Add(key, entry);
+            }
         }
     }
 }

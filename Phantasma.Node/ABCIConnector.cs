@@ -13,6 +13,7 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
 using Serilog;
 using Tendermint;
 using Tendermint.Abci;
@@ -295,7 +296,9 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         //Log.Information("Transactions info : {Transactions}", transactionsEncoded);
         var transactions =
             Serialization.Unserialize<Transaction[]>(Base16.Decode(transactionsEncoded));
-        return Task.FromResult(chain.SetBlock(block, transactions, chain.CurrentChangeSet));
+        var changeSetEncoded = split[2].Split(":")[1];
+        var changeSet = Serialization.Unserialize<StorageChangeSetContext>(Base16.Decode(changeSetEncoded));
+        return Task.FromResult(chain.SetBlock(block, transactions, changeSet));
     }
     
     private Task<byte[]> AttemptRequestBlock(Chain chain)
@@ -445,12 +448,15 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                         query.Value = "Transactions not found".ToByteString();
                         return Task.FromResult(query);
                     }
+
                     
                     var blockBytes = block.ToByteArray(true);
                     var transactionsBytes = Serialization.Serialize(transactions.ToArray());
+                    var changeSet = chain.CurrentChangeSet.Serialize();
                     
                     var response = "block:" + Base16.Encode(blockBytes);
                     response += "_transactions:" + Base16.Encode(transactionsBytes);
+                    response += "_changeSet:" + Base16.Encode(changeSet);
                     query.Info = "Block get";
                     query.Value = response.ToByteString();
                     query.Code = (int)CodeType.Ok;

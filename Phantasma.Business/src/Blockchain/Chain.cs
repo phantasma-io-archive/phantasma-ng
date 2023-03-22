@@ -442,6 +442,7 @@ namespace Phantasma.Business.Blockchain
 
         public IEnumerable<T> EndBlock<T>() where T : class
         {
+            
             //if (Height == 1)
             //{
             //    throw new ChainException("genesis transaction failed");
@@ -459,9 +460,15 @@ namespace Phantasma.Business.Blockchain
             }
             
             // TODO validator update
-            if (typeof(T) == typeof(ValidatorUpdate))
+            try
             {
-                return HandleValidatorUpdates() as List<T>;
+                if (typeof(T) == typeof(ValidatorUpdate))
+                {
+                    return HandleValidatorUpdates() as List<T>;
+                }
+            }catch (Exception e)
+            {
+                Log.Error(e, "Error in HandleValidatorUpdates");
             }
             
             return new List<T>();
