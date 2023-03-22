@@ -296,9 +296,9 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         //Log.Information("Transactions info : {Transactions}", transactionsEncoded);
         var transactions =
             Serialization.Unserialize<Transaction[]>(Base16.Decode(transactionsEncoded));
-        var changeSetEncoded = split[2].Split(":")[1];
-        var changeSet = Serialization.Unserialize<StorageChangeSetContext>(Base16.Decode(changeSetEncoded));
-        return Task.FromResult(chain.SetBlock(block, transactions, changeSet));
+        //var changeSetEncoded = split[2].Split(":")[1];
+        //var changeSet = Serialization.Unserialize<StorageChangeSetContext>(Base16.Decode(changeSetEncoded));
+        return Task.FromResult(chain.SetBlock(block, transactions, chain.CurrentChangeSet));
     }
     
     private Task<byte[]> AttemptRequestBlock(Chain chain)
@@ -452,11 +452,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                     
                     var blockBytes = block.ToByteArray(true);
                     var transactionsBytes = Serialization.Serialize(transactions.ToArray());
-                    var changeSet = chain.CurrentChangeSet.Serialize();
+                    //var changeSet = chain.CurrentChangeSet.Serialize();
                     
                     var response = "block:" + Base16.Encode(blockBytes);
                     response += "_transactions:" + Base16.Encode(transactionsBytes);
-                    response += "_changeSet:" + Base16.Encode(changeSet);
+                    //response += "_changeSet:" + Base16.Encode(changeSet);
                     query.Info = "Block get";
                     query.Value = response.ToByteString();
                     query.Code = (int)CodeType.Ok;

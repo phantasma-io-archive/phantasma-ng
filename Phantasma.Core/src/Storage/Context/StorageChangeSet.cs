@@ -193,22 +193,28 @@ namespace Phantasma.Core.Storage.Context
 
         public void SerializeData(BinaryWriter writer)
         {
-            writer.Write(_entries.Count);
+            writer.WriteVarInt(_entries.Count);
             foreach (KeyValuePair<StorageKey,StorageChangeSetEntry> valuePair in _entries)
             {
-                writer.WriteByteArray(valuePair.Key.Serialize());
-                writer.WriteByteArray(valuePair.Value.Serialize());
+                var keySerialized = valuePair.Key.Serialize();
+                var valueSerialized = valuePair.Value.Serialize();
+                writer.WriteVarInt(keySerialized.Length);
+                writer.Write(keySerialized);
+                writer.WriteVarInt(valueSerialized.Length);
+                writer.Write(valueSerialized);
             }
         }
 
         public void UnserializeData(BinaryReader reader)
         {
             _entries.Clear();
-            int count = reader.ReadInt32();
+            var count = (int)reader.ReadVarInt();
             for (int i = 0; i < count; i++)
             {
-                StorageKey key = Serialization.Unserialize<StorageKey>(reader.ReadByteArray());
-                StorageChangeSetEntry entry = Serialization.Unserialize<StorageChangeSetEntry>(reader.ReadByteArray());
+                var lengthKey = reader.ReadVarInt();
+                StorageKey key = Serialization.Unserialize<StorageKey>(reader.ReadBytes((int)lengthKey));
+                var lengthValue = reader.ReadVarInt();
+                StorageChangeSetEntry entry = Serialization.Unserialize<StorageChangeSetEntry>(reader.ReadBytes((int)lengthValue));
                 _entries.Add(key, entry);
             }
         }
