@@ -18,7 +18,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
         public const string ValidatorPollTag = "elections";
         public const string ValidatorMaxOfflineTimeTag = "validator.max.offline.time";
-        public static BigInteger ValidatorMaxOfflineTimeDefault = 7200; // 2 hours
+        public static BigInteger ValidatorMaxOfflineTimeDefault = 86400; // 24 hours = 86400
 
 #pragma warning disable 0649
         private StorageList _validators; // <ValidatorInfo>
@@ -31,11 +31,20 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
         }
 
+        /// <summary>
+        /// Returns all of the Validators.
+        /// </summary>
+        /// <returns></returns>
         public ValidatorEntry[] GetValidators()
         {
             return _validators.All<ValidatorEntry>();
         }
 
+        /// <summary>
+        /// Returns the current validator set
+        /// </summary>
+        /// <param name="tendermintAddress"></param>
+        /// <returns></returns>
         public ValidatorEntry GetCurrentValidator(string tendermintAddress)
         {
             var validators = GetValidators();
@@ -56,6 +65,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             };
         }
 
+        /// <summary>
+        /// Returns the type of a given validator
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public ValidatorType GetValidatorType(Address address)
         {
             var validators = GetValidators();
@@ -71,6 +85,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return ValidatorType.Invalid;
         }
 
+        /// <summary>
+        /// Returns the index of a given validator
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public BigInteger GetIndexOfValidator(Address address)
         {
             if (!address.IsUser)
@@ -94,6 +113,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return -1;
         }
 
+        /// <summary>
+        /// Returns the maximum number of validators
+        /// </summary>
+        /// <returns></returns>
         public int GetMaxTotalValidators()
         {
             if (Runtime.HasGenesis)
@@ -104,6 +127,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return _initialValidatorCount;
         }
 
+        /// <summary>
+        /// Returns the validator at a given index
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
         public ValidatorEntry GetValidatorByIndex(BigInteger index)
         {
             Runtime.Expect(index >= 0, "invalid validator index");
@@ -124,6 +152,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             };
         }
 
+        /// <summary>
+        /// Returns the number of validators of a given type
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
         public BigInteger GetValidatorCount(ValidatorType type)
         {
             if (type == ValidatorType.Invalid)
@@ -152,6 +185,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
         }
 
+        /// <summary>
+        /// Returns the maximum number of primary validators
+        /// </summary>
+        /// <returns></returns>
         public BigInteger GetMaxPrimaryValidators()
         {
             if (Runtime.HasGenesis)
@@ -200,6 +237,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return _initialValidatorCount;
         }
 
+        /// <summary>
+        /// Returns the maximum number of secondary validators
+        /// </summary>
+        /// <returns></returns>
         public BigInteger GetMaxSecondaryValidators()
         {
             if (Runtime.HasGenesis)
@@ -340,6 +381,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(type == ValidatorType.Proposed ? EventKind.ValidatorPropose : EventKind.ValidatorElect, Runtime.Chain.Address, target);
         }
 
+        /// <summary>
+        /// Demote a validator to a proposed status.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="target"></param>
         public void DemoteValidator(Address from, Address target)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -357,7 +403,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var validatorLastActivity = 1;
             var diff = Runtime.Time - Runtime.Chain.Nexus.GetValidatorLastActivity(target, Runtime.Time);
             var governanceValueOfflineTime = Runtime.GetGovernanceValue(ValidatorMaxOfflineTimeTag);
-            var maxPeriod = governanceValueOfflineTime != 0 ? governanceValueOfflineTime : ValidatorMaxOfflineTimeDefault; // 2 hours
+            var maxPeriod = governanceValueOfflineTime != 0 ? governanceValueOfflineTime : ValidatorMaxOfflineTimeDefault; // 24 hours
             if (diff > maxPeriod)
             {
                 brokenRules = true;
@@ -381,6 +427,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.RemoveMember(DomainSettings.ValidatorsOrganizationName, this.Address, target);
         }
 
+        /// <summary>
+        /// Register validator activity
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="validatorAddress"></param>
         public void RegisterValidatorActivity(Address from, Address validatorAddress)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -400,6 +451,32 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             _validatorsActivity.Set(validatorAddress, Runtime.Time);
         }
 
+        /// <summary>
+        /// Updates the last activity of a validator
+        /// </summary>
+        /// <param name="from"></param>
+        public void UpdateValidatorActivity(Address from)
+        {
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(Runtime.IsKnownValidator(from), "not a validator");
+            var lastActivity = GetValidatorLastActivity(from);
+            var governanceValueOfflineTime = Runtime.GetGovernanceValue(ValidatorMaxOfflineTimeTag);
+            uint maxPeriod = uint.Parse(governanceValueOfflineTime != 0 ? governanceValueOfflineTime.ToString() : ValidatorMaxOfflineTimeDefault.ToString()); // 2 hours
+            
+            if (lastActivity != Timestamp.Null && lastActivity.Value + maxPeriod <= Runtime.Time)
+            {
+                Runtime.Expect(false, "validator is offline");
+            }
+            
+            _validatorsActivity.Set(from, Runtime.Time);
+
+        }
+
+        /// <summary>
+        /// Returns the last activity of a validator
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
         public Timestamp GetValidatorLastActivity(Address target)
         {
             if ( !Runtime.IsKnownValidator(target) )
@@ -411,6 +488,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return _validatorsActivity.Get<Address, Timestamp>(target);
         }
 
+        /// <summary>
+        /// Migrate a validator to a new address
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
         public void Migrate(Address from, Address to)
         {
             Runtime.Expect(Runtime.PreviousContext.Name == "account", "invalid context");
