@@ -18,36 +18,43 @@ public static class Webhook
     
     public static void Notify(string message)
     {
-        Log.Logger.Error("Sending webhook notification: {message}", message);
-        if (string.IsNullOrEmpty(Token) || string.IsNullOrEmpty(Channel))
+        try
         {
+            Log.Logger.Error("Sending webhook notification: {message}", message);
+            if (string.IsNullOrEmpty(Token) || string.IsNullOrEmpty(Channel))
+            {
+                return;
+            }
+            var client = new HttpClient();
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Content-Type", "application/json");
+            var url = $"{WebhookUrl}/{Channel}/{Token}";
+            var myMessaContent = "@everyone Chain Warning ( " + Prefix + " ) -- {" + message + "}";
+            
+            // Calculate the number of chunks we need
+            int chunkCount = (int)Math.Ceiling((double)myMessaContent.Length / 2000);
+
+            string[] messages = new string[chunkCount];
+            
+            // Split the message into chunks
+            for (int i = 0; i < chunkCount; i++)
+            {
+                messages[i] = myMessaContent.Substring(i * 2000, Math.Min(2000, myMessaContent.Length - i * 2000));
+                
+                var msgContent = "{\"content\": \""+messages[i]+" \"," +
+                                 "\"username\": \"Chain Notify\"," +
+                                 "\"allowed_mentions\": {" +
+                                 "\"parse\": [\"everyone\"]," +
+                                 "\"users\": []" +
+                                 "}" +
+                                 "}";
+                var content = new StringContent(msgContent, Encoding.UTF8, "application/json");
+                var response = client.PostAsync(url, content).GetAwaiter().GetResult();
+            }
             return;
         }
-        var client = new HttpClient();
-        client.DefaultRequestHeaders.TryAddWithoutValidation("Content-Type", "application/json");
-        var url = $"{WebhookUrl}/{Channel}/{Token}";
-        var myMessaContent = "@everyone Chain Warning ( " + Prefix + " ) -- {" + message + "}";
-        
-        // Calculate the number of chunks we need
-        int chunkCount = (int)Math.Ceiling((double)myMessaContent.Length / 2000);
-
-        string[] messages = new string[chunkCount];
-        
-        // Split the message into chunks
-        for (int i = 0; i < chunkCount; i++)
+        catch (Exception e)
         {
-            messages[i] = myMessaContent.Substring(i * 2000, Math.Min(2000, myMessaContent.Length - i * 2000));
-            
-            var msgContent = "{\"content\": \""+messages[i]+" \"," +
-                             "\"username\": \"Chain Notify\"," +
-                             "\"allowed_mentions\": {" +
-                             "\"parse\": [\"everyone\"]," +
-                             "\"users\": []" +
-                             "}" +
-                             "}";
-            var content = new StringContent(msgContent, Encoding.UTF8, "application/json");
-            var response = client.PostAsync(url, content).GetAwaiter().GetResult();
+            Log.Logger.Error(e, "Error sending webhook notification: {message}", message);
         }
-        return;
     }
 }
