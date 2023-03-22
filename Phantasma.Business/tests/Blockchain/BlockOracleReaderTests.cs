@@ -49,6 +49,7 @@ public class BlockOracleReaderTests
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
         simulator.GetFundsInTheFuture(owner);
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.BeginScript()

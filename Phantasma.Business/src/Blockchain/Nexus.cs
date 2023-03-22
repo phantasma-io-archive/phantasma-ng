@@ -642,6 +642,7 @@ public class Nexus : INexus
 
             TokenUtils.FetchProperty(storage, this.RootChain, "getOwner", token, (prop, value) =>
             {
+                
                 token.Owner = value.AsAddress();
             });
 
@@ -1729,6 +1730,16 @@ public class Nexus : INexus
                      })
                  },
 
+                 { 
+                     ValidatorContract.ValidatorMaxOfflineTimeTag,  new KeyValuePair<BigInteger, ChainConstraint[]>(
+                     ValidatorContract.ValidatorMaxOfflineTimeDefault, new ChainConstraint[]
+                     {
+                         new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 300},
+                         new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 604800},
+                     })
+                 
+                 },
+
                  {
                      ValidatorContract.ValidatorRotationTimeTag, new KeyValuePair<BigInteger, ChainConstraint[]>(
                          ValidatorContract.ValidatorRotationTimeDefault, new ChainConstraint[]
@@ -1895,9 +1906,10 @@ public class Nexus : INexus
     #endregion
 
     #region VALIDATORS
-    public Timestamp GetValidatorLastActivity(Address target)
+    public Timestamp GetValidatorLastActivity(Address target, Timestamp timestamp)
     {
-        throw new NotImplementedException();
+        var lastActivity = RootChain.InvokeContractAtTimestamp(this.RootStorage, timestamp, NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorLastActivity), target).AsTimestamp();
+        return lastActivity;
     }
 
     public ValidatorEntry[] GetValidators(Timestamp timestamp)
@@ -1962,7 +1974,7 @@ public class Nexus : INexus
     public bool IsKnownValidator(Address address, Timestamp timestamp)
     {
         var result = GetValidatorType(address, timestamp);
-        return result != ValidatorType.Invalid;
+        return result != ValidatorType.Invalid && result != ValidatorType.Proposed;
     }
 
     public BigInteger GetStakeFromAddress(StorageContext storage, Address address, Timestamp timestamp)
@@ -2376,8 +2388,22 @@ public class Nexus : INexus
 
     public ValidatorEntry GetValidator(StorageContext storage, string tAddress)
     {
-        var validatorContractName = NativeContractKind.Validator.GetContractName();
+        if ( !HasGenesis()) 
+            return new ValidatorEntry()
+                {
+                    address = Address.Null,
+                    type = ValidatorType.Invalid,
+                    election = new Timestamp(0)
+                };
+        
+        var lastBlockHash = this.RootChain.GetLastBlockHash();
+        var lastBlock = this.RootChain.GetBlockByHash(lastBlockHash);
         // TODO use builtin methods instead of doing this directly
+        var validatorEntryVmObject = RootChain.InvokeContractAtTimestamp(storage, lastBlock.Timestamp,
+            NativeContractKind.Validator,
+            nameof(ValidatorContract.GetCurrentValidator), tAddress);
+        return validatorEntryVmObject.AsStruct<ValidatorEntry>();
+        /*
         var valueMapKey = Encoding.UTF8.GetBytes($".{validatorContractName}._validators");
         var validators = new StorageMap(valueMapKey, storage);
 
@@ -2394,7 +2420,7 @@ public class Nexus : INexus
             address = Address.Null,
             type = ValidatorType.Invalid,
             election = new Timestamp(0)
-        };
+        };*/
     }
 
     public BigInteger GetGovernanceValue(StorageContext storage, string name)

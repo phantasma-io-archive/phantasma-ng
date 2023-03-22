@@ -49,16 +49,29 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
         }
 
+        /// <summary>
+        /// Check if a governance value exists
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public bool HasName(string name)
         {
             return HasValue(name);
         }
 
+        /// <summary>
+        /// Get all of the governance values
+        /// </summary>
+        /// <returns></returns>
         public string[] GetNames()
         {
             return _nameList.All<string>();
         }
 
+        /// <summary>
+        /// Get all the governance values
+        /// </summary>
+        /// <returns></returns>
         public GovernancePair[] GetValues()
         {
             var names = GetNames();

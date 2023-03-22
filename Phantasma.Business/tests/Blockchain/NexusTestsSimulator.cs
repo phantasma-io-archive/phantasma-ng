@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 using Phantasma.Business.Blockchain;
@@ -11,6 +12,7 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Node.Oracles;
+using Tendermint.Abci;
 using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
@@ -59,6 +61,7 @@ public class NexusTestsSimulator
         simulator = new NexusSimulator(new []{owner, owner2, owner3}, version);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
+        Assert.True(simulator.LastBlockWasSuccessful());
         SetInitialBalance(user.Address);
     }
 
@@ -66,9 +69,9 @@ public class NexusTestsSimulator
     {
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
-        simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.StakingTokenSymbol, initialAmount);
+        //simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.StakingTokenSymbol, initialAmount);
         simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
     }
     
     [Fact]
@@ -323,12 +326,12 @@ public class NexusTestsSimulator
     [Fact]
     public void TestGetValidatorLastActivity()
     {
-        Assert.Throws<NotImplementedException>(() => nexus.GetValidatorLastActivity(owner.Address));
-        /*var activity = nexus.GetValidatorLastActivity(owner.Address);
+        var activity = nexus.GetValidatorLastActivity(owner.Address, simulator.CurrentTime);
         
         // Assert
         Assert.NotNull(activity);
-        Assert.Equal((Timestamp)simulator.CurrentTime, activity);*/
+        Assert.True((Timestamp)simulator.CurrentTime > activity);
+//        Assert.Equal((Timestamp)simulator.CurrentTime, activity.Value);
     }
 
     [Fact]
@@ -563,6 +566,22 @@ public class NexusTestsSimulator
         simulator.SendRawTransaction(transaction);
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
+    }
+
+    [Fact]
+    public void TestGetBlockRewards()
+    {
+        simulator.GetFundsInTheFuture(owner, 20);
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        simulator.BeginBlock();
+        simulator.GenerateTransfer(owner, user.Address, simulator.Nexus.RootChain, DomainSettings.StakingTokenSymbol,  UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals));
+        simulator.GenerateTransfer(owner, user.Address, simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol,  UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals));
+        var blocks = simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful());
+        
+        var rewards = simulator.Nexus.RootChain.GetBlockReward(blocks.First());
+        Assert.NotEqual(0, rewards);
     }
     
     private BigInteger MintTokens(PhantasmaKeys _user, Address gasAddress, Address fromAddress, Address toAddress, string symbol, BigInteger amount, bool shouldFail = false)

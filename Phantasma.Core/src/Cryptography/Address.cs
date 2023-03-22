@@ -39,6 +39,8 @@ namespace Phantasma.Core.Cryptography
         public bool IsUser => Kind == AddressKind.User;
 
         public string TendermintAddress => Base16.Encode(_bytes[2..].Sha256()[..20]);
+        
+        public byte[] TendermintPublicKey => _bytes[2..].Sha256()[..20];
 
         public bool IsNull
         {

@@ -172,7 +172,7 @@ namespace Phantasma.Node.Oracles
                     CachedFee fee;
                     if (_feeCache.TryGetValue(platform, out fee))
                     {
-                        if ((Timestamp.Now - fee.Time) < 60)
+                        if ((time - fee.Time) < 60)
                         {
                             var logMessage = $"PullFee({platform}): Cached fee pulled: {fee.Value}, GAS limit: {Settings.Instance.Oracle.EthGasLimit}, calculated fee: {fee.Value * Settings.Instance.Oracle.EthGasLimit}";
                             Log.Debug(logMessage);
@@ -182,7 +182,7 @@ namespace Phantasma.Node.Oracles
                     }
 
                     var newFee = EthereumInterop.GetNormalizedFee(Settings.Instance.Oracle.EthFeeURLs.ToArray());
-                    fee = new CachedFee(Timestamp.Now, UnitConversion.ToBigInteger(newFee, 9)); // 9 for GWEI
+                    fee = new CachedFee(time, UnitConversion.ToBigInteger(newFee, 9)); // 9 for GWEI
                     _feeCache[platform] = fee;
 
                     var logMessage2 = $"PullFee({platform}): New fee pulled: {fee.Value}, GAS limit: {Settings.Instance.Oracle.EthGasLimit}, calculated fee: {fee.Value * Settings.Instance.Oracle.EthGasLimit}";
