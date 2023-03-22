@@ -1734,8 +1734,8 @@ public class Nexus : INexus
                      ValidatorContract.ValidatorMaxOfflineTimeTag,  new KeyValuePair<BigInteger, ChainConstraint[]>(
                      ValidatorContract.ValidatorMaxOfflineTimeDefault, new ChainConstraint[]
                      {
-                         new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 300},
-                         new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 604800},
+                         new ChainConstraint() { Kind = ConstraintKind.MinValue, Value = 3600}, // 1 Hour
+                         new ChainConstraint() { Kind = ConstraintKind.MaxValue, Value = 604800}, // 1 Week
                      })
                  
                  },
