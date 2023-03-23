@@ -390,10 +390,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(target.IsUser, "must be user address");
+            Runtime.Expect(Runtime.IsKnownValidator(from), "not a validator");
             Runtime.Expect(Runtime.IsKnownValidator(target), "not a validator");
 
             var count = _validators.Count();
-            Runtime.Expect(count > 1, "cant remove last validator");
+            Runtime.Expect(count > 3, "cant remove last validator");
 
             var index = this.GetIndexOfValidator(target);
             var entry = this.GetValidatorByIndex(index);
@@ -469,7 +470,6 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
             
             _validatorsActivity.Set(from, Runtime.Time);
-
         }
 
         /// <summary>

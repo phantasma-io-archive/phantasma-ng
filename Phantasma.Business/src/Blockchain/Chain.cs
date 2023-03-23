@@ -309,8 +309,7 @@ namespace Phantasma.Business.Blockchain
                     methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: false);
                 }
                 
-
-
+                
                 /*if (transaction.TransactionGas != TransactionGas.Null)
                     {
                         from = transaction.TransactionGas.GasPayer;
@@ -459,17 +458,19 @@ namespace Phantasma.Business.Blockchain
                 //return (List<T>) Convert.ChangeType(blocks, typeof(List<T>));
             }
             
-            // TODO validator update
-            try
+            // TODO validator update - Only be allowed after extensive testing.
+            /*try
             {
                 if (typeof(T) == typeof(ValidatorUpdate))
                 {
                     return HandleValidatorUpdates() as List<T>;
                 }
-            }catch (Exception e)
-            {
-                Log.Error(e, "Error in HandleValidatorUpdates");
             }
+            catch (Exception e)
+            {
+                //Webhook.Notify("Error in HandleValidatorUpdates");
+                Log.Error(e, "Error in HandleValidatorUpdates");
+            }*/
             
             return new List<T>();
         }
@@ -478,7 +479,8 @@ namespace Phantasma.Business.Blockchain
         {
             if (!this.Nexus.HasGenesis()) return new List<ValidatorUpdate>();
             var validators = this.Nexus.GetValidators(this.CurrentBlock.Timestamp);
-            if (validators.Length == 0) return new List<ValidatorUpdate>();;
+            if (validators.Length == 0) return new List<ValidatorUpdate>();
+            if ( this.Nexus.GetProtocolVersion(this.Storage) <= 13 ) return new List<ValidatorUpdate>();
         
             var validatorUpdateList = new List<ValidatorUpdate>();
             Timestamp lastActivity;
