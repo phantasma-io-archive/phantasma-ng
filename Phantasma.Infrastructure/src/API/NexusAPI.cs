@@ -338,6 +338,7 @@ public static class NexusAPI
             result.events = new EventResult[0];
         }
 
+        // TODO this is a hack, we should have a better way to get the sender address
         if (tx.Hash == Hash.FromString("4C55F0BD67F4C0BDB420627C46247B209B55827E2A115481C89F08864BC42883"))
         {
             var eventList = new List<EventResult>();
