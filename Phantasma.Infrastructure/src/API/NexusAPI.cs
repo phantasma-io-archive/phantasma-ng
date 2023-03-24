@@ -339,7 +339,7 @@ public static class NexusAPI
         }
 
         // TODO this is a hack, because of a transaction WEBHOOK bug that happend.
-        if (tx.Hash.ToString().ToLower().Equals("4C55F0BD67F4C0BDB420627C46247B209B55827E2A115481C89F08864BC42883".ToLower()))
+        if (tx.Hash.ToString().Equals("4C55F0BD67F4C0BDB420627C46247B209B55827E2A115481C89F08864BC42883", StringComparison.InvariantCultureIgnoreCase))
         {
             var eventList = new List<EventResult>();
             var evts = block.GetEventsForTransaction(tx.Hash);
@@ -363,8 +363,8 @@ public static class NexusAPI
             }
             
             BigInteger amount = UnitConversion.ToBigInteger(3500, 8);
-            eventList.Add(FillEvent(new Event(EventKind.TokenSend, Address.FromText("P2K3pjd8RokaqxrDrYzE5Ff4p14rkmGjFadpULuJjDVBWkA"), "CROWN", Serialization.Serialize(new TokenEventData("SOUL", amount, "main")))));
-            eventList.Add(FillEvent(new Event(EventKind.TokenReceive, Address.FromText("P2KCU8od3QGLmwwWNPhjUKcN4En32nZFzZMz7Fyd3MB35xN"),  "CROWN", Serialization.Serialize(new TokenEventData("SOUL", amount, "main")))));
+            eventList.Add(FillEvent(new Event(EventKind.TokenSend, Address.FromText("P2K3pjd8RokaqxrDrYzE5Ff4p14rkmGjFadpULuJjDVBWkA"), "SOUL", Serialization.Serialize(new TokenEventData("SOUL", amount, "main")))));
+            eventList.Add(FillEvent(new Event(EventKind.TokenReceive, Address.FromText("P2KCU8od3QGLmwwWNPhjUKcN4En32nZFzZMz7Fyd3MB35xN"),  "SOUL", Serialization.Serialize(new TokenEventData("SOUL", amount, "main")))));
             
             result.state = ExecutionState.Halt.ToString();
             result.events = eventList.ToArray();
