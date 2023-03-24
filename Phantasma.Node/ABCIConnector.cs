@@ -363,10 +363,10 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         //var changeSetEncoded = split[2].Split(":")[1];
         //var changeSet = Serialization.Unserialize<StorageChangeSetContext>(Base16.Decode(changeSetEncoded));
 
-        if (!ValidateBlockFromRequest(block, chain, transactions))
+        /*if (!ValidateBlockFromRequest(block, chain, transactions))
         {
             throw new Exception("Block is not valid");
-        }
+        }*/
         
         return Task.FromResult(chain.SetBlock(block, transactions, chain.CurrentChangeSet));
     }
