@@ -430,3 +430,4 @@ testnet/temp/
 # Vscode
 .vscode/
 
+Phantasma.Core/tests/MyTests.cs
