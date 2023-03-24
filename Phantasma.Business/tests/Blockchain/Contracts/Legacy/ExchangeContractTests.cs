@@ -571,10 +571,9 @@ public class ExchangeContractTests
         // Create users
         var seller = new ExchangeUser(baseSymbol, quoteSymbol, core);
         
-
         // Give Users tokens
         seller.FundUser(soul: 500, kcal: 100);
-        
+        Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
 
         // Get Initial Balance
         var initialBalance = seller.GetBalance(baseSymbol);
@@ -584,6 +583,7 @@ public class ExchangeContractTests
 
         // Create OTC Offer
         var txValue = seller.OpenOTCOrder(baseSymbol, quoteSymbol, 1m, 2m);
+        Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
 
         // Test if the seller lost money.
         var finalBalance = seller.GetBalance(baseSymbol);
@@ -878,7 +878,7 @@ public class ExchangeContractTests
 
             // Create a Pool
             poolOwner.CreatePool(soul.Symbol, myPoolAmount0, cool.Symbol, 0);
-            Assert.True(core.simulator.LastBlockWasSuccessful());
+            Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
 
             var pool = poolOwner.GetPool(soul.Symbol, cool.Symbol);
 
@@ -1340,7 +1340,7 @@ public class ExchangeContractTests
 
             // Add Liquidity to the pool
             poolOwner.AddLiquidity(kcal.Symbol, amount0, cool.Symbol, amount1);
-            Assert.True(core.simulator.LastBlockWasSuccessful());
+            Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
 
             var lpAdded = (amount0 * totalLiquidity) / totalAm0;
             totalLiquidity += lpAdded;

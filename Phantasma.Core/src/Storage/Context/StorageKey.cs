@@ -1,7 +1,10 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
+using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Storage.Context
 {
@@ -21,9 +24,9 @@ namespace Phantasma.Core.Storage.Context
         }
     }
 
-    public struct StorageKey
+    public struct StorageKey : ISerializable
     {
-        public readonly byte[] keyData;
+        public byte[] keyData { get; private set; }
 
         public StorageKey(byte[] data)
         {
@@ -159,6 +162,16 @@ namespace Phantasma.Core.Storage.Context
             }
             */
             return "0x" + Base16.Encode(value);
+        }
+
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.WriteByteArray(keyData);
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            keyData = reader.ReadByteArray();
         }
     }
 }
