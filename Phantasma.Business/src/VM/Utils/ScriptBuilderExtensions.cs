@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 

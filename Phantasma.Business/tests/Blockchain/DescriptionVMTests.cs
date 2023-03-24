@@ -9,8 +9,7 @@ using Phantasma.Core.Domain;
 namespace Phantasma.Business.Tests.Blockchain;
 
 using Xunit;
-
-using Phantasma.Business.Blockchain;
+using Phantasma.Business.Blockchain.VM;
 
 public class DescriptionVMTests
 {

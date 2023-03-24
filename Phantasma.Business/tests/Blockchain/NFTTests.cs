@@ -3,7 +3,6 @@ using System.Linq;
 using System.Numerics;
 using Xunit;
 using Phantasma.Business.Blockchain;
-using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
@@ -11,6 +10,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
+using Phantasma.Business.Blockchain.Contracts.Native;
 
 namespace Phantasma.Business.Tests.Blockchain;
 

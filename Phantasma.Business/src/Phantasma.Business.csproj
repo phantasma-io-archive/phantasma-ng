@@ -25,5 +25,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Phantasma.Core\src\Phantasma.Core.csproj" />
+    <ProjectReference Include="..\..\Phantasma.Tendermint\Phantasma.Tendermint.csproj" />
   </ItemGroup>
 </Project>

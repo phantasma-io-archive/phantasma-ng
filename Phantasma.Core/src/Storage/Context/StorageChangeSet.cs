@@ -1,16 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Storage.Context
 {
-    public struct StorageChangeSetEntry
+    public struct StorageChangeSetEntry : ISerializable
     {
         public byte[] oldValue;
         public byte[] newValue;
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.WriteByteArray(oldValue);
+            writer.WriteByteArray(newValue);
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            oldValue = reader.ReadByteArray();
+            newValue = reader.ReadByteArray();
+        }
     }
 
-    public class StorageChangeSetContext: StorageContext
+    public class StorageChangeSetContext: StorageContext, ISerializable
     {
         public StorageContext baseContext { get; private set; }
 
@@ -175,6 +189,34 @@ namespace Phantasma.Core.Storage.Context
                 }
 
             }, searchCount, prefix);
+        }
+
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.WriteVarInt(_entries.Count);
+            foreach (KeyValuePair<StorageKey,StorageChangeSetEntry> valuePair in _entries)
+            {
+                var keySerialized = valuePair.Key.Serialize();
+                var valueSerialized = valuePair.Value.Serialize();
+                writer.WriteVarInt(keySerialized.Length);
+                writer.Write(keySerialized);
+                writer.WriteVarInt(valueSerialized.Length);
+                writer.Write(valueSerialized);
+            }
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            _entries.Clear();
+            var count = (int)reader.ReadVarInt();
+            for (int i = 0; i < count; i++)
+            {
+                var lengthKey = reader.ReadVarInt();
+                StorageKey key = Serialization.Unserialize<StorageKey>(reader.ReadBytes((int)lengthKey));
+                var lengthValue = reader.ReadVarInt();
+                StorageChangeSetEntry entry = Serialization.Unserialize<StorageChangeSetEntry>(reader.ReadBytes((int)lengthValue));
+                _entries.Add(key, entry);
+            }
         }
     }
 }

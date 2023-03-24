@@ -16,6 +16,7 @@ using Phantasma.Core.Types;
 using Phantasma.Infrastructure.RocksDB;
 using Shouldly;
 using Xunit;
+using Phantasma.Business.Blockchain.VM;
 
 namespace Phantasma.Business.Tests.VM;
 

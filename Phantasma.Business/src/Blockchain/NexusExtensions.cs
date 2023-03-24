@@ -1,10 +1,18 @@
+using System;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.VM;
+using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Business.Blockchain;
 
@@ -293,5 +301,71 @@ public static class NexusExtensions
         Runtime.Expect(token.Flags.HasFlag(TokenFlags.Fungible), "token is not fungible");
         
         return true;
+    }
+
+    public static void RegisterValidatorActivity(this INexus Nexus, StorageContext Storage, Address source, Address validatorAddress,
+        Timestamp currentTime, Timestamp lastActivity)
+    {
+        // TODO: Add Validations.
+        //Throw.If(source != validatorAddress, "Cannot register activity for yourself");
+        
+        var governanceValueOfflineTime = Nexus.GetGovernanceValue(Storage, ValidatorContract.ValidatorMaxOfflineTimeTag);
+        uint maxPeriod = uint.Parse(governanceValueOfflineTime != 0 ? governanceValueOfflineTime.ToString() : ValidatorContract.ValidatorMaxOfflineTimeDefault.ToString()); // 2 hours
+            
+        if (lastActivity != Timestamp.Null && lastActivity.Value + maxPeriod <= currentTime)
+        {
+            DemoteValidator(Nexus, Storage, source, validatorAddress, currentTime, lastActivity);
+            return; // validator is offline, do not update activity (Demote)
+        }
+
+        var key = SmartContract.GetKeyForField(NativeContractKind.Validator, "_validatorsActivity", true);
+        var validatorsActivityMap = new StorageMap(key, Storage);
+            
+        validatorsActivityMap.Set(validatorAddress, currentTime);
+    }
+    
+    public static void DemoteValidator(this INexus Nexus, StorageContext Storage,  Address source, Address validatorAddress, Timestamp currentTime, Timestamp lastActivity)
+    {
+        // TODO: Add Validations.
+        var key = SmartContract.GetKeyForField(NativeContractKind.Validator, "_validatorsActivity", true);
+        var validatorsActivityMap = new StorageMap(key, Storage);
+
+        var count = validatorsActivityMap.Count();
+        
+        Throw.If(count > 3, "cant remove last validator");
+        
+        var entry = Nexus.GetValidator(Storage, validatorAddress.TendermintAddress);
+
+        bool brokenRules = false;
+        var diff = currentTime - lastActivity;
+        var governanceValueOfflineTime = Nexus.GetGovernanceValue(Storage, ValidatorContract.ValidatorMaxOfflineTimeTag);
+        var maxPeriod = governanceValueOfflineTime != 0 ? governanceValueOfflineTime : ValidatorContract.ValidatorMaxOfflineTimeDefault; // 2 hours
+        if (diff > maxPeriod)
+        {
+            brokenRules = true;
+        }
+
+        var requiredStake = StakeContract.DefaultMasterThreshold;
+            
+        var stakedAmount = (BigInteger)Nexus.RootChain.InvokeContractAtTimestamp(Storage, currentTime, NativeContractKind.Stake, nameof(StakeContract.GetStake), validatorAddress).AsNumber();
+
+        if (stakedAmount < requiredStake)
+        {
+            brokenRules = true;
+        }
+        
+        Throw.If(brokenRules, "no rules broken");
+        
+        var index = Nexus.GetIndexOfValidator(validatorAddress, currentTime);
+
+        entry.type = ValidatorType.Invalid;
+        var keyValidators = SmartContract.GetKeyForField(NativeContractKind.Validator, "_validators", true);
+        var _validatorsMap = new StorageList(keyValidators, Storage);
+        
+        _validatorsMap.Replace(index, entry);
+        
+        var Runtime = new RuntimeVM(-1, null, 0, Nexus.RootChain, source, currentTime, Transaction.Null, new StorageChangeSetContext(Storage), null, null);
+        Runtime.Notify(EventKind.ValidatorRemove, Runtime.Chain.Address, validatorAddress);
+        Runtime.RemoveMember(DomainSettings.ValidatorsOrganizationName, SmartContract.GetAddressForNative(NativeContractKind.Validator), validatorAddress);
     }
 }

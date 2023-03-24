@@ -6,6 +6,7 @@ using System.Numerics;
 using Moq;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
@@ -200,7 +201,7 @@ namespace Phantasma.Business.Blockchain.Tokens
             }
 
             var oracle = chain.Nexus.GetOracleReader();
-            var vm = new RuntimeVM(-1, script, (uint)method.offset, chain, Address.Null, Timestamp.Now, Transaction.Null, changeSet, oracle, ChainTask.Null);
+            var vm = new RuntimeVM(-1, script, (uint)method.offset, chain, Address.Null, chain.CurrentTime, Transaction.Null, changeSet, oracle, ChainTask.Null);
 
             //var vm = new GasMachine(script, (uint)method.offset);
 

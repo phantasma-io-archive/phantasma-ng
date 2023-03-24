@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Phantasma.Business.Blockchain;
+using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.VM;
 using Phantasma.Core.Domain;
 
 namespace Phantasma.Business.VM.Utils
@@ -176,7 +177,7 @@ namespace Phantasma.Business.VM.Utils
             return ExtractContractNames(disassembler);
         }
 
-        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(Disassembler disassembler, Dictionary<string, int> methodArgumentCountTable = null)
+        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(Disassembler disassembler, Dictionary<string, int> methodArgumentCountTable = null, bool detectAndUseJumps = false)
         {
             if (methodArgumentCountTable == null)
             {
@@ -248,6 +249,43 @@ namespace Phantasma.Business.VM.Utils
                             result.Add(new DisasmMethodCall() { MethodName = methodName, ContractName = "", Arguments = args });
                             break;
                         }
+
+                    case Opcode.JMP:
+                    case Opcode.JMPNOT:
+                    case Opcode.JMPIF:
+                        {
+                            if (detectAndUseJumps)
+                            {
+                                var argIndex = instruction.Opcode == Opcode.JMP ? 0 : 1;
+                                var jumpPos = (ushort) instruction.Args[argIndex];
+
+                                if (jumpPos < instruction.Offset)
+                                {
+                                    throw new ChainException("Loop detected in script: " + instruction);
+                                }
+                                else
+                                {
+                                    var found = false;
+
+                                    for (int i = index + 1; i < instructions.Length; i++)
+                                    {
+                                        if (instructions[i].Offset >= jumpPos)
+                                        {
+                                            found = true;
+                                            index = i;
+                                            break;
+                                        }
+                                    }
+
+                                    if (!found)
+                                    {
+                                        throw new ChainException("Weird jump detected in script: \" + instruction");
+                                    }
+                                }
+                            }
+
+                            break;
+                        }
                 }
 
                 index++;
@@ -256,10 +294,10 @@ namespace Phantasma.Business.VM.Utils
             return result;
         }
 
-        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(byte[] script, Dictionary<string, int> methodArgumentCountTable = null)
+        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(byte[] script, Dictionary<string, int> methodArgumentCountTable = null, bool detectAndUseJumps = false)
         {
             var disassembler = new Disassembler(script);
-            return ExtractMethodCalls(disassembler, methodArgumentCountTable);
+            return ExtractMethodCalls(disassembler, methodArgumentCountTable, detectAndUseJumps);
         }
     }
 }

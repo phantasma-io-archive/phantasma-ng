@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using Phantasma.Business.Blockchain;
-using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
@@ -14,6 +13,7 @@ using Phantasma.Core.Numerics;
 
 using Xunit;
 using Shouldly;
+using Phantasma.Business.Blockchain.Contracts.Native;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
@@ -571,10 +571,9 @@ public class ExchangeContractTests
         // Create users
         var seller = new ExchangeUser(baseSymbol, quoteSymbol, core);
         
-
         // Give Users tokens
         seller.FundUser(soul: 500, kcal: 100);
-        
+        Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
 
         // Get Initial Balance
         var initialBalance = seller.GetBalance(baseSymbol);
@@ -584,6 +583,7 @@ public class ExchangeContractTests
 
         // Create OTC Offer
         var txValue = seller.OpenOTCOrder(baseSymbol, quoteSymbol, 1m, 2m);
+        Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
 
         // Test if the seller lost money.
         var finalBalance = seller.GetBalance(baseSymbol);
@@ -878,7 +878,7 @@ public class ExchangeContractTests
 
             // Create a Pool
             poolOwner.CreatePool(soul.Symbol, myPoolAmount0, cool.Symbol, 0);
-            Assert.True(core.simulator.LastBlockWasSuccessful());
+            Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
 
             var pool = poolOwner.GetPool(soul.Symbol, cool.Symbol);
 
@@ -1340,7 +1340,7 @@ public class ExchangeContractTests
 
             // Add Liquidity to the pool
             poolOwner.AddLiquidity(kcal.Symbol, amount0, cool.Symbol, amount1);
-            Assert.True(core.simulator.LastBlockWasSuccessful());
+            Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
 
             var lpAdded = (amount0 * totalLiquidity) / totalAm0;
             totalLiquidity += lpAdded;
@@ -1768,7 +1768,7 @@ public class ExchangeContractTests
                 $"{UnitConversion.ToDecimal(kcalToSwap, DomainSettings.FiatTokenDecimals)} {soul.Symbol} for {UnitConversion.ToDecimal(rate, kcal.Decimals)} {kcal.Symbol} | Swap ->  {UnitConversion.ToDecimal(rateByPool, kcal.Decimals)}");
 
             // Make Swap SOUL / KCAL (SwapFee)
-            poolOwner2.SwapFee(soul.Symbol, swapValueSOUL);
+            var txFee = poolOwner2.SwapFee(soul.Symbol, swapValueSOUL);
             Assert.True(core.simulator.LastBlockWasSuccessful());
 
             // Get the balances
@@ -1780,10 +1780,11 @@ public class ExchangeContractTests
 
             Console.WriteLine($"{beforeTXBalanceSOUL} != {afterTXBalanceSOUL} | {afterTXBalanceKCAL}");
 
+            Assert.Equal(beforeTXBalanceSOUL - swapValueSOUL , afterTXBalanceSOUL);
             Assert.True(
                 afterTXBalanceSOUL ==
-                beforeTXBalanceSOUL -
-                (kcalToSwap) /* + UnitConversion.ConvertDecimals(500,  kcal.Decimals, DomainSettings.FiatTokenDecimals))*/,
+                beforeTXBalanceSOUL - swapValueSOUL
+                /* + UnitConversion.ConvertDecimals(500,  kcal.Decimals, DomainSettings.FiatTokenDecimals))*/,
                 $"SOUL {afterTXBalanceSOUL} != {beforeTXBalanceSOUL - (kcalToSwap + UnitConversion.ConvertDecimals(500, kcal.Decimals, DomainSettings.FiatTokenDecimals))}");
             Assert.True(beforeTXBalanceKCAL + kcalfee + rate == afterTXBalanceKCAL,
                 $"KCAL {beforeTXBalanceKCAL + kcalfee + rate} != {afterTXBalanceKCAL}");
@@ -1996,13 +1997,16 @@ public class ExchangeContractTests
 
             // Create users
             var poolOwner = new ExchangeUser(baseSymbol, quoteSymbol, core);
+            var poolOwner2 = new ExchangeUser(baseSymbol, quoteSymbol, core);
 
             // Give Users tokens
-            poolOwner.FundUser(soul: 500, 0);
+            poolOwner.FundUser(soul: 4, 0);
+            poolOwner2.FundUser(soul: 4, 0.05m);
 
             var originalBalance = poolOwner.GetBalance(DomainSettings.FuelTokenSymbol);
+            var originalBalanceUser2 = poolOwner.GetBalance(DomainSettings.FuelTokenSymbol);
 
-            var swapAmount = UnitConversion.ToBigInteger(15, DomainSettings.StakingTokenDecimals);
+            var swapAmount = UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals);
 
             var kcalRate = core.simulator.InvokeContract(NativeContractKind.Exchange, nameof(ExchangeContract.GetRate),
                 baseSymbol, quoteSymbol, swapAmount).AsNumber();
@@ -2010,7 +2014,7 @@ public class ExchangeContractTests
             core.simulator.BeginBlock();
             var tx = core.simulator.GenerateCustomTransaction(poolOwner.userKeys, ProofOfWork.Minimal, () =>
                 ScriptUtils.BeginScript()
-                    .CallContract(NativeContractKind.Exchange, nameof(ExchangeContract.SwapFee),
+                    .CallContract(NativeContractKind.Swap, nameof(ExchangeContract.SwapFee),
                         poolOwner.userKeys.Address, baseSymbol, swapAmount)
                     .AllowGas(poolOwner.userKeys.Address, Address.Null, core.simulator.MinimumFee, 999)
                     .SpendGas(poolOwner.userKeys.Address)
@@ -2024,6 +2028,27 @@ public class ExchangeContractTests
             var finalBalance = poolOwner.GetBalance(DomainSettings.FuelTokenSymbol);
             Assert.True(finalBalance >= originalBalance + kcalRate - txCost,
                 $"{finalBalance} > {originalBalance + kcalRate - txCost}");
+            
+            var kcalRate2 = core.simulator.InvokeContract(NativeContractKind.Exchange, nameof(ExchangeContract.GetRate),
+                baseSymbol, quoteSymbol, swapAmount).AsNumber();
+            
+            core.simulator.BeginBlock();
+            var tx2 = core.simulator.GenerateCustomTransaction(poolOwner2.userKeys, ProofOfWork.Minimal, () =>
+                ScriptUtils.BeginScript()
+                    .CallContract(NativeContractKind.Swap, nameof(ExchangeContract.SwapFee),
+                        poolOwner2.userKeys.Address, baseSymbol, swapAmount)
+                    .AllowGas(poolOwner2.userKeys.Address, Address.Null, core.simulator.MinimumFee, 210000)
+                    .SpendGas(poolOwner2.userKeys.Address)
+                    .EndScript()
+            );
+            //core.simulator.GenerateSwapFee(poolOwner.userKeys, core.nexus.RootChain, DomainSettings.StakingTokenSymbol, swapAmount);
+            core.simulator.EndBlock();
+            Assert.True(core.simulator.LastBlockWasSuccessful());
+            var txCost2 = core.simulator.Nexus.RootChain.GetTransactionFee(tx2);
+            
+            var finalBalance2 = poolOwner2.GetBalance(DomainSettings.FuelTokenSymbol);
+            Assert.True(finalBalance2 >= originalBalanceUser2 + kcalRate2 - txCost2,
+                $"{finalBalance2} > {originalBalanceUser2 + kcalRate2 - txCost2}");
         });
     }
     /*
@@ -2177,9 +2202,7 @@ public class ExchangeContractTests
         core.simulator.GenerateTransfer(core.owner, SmartContract.GetAddressForNative(NativeContractKind.Swap), core.simulator.Nexus.RootChain, DomainSettings.FuelTokenSymbol, UnitConversion.ToBigInteger(100m, kcal.Decimals));
         core.simulator.EndBlock();
         Assert.True(core.simulator.LastBlockWasSuccessful());
-        
-        
-        
+
         // SwapFee
         core.simulator.BeginBlock();
         core.simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
@@ -2255,7 +2278,8 @@ public class ExchangeContractTests
             var owner3 = PhantasmaKeys.Generate();
             simulator = new NexusSimulator(new []{owner, owner1, owner2, owner3});
             nexus = simulator.Nexus;
-            simulator.GetFundsInTheFuture(owner);
+            simulator.GetFundsInTheFuture(owner, 10);
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
             
             simulator.BeginBlock();
@@ -2270,8 +2294,11 @@ public class ExchangeContractTests
             Assert.True(simulator.LastBlockWasSuccessful());
             
             var balanceBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol, owner.Address);
-            simulator.GetFundsInTheFuture(owner);
-            simulator.GetFundsInTheFuture(owner);
+            simulator.GetFundsInTheFuture(owner, 10);
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+
+            simulator.GetFundsInTheFuture(owner, 10);
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
             //simulator.TransferOwnerAssetsToAddress(owner.Address);
             var balanceAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.FuelTokenSymbol, owner.Address);
 
@@ -2330,7 +2357,7 @@ public class ExchangeContractTests
             }
             simulator.EndBlock();
             
-            simulator.GetFundsInTheFuture(owner);
+            simulator.GetFundsInTheFuture(owner, 10);
             Assert.True(simulator.LastBlockWasSuccessful());
             
             simulator.BeginBlock();

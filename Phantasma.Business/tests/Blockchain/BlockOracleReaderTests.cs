@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Numerics;
 using Phantasma.Business.Blockchain;
-using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
@@ -49,6 +49,7 @@ public class BlockOracleReaderTests
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
         simulator.GetFundsInTheFuture(owner);
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
             ScriptUtils.BeginScript()

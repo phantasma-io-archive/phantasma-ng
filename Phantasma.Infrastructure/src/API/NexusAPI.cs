@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM.Utils;

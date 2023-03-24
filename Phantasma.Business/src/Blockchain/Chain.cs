@@ -6,10 +6,10 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Transactions;
-using Google.Protobuf;
 using Phantasma.Business.Blockchain.Contracts;
-using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
@@ -20,6 +20,9 @@ using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 using Serilog;
 using Serilog.Core;
+using Tendermint.Abci;
+using Tendermint.Crypto;
+using Event = Phantasma.Core.Domain.Event;
 using Transaction = Phantasma.Core.Domain.Transaction;
 
 namespace Phantasma.Business.Blockchain
@@ -45,7 +48,8 @@ namespace Phantasma.Business.Blockchain
         public string Name { get; private set; }
         public Address Address { get; private set; }
 
-        public Block CurrentBlock{ get; private set; }
+        public Block CurrentBlock { get; private set; }
+        public Timestamp CurrentTime { get; private set; }
         public IEnumerable<Transaction> Transactions => CurrentTransactions;
         public string CurrentProposer { get; private set; }
 
@@ -87,6 +91,28 @@ namespace Phantasma.Business.Blockchain
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
         }
 
+        private uint GetCurrentProtocolVersion()
+        {
+            var lastBlockHash = this.GetLastBlockHash();
+            return GetCurrentProtocolVersion(lastBlockHash);
+        }
+
+        private uint GetCurrentProtocolVersion(Hash lastBlockHash)
+        {
+            uint protocol = DomainSettings.Phantasma30Protocol;
+            try
+            {
+                if (lastBlockHash != Hash.Null)
+                    protocol = Nexus.GetProtocolVersion(Nexus.RootStorage);
+            }
+            catch (Exception e)
+            {
+                Log.Information("Error getting info {Exception}", e);
+            }
+
+            return protocol;
+        }
+
         public IEnumerable<Transaction> BeginBlock(string proposerAddress, BigInteger height, BigInteger minimumFee, Timestamp timestamp, IEnumerable<Address> availableValidators)
         {
             // should never happen
@@ -99,16 +125,8 @@ namespace Phantasma.Business.Blockchain
             var lastBlockHash = this.GetLastBlockHash();
             var lastBlock = this.GetBlockByHash(lastBlockHash);
             var isFirstBlock = lastBlock == null;
-            uint protocol = DomainSettings.Phantasma30Protocol;
-            try
-            {
-                if (lastBlockHash != Hash.Null)
-                    protocol = Nexus.GetProtocolVersion(Nexus.RootStorage);
-            }
-            catch (Exception e)
-            {
-                Log.Information("Error getting info {Exception}", e);
-            }
+
+            var protocol = GetCurrentProtocolVersion(lastBlockHash);
             
             this.CurrentProposer = proposerAddress;
             var validator = Nexus.GetValidator(this.Storage, this.CurrentProposer);
@@ -140,6 +158,8 @@ namespace Phantasma.Business.Blockchain
                 , validatorAddress
                 , new byte[0]
             );
+            
+            this.CurrentTime = timestamp;
 
             // create new storage context
             this.CurrentChangeSet = new StorageChangeSetContext(this.Storage);
@@ -187,6 +207,48 @@ namespace Phantasma.Business.Blockchain
 
             // returns eventual system transactions that need to be broadcasted to tenderm int to be included into the current block
             return systemTransactions;
+        }
+
+        private (CodeType, string) HandleWhitelistedMethods(IEnumerable<DisasmMethodCall> methods, Timestamp timestamp, uint protocolVersion)
+        {
+            if (methods.Any(x => x.MethodName.Equals(nameof(SwapContract.SwapFee)) || x.MethodName.Equals(nameof(ExchangeContract.SwapFee))))
+            {
+                var existsLPToken = Nexus.TokenExists(Storage, DomainSettings.LiquidityTokenSymbol);
+                BigInteger exchangeVersion = 0;
+                if (protocolVersion >= 14)
+                {
+                    try
+                    {
+                        exchangeVersion = this.InvokeContractAtTimestamp(Storage, timestamp, NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVersion)).AsNumber();
+                    }
+                    catch ( Exception e)
+                    {
+                        Log.Error("Error getting exchange version {Exception}", e);
+                    }
+                }
+                else
+                {
+                    exchangeVersion = this.InvokeContractAtTimestamp(Storage, CurrentBlock.Timestamp, NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVersion)).AsNumber();
+                }
+                
+                if (existsLPToken && exchangeVersion >= 1) // Check for the Exchange contract
+                {
+                    var exchangePot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Exchange));
+                    if (exchangePot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
+                        return (CodeType.Error, $"Empty pot Exchange");
+                    }
+                }
+                else
+                {
+                    // Run the Swap contract
+                    var pot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Swap));
+                    if (pot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
+                        return (CodeType.Error, $"Empty pot Swap");
+                    }
+                }
+            }
+            
+            return (CodeType.Ok, "");
         }
 
         public (CodeType, string) CheckTx(Transaction tx, Timestamp timestamp)
@@ -240,8 +302,26 @@ namespace Phantasma.Business.Blockchain
                 {
                     _methodTableForGasExtraction = GenerateMethodTable();
                 }
-                
-                var methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction);
+
+                IEnumerable<DisasmMethodCall> methods;
+
+                if (protocolVersion >= 14)
+                {
+                    try
+                    {
+                        methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        var type = CodeType.Error;
+                        Log.Information("check tx error {Error} {Hash}", type, tx.Hash);
+                        return (type, "Error pre-processing transaction script contents: " + ex.Message);
+                    }
+                }
+                else
+                {
+                    methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: false);
+                }
                 
                 
                 /*if (transaction.TransactionGas != TransactionGas.Null)
@@ -261,7 +341,7 @@ namespace Phantasma.Business.Blockchain
                             return (result.Item1, result.Item2);
                         }
                     }*/
-                
+
                 var result = this.ExtractGasInformation(tx, out from, out target, out gasPrice, out gasLimit, methods, _methodTableForGasExtraction);
 
                 if (result.Item1 != CodeType.Ok)
@@ -289,25 +369,10 @@ namespace Phantasma.Business.Blockchain
                 var whitelisted = TransactionExtensions.IsWhitelisted(methods);
                 if (whitelisted)
                 {
-                    if (methods.Any(x => x.MethodName.Equals(nameof(SwapContract.SwapFee)) || x.MethodName.Equals(nameof(ExchangeContract.SwapFee))))
+                    var cosmicResult = HandleWhitelistedMethods(methods, timestamp, protocolVersion);
+                    if ( cosmicResult.Item1 != CodeType.Ok)
                     {
-                        var existsLPToken = Nexus.TokenExists(Storage, DomainSettings.LiquidityTokenSymbol);
-                        var exchangeVersion = this.InvokeContractAtTimestamp(Storage, CurrentBlock.Timestamp, NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVerion)).AsNumber();
-                        if (existsLPToken && exchangeVersion >= 1) // Check for the Exchange contract
-                        {
-                            var exchangePot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Exchange));
-                            if (exchangePot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
-                                return (CodeType.Error, $"Empty pot Exchange");
-                            }
-                        }
-                        else
-                        {
-                            // Run the Swap contract
-                            var pot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Swap));
-                            if (pot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
-                                return (CodeType.Error, $"Empty pot Swap");
-                            }
-                        }
+                        return (cosmicResult.Item1, cosmicResult.Item2);
                     }
                 }
                 else
@@ -345,11 +410,6 @@ namespace Phantasma.Business.Blockchain
                 Log.Information("check tx error {type} {Hash}", type, tx.Hash);
                 return (type, "Script attached to tx is invalid");
             }
-
-            //if (!VerifyBlockBeforeAdd(this.CurrentBlock))
-            //{
-            //    throw new BlockGenerationException($"block verification failed, would have overflown, hash:{this.CurrentBlock.Hash}");
-            //}
 
             Log.Information("check tx Successful {Hash}", tx.Hash);
             return (CodeType.Ok, "");
@@ -395,6 +455,7 @@ namespace Phantasma.Business.Blockchain
 
         public IEnumerable<T> EndBlock<T>() where T : class
         {
+            
             //if (Height == 1)
             //{
             //    throw new ChainException("genesis transaction failed");
@@ -411,8 +472,75 @@ namespace Phantasma.Business.Blockchain
                 //return (List<T>) Convert.ChangeType(blocks, typeof(List<T>));
             }
             
-            // TODO validator update
+            // TODO validator update - Only be allowed after extensive testing.
+            /*try
+            {
+                if (typeof(T) == typeof(ValidatorUpdate))
+                {
+                    return HandleValidatorUpdates() as List<T>;
+                }
+            }
+            catch (Exception e)
+            {
+                //Webhook.Notify("Error in HandleValidatorUpdates");
+                Log.Error(e, "Error in HandleValidatorUpdates");
+            }*/
+            
             return new List<T>();
+        }
+
+        private List<ValidatorUpdate> HandleValidatorUpdates()
+        {
+            if (!this.Nexus.HasGenesis()) return new List<ValidatorUpdate>();
+            var validators = this.Nexus.GetValidators(this.CurrentBlock.Timestamp);
+            if (validators.Length == 0) return new List<ValidatorUpdate>();
+            if ( this.Nexus.GetProtocolVersion(this.Storage) <= 13 ) return new List<ValidatorUpdate>();
+        
+            var validatorUpdateList = new List<ValidatorUpdate>();
+            Timestamp lastActivity;
+            uint timeDiference = uint.Parse(this.Nexus.GetGovernanceValue(this.Storage, ValidatorContract.ValidatorMaxOfflineTimeTag).ToString());
+            var validatorUpdate = new ValidatorUpdate();
+
+            foreach ( var validator in validators )
+            {
+                Log.Information("Validator {validator}", validator);
+                validatorUpdate = new ValidatorUpdate();
+                lastActivity = this.InvokeContractAtTimestamp(this.Storage, this.CurrentTime,
+                    NativeContractKind.Validator, nameof(ValidatorContract.GetValidatorLastActivity),
+                    validator.address).AsTimestamp();
+                
+                string jsonValidator = "{\"ed25519\":\""+Convert.ToBase64String(Encoding.UTF8.GetBytes(validator.address.TendermintAddress))+"\"}";
+                PublicKey validatorUpdatePubKey = PublicKey.Parser.ParseJson(jsonValidator);
+                
+                if ( lastActivity == Timestamp.Null)
+                {
+                    validatorUpdate.Power = 1;
+                    validatorUpdate.PubKey = validatorUpdatePubKey;
+                    validatorUpdateList.Add(validatorUpdate);
+
+                    this.Nexus.RegisterValidatorActivity(this.Storage, validator.address, 
+                        this.CurrentBlock.Validator, this.CurrentTime, lastActivity);
+                    continue;
+                }
+                
+                if (lastActivity.Value + timeDiference > this.CurrentBlock.Timestamp)
+                {
+                    validatorUpdate.Power = 1;
+                    validatorUpdate.PubKey = validatorUpdatePubKey;
+                    validatorUpdateList.Add(validatorUpdate);
+                    this.Nexus.RegisterValidatorActivity(this.Storage, validator.address, 
+                        this.CurrentBlock.Validator, this.CurrentTime, lastActivity);
+                    continue;
+                }
+
+                validatorUpdate.Power = 0;
+                validatorUpdate.PubKey = validatorUpdatePubKey;
+                validatorUpdateList.Add(validatorUpdate);
+                this.Nexus.DemoteValidator(this.Storage, validator.address, 
+                    this.CurrentBlock.Validator, this.CurrentTime, lastActivity);
+            }
+            
+            return validatorUpdateList;
         }
 
         public TransactionResult DeliverTx(Transaction tx)
@@ -502,6 +630,7 @@ namespace Phantasma.Business.Blockchain
             {
                 // Commit cannot throw anything, an error in this phase has to stop the node!
                 Log.Error("Critical failure {Error}", e);
+                Webhook.Notify($"[{((DateTime) CurrentBlock.Timestamp).ToLongDateString()}] reason -> Critical failure by [{e.Message}]");
                 Environment.Exit(-1);
             }
 
@@ -683,11 +812,6 @@ namespace Phantasma.Business.Blockchain
             // from here on, the block is accepted
             changeSet.Execute();
 
-            if (Nexus.HasGenesis())
-            {
-                
-            }
-            
             var hashList = new StorageList(BlockHeightListTag, this.Storage);
             hashList.Add<Hash>(block.Hash);
             

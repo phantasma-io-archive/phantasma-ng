@@ -1,6 +1,6 @@
 using System.Reflection;
-using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 using Xunit;

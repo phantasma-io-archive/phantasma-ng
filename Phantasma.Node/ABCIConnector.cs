@@ -7,18 +7,21 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
-using Phantasma.Core.Types;
+using Phantasma.Core.Storage.Context;
 using Serilog;
 using Tendermint;
 using Tendermint.Abci;
 using Tendermint.Extensions;
 using Tendermint.RPC;
+using Tendermint.Types;
 using Chain = Phantasma.Business.Blockchain.Chain;
+using Timestamp = Phantasma.Core.Types.Timestamp;
 
 namespace Phantasma.Node;
 public class ABCIConnector : ABCIApplication.ABCIApplicationBase
@@ -222,7 +225,14 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             response.ValidatorUpdates.AddRange(result);
 
             // TODO
-            //response.ConsensusParamUpdates = ???
+            /*var consensusParams = new ConsensusParams();
+            consensusParams.Block.MaxBytes = 1000000;
+            consensusParams.Block.MaxGas = 1000000;
+            consensusParams.Version.AppVersion = 1;
+            consensusParams.Evidence.MaxBytes = 1000000;
+            consensusParams.Evidence.MaxAgeDuration = Duration.FromTimeSpan(TimeSpan.FromDays(1000000));
+            consensusParams.Evidence.MaxAgeNumBlocks = 1000000;
+            response.ConsensusParamUpdates = consensusParams;*/
             //response.Events = ???
 
 
@@ -253,26 +263,6 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         {
             Log.Information("Block {Height} Is Being Validated by me.");
             chain.Commit();
-        
-            /*chain.CurrentBlock.Sign(chain.ValidatorKeys);
-            var blockString = Base16.Encode(chain.CurrentBlock.ToByteArray(true));
-            var transactions = chain.Transactions.ToArray();
-            var transactionString = Base16.Encode(transactions.Serialize());
-
-            
-            // Broadcast the block
-            var rpcBroadcast = "block:" + blockString;
-            rpcBroadcast += "_transactions:" + transactionString;
-            try
-            {
-                _rpc.BroadcastBlock(rpcBroadcast);
-                Log.Information("Broadcast block {Block}", blockString);
-            }
-            catch(Exception e)
-            {
-                Log.Information(e.ToString());
-                Log.Error("Something went wrong while broadcasting the block");
-            }*/
         }
         else
         {
@@ -306,6 +296,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         //Log.Information("Transactions info : {Transactions}", transactionsEncoded);
         var transactions =
             Serialization.Unserialize<Transaction[]>(Base16.Decode(transactionsEncoded));
+        //var changeSetEncoded = split[2].Split(":")[1];
+        //var changeSet = Serialization.Unserialize<StorageChangeSetContext>(Base16.Decode(changeSetEncoded));
         return Task.FromResult(chain.SetBlock(block, transactions, chain.CurrentChangeSet));
     }
     
@@ -456,12 +448,15 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                         query.Value = "Transactions not found".ToByteString();
                         return Task.FromResult(query);
                     }
+
                     
                     var blockBytes = block.ToByteArray(true);
                     var transactionsBytes = Serialization.Serialize(transactions.ToArray());
+                    //var changeSet = chain.CurrentChangeSet.Serialize();
                     
                     var response = "block:" + Base16.Encode(blockBytes);
                     response += "_transactions:" + Base16.Encode(transactionsBytes);
+                    //response += "_changeSet:" + Base16.Encode(changeSet);
                     query.Info = "Block get";
                     query.Value = response.ToByteString();
                     query.Code = (int)CodeType.Ok;
