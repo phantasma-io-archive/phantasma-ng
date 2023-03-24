@@ -18,6 +18,7 @@ public static class Webhook
     
     public static void Notify(string message)
     {
+        /// TODO This is to send a webhook notification to discord ( Anyone would be able to use / consume it )
         try
         {
             Log.Logger.Error("Sending webhook notification: {message}", message);
