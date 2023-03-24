@@ -363,8 +363,8 @@ public static class NexusAPI
             }
             
             BigInteger amount = UnitConversion.ToBigInteger(3500, 8);
-            eventList.Add(FillEvent(new Event(EventKind.TokenSend, Address.FromText("P2K3pjd8RokaqxrDrYzE5Ff4p14rkmGjFadpULuJjDVBWkA"), "CROWN", Serialization.Serialize(new TokenEventData("SOUL", amount, "main")))));
-            eventList.Add(FillEvent(new Event(EventKind.TokenReceive, Address.FromText("P2KCU8od3QGLmwwWNPhjUKcN4En32nZFzZMz7Fyd3MB35xN"),  "CROWN", Serialization.Serialize(new TokenEventData("SOUL", amount, "main")))));
+            eventList.Add(FillEvent(new Event(EventKind.TokenSend, Address.FromText("P2K3pjd8RokaqxrDrYzE5Ff4p14rkmGjFadpULuJjDVBWkA"), "SOUL", Serialization.Serialize(new TokenEventData("SOUL", amount, "main")))));
+            eventList.Add(FillEvent(new Event(EventKind.TokenReceive, Address.FromText("P2KCU8od3QGLmwwWNPhjUKcN4En32nZFzZMz7Fyd3MB35xN"),  "SOUL", Serialization.Serialize(new TokenEventData("SOUL", amount, "main")))));
             
             result.state = ExecutionState.Halt.ToString();
             result.events = eventList.ToArray();
