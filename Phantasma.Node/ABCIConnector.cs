@@ -326,10 +326,8 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         if ( block.Timestamp < chain.CurrentBlock.Timestamp ) return false;
         if ( block.Payload == null ) return false;
         if ( block.Validator != chain.CurrentBlock.Validator ) return false;
-        if ( block._resultMap == null ) return false;
         foreach (var tx in transactions)
         {
-            if ( !block._resultMap.ContainsKey(tx.Hash) ) return false;
             if (block.GetStateForTransaction(tx.Hash) != chain.CurrentBlock.GetStateForTransaction(tx.Hash))
                 return false;
         }
