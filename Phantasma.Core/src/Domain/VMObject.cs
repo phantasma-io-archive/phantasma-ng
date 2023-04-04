@@ -77,6 +77,9 @@ namespace Phantasma.Core.Domain
 
             switch (this.Type)
             {
+                case VMType.None:
+                    return 0;
+
                 case VMType.String:
                     {
                         if (BigInteger.TryParse((string)Data, out BigInteger number))
@@ -110,6 +113,12 @@ namespace Phantasma.Core.Domain
 
                 default:
                     {
+                        if (this.Type == VMType.Object && (Data is Hash))
+                        {
+                            var hash = (Hash)Data;
+                            return hash.AsBigInteger();
+                        }
+
                         if (this.Type != VMType.Number)
                         {
                             throw new Exception($"Invalid cast: expected number, got {this.Type}");
