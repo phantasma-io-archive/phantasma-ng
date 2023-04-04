@@ -204,7 +204,13 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.ChainSwap, from, new TransactionSettleEventData(hash, platform, chain));
         }
 
-        // send to external chain
+        /// <summary>
+        /// Send to external chain
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <param name="symbol"></param>
+        /// <param name="value"></param>
         public void WithdrawTokens(Address from, Address to, string symbol, BigInteger value)
         {
             Runtime.Expect(Runtime.ProtocolVersion < 13, "this method is obsolete");

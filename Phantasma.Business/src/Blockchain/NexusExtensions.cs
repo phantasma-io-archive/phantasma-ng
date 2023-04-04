@@ -331,7 +331,8 @@ public static class NexusExtensions
         var validatorsActivityMap = new StorageMap(key, Storage);
 
         var count = validatorsActivityMap.Count();
-        Throw.If(count > 1, "cant remove last validator");
+        
+        Throw.If(count > 3, "cant remove last validator");
         
         var entry = Nexus.GetValidator(Storage, validatorAddress.TendermintAddress);
 
@@ -362,7 +363,7 @@ public static class NexusExtensions
         var _validatorsMap = new StorageList(keyValidators, Storage);
         
         _validatorsMap.Replace(index, entry);
-
+        
         var Runtime = new RuntimeVM(-1, null, 0, Nexus.RootChain, source, currentTime, Transaction.Null, new StorageChangeSetContext(Storage), null, null);
         Runtime.Notify(EventKind.ValidatorRemove, Runtime.Chain.Address, validatorAddress);
         Runtime.RemoveMember(DomainSettings.ValidatorsOrganizationName, SmartContract.GetAddressForNative(NativeContractKind.Validator), validatorAddress);

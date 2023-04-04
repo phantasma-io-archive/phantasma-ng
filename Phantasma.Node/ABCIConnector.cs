@@ -10,9 +10,11 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Phantasma.Business.Blockchain;
+using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
 using Serilog;
 using Tendermint;
 using Tendermint.Abci;
@@ -61,6 +63,12 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         return _pendingTxs.Any(tx => tx.Hash == hash);
     }
 
+    /// <summary>
+    /// It starts here. Called when a new block is created.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="context"></param>
+    /// <returns></returns>
     public override Task<ResponseBeginBlock> BeginBlock(RequestBeginBlock request, ServerCallContext context)
     {
         Timestamp time = new Timestamp((uint) request.Header.Time.Seconds);
@@ -119,6 +127,12 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         return Task.FromResult(response);
     }
     
+    /// <summary>
+    /// Next is called when a new transaction is received. To validate the transaction.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="context"></param>
+    /// <returns></returns>
     public override Task<ResponseCheckTx> CheckTx(RequestCheckTx request, ServerCallContext context)
     {
         Log.Information($"ABCI Connector - Check TX");
@@ -152,6 +166,12 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         return Task.FromResult(ResponseHelper.Check.Create(CodeType.Error, "Generic Error"));
     }
     
+    /// <summary>
+    /// DeliverTx is called when a transaction is included in a block.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="context"></param>
+    /// <returns></returns>
     public override Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
     {
         Log.Information($"ABCI Connector - Deliver Tx");
@@ -212,6 +232,12 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         return Task.FromResult(response);
     }
 
+    /// <summary>
+    /// End the block.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="context"></param>
+    /// <returns></returns>
     public override Task<ResponseEndBlock> EndBlock(RequestEndBlock request, ServerCallContext context)
     {
         Log.Information("End block {Height}", request.Height);
@@ -251,6 +277,12 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         return Task.FromResult(response);
     }
     
+    /// <summary>
+    /// Commit the block to storage.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="context"></param>
+    /// <returns></returns>
     public override Task<ResponseCommit> Commit(RequestCommit request, ServerCallContext context)
     {
         Log.Information($"ABCI Connector - Commit");
@@ -280,21 +312,60 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         return Task.FromResult(response);
     }
 
+    /// <summary>
+    /// Validate the block from the request.
+    /// </summary>
+    /// <param name="block"></param>
+    /// <param name="chain"></param>
+    /// <param name="transactions"></param>
+    /// <returns></returns>
+    private bool ValidateBlockFromRequest(Block block, Chain chain, Transaction[] transactions)
+    {
+        if ( block == null ) return false;
+        if ( block.Height != chain.Height ) return false;
+        if ( block.Timestamp < chain.CurrentBlock.Timestamp ) return false;
+        if ( block.Payload == null ) return false;
+        if ( block.Validator != chain.CurrentBlock.Validator ) return false;
+        foreach (var tx in transactions)
+        {
+            if (block.GetStateForTransaction(tx.Hash) != chain.CurrentBlock.GetStateForTransaction(tx.Hash))
+                return false;
+        }
+        
+        return true;
+    }
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="chain"></param>
+    /// <param name="response"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
     private Task<byte[]> HandleRequestBlock(Chain chain, Tendermint.RPC.Endpoint.ResponseQuery response)
     {
         if ( response.Code != (int) 0) return Task.FromResult(new byte[0]);
         if ( response.Value == null ) return Task.FromResult(new byte[0]);
+        
         Log.Information("at height:{height}", chain.CurrentBlock.Height);
         var blockString = ByteString.FromBase64(response.Value).ToStringUtf8();
-        //Log.Information("Received block {Block}", blockString);
         var split = blockString.Split("_");
         var blockEncoded = split[0].Split(":")[1];
         //Log.Information("Block info : {Block}", blockEncoded);
         var block = Serialization.Unserialize<Block>(Base16.Decode(blockEncoded));
+        
         var transactionsEncoded = split[1].Split(":")[1];
         //Log.Information("Transactions info : {Transactions}", transactionsEncoded);
         var transactions =
             Serialization.Unserialize<Transaction[]>(Base16.Decode(transactionsEncoded));
+        //var changeSetEncoded = split[2].Split(":")[1];
+        //var changeSet = Serialization.Unserialize<StorageChangeSetContext>(Base16.Decode(changeSetEncoded));
+
+        /*if (!ValidateBlockFromRequest(block, chain, transactions))
+        {
+            throw new Exception("Block is not valid");
+        }*/
+        
         return Task.FromResult(chain.SetBlock(block, transactions, chain.CurrentChangeSet));
     }
     
@@ -445,12 +516,15 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                         query.Value = "Transactions not found".ToByteString();
                         return Task.FromResult(query);
                     }
+
                     
                     var blockBytes = block.ToByteArray(true);
                     var transactionsBytes = Serialization.Serialize(transactions.ToArray());
+                    //var changeSet = chain.CurrentChangeSet.Serialize();
                     
                     var response = "block:" + Base16.Encode(blockBytes);
                     response += "_transactions:" + Base16.Encode(transactionsBytes);
+                    //response += "_changeSet:" + Base16.Encode(changeSet);
                     query.Info = "Block get";
                     query.Value = response.ToByteString();
                     query.Code = (int)CodeType.Ok;

@@ -323,8 +323,7 @@ namespace Phantasma.Business.Blockchain
                     methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: false);
                 }
                 
-
-
+                
                 /*if (transaction.TransactionGas != TransactionGas.Null)
                     {
                         from = transaction.TransactionGas.GasPayer;
@@ -456,6 +455,7 @@ namespace Phantasma.Business.Blockchain
 
         public IEnumerable<T> EndBlock<T>() where T : class
         {
+            
             //if (Height == 1)
             //{
             //    throw new ChainException("genesis transaction failed");
@@ -472,11 +472,19 @@ namespace Phantasma.Business.Blockchain
                 //return (List<T>) Convert.ChangeType(blocks, typeof(List<T>));
             }
             
-            // TODO validator update
-            if (typeof(T) == typeof(ValidatorUpdate))
+            // TODO validator update - Only be allowed after extensive testing.
+            /*try
             {
-                return HandleValidatorUpdates() as List<T>;
+                if (typeof(T) == typeof(ValidatorUpdate))
+                {
+                    return HandleValidatorUpdates() as List<T>;
+                }
             }
+            catch (Exception e)
+            {
+                //Webhook.Notify("Error in HandleValidatorUpdates");
+                Log.Error(e, "Error in HandleValidatorUpdates");
+            }*/
             
             return new List<T>();
         }
@@ -485,7 +493,8 @@ namespace Phantasma.Business.Blockchain
         {
             if (!this.Nexus.HasGenesis()) return new List<ValidatorUpdate>();
             var validators = this.Nexus.GetValidators(this.CurrentBlock.Timestamp);
-            if (validators.Length == 0) return new List<ValidatorUpdate>();;
+            if (validators.Length == 0) return new List<ValidatorUpdate>();
+            if ( this.Nexus.GetProtocolVersion(this.Storage) <= 13 ) return new List<ValidatorUpdate>();
         
             var validatorUpdateList = new List<ValidatorUpdate>();
             Timestamp lastActivity;
@@ -511,10 +520,6 @@ namespace Phantasma.Business.Blockchain
 
                     this.Nexus.RegisterValidatorActivity(this.Storage, validator.address, 
                         this.CurrentBlock.Validator, this.CurrentTime, lastActivity);
-                    
-                    /*InvokeContractAtTimestamp(this.Storage, this.CurrentBlock.Timestamp,
-                        NativeContractKind.Validator, nameof(ValidatorContract.RegisterValidatorActivity),
-                        validator.address, this.CurrentBlock.Validator);*/
                     continue;
                 }
                 

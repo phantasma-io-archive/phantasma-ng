@@ -17,6 +17,7 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
+using Serilog;
 using Tendermint.RPC;
 
 namespace Phantasma.Infrastructure.API;
@@ -113,16 +114,25 @@ public static class NexusAPI
                 var series = Nexus.GetTokenSeries(Nexus.RootStorage, tokenSymbol, ID);
                 if (series != null)
                 {
-                    seriesList.Add(new TokenSeriesResult()
+                    try
                     {
-                        seriesID = (uint)ID,
-                        currentSupply = series.MintCount.ToString(),
-                        maxSupply = series.MaxSupply.ToString(),
-                        burnedSupply = Nexus.GetBurnedTokenSupplyForSeries(Nexus.RootStorage, tokenSymbol, ID).ToString(),
-                        mode = series.Mode.ToString(),
-                        script = Base16.Encode(series.Script),
-                        methods = extended ? FillMethods(series.ABI.Methods) : new ABIMethodResult[0]
-                    }); ;
+                        seriesList.Add(new TokenSeriesResult()
+                        {
+                            seriesID = uint.TryParse(ID.ToString(), out var id) ? id : 0,
+                            currentSupply = series.MintCount.ToString(),
+                            maxSupply = series.MaxSupply.ToString(),
+                            burnedSupply = Nexus.GetBurnedTokenSupplyForSeries(Nexus.RootStorage, tokenSymbol, ID)
+                                .ToString(),
+                            mode = series.Mode.ToString(),
+                            script = Base16.Encode(series.Script),
+                            methods = extended ? FillMethods(series.ABI.Methods) : new ABIMethodResult[0]
+                        });
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error("Error while filling token series: " + e.Message);
+                    }
+                   
                 }
             }
         }
@@ -336,6 +346,38 @@ public static class NexusAPI
         {
             result.result = "";
             result.events = new EventResult[0];
+        }
+
+        // TODO this is a hack, because of a transaction WEBHOOK bug that happend.
+        if (tx.Hash.ToString().Equals("4C55F0BD67F4C0BDB420627C46247B209B55827E2A115481C89F08864BC42883", StringComparison.InvariantCultureIgnoreCase))
+        {
+            var eventList = new List<EventResult>();
+            var evts = block.GetEventsForTransaction(tx.Hash);
+            foreach (var evt in evts)
+            {
+                var eventEntry = FillEvent(evt);
+
+                if (evt.Kind == EventKind.GasEscrow && evt.Contract == "gas")
+                {
+                    result.sender = evt.Address.Text;
+                    eventList.Add(eventEntry);
+                    continue;
+                }
+
+                if (evt.Kind == EventKind.ExecutionFailure)
+                {
+                    continue;
+                }
+                
+                eventList.Add(eventEntry);
+            }
+            
+            BigInteger amount = UnitConversion.ToBigInteger(3500, 8);
+            eventList.Add(FillEvent(new Event(EventKind.TokenSend, Address.FromText("P2K3pjd8RokaqxrDrYzE5Ff4p14rkmGjFadpULuJjDVBWkA"), "SOUL", Serialization.Serialize(new TokenEventData("SOUL", amount, "main")))));
+            eventList.Add(FillEvent(new Event(EventKind.TokenReceive, Address.FromText("P2KCU8od3QGLmwwWNPhjUKcN4En32nZFzZMz7Fyd3MB35xN"),  "SOUL", Serialization.Serialize(new TokenEventData("SOUL", amount, "main")))));
+            
+            result.state = ExecutionState.Halt.ToString();
+            result.events = eventList.ToArray();
         }
 
         return result;
