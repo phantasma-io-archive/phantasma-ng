@@ -3,7 +3,8 @@ name: .NET CI
 on: [push, pull_request]
 
 permissions:
-  pull-requests: write
+  pull-requests: read|write
+  actions: read|write
   
 jobs:
   build:
@@ -53,4 +54,4 @@ jobs:
         with:
           recreate: true
           path: code-coverage-results.md
-          GITHUB_TOKEN: "${{ secrets.PR_KEY }}"
+          GITHUB_TOKEN: ${{ secrets.PR_KEY }}
