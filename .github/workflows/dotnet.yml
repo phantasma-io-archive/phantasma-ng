@@ -50,9 +50,6 @@ jobs:
   
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
-        environment:
-          name: Pull Request Deployment
-          GITHUB_TOKEN: ${{ secrets.PR_KEY }}
         env:
           name: Pull Request Deployment
           GITHUB_TOKEN: ${{ secrets.PR_KEY }}
