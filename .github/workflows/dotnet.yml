@@ -3,8 +3,8 @@ name: .NET CI
 on: [push, pull_request]
 
 permissions:
-  pull-requests: read|write
-  actions: read|write
+  pull-requests: write
+  actions: write
   
 jobs:
   build:
