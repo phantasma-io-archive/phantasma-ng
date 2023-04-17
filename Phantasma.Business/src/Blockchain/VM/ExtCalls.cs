@@ -1894,6 +1894,11 @@ namespace Phantasma.Business.Blockchain.VM
                 var possibleFlags = Enum.GetValues(typeof(TokenFlags)).Cast<TokenFlags>().ToArray();
                 foreach (var entry in possibleFlags)
                 {
+                    if (entry == TokenFlags.None)
+                    {
+                        continue;
+                    }
+
                     var flag = entry; // this line necessary for lambda closure to catch the correct value
                     var propName = $"is{flag}";
 
