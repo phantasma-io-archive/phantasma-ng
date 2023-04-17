@@ -66,6 +66,7 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.GetTokenFlags", 1, Runtime_TokenGetFlags);
             callback("Runtime.GetTokenSupply", 1, Runtime_TokenGetSupply);
             callback("Runtime.GetAvailableTokenSymbols", 0, Runtime_GetAvailableTokenSymbols);
+            callback("Runtime.GetAvailableNFTSymbols", 0, Runtime_GetAvailableNFTSymbols);
 
             callback("Nexus.GetGovernanceValue", 1, Nexus_GetGovernanceValue);
             callback("Nexus.BeginInit", 1, Nexus_BeginInit);
@@ -1533,6 +1534,20 @@ namespace Phantasma.Business.Blockchain.VM
         private static ExecutionState Runtime_GetAvailableTokenSymbols(RuntimeVM vm)
         {
             var symbols = vm.GetTokens();
+
+            symbols = symbols.Where(x => vm.GetToken(x).IsFungible()).ToArray();
+
+            var result = VMObject.FromArray(symbols);
+            vm.Stack.Push(result);
+
+            return ExecutionState.Running;
+        }
+
+        private static ExecutionState Runtime_GetAvailableNFTSymbols(RuntimeVM vm)
+        {
+            var symbols = vm.GetTokens();
+
+            symbols = symbols.Where(x => !vm.GetToken(x).IsFungible()).ToArray();
 
             var result = VMObject.FromArray(symbols);
             vm.Stack.Push(result);
