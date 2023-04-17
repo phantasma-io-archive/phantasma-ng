@@ -64,6 +64,8 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.TokenExists", 1, Runtime_TokenExists);
             callback("Runtime.GetTokenDecimals", 1, Runtime_TokenGetDecimals);
             callback("Runtime.GetTokenFlags", 1, Runtime_TokenGetFlags);
+            callback("Runtime.GetTokenSupply", 1, Runtime_TokenGetSupply);
+            callback("Runtime.GetAvailableTokenSymbols", 0, Runtime_GetAvailableTokenSymbols);
 
             callback("Nexus.GetGovernanceValue", 1, Nexus_GetGovernanceValue);
             callback("Nexus.BeginInit", 1, Nexus_BeginInit);
@@ -1506,6 +1508,38 @@ namespace Phantasma.Business.Blockchain.VM
 
             return ExecutionState.Running;
         }
+
+        private static ExecutionState Runtime_TokenGetSupply(RuntimeVM vm)
+        {
+            vm.ExpectStackSize(1);
+
+            var symbol = vm.PopString("symbol");
+
+            if (!vm.TokenExists(symbol))
+            {
+                return ExecutionState.Fault;
+            }
+
+            var supply = vm.GetTokenSupply(symbol);
+
+            var result = new VMObject();
+
+            result.SetValue(supply);
+            vm.Stack.Push(result);
+
+            return ExecutionState.Running;
+        }
+
+        private static ExecutionState Runtime_GetAvailableTokenSymbols(RuntimeVM vm)
+        {
+            var symbols = vm.GetTokens();
+
+            var result = VMObject.FromArray(symbols);
+            vm.Stack.Push(result);
+
+            return ExecutionState.Running;
+        }
+
         #endregion
 
         #region Contract / Token Deployment
