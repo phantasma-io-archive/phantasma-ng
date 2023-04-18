@@ -61,23 +61,32 @@ jobs:
   
   MyTest:
     name: Test
-    runs-on: ubuntu-latest
     permissions: write-all
     steps:
       - name: Store Variable
         id: my-test
         run: |
+          mkdir -p /test/
+          echo hello > /test/world.txt
           echo "localTest=thisismine" >> $GITHUB_OUTPUT
           
+      - uses: actions/upload-artifact
+        with:
+          name: my-artifact
+          path: /test/world.txt
+        
+  
+  
   MyTest2:
     needs: [MyTest]
     name: Test2
-    runs-on: ubuntu-latest
     permissions: write-all
     steps:
-      - name: Store Variable
-        run: |
-          echo "${{needs.MyTest.my-test.outputs.localTest}}"
+      - name: Get Variable
+      - uses: actions/download-artifact
+        with:
+          name: my-artifact
+      - run: cat /test/world.txt
     
   
   Comment:
