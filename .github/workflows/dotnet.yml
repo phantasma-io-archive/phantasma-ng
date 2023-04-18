@@ -12,8 +12,6 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
     permissions: write-all
-    outputs:
-      coverage: ${{ steps.code-coverage.outputs.coverage }}
       
     steps:
       - uses: actions/checkout@v3
@@ -55,7 +53,11 @@ jobs:
 
       - name: Code Coverage Report
         run: |
-          echo "::set-output name=coverage::$(cat coverage/code-coverage-results.md)"
+          echo "test=tests" >> $GITHUB_OUTPUT
+
+      - name: Code Coverage Report
+        run: |
+          echo "coverage=$(cat coverage/code-coverage-results.md)" >> $GITHUB_OUTPUT
   
   Comment:
     name: Comment on PR
@@ -74,6 +76,8 @@ jobs:
         with:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
           message: |
+              This is just a test
+              {{needs.build.outputs.tests}}
               ${{ needs.build.outputs.coverage }}
           #filePath: code-coverage-results.md
         
