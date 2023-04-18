@@ -45,7 +45,7 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.Log", 1, Runtime_Log);
             callback("Runtime.Notify", 3, Runtime_Notify);
             callback("Runtime.DeployContract", 4, Runtime_DeployContract);
-            callback("Runtime.UpgradeContract", 3, Runtime_UpgradeContract);
+            callback("Runtime.UpgradeContract", 4, Runtime_UpgradeContract);
             callback("Runtime.KillContract", 2, Runtime_KillContract);
             callback("Runtime.GetBalance", 2, Runtime_GetBalance);
             callback("Runtime.TransferTokens", 4, Runtime_TransferTokens);

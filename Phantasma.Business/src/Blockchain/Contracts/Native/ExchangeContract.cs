@@ -1328,7 +1328,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             else
             {
                 var amountInOtherSymbol = GetRate(feeSymbol, fromSymbol, feeAmount);
-                var amountIKCAL = GetRate(fromSymbol, feeSymbol, feeAmount);
+                var amountIKCAL = feeAmount;
                 Console.WriteLine($"AmountOther: {amountInOtherSymbol} | feeAmount:{feeAmount} | feeBalance:{feeBalance} | amountOfKcal: {amountIKCAL}");
 
                 if (amountInOtherSymbol < minAmount)
@@ -1339,7 +1339,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 // round up
                 //amountInOtherSymbol++;
 
-                SwapTokens(from, fromSymbol, feeSymbol, feeAmount);
+                SwapTokens(from, fromSymbol, feeSymbol, amountInOtherSymbol);
             }
 
             var finalFeeBalance = Runtime.GetBalance(feeSymbol, from);
@@ -2974,12 +2974,19 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var count = holdersList.Count();
             var feeAmount = totalFeeAmount;
             BigInteger amount = 0;
+            BigInteger distributed = 0;
             LPHolderInfo holder = new LPHolderInfo();
             LPTokenContentRAM nftRAM = new LPTokenContentRAM();
 
-            while (index < count)
+            var holderInfo = holdersList.All<LPHolderInfo>();
+            foreach (var _holder in holderInfo)
             {
-                holder = holdersList.Get<LPHolderInfo>(index);
+                holder = _holder;
+                if (!Runtime.NFTExists(DomainSettings.LiquidityTokenSymbol, holder.NFTID))
+                {
+                    continue;
+                }
+                
                 var nft = Runtime.ReadToken(DomainSettings.LiquidityTokenSymbol, holder.NFTID);
                 nftRAM = GetMyPoolRAM(nft.CurrentOwner, pool.Symbol0, pool.Symbol1);
                 amount = CalculateFeeForUser(totalFeeAmount, nftRAM.Liquidity, pool.TotalLiquidity);
@@ -2987,17 +2994,16 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                     Runtime.Expect(amount > 0, $"Amount failed for user: {nft.CurrentOwner}, amount:{amount}, feeAmount:{feeAmount}, feeTotal:{totalFeeAmount}");
 
                 feeAmount -= amount;
+                distributed += amount;
                 if (pool.Symbol0 == symbolDistribute)
                     holder.UnclaimedSymbol0 += amount;
                 else
                     holder.UnclaimedSymbol1 += amount;
 
                 holdersList.Replace(index, holder);
-
-                index++;
             }
 
-            Runtime.Expect(feeAmount <= 1, $"{feeAmount} was > than 0");
+            Runtime.Expect(feeAmount <= 1 || feeAmount == totalFeeAmount || distributed + feeAmount == totalFeeAmount, $"feeAmount {feeAmount} was > than 0, distributed: {distributed}, total fee: {totalFeeAmount}");
 
             // Update List
             _lp_holders.Set($"{pool.Symbol0}_{pool.Symbol1}", holdersList);
@@ -3199,7 +3205,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 Runtime.TransferTokens(newPool.Symbol0, Address, from, oldAmount0);
                 Runtime.TransferTokens(newPool.Symbol1, Address, from, oldAmount1);
             }
-
+            
+            //var holders = GetHolderList(pool.Symbol0, pool.Symbol1); 
+            //holders.Remove()
 
             // Update the pool values
             if (pool.Amount0 == oldAmount0)

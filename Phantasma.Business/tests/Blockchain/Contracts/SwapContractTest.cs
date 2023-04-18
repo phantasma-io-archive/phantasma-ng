@@ -147,7 +147,7 @@ public class SwapContractTest
         
         // Should Pass
         simulator.BeginBlock();
-        simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+        var tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
             ScriptUtils.BeginScript()
                 .CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapFee), testUser.Address, DomainSettings.StakingTokenSymbol, swapAmount)
                 .AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 999)
@@ -155,12 +155,30 @@ public class SwapContractTest
                 .EndScript());
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        
+        var fee = simulator.Nexus.RootChain.GetTransactionFee(tx);
+        
+        Assert.True(fee > 0);
 
         var currentSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
         var currentKcalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
 
         Assert.True(currentSoulBalance < startingSoulBalance, $"{currentSoulBalance} < {startingSoulBalance}");
         Assert.True(currentKcalBalance > startingKcalBalance);
+        
+        // Should Pass
+        simulator.BeginBlock();
+        tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .CallContract(NativeContractKind.Swap, nameof(SwapContract.SwapFee), testUser.Address, DomainSettings.StakingTokenSymbol, swapAmount)
+                .AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, 999)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        
+        fee = simulator.Nexus.RootChain.GetTransactionFee(tx);
+        
+        Assert.True(fee > 0);
     }
 
     [Fact]

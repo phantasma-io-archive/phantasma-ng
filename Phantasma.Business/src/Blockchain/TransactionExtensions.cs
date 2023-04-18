@@ -37,6 +37,9 @@ namespace Phantasma.Business.Blockchain
             }
         };
         
+        private static string GasContractName = NativeContractKind.Gas.GetContractName();
+        private static string GasSpendGasMethod = nameof(GasContract.SpendGas);
+        
         public static bool ExtractGasDetailsFromScript(byte[] script, out Address from, out Address target, out BigInteger gasPrice, out BigInteger gasLimit, Dictionary<string, int> methodArgumentCountTable = null)
         {
             var methods = DisasmUtils.ExtractMethodCalls(script, methodArgumentCountTable);
@@ -76,6 +79,20 @@ namespace Phantasma.Business.Blockchain
             }
 
             return whitelistedMethods.Contains(method.MethodName);
+        }
+        
+        public static bool HasSpendGas(IEnumerable<DisasmMethodCall> methods)
+        {
+            foreach (var method in methods)
+            {
+                if (!method.ContractName.Equals(GasContractName))
+                    continue;
+
+                if ( method.MethodName.Equals(GasSpendGasMethod))
+                    return true;
+            }
+
+            return false;
         }
         
         public static bool IsValid(this Transaction tx, IChain chain)

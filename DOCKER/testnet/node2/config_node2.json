@@ -3,6 +3,8 @@
     "Node": {
       "max.gas": 10000,
       "web.logs": false,
+      "tendermint.path": "/app/bin/tendermint",
+      "tendermint.home": "/app/testnet/node2",
       "tendermint.rpc.port": "26257",
       "tendermint.rpc.host": "http://127.0.0.1",
       "tendermint.proxy.host": "127.0.0.1",
@@ -15,7 +17,7 @@
       "minimum.fee": 100000,
       "minimum.pow": 0,
       "api.proxy.url": "",
-      "nexus.name": "testnet",
+      "nexus.name": "simnet",
       "api.log": false,
       "profiler.path": "",
       "has.sync": false,
@@ -24,7 +26,7 @@
       "has.events": false,
       "has.relay": false,
       "has.archive": false,
-      "api.url": "http://localhost:5103",
+      "api.url": "http://*:7079",
       "nexus.bootstrap": true,
       "genesis.timestamp": 0,
       "api.cache": true,
@@ -45,11 +47,39 @@
         "P2KLvu4UWXFz4r86PsCrtPdJSgkqCSWTZHjDgqdXXJ6Se1v"
       ]
     },
-
+    "Validators": [
+      {
+        "validator.address": "P2K9zmyFDNGN6n6hHiTUAz6jqn29s5G1SWLiXwCVQcpHcQb",
+        "validator.tendermint.address": "0c8203a0e63d7c025a4be9e4391b42fb65d344ab",
+        "validator.name": "node0",
+        "validator.api.host": "127.0.0.1",
+        "validator.api.port": 7077
+      },
+      {
+        "validator.address": "P2K65RZhfxZhQcXKGgSPZL6c6hkygXipNxdeuW5FU531Bqc",
+        "validator.tendermint.address": "e602bda8f1bc8b916af4d312ce2b5c610074f423",
+        "validator.name": "node1",
+        "validator.api.host": "127.0.0.1",
+        "validator.api.port": 7078
+      },
+      {
+        "validator.address": "P2KAcEJk2UPvTP5rStzeeSJCboE9yEdA2meNVT7UNiKbdH3",
+        "validator.tendermint.address": "ea9eb814c23bc75d53324f9b650ff2b71720a0c3",
+        "validator.name": "node2",
+        "validator.api.host": "127.0.0.1",
+        "validator.api.port": 7079
+      },
+      {
+        "validator.address": "P2KLvu4UWXFz4r86PsCrtPdJSgkqCSWTZHjDgqdXXJ6Se1v",
+        "validator.tendermint.address": "5aa2fce0959bc52e743b5653f5010b9f7eafcdb1",
+        "validator.name": "node3",
+        "validator.api.host": "127.0.0.1",
+        "validator.api.port": 7080
+      }
+    ],
     "Oracle": {
       "neoscan.api": "mankinighost.phantasma.io:4000",
       "neo.rpc.specific.nodes": [],
-
       "eth.fee.urls": [
         {
           "url": "https://gasprice.poa.network/",
@@ -70,7 +100,6 @@
           "defaultFee": 0
         }
       ],
-
       "bsc.fee.urls": [
         {
           "url": "https://bscgas.info/gas",
@@ -79,7 +108,6 @@
           "defaultFee": 15
         }
       ],
-
       "pricer.coingecko.enabled": true,
       "pricer.supportedtokens": [
         {
@@ -148,58 +176,54 @@
           "cryptocompareid": "BNB"
         }
       ],
-
-	  "swap.platforms": [
-			{
-				"name": "phantasma",
-				"enabled": false,
-				"height": "0",
-				"wif":"",
-				"rpc.nodes": []
-			},
-            {
-                "name": "neo",
-                "enabled": false,
-                "height": "8408240",
-                "wif":"",
-                "rpc.nodes": [
-                    "http://seed1.ngd.network:10332",
-                    "http://seed9.ngd.network:10332",
-                    "http://seed6.ngd.network:10332",
-                    "http://seed4.ngd.network:10332",
-                    "http://seed7.ngd.network:10332"
-                  ]
-            },
-			{
-				"name": "eth",
-				"enabled": false,
-				"height": "0",
-				"wif":"",
-				"rpc.nodes": [
-				    "https://data-seed-prebsc-1-s1.binance.org:8545"
-				  ]
-			},
-			{
-				"name": "bsc",
-				"enabled": false,
-				"height": "0",
-				"wif":"",
-				"rpc.nodes": [
-				    "https://data-seed-prebsc-1-s1.binance.org:8545"
-				  ]
-			}
-		],		  
-
+      "swap.platforms": [
+        {
+          "name": "phantasma",
+          "enabled": false,
+          "height": "0",
+          "wif": "",
+          "rpc.nodes": []
+        },
+        {
+          "name": "neo",
+          "enabled": false,
+          "height": "8408240",
+          "wif": "",
+          "rpc.nodes": [
+            "http://seed1.ngd.network:10332",
+            "http://seed9.ngd.network:10332",
+            "http://seed6.ngd.network:10332",
+            "http://seed4.ngd.network:10332",
+            "http://seed7.ngd.network:10332"
+          ]
+        },
+        {
+          "name": "eth",
+          "enabled": false,
+          "height": "0",
+          "wif": "",
+          "rpc.nodes": [
+            "https://data-seed-prebsc-1-s1.binance.org:8545"
+          ]
+        },
+        {
+          "name": "bsc",
+          "enabled": false,
+          "height": "0",
+          "wif": "",
+          "rpc.nodes": [
+            "https://data-seed-prebsc-1-s1.binance.org:8545"
+          ]
+        }
+      ],
       "eth.block.confirmations": 12,
       "eth.gas.limit": 100000,
       "crypto.compare.key": ""
     },
-
     "Simulator": {
       "simulator.enabled": true,
       "simulator.generate.blocks": false
     },
-
     "App": {
       "shell.enabled": false,
       "node.start": true,
@@ -208,24 +232,20 @@
       "prompt": "[{0}] spook> ",
       "history": ".history"
     },
-
-
     "Log": {
       "file.path": "/tmp/",
       "file.name": "spook.log",
       "file.level": "Debug",
       "shell.level": "Debug"
     },
-
     "RPC": {
       "rpc.address": "127.0.0.1",
       "rpc.port": 7654
     },
-
-    "Webhook" : {
+    "Webhook": {
       "webhook.token": "",
       "webhook.channel": "",
-      "webhook.prefix": "testnet"
+      "webhook.prefix": "simnet"
     }
   }
 }

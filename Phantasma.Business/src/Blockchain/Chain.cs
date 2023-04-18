@@ -234,15 +234,18 @@ namespace Phantasma.Business.Blockchain
                 if (existsLPToken && exchangeVersion >= 1) // Check for the Exchange contract
                 {
                     var exchangePot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Exchange));
-                    if (exchangePot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
+                    Log.Information("Exchange Pot Balance: {balance}", exchangePot);
+                    var unitValue = UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals);
+                    if (exchangePot < unitValue) {
                         return (CodeType.Error, $"Empty pot Exchange");
                     }
                 }
                 else
                 {
-                    // Run the Swap contract
                     var pot = GetTokenBalance(Storage, DomainSettings.FuelTokenSymbol, SmartContract.GetAddressForNative(NativeContractKind.Swap));
-                    if (pot < UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals)) {
+                    Log.Information("Swap Pot Balance: {balance}", pot);
+                    var unitValue = UnitConversion.GetUnitValue(DomainSettings.FuelTokenDecimals);
+                    if (pot < unitValue) {
                         return (CodeType.Error, $"Empty pot Swap");
                     }
                 }
