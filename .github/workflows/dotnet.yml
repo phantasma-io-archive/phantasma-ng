@@ -6,6 +6,7 @@ permissions:
   pull-requests: write
   actions: write
   issues: write
+  contents: write
   
 jobs:
   build:
@@ -63,6 +64,7 @@ jobs:
     name: Test
     permissions: write-all
     runs-on: ubuntu-latest
+    
     steps:
       - name: Store Variable
         id: my-test
