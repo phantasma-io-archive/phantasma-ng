@@ -72,8 +72,7 @@ jobs:
       - name: PR comment with file
         uses: thollander/actions-comment-pull-request@v2
         with:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-          repo-token: ${{secrets.PR_KEY}}
+          GITHUB_TOKEN: ${{secrets.PR_KEY}}
           filePath: code-coverage-results.md
         
      # - name: Add Coverage PR Comment
