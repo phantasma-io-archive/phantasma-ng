@@ -822,7 +822,6 @@ public class ExchangeContractTests
 
 
     [Fact]
-    
     public void CreatePool()
     {
         Filter.Test(() =>
@@ -895,7 +894,6 @@ public class ExchangeContractTests
     }
 
     [Fact]
-    
     public void CreateVirtualPool()
     {
         CoreClass core = new CoreClass();
@@ -957,7 +955,6 @@ public class ExchangeContractTests
     }
 
     [Fact]
-    
     // TODO: Get the pool initial values and calculate the target rate with those values insted of the static ones.
     public void AddLiquidityToPool()
     {
@@ -1455,7 +1452,6 @@ public class ExchangeContractTests
 
         var unclaimed = poolOwner.GetUnclaimedFees(soul.Symbol, kcal.Symbol);
         Assert.True(unclaimed.Item2 > 0);
-        
         
         // FAIL - Try to remove all that you had before
         poolOwner.RemoveLiquidity(soul.Symbol, amount0*2, kcal.Symbol, 0);

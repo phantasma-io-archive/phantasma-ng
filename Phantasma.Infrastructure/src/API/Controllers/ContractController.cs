@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core.Cryptography;
 
@@ -5,6 +7,22 @@ namespace Phantasma.Infrastructure.API.Controllers
 {
     public class ContractController : BaseControllerV1
     {
+        
+        [APIInfo(typeof(ContractResult), "Returns the Contracts on the chain.", false, 300)]
+        [HttpGet("GetContracts")]
+        public ContractResult[] GetContracts([APIParameter("Chain address or name where the contract is deployed", "main")] string chainAddressOrName)
+        {
+            var chain = NexusAPI.FindChainByInput(chainAddressOrName);
+            if (chain == null)
+            {
+                throw new APIException("Chain not found");
+            }
+
+            var contracts =  chain.GetContracts(chain.Storage);
+            return contracts.Select(contract => NexusAPI.FillContract(contract.Name, 
+                chain.GetContractByName(chain.Storage, contract.Name))).ToArray();
+        }
+
         [APIInfo(typeof(ContractResult), "Returns the ABI interface of specific contract.", false, 300)]
         [HttpGet("GetContract")]
         public ContractResult GetContract([APIParameter("Chain address or name where the contract is deployed", "main")] string chainAddressOrName, [APIParameter("Contract name", "account")] string contractName)
