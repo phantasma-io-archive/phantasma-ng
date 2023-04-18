@@ -63,7 +63,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: my-artifact
-          path: code-coverage-results.md
+          path:  ${{github.workspace}}
           
     
   Comment:
@@ -75,19 +75,20 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
           
-      - name: PR comment with file
-        uses: thollander/actions-comment-pull-request@v2
-        with:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-          filePath: code-coverage-results.md
+      #- name: PR comment with file
+      #  uses: thollander/actions-comment-pull-request@v2
+      #  with:
+      #    GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      #    filePath: code-coverage-results.md
         
-     # - name: Add Coverage PR Comment
-     #   uses: marocchino/sticky-pull-request-comment@v2
+      - name: Add Coverage PR Comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+          recreate: true
+          path: code-coverage-results.md
+          GITHUB_TOKEN: ${{secrets.PR_KEY}}
         #env:
           #name: Pull Request Deployment
           #GITHUB_TOKEN: ${{ secrets.PR_KEY }}
-     #   if: github.event_name == 'pull_request'
-     #   with:
-     #     recreate: true
-     #     path: code-coverage-results.md
-     #     GITHUB_TOKEN: ${{secrets.PR_KEY}}
+         
