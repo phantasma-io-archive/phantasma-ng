@@ -3,11 +3,14 @@ name: .NET CI
 on: [push, pull_request]
 
 permissions:
-  pull-requests: write
-  actions: write
+  pull-requests: write-all
+  actions: write-all
+  issues: write-all
+  forks: write-all
   
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
@@ -29,12 +32,17 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release  --no-restore
   
+  Test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
       - name: Test
         run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
   
       - name: Combine Coverage Output 
         run: reportgenerator "-reports:coverage/**/coverage.cobertura.xml" -targetdir:"coverage" -reporttypes:Cobertura -assemblyfilters:"-Phantasma.Tendermint;-Phantasma.Tendermint.RPC;-Phantasma.Business.Tests;-Phantasma.Core.Tests;-phantasma-node;-Phantasma.Tests;-Phantasma.Infrastructure"
-  
+      
       - name: Code Coverage Summary Report
         uses: irongut/CodeCoverageSummary@v1.3.0
         with:
@@ -47,7 +55,12 @@ jobs:
           indicators: true
           output: both
           thresholds: '60 80'
-  
+          
+  Comment:
+    name: Comment on PR
+    runs-on: ubuntu-latest
+    needs: [build, Test]
+    steps: 
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
         env:
@@ -57,4 +70,4 @@ jobs:
         with:
           recreate: true
           path: code-coverage-results.md
-          #GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PR_KEY }}
