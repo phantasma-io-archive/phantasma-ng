@@ -2,25 +2,25 @@ using System;
 using System.Linq;
 using System.Numerics;
 using System.Collections.Generic;
+
 using Phantasma.Core;
 using Phantasma.Core.Types;
-using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+
+using Phantasma.Business.Blockchain;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Business.VM;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Blockchain.Tokens;
-using Phantasma.Core.Storage.Context;
-using Phantasma.Infrastructure.Pay.Chains;
-using VMType = Phantasma.Core.Domain.VMType;
+using Phantasma.Business.Blockchain.Contracts.Native;
 
-using Xunit;
 using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Node.Chains.Neo2;
-using Tendermint.Abci;
-using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Infrastructure.Pay.Chains;
+
+using VMType = Phantasma.Core.Domain.VMType;
 
 namespace Phantasma.Business.Tests.Simulator;
 
@@ -255,7 +255,10 @@ public class NexusSimulator
 
         var initialBalance = Nexus.RootChain.GetTokenBalance(Nexus.RootStorage, DomainSettings.StakingTokenSymbol, _currentValidator.Address);
         // check if the owner address got at least enough tokens to be a SM
-        Assert.True(initialBalance >= StakeContract.DefaultMasterThreshold, FailedTxReason);
+        if (initialBalance < StakeContract.DefaultMasterThreshold)
+        {
+            throw new Exception(FailedTxReason);
+        }
 
         /*
         var neoPlatform = NeoWallet.NeoPlatform;
@@ -1424,7 +1427,11 @@ public class NexusSimulator
                 .EndScript());
         
         var blocks = EndBlock();
-        Assert.True(LastBlockWasSuccessful(), FailedTxReason);
+
+        if (!LastBlockWasSuccessful())
+        {
+            throw new Exception(FailedTxReason);
+        }
 
 
         var txCost = Nexus.RootChain.GetTransactionFee(tx);

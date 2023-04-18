@@ -548,11 +548,11 @@ public class InteropTests : IDisposable
         count.ShouldBe(1);
     }
 
-    
-    /*[Fact]
+
+    [Fact]
     public void invoke_Runtime_Log_success()
     {
-        var runtime = CreateRuntime_Default();
+        var runtime = CreateRuntime_Default(delayPayment: true);
         var result = runtime.CallInterop("Runtime.Log", "some log");
         var count = 0;
         foreach (var evt in runtime.Events)
@@ -561,7 +561,29 @@ public class InteropTests : IDisposable
             evt.Kind.ShouldBe(EventKind.Log);
         }
         count.ShouldBe(1);
-    }*/
+    }
+
+    [Fact]
+    public void invoke_Runtime_GetTokenSupply()
+    {
+        var runtime = CreateRuntime_Default(delayPayment: true);
+        var result = runtime.CallInterop("Runtime.GetTokenSupply", DomainSettings.StakingTokenSymbol);
+
+        result.Type.ShouldBe(VMType.Number);
+    }
+
+    [Fact]
+    public void invoke_Runtime_GetTokenSymbols()
+    {
+        var runtime = CreateRuntime_Default(delayPayment: true);
+        var result = runtime.CallInterop("Runtime.GetAvailableTokenSymbols");
+
+        result.Type.ShouldBe(VMType.Struct);
+
+        var symbols = result.ToArray<string>();
+        symbols.Length.ShouldBe(1);
+    }
+
 
     [Fact]
     public void invoke_Runtime_IsMinter_success()
@@ -871,10 +893,14 @@ public class InteropTests : IDisposable
 
         nexusMoq.Setup( n => n.HasGenesis()).Returns(true);
 
-        nexusMoq.Setup( n => n.GetTokenInfo(
+        nexusMoq.Setup(n => n.GetTokenInfo(
                     It.IsAny<StorageContext>(),
                     It.IsAny<string>())
                 ).Returns(token);
+
+        nexusMoq.Setup(n => n.GetTokens(
+            It.IsAny<StorageContext>())
+            ).Returns(new string[] {token.Symbol});
 
         nexusMoq.Setup( n => n.TokenExists(
                     It.IsAny<StorageContext>(),

@@ -61,9 +61,13 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.ReadTokenRAM", 2, Runtime_ReadTokenRAM);
             callback("Runtime.ReadToken", 2, Runtime_ReadToken);
             callback("Runtime.WriteToken", 4, Runtime_WriteToken);
+            callback("Runtime.ContractExists", 1, Runtime_ContractExists);
             callback("Runtime.TokenExists", 1, Runtime_TokenExists);
             callback("Runtime.GetTokenDecimals", 1, Runtime_TokenGetDecimals);
             callback("Runtime.GetTokenFlags", 1, Runtime_TokenGetFlags);
+            callback("Runtime.GetTokenSupply", 1, Runtime_TokenGetSupply);
+            callback("Runtime.GetAvailableTokenSymbols", 0, Runtime_GetAvailableTokenSymbols);
+            callback("Runtime.GetAvailableNFTSymbols", 0, Runtime_GetAvailableNFTSymbols);
 
             callback("Nexus.GetGovernanceValue", 1, Nexus_GetGovernanceValue);
             callback("Nexus.BeginInit", 1, Nexus_BeginInit);
@@ -1454,11 +1458,28 @@ namespace Phantasma.Business.Blockchain.VM
         {
             vm.ExpectStackSize(1);
 
-            var temp = vm.Stack.Pop();
-            vm.Expect(temp.Type == VMType.String, "expected string for symbol");
-            var symbol = temp.AsString();
+            var obj = vm.Stack.Pop();
+            vm.Expect(obj.Type == VMType.String, "expected string for symbol");
+            var symbol = obj.AsString();
 
             var success = vm.TokenExists(symbol);
+
+            var result = new VMObject();
+            result.SetValue(success);
+            vm.Stack.Push(result);
+
+            return ExecutionState.Running;
+        }
+
+        private static ExecutionState Runtime_ContractExists(RuntimeVM vm)
+        {
+            vm.ExpectStackSize(1);
+
+            var obj = vm.Stack.Pop();
+            vm.Expect(obj.Type == VMType.String, "expected string for contract name");
+            var contractName = obj.AsString();
+
+            var success = vm.ContractExists(contractName);
 
             var result = new VMObject();
             result.SetValue(success);
@@ -1506,6 +1527,52 @@ namespace Phantasma.Business.Blockchain.VM
 
             return ExecutionState.Running;
         }
+
+        private static ExecutionState Runtime_TokenGetSupply(RuntimeVM vm)
+        {
+            vm.ExpectStackSize(1);
+
+            var symbol = vm.PopString("symbol");
+
+            if (!vm.TokenExists(symbol))
+            {
+                return ExecutionState.Fault;
+            }
+
+            var supply = vm.GetTokenSupply(symbol);
+
+            var result = new VMObject();
+
+            result.SetValue(supply);
+            vm.Stack.Push(result);
+
+            return ExecutionState.Running;
+        }
+
+        private static ExecutionState Runtime_GetAvailableTokenSymbols(RuntimeVM vm)
+        {
+            var symbols = vm.GetTokens();
+
+            symbols = symbols.Where(x => vm.GetToken(x).IsFungible()).ToArray();
+
+            var result = VMObject.FromArray(symbols);
+            vm.Stack.Push(result);
+
+            return ExecutionState.Running;
+        }
+
+        private static ExecutionState Runtime_GetAvailableNFTSymbols(RuntimeVM vm)
+        {
+            var symbols = vm.GetTokens();
+
+            symbols = symbols.Where(x => !vm.GetToken(x).IsFungible()).ToArray();
+
+            var result = VMObject.FromArray(symbols);
+            vm.Stack.Push(result);
+
+            return ExecutionState.Running;
+        }
+
         #endregion
 
         #region Contract / Token Deployment
@@ -1827,6 +1894,11 @@ namespace Phantasma.Business.Blockchain.VM
                 var possibleFlags = Enum.GetValues(typeof(TokenFlags)).Cast<TokenFlags>().ToArray();
                 foreach (var entry in possibleFlags)
                 {
+                    if (entry == TokenFlags.None)
+                    {
+                        continue;
+                    }
+
                     var flag = entry; // this line necessary for lambda closure to catch the correct value
                     var propName = $"is{flag}";
 
