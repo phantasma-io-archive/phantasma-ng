@@ -69,14 +69,13 @@ jobs:
       - name: Store Variable
         id: my-test
         run: |
-          mkdir -p /test/
-          echo hello > /test/world.txt
+          echo "hello" > world.txt
           echo "localTest=thisismine" >> $GITHUB_OUTPUT
           
       - uses: actions/upload-artifact@v3
         with:
           name: my-artifact
-          path: /test/world.txt
+          path: world.txt
           
   MyTest2:
     needs: [MyTest]
@@ -87,10 +86,10 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: my-artifact
-          path: /test/
+          path: {{github.workspace}}
           
       - name: Get Variable
-        run: cat /test/world.txt
+        run: cat world.txt
     
   Comment:
     name: Comment on PR
