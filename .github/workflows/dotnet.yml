@@ -76,9 +76,9 @@ jobs:
           output: both
           thresholds: '60 80'
           
-      #- name: Code Coverage Report
-        #run: |
-        #  echo "::set-output name=coverage::$(cat coverage/code-coverage-results.md)"
+      - name: Code Coverage Report
+        run: |
+          echo "::set-output name=coverage::$(cat coverage/code-coverage-results.md)"
           
   Comment:
     name: Comment on PR
@@ -88,14 +88,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         
+      - name: Get Code Coverage
+        run: |
+          echo {{needs.Test.outputs.coverage}} > code-coverage-results.md
+        
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
         env:
           name: Pull Request Deployment
           GITHUB_TOKEN: ${{ secrets.PR_KEY }}
         if: github.event_name == 'pull_request'
-        run: | 
-          echo {{needs.Test.outputs.coverage}} > code-coverage-results.md
         with:
           recreate: true
           path: code-coverage-results.md
