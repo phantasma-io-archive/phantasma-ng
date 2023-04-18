@@ -34,9 +34,24 @@ jobs:
   Test:
     name: Test
     runs-on: ubuntu-latest
-    needs: [build]
+    outputs:
+      coverage: ${{ steps.code-coverage.outputs.coverage }}
+      
     steps:
       - uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: 6.0.x
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev libzstd-dev
+          sudo apt-get install libc6-dev libicu-dev libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev libzstd-dev librocksdb-dev
+          sudo apt-get install librocksdb-dev
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          dotnet restore
 
       - name: Build
         run: dotnet build --configuration Release  --no-restore
@@ -59,11 +74,8 @@ jobs:
           indicators: true
           output: both
           thresholds: '60 80'
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: code-coverage-results
-          path: coverage/code-coverage-results.xml
+        run: |
+          echo "::[set-output name=coverage;]$(cat coverage/code-coverage-results.md)"
           
   Comment:
     name: Comment on PR
@@ -71,9 +83,6 @@ jobs:
     needs: [Test]
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v2
-        with:
-          name: code-coverage-results
         
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
@@ -81,6 +90,8 @@ jobs:
           name: Pull Request Deployment
           GITHUB_TOKEN: ${{ secrets.PR_KEY }}
         if: github.event_name == 'pull_request'
+        run: | 
+          echo {{needs.Test.outputs.coverage}} > code-coverage-results.md
         with:
           recreate: true
           path: code-coverage-results.md
