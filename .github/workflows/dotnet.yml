@@ -82,11 +82,13 @@ jobs:
     permissions: write-all
     runs-on: ubuntu-latest
     steps:
-      - name: Get Variable
       - uses: actions/download-artifact@v3
         with:
           name: my-artifact
-      - run: cat /test/world.txt
+          path: /test/
+          
+      - name: Get Variable
+        run: cat /test/world.txt
     
   Comment:
     name: Comment on PR
