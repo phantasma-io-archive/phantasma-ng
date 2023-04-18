@@ -62,6 +62,7 @@ jobs:
   MyTest:
     name: Test
     permissions: write-all
+    runs-on: ubuntu-latest
     steps:
       - name: Store Variable
         id: my-test
@@ -81,6 +82,7 @@ jobs:
     needs: [MyTest]
     name: Test2
     permissions: write-all
+    runs-on: ubuntu-latest
     steps:
       - name: Get Variable
       - uses: actions/download-artifact
