@@ -59,6 +59,12 @@ jobs:
       - name: Code Coverage Report
         run: |
           echo "coverage=$(cat coverage/code-coverage-results.md)" >> $GITHUB_OUTPUT
+          
+      - uses: actions/upload-artifact@v3
+        with:
+          name: my-artifact
+          path: code-coverage-results.md
+          
   
   MyTest:
     name: Test
@@ -77,20 +83,6 @@ jobs:
         with:
           name: my-artifact
           path: ${{ github.workspace }}
-          
-  MyTest2:
-    needs: [MyTest]
-    name: Test2
-    permissions: write-all
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
-      - name: Display structure of downloaded files
-        run: ls -R
-          
-      - name: Get Variable
-        run: cat world.txt
     
   Comment:
     name: Comment on PR
@@ -99,20 +91,13 @@ jobs:
     needs: [build]
     steps:
       - uses: actions/checkout@v3
-        
-      - name: Get Code Coverage
-        run: |
-          echo ${{needs.build.outputs.coverage}} > code-coverage-results.md
+      - uses: actions/download-artifact@v3
           
       - name: PR comment with file
         uses: thollander/actions-comment-pull-request@v2
         with:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-          message: |
-              This is just a test
-              {{needs.build.outputs.tests}}
-              ${{ needs.build.outputs.coverage }}
-          #filePath: code-coverage-results.md
+          filePath: code-coverage-results.md
         
      # - name: Add Coverage PR Comment
      #   uses: marocchino/sticky-pull-request-comment@v2
