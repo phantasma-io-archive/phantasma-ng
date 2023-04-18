@@ -86,6 +86,7 @@ namespace Phantasma.Core.Domain
 
         public const string NexusMainnet = "mainnet";
         public const string NexusTestnet = "testnet";
+        public const string NexusSimnet = "simnet";
 
         public const string StakingTokenSymbol = "SOUL";
         public const string StakingTokenName = "Phantasma Stake";

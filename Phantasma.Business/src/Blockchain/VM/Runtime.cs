@@ -2327,6 +2327,11 @@ namespace Phantasma.Business.Blockchain.VM
         {
             Core.Throw.IfNull(context, nameof(context));
 
+            if (IsTrigger)
+            {
+                return false;
+            }
+
             return EntryContext.Address == context.Address;
         }
 

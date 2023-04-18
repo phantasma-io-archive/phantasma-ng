@@ -277,7 +277,12 @@ public class Nexus : INexus
         }
 
         var address = SmartContract.GetAddressFromContractName(contractName);
-        var result = NativeContract.GetNativeContractByAddress(address);
+        SmartContract result = NativeContract.GetNativeContractByAddress(address);
+
+        if (result == null)
+        {
+            result = RootChain.GetContractByAddress(storage, address);
+        }
 
         return result;
     }
@@ -1622,7 +1627,12 @@ public class Nexus : INexus
         sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, orgAddress, UnitConversion.ToBigInteger(1214623, DomainSettings.StakingTokenDecimals));
 
         //sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(2863626, DomainSettings.StakingTokenDecimals));
-        //sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(1000000, DomainSettings.FuelTokenDecimals));
+
+        // Generate extra KCAL in simnet only
+        if (Name == DomainSettings.NexusSimnet)
+        {
+            sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(1000000, DomainSettings.FuelTokenDecimals));
+        }
 
         sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), owner.Address, new BigInteger(0), ValidatorType.Primary);
 
