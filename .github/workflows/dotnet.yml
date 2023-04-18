@@ -3,10 +3,10 @@ name: .NET CI
 on: [push, pull_request]
 
 permissions:
-  pull-requests: write-all
-  actions: write-all
-  issues: write-all
-  forks: write-all
+  pull-requests: write
+  actions: write
+  issues: write
+  forks: write
   
 jobs:
   build:
