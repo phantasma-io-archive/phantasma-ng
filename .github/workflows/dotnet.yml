@@ -6,7 +6,6 @@ permissions:
   pull-requests: write
   actions: write
   issues: write
-  forks: write
   
 jobs:
   build:
