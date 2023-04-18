@@ -67,7 +67,7 @@ jobs:
         
       - name: Get Code Coverage
         run: |
-          echo {{needs.Test.outputs.coverage}} > code-coverage-results.md
+          echo {{needs.build.outputs.coverage}} > code-coverage-results.md
           
       - name: PR comment with file
         uses: thollander/actions-comment-pull-request@v2
