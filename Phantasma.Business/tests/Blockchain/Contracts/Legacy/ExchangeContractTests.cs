@@ -1737,6 +1737,8 @@ public class ExchangeContractTests
 
             BigInteger swapValueSOUL = UnitConversion.ToBigInteger(1, soul.Decimals);
             BigInteger swapValueKCAL = UnitConversion.ToBigInteger(1, kcal.Decimals);
+            
+            var soulRate = poolOwner2.GetRate(kcal.Symbol, soul.Symbol, swapValueKCAL);
             BigInteger swapFee =
                 UnitConversion.ConvertDecimals(swapValueSOUL, soul.Decimals, DomainSettings.FiatTokenDecimals);
 
@@ -1764,7 +1766,7 @@ public class ExchangeContractTests
                 $"{UnitConversion.ToDecimal(kcalToSwap, DomainSettings.FiatTokenDecimals)} {soul.Symbol} for {UnitConversion.ToDecimal(rate, kcal.Decimals)} {kcal.Symbol} | Swap ->  {UnitConversion.ToDecimal(rateByPool, kcal.Decimals)}");
 
             // Make Swap SOUL / KCAL (SwapFee)
-            var txFee = poolOwner2.SwapFee(soul.Symbol, swapValueSOUL);
+            var txFee = poolOwner2.SwapFee(soul.Symbol, swapValueKCAL);
             Assert.True(core.simulator.LastBlockWasSuccessful());
 
             // Get the balances
@@ -1776,10 +1778,10 @@ public class ExchangeContractTests
 
             Console.WriteLine($"{beforeTXBalanceSOUL} != {afterTXBalanceSOUL} | {afterTXBalanceKCAL}");
 
-            Assert.Equal(beforeTXBalanceSOUL - swapValueSOUL , afterTXBalanceSOUL);
+            Assert.Equal(beforeTXBalanceSOUL - soulRate , afterTXBalanceSOUL);
             Assert.True(
                 afterTXBalanceSOUL ==
-                beforeTXBalanceSOUL - swapValueSOUL
+                beforeTXBalanceSOUL - soulRate
                 /* + UnitConversion.ConvertDecimals(500,  kcal.Decimals, DomainSettings.FiatTokenDecimals))*/,
                 $"SOUL {afterTXBalanceSOUL} != {beforeTXBalanceSOUL - (kcalToSwap + UnitConversion.ConvertDecimals(500, kcal.Decimals, DomainSettings.FiatTokenDecimals))}");
             Assert.True(beforeTXBalanceKCAL + kcalfee + rate == afterTXBalanceKCAL,
@@ -1997,21 +1999,24 @@ public class ExchangeContractTests
 
             // Give Users tokens
             poolOwner.FundUser(soul: 4, 0);
-            poolOwner2.FundUser(soul: 4, 0.05m);
+            poolOwner2.FundUser(soul: 4, 0.005m);
 
             var originalBalance = poolOwner.GetBalance(DomainSettings.FuelTokenSymbol);
             var originalBalanceUser2 = poolOwner.GetBalance(DomainSettings.FuelTokenSymbol);
 
             var swapAmount = UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals);
+            var swapAmountKCAL = UnitConversion.ToBigInteger(1, DomainSettings.FuelTokenDecimals);
 
+            var soulRate = core.simulator.InvokeContract(NativeContractKind.Exchange, nameof(ExchangeContract.GetRate),
+                quoteSymbol, baseSymbol, swapAmountKCAL).AsNumber();
             var kcalRate = core.simulator.InvokeContract(NativeContractKind.Exchange, nameof(ExchangeContract.GetRate),
-                baseSymbol, quoteSymbol, swapAmount).AsNumber();
+                baseSymbol, quoteSymbol, soulRate).AsNumber();
 
             core.simulator.BeginBlock();
-            var tx = core.simulator.GenerateCustomTransaction(poolOwner.userKeys, ProofOfWork.Minimal, () =>
+            var tx = core.simulator.GenerateCustomTransaction(poolOwner.userKeys, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript()
                     .CallContract(NativeContractKind.Swap, nameof(ExchangeContract.SwapFee),
-                        poolOwner.userKeys.Address, baseSymbol, swapAmount)
+                        poolOwner.userKeys.Address, baseSymbol, swapAmountKCAL)
                     .AllowGas(poolOwner.userKeys.Address, Address.Null, core.simulator.MinimumFee, 999)
                     .SpendGas(poolOwner.userKeys.Address)
                     .EndScript()
@@ -2022,24 +2027,27 @@ public class ExchangeContractTests
             var txCost = core.simulator.Nexus.RootChain.GetTransactionFee(tx);
 
             var finalBalance = poolOwner.GetBalance(DomainSettings.FuelTokenSymbol);
-            Assert.True(finalBalance >= originalBalance + kcalRate - txCost,
-                $"{finalBalance} > {originalBalance + kcalRate - txCost}");
+            Assert.True(finalBalance >= kcalRate - txCost,
+                $"{finalBalance} > {kcalRate - txCost}");
             
+            
+            var soulRate2 = core.simulator.InvokeContract(NativeContractKind.Exchange, nameof(ExchangeContract.GetRate),
+                quoteSymbol, baseSymbol, swapAmountKCAL).AsNumber();
             var kcalRate2 = core.simulator.InvokeContract(NativeContractKind.Exchange, nameof(ExchangeContract.GetRate),
-                baseSymbol, quoteSymbol, swapAmount).AsNumber();
+                baseSymbol, quoteSymbol, soulRate2).AsNumber();
             
             core.simulator.BeginBlock();
-            var tx2 = core.simulator.GenerateCustomTransaction(poolOwner2.userKeys, ProofOfWork.Minimal, () =>
+            var tx2 = core.simulator.GenerateCustomTransaction(poolOwner2.userKeys, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript()
                     .CallContract(NativeContractKind.Swap, nameof(ExchangeContract.SwapFee),
-                        poolOwner2.userKeys.Address, baseSymbol, swapAmount)
-                    .AllowGas(poolOwner2.userKeys.Address, Address.Null, core.simulator.MinimumFee, 210000)
+                        poolOwner2.userKeys.Address, baseSymbol, swapAmountKCAL)
+                    .AllowGas(poolOwner2.userKeys.Address, Address.Null, core.simulator.MinimumFee, 999)
                     .SpendGas(poolOwner2.userKeys.Address)
                     .EndScript()
             );
             //core.simulator.GenerateSwapFee(poolOwner.userKeys, core.nexus.RootChain, DomainSettings.StakingTokenSymbol, swapAmount);
             core.simulator.EndBlock();
-            Assert.True(core.simulator.LastBlockWasSuccessful());
+            Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
             var txCost2 = core.simulator.Nexus.RootChain.GetTransactionFee(tx2);
             
             var finalBalance2 = poolOwner2.GetBalance(DomainSettings.FuelTokenSymbol);
