@@ -34,6 +34,7 @@ jobs:
   Test:
     name: Test
     runs-on: ubuntu-latest
+    permissions: write-all
     outputs:
       coverage: ${{ steps.code-coverage.outputs.coverage }}
       
@@ -74,12 +75,15 @@ jobs:
           indicators: true
           output: both
           thresholds: '60 80'
+          
+      - name: Code Coverage Report
         run: |
-          echo "::[set-output name=coverage;]$(cat coverage/code-coverage-results.md)"
+          echo "::set-output name=coverage::$(cat coverage/code-coverage-results.md)"
           
   Comment:
     name: Comment on PR
     runs-on: ubuntu-latest
+    permissions: write-all
     needs: [Test]
     steps:
       - uses: actions/checkout@v3
