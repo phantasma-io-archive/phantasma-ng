@@ -277,7 +277,12 @@ public class Nexus : INexus
         }
 
         var address = SmartContract.GetAddressFromContractName(contractName);
-        var result = NativeContract.GetNativeContractByAddress(address);
+        SmartContract result = NativeContract.GetNativeContractByAddress(address);
+
+        if (result == null)
+        {
+            result = RootChain.GetContractByAddress(storage, address);
+        }
 
         return result;
     }
