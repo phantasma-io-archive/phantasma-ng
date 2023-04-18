@@ -76,9 +76,9 @@ jobs:
           output: both
           thresholds: '60 80'
           
-      - name: Code Coverage Report
-        run: |
-          echo "::set-output name=coverage::$(cat coverage/code-coverage-results.md)"
+      #- name: Code Coverage Report
+        #run: |
+        #  echo "::set-output name=coverage::$(cat coverage/code-coverage-results.md)"
           
   Comment:
     name: Comment on PR
