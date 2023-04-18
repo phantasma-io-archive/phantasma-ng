@@ -71,13 +71,11 @@ jobs:
           echo hello > /test/world.txt
           echo "localTest=thisismine" >> $GITHUB_OUTPUT
           
-      - uses: actions/upload-artifact
+      - uses: actions/upload-artifact@v3
         with:
           name: my-artifact
           path: /test/world.txt
-        
-  
-  
+          
   MyTest2:
     needs: [MyTest]
     name: Test2
@@ -85,12 +83,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get Variable
-      - uses: actions/download-artifact
+      - uses: actions/download-artifact@v3
         with:
           name: my-artifact
       - run: cat /test/world.txt
     
-  
   Comment:
     name: Comment on PR
     runs-on: ubuntu-latest
