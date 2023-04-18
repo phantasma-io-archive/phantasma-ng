@@ -9,30 +9,7 @@ permissions:
   
 jobs:
   build:
-    name: Build
-    runs-on: ubuntu-latest
-    permissions: write-all
-    steps:
-      - uses: actions/checkout@v3
-  
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v2
-        with:
-          dotnet-version: 6.0.x
-  
-      - name: Install dependencies
-        run: |
-          sudo apt-get install libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev libzstd-dev
-          sudo apt-get install libc6-dev libicu-dev libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev libzstd-dev librocksdb-dev
-          sudo apt-get install librocksdb-dev
-          dotnet tool install --global dotnet-reportgenerator-globaltool
-          dotnet restore
-  
-      - name: Build
-        run: dotnet build --configuration Release  --no-restore
-  
-  Test:
-    name: Test
+    name: Build and Test
     runs-on: ubuntu-latest
     permissions: write-all
     outputs:
@@ -40,12 +17,12 @@ jobs:
       
     steps:
       - uses: actions/checkout@v3
-
+  
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
         with:
           dotnet-version: 6.0.x
-
+  
       - name: Install dependencies
         run: |
           sudo apt-get install libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev libzstd-dev
@@ -53,16 +30,16 @@ jobs:
           sudo apt-get install librocksdb-dev
           dotnet tool install --global dotnet-reportgenerator-globaltool
           dotnet restore
-
+  
       - name: Build
         run: dotnet build --configuration Release  --no-restore
-        
+
       - name: Test
         run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
-  
-      - name: Combine Coverage Output 
+
+      - name: Combine Coverage Output
         run: reportgenerator "-reports:coverage/**/coverage.cobertura.xml" -targetdir:"coverage" -reporttypes:Cobertura -assemblyfilters:"-Phantasma.Tendermint;-Phantasma.Tendermint.RPC;-Phantasma.Business.Tests;-Phantasma.Core.Tests;-phantasma-node;-Phantasma.Tests;-Phantasma.Infrastructure"
-      
+
       - name: Code Coverage Summary Report
         uses: irongut/CodeCoverageSummary@v1.3.0
         with:
@@ -75,16 +52,16 @@ jobs:
           indicators: true
           output: both
           thresholds: '60 80'
-          
+
       - name: Code Coverage Report
         run: |
           echo "::set-output name=coverage::$(cat coverage/code-coverage-results.md)"
-          
+  
   Comment:
     name: Comment on PR
     runs-on: ubuntu-latest
     permissions: write-all
-    needs: [Test]
+    needs: [build]
     steps:
       - uses: actions/checkout@v3
         
@@ -94,11 +71,11 @@ jobs:
         
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
-        env:
-          name: Pull Request Deployment
-          GITHUB_TOKEN: ${{ secrets.PR_KEY }}
+        #env:
+          #name: Pull Request Deployment
+          #GITHUB_TOKEN: ${{ secrets.PR_KEY }}
         if: github.event_name == 'pull_request'
         with:
           recreate: true
           path: code-coverage-results.md
-          GITHUB_TOKEN: ${{ secrets.PR_KEY }}
+          GITHUB_TOKEN: ${{secrets.PR_KEY}}
