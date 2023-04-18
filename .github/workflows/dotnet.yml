@@ -65,24 +65,6 @@ jobs:
           name: my-artifact
           path: code-coverage-results.md
           
-  
-  MyTest:
-    name: Test
-    permissions: write-all
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v3
-      - name: Store Variable
-        id: my-test
-        run: |
-          echo "hello" > world.txt
-          echo "localTest=thisismine" >> $GITHUB_OUTPUT
-          
-      - uses: actions/upload-artifact@v3
-        with:
-          name: my-artifact
-          path: ${{ github.workspace }}
     
   Comment:
     name: Comment on PR
