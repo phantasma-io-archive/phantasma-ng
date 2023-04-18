@@ -59,6 +59,27 @@ jobs:
         run: |
           echo "coverage=$(cat coverage/code-coverage-results.md)" >> $GITHUB_OUTPUT
   
+  MyTest:
+    name: Test
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - name: Store Variable
+        id: my-test
+        run: |
+          echo "localTest=thisismine" >> $GITHUB_OUTPUT
+          
+    MyTest2:
+      needs: [MyTest]
+      name: Test2
+      runs-on: ubuntu-latest
+      permissions: write-all
+      steps:
+        - name: Store Variable
+          run: |
+            echo "${{needs.MyTest.my-test.outputs.localTest}}"
+    
+  
   Comment:
     name: Comment on PR
     runs-on: ubuntu-latest
@@ -69,7 +90,7 @@ jobs:
         
       - name: Get Code Coverage
         run: |
-          echo {{needs.build.outputs.coverage}} > code-coverage-results.md
+          echo ${{needs.build.outputs.coverage}} > code-coverage-results.md
           
       - name: PR comment with file
         uses: thollander/actions-comment-pull-request@v2
