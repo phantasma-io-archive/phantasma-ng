@@ -7,6 +7,9 @@ permissions:
   actions: write
   issues: write
   contents: write
+
+env:
+  GITHUB_TOKEN: ${{ secrets.PR_KEY }}
   
 jobs:
   build:
@@ -16,6 +19,8 @@ jobs:
       
     steps:
       - uses: actions/checkout@v3
+        with:
+          GITHUB_TOKEN: ${{ secrets.PR_KEY }}
   
       - name: Setup .NET
         uses: actions/setup-dotnet@v2
@@ -52,42 +57,12 @@ jobs:
           output: both
           thresholds: '60 80'
 
-      - name: Code Coverage Report
-        run: |
-          echo "test=tests" >> $GITHUB_OUTPUT
-
-      - name: Code Coverage Report
-        run: |
-          echo "coverage=$(cat coverage/code-coverage-results.md)" >> $GITHUB_OUTPUT
-          
-      - uses: actions/upload-artifact@v3
-        with:
-          name: my-artifact
-          path:  ${{github.workspace}}
-          
-    
-  Comment:
-    name: Comment on PR
-    runs-on: ubuntu-latest
-    permissions: write-all
-    needs: [build]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.PR_KEY }}
-      - uses: actions/download-artifact@v3
-          
-      #- name: PR comment with file
-      #  uses: thollander/actions-comment-pull-request@v2
-      #  with:
-      #    GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-      #    filePath: code-coverage-results.md
-        
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
         if: github.event_name == 'pull_request'
         with:
           recreate: true
           path: code-coverage-results.md
-          GITHUB_TOKEN: ${{secrets.PR_KEY}}
+          GITHUB_TOKEN: ${{github.token}}
+        
          

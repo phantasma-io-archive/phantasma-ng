@@ -99,6 +99,7 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Map.Count", 2, Map_Count);
             callback("Map.Clear", 1, Map_Clear);
             callback("Map.Keys", 2, Map_Keys);
+            callback("Map.Keys", 2, Map_Values);
 
             callback("List.Get", 4, List_Get);
             callback("List.Add", 2, List_Add);
@@ -801,6 +802,34 @@ namespace Phantasma.Business.Blockchain.VM
 
             var keys = map.AllKeys<byte[]>();
             var val = VMObject.FromObject(keys);
+            vm.Stack.Push(val);
+
+            return ExecutionState.Running;
+        }
+        
+        private static ExecutionState Map_Values(RuntimeVM vm)
+        {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
+            vm.ExpectStackSize(2);
+
+            var contractName = vm.PopString("contract");
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
+
+                vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
+                vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
+            }
+
+            var field = vm.PopString("field");
+            var mapKey = SmartContract.GetKeyForField(contractName, field, false);
+
+            var map = new StorageMap(mapKey, vm.Storage);
+
+            var values = map.AllValues<byte[]>();
+            var val = VMObject.FromObject(values);
             vm.Stack.Push(val);
 
             return ExecutionState.Running;
