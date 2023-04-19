@@ -48,10 +48,10 @@ jobs:
         
       - name: Publish Nuget
         run: |
-          dotnet nuget push ./Phantasma.Business/src/bin/Release/Phantasma.Business.*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
-          dotnet nuget push ./Phantasma.Core/src/bin/Release/Phantasma.Core.*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
-          dotnet nuget push ./Phantasma.Infrastructure/src/bin/Release/Phantasma.Infrastructure.*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
-          dotnet nuget push ./Phantasma.Tendermint/bin/Release/Phantasma.Tendermint.*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
-          dotnet nuget push ./Phantasma.Tendermint.RPC/bin/Release/Phantasma.Tendermint.RPC.*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+          dotnet nuget push ./Phantasma.Business/src/bin/Release/Phantasma.Business.*.nupkg --skip-duplicate -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+          dotnet nuget push ./Phantasma.Core/src/bin/Release/Phantasma.Core.*.nupkg --skip-duplicate -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+          dotnet nuget push ./Phantasma.Infrastructure/src/bin/Release/Phantasma.Infrastructure.*.nupkg --skip-duplicate -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+          dotnet nuget push ./Phantasma.Tendermint/bin/Release/Phantasma.Tendermint.*.nupkg --skip-duplicate -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+          dotnet nuget push ./Phantasma.Tendermint.RPC/bin/Release/Phantasma.Tendermint.RPC.*.nupkg --skip-duplicate -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
         
         
