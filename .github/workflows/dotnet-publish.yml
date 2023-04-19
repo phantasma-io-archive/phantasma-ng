@@ -52,3 +52,15 @@ jobs:
           dotnet nuget push ./Phantasma.Core/src/bin/Release/Phantasma.Core.*.nupkg --skip-duplicate -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
           dotnet nuget push ./Phantasma.Tendermint/bin/Release/Phantasma.Tendermint.*.nupkg --skip-duplicate -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
           dotnet nuget push ./Phantasma.Tendermint.RPC/bin/Release/Phantasma.Tendermint.RPC.*.nupkg --skip-duplicate -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+
+      - name: Publish Nuget Github
+        run: |
+          dotnet nuget add ./Phantasma.Business/src/bin/Release/Phantasma.Business.*.nupkg --skip-duplicate --username USERNAME --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/phantasma-io/index.json"
+          dotnet nuget add ./Phantasma.Core/src/bin/Release/Phantasma.Core.*.nupkg--skip-duplicate --username USERNAME --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/phantasma-io/index.json"
+          dotnet nuget add ./Phantasma.Tendermint/bin/Release/Phantasma.Tendermint.*.nupkg --skip-duplicate --username USERNAME --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/phantasma-io/index.json"
+          dotnet nuget add ./Phantasma.Tendermint.RPC/bin/Release/Phantasma.Tendermint.RPC.*.nupkg  --skip-duplicate --username USERNAME --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/phantasma-io/index.json"
+
+          dotnet nuget push ./Phantasma.Business/src/bin/Release/Phantasma.Business.*.nupkg --skip-duplicate --api-key ${{secrets.PR_KEY}} --source "github"
+          dotnet nuget push ./Phantasma.Core/src/bin/Release/Phantasma.Core.*.nupkg --skip-duplicate --api-key ${{secrets.PR_KEY}} --source "github"
+          dotnet nuget push ./Phantasma.Tendermint/bin/Release/Phantasma.Tendermint.*.nupkg --skip-duplicate --api-key ${{secrets.PR_KEY}} --source "github"
+          dotnet nuget push ./Phantasma.Tendermint.RPC/bin/Release/Phantasma.Tendermint.RPC.*.nupkg --skip-duplicate --api-key ${{secrets.PR_KEY}} --source "github"
