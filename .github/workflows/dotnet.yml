@@ -1,6 +1,6 @@
 name: .NET CI
 
-on: [push, pull_request_target]
+on: [pull_request, pull_request_target]
 
 permissions:
   pull-requests: write
