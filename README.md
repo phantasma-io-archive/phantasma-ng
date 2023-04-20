@@ -12,25 +12,31 @@
 </p>
 
 <p align="center">      
-  <a href="https://github.com/phantasma-io/PhantasmaChain/workflows/.NET%20Core/badge.svg?branch=master">
-    <img src="https://github.com/phantasma-io/PhantasmaChain/workflows/.NET%20Core/badge.svg">
-  </a>
-  <a href="https://github.com/phantasma-io/PhantasmaChain/blob/master/LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-blue.svg">
-  </a>
+    <a href="https://github.com/phantasma-io/PhantasmaChain/workflows/.NET%20Core/badge.svg?branch=master">
+        <img src="https://github.com/phantasma-io/PhantasmaChain/workflows/.NET%20Core/badge.svg">
+    </a>
+    <a href="https://github.com/phantasma-io/PhantasmaChain/blob/master/LICENSE">
+        <img src="https://img.shields.io/badge/license-MIT-blue.svg">
+    </a>
+    <a href="https://discord.gg/RsKn8EN">
+        <img src="https://img.shields.io/discord/404769727634997261.svg">
+    </a>
+    <a href="https://twitter.com/phantasmachain">
+        <img src="https://img.shields.io/twitter/follow/phantasmachain.svg?style=social">
+    </a>
+    
 </p>
-
-## Commits
-[![GitHub last commit](https://img.shields.io/github/last-commit/phantasma-io/PhantasmaChain.svg?style=flat)]()
-[![GitHub commit activity the past week, 4 weeks](https://img.shields.io/github/commit-activity/y/phantasma-io/PhantasmaChain.svg?style=flat)]()
-
-## Social
-
-### Discord  
-[![Discord Chat](https://img.shields.io/discord/404769727634997261.svg)](https://discord.gg/RsKn8EN)  
-
-#### Twitter
-[![Twitter Follow](https://img.shields.io/twitter/follow/phantasmachain.svg?style=social)](https://twitter.com/phantasmachain)
+<p align="center">
+    <a href="">
+        <img src="https://img.shields.io/github/last-commit/phantasma-io/phantasma-ng.svg?style=flat">
+    </a>
+    <a href="">
+        <img src="https://img.shields.io/github/commit-activity/y/phantasma-io/phantasma-ng.svg?style=flat">
+    </a>
+    <a href="https://github.com/phantasma-io/phantasma-ng">
+        <img src="https://tokei.rs/b1/github/phantasma-io/phantasma-ng">
+    </a>
+</p>
 
 ## Contents
 
@@ -100,7 +106,7 @@ You can contribute to Phantasma with [issues](https://github.com/Phantasma-io/Ph
 
 ## License
 
-[![MIT License](https://img.shields.io/apm/l/atomic-design-ui.svg?)](https://github.com/tterb/atomic-design-ui/blob/master/LICENSEs)
+[![MIT License](https://img.shields.io/apm/l/atomic-design-ui.svg?)](https://github.com/phantasma-io/phantasma-ng/blob/master/LICENSE)
 
 The Phantasma project is released under the MIT license, see `LICENSE.md` for more details.
 
