@@ -1,0 +1,29 @@
+name: Comment on PRs
+
+on: [pull_request_target]
+
+permissions:
+  pull-requests: write
+  actions: write
+  issues: write
+  contents: write
+
+env:
+  GITHUB_TOKEN: ${{ secrets.PR_KEY }}
+
+jobs:
+  build:
+    name: Comment on PR
+    runs-on: ubuntu-latest
+    permissions: write-all
+    
+    steps:
+
+      - name: Add Coverage PR Comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
+        with:
+          recreate: true
+          message: |
+            Hello World!
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
