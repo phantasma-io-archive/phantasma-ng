@@ -10,4 +10,5 @@ RUN apt-get update; apt-get install -y libc6-dev libsnappy-dev libicu-dev screen
 
 EXPOSE 7077 7078 7079 7080 26056 26156 26256 26356 26057 26157 26257 26357
 
+RUN chmod +x /app/wrapper-testnet.sh
 ENTRYPOINT ["/app/wrapper-testnet.sh"]
