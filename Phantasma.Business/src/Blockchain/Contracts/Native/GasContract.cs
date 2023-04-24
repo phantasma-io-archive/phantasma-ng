@@ -141,8 +141,14 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             foreach (var addr in masters)
             {
                 var masterDate = Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetMasterDate), addr).AsTimestamp();
-
-                if (Runtime.ProtocolVersion >= 12)
+                if (Runtime.ProtocolVersion >= 14)
+                {
+                    if (masterDate <= _lastInflationDate)
+                    {
+                        rewardList.Add(addr);
+                    }
+                }
+                else if (Runtime.ProtocolVersion == 12)
                 {
                     if (masterDate <= _nextInflationDate)
                     {

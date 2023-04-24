@@ -24,8 +24,8 @@
     <a href="https://twitter.com/phantasmachain">
         <img src="https://img.shields.io/twitter/follow/phantasmachain.svg?style=social">
     </a>
-    
 </p>
+
 <p align="center">
     <a href="">
         <img src="https://img.shields.io/github/last-commit/phantasma-io/phantasma-ng.svg?style=flat">
