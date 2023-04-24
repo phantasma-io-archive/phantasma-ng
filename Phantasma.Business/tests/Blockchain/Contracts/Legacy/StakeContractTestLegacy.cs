@@ -1336,27 +1336,26 @@ public class StakeContractTestLegacy
             var ellapsedDays = (int)(((DateTime)simulator.CurrentTime) - baseDate).TotalDays;
 
             var rewardTokens = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, rewardToken.Symbol, testUserA.Address);
-            Assert.Equal(2, rewardTokens);
+            Assert.Equal(1, rewardTokens);
 
             var unclaimedAmountBefore = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUserA.Address).AsNumber();
 
             var stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetStake), testUserA.Address).AsNumber();
-            var rewardTokensAmountPerDay =
-                UnitConversion.ToDecimal(StakeContract.StakeToFuel(stakedAmount, 500),
-                    DomainSettings.FuelTokenDecimals) * (5 * (decimal)1 / 100);
+            var rewardTokensAmountPerDay = UnitConversion.ToDecimal(StakeContract.StakeToFuel(stakedAmount, 500), DomainSettings.FuelTokenDecimals) * (5 * (decimal)1 / 100);
             var fuelAmount = UnitConversion.ToBigInteger((ellapsedDays + 1) * UnitConversion.ToDecimal(StakeContract.StakeToFuel(stakedAmount, 500), DomainSettings.FuelTokenDecimals)
-                + (91 * rewardTokensAmountPerDay) , DomainSettings.FuelTokenDecimals);
+                 , DomainSettings.FuelTokenDecimals);
             // Missing master claim bonus
 
-            Assert.Equal(fuelAmount, unclaimedAmountBefore);
+            Assert.Equal(unclaimedAmountBefore, fuelAmount);
             simulator.TimeSkipDays(1, false);
 
-            //fuelAmount = StakeContract.StakeToFuel(stakedAmount, 500) * (ellapsedDays + 2);
-            var bonus = (StakeContract.StakeToFuel(stakedAmount, 500) * 10) / 100;
+            fuelAmount = UnitConversion.ToBigInteger((ellapsedDays + 2) * UnitConversion.ToDecimal(StakeContract.StakeToFuel(stakedAmount, 500), DomainSettings.FuelTokenDecimals)
+                , DomainSettings.FuelTokenDecimals);
+            var bonus = (StakeContract.StakeToFuel(stakedAmount, 500) * 5) / 100;
             var dailyBonus = bonus;
 
             var unclaimedAmountAfter = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUserA.Address).AsNumber();
-            Assert.Equal((fuelAmount + dailyBonus * 11), unclaimedAmountAfter);
+            Assert.Equal((fuelAmount + dailyBonus ), unclaimedAmountAfter);
         });
     }
 
