@@ -798,6 +798,10 @@ public class ExchangeContractTests
         
         core.InitFunds();
         core.Migrate();
+        
+        core.CreatePool(core.owner, soul.Symbol, poolAmount0, bnb.Symbol, poolAmount3);
+        core.CreatePool(core.owner, soul.Symbol, poolAmount0, neo.Symbol, poolAmount4);
+        core.CreatePool(core.owner, soul.Symbol, poolAmount0, gas.Symbol, poolAmount5);
 
         // Check pools
         var poolSOULKCAL = poolOwner.GetPool(soul.Symbol, kcal.Symbol);
@@ -819,8 +823,7 @@ public class ExchangeContractTests
         Assert.True(poolSOULGAS.Symbol1 == gas.Symbol, "Symbol1 doesn't check");
         //Assert.True(poolSOULKCAL.Amount0 == myPoolAmount0, $"Amount0 doesn't check {poolSOULKCAL.Amount0}");
     }
-
-
+    
     [Fact]
     public void CreatePool()
     {
@@ -1658,6 +1661,54 @@ public class ExchangeContractTests
         Assert.True(afterTXBalanceSOUL + rate == afterTXBalanceSOULEND, $"{rate} != {afterTXBalanceSOULEND}");
         Assert.True(afterTXBalanceKCALEND == afterTXBalanceKCAL - kcalfee - swapValueKCAL, $"{afterTXBalanceKCALEND} != {afterTXBalanceKCAL - kcalfee - swapValueKCAL}");
     }
+    
+    [Fact]
+    public void SwapWithoutPair()
+    {
+        CoreClass core = new CoreClass();
+        
+        // Setup symbols
+        var baseSymbol = DomainSettings.StakingTokenSymbol;
+        var quoteSymbol = DomainSettings.FuelTokenSymbol;
+
+        core.InitFunds();
+        core.Migrate();
+        
+        // Create users
+        var poolOwner = new ExchangeUser(baseSymbol, quoteSymbol, core);
+        var poolOwner2 = new ExchangeUser(baseSymbol, quoteSymbol, core);
+        
+        // Give Users tokens
+        poolOwner.FundUser(soul: 50000, kcal: 100);
+        poolOwner.Fund(eth.Symbol, poolAmount2);
+        poolOwner.Fund(bnb.Symbol, poolAmount3);
+        poolOwner.Fund(neo.Symbol, poolAmount4);
+        poolOwner.Fund(gas.Symbol, poolAmount5);
+
+        poolOwner.CreatePool(neo.Symbol, poolAmount4 / 2, bnb.Symbol, poolAmount3 / 2);
+        poolOwner.CreatePool(gas.Symbol, poolAmount5 / 2, soul.Symbol, UnitConversion.ToBigInteger(500, soul.Decimals));
+        
+        poolOwner2.FundUser(soul: 50000, kcal: 1200);
+        
+        BigInteger swapValueNEO = UnitConversion.ToBigInteger(1m, neo.Decimals);
+
+        var beforeTXBalanceGAS = poolOwner.GetBalance( gas.Symbol);
+        var beforeTXBalanceNEO = poolOwner.GetBalance( neo.Symbol );
+
+        // Get Rate -> SHOULD BE 0 It doesn't exist.
+        var rate = poolOwner.GetRate(neo.Symbol, gas.Symbol, swapValueNEO);
+
+        Console.WriteLine($"{UnitConversion.ToDecimal(swapValueNEO, neo.Decimals)} {neo.Symbol} for {UnitConversion.ToDecimal(rate, gas.Decimals)} {gas.Symbol}");
+        // Make Swap NEO / GAS -> Should fail
+        poolOwner.SwapTokens(neo.Symbol, gas.Symbol, swapValueNEO);
+        Assert.False(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
+        
+        var afterTXBalanceGAS =  poolOwner.GetBalance(gas.Symbol);
+        var afterTXBalanceNEO =  poolOwner.GetBalance(neo.Symbol);
+        
+        Assert.Equal( beforeTXBalanceNEO, afterTXBalanceNEO);
+        Assert.Equal(beforeTXBalanceGAS, afterTXBalanceGAS);
+    }
 
 
     [Fact]
@@ -1678,7 +1729,9 @@ public class ExchangeContractTests
         
         // Give Users tokens
         poolOwner.FundUser(soul: 50000, kcal: 100);
-        poolOwner.Fund(eth.Symbol, poolAmount2);
+        poolOwner.Fund(soul.Symbol, poolAmount0*2);
+        poolOwner.Fund(kcal.Symbol, poolAmount1);
+        poolOwner.Fund(eth.Symbol, poolAmount2*3);
         poolOwner.Fund(neo.Symbol, poolAmount4);
         poolOwner.Fund(gas.Symbol, poolAmount5);
         
@@ -1690,13 +1743,20 @@ public class ExchangeContractTests
         var beforeTXBalanceKCAL = poolOwner2.GetBalance( kcal.Symbol);
         var beforeTXBalanceETH = poolOwner2.GetBalance( eth.Symbol );
 
+        poolOwner.CreatePool(kcal.Symbol, poolAmount1/100, eth.Symbol, poolAmount2/10000000);
+        Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
+
+        var balance = poolOwner.GetBalance(eth.Symbol);
+        poolOwner.AddLiquidity(soul.Symbol, 0, eth.Symbol, poolAmount2);
+        Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
+
         // Get Rate
         var rate = poolOwner2.GetRate(kcal.Symbol, eth.Symbol, swapValueKCAL);
 
         Console.WriteLine($"{UnitConversion.ToDecimal(swapValueKCAL, kcal.Decimals)} {eth.Symbol} for {UnitConversion.ToDecimal(rate, eth.Decimals)} {eth.Symbol}");
         // Make Swap KCAL / ETH
         poolOwner2.SwapTokens(kcal.Symbol, eth.Symbol, swapValueKCAL);
-        Assert.True(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
         
         var afterTXBalanceKCAL =  poolOwner2.GetBalance(kcal.Symbol);
         var afterTXBalanceETH =  poolOwner2.GetBalance(eth.Symbol);
@@ -2368,9 +2428,9 @@ public class ExchangeContractTests
             simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, soul.Symbol, poolAmount0*2);
             simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, kcal.Symbol, poolAmount1*2);
             simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, eth.Symbol, poolAmount2);
-            simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, bnb.Symbol, poolAmount3);
-            simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, neo.Symbol, poolAmount4);
-            simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, gas.Symbol, poolAmount5);
+            //simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, bnb.Symbol, poolAmount3);
+            //simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, neo.Symbol, poolAmount4);
+            //simulator.GenerateTransfer(owner, ExchangeAddress, nexus.RootChain, gas.Symbol, poolAmount5);
             simulator.EndBlock();
             Assert.True(simulator.LastBlockWasSuccessful());
             //Migrate();
@@ -3174,9 +3234,17 @@ public class ExchangeContractTests
                 .EndScript();
 
             var result = nexus.RootChain.InvokeScript(nexus.RootStorage, script, simulator.CurrentTime);
+            try
+            {
+                var rate = result.AsNumber();
+                return rate;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("GetRate failed");
+            }
 
-            var rate = result.AsNumber();
-            return rate;
+            return 0;
         }
         
         public BigInteger BurnNFT(string baseSymbol, BigInteger nftID)

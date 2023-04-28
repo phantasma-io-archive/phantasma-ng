@@ -40,6 +40,8 @@ docker build --platform=linux/arm64 -t phantasma-devnet:latest-arm64 -f DOCKER/D
 #rm -rf "$TESTNET_ROOT"/node3/publish
 
 docker tag phantasma-devnet:latest-arm64 phantasmachain/phantasma-devnet:latest-arm64
+docker tag phantasma-devnet:latest-arm64 phantasmachain/phantasma-devnet:latest
 
 # Publish Container
 docker push phantasmachain/phantasma-devnet:latest-arm64
+docker push phantasmachain/phantasma-devnet:latest
