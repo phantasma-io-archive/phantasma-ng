@@ -2064,7 +2064,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public PoolRoute GetPoolRoute(string entrySymbol, string endSymbol)
         {
             if (PoolExists(entrySymbol, endSymbol)) return new PoolRoute(entrySymbol, endSymbol, new PoolRouteItem[]{new PoolRouteItem(entrySymbol, endSymbol, 0, 0)});
-            var poolsSymbols = _pool_symbols.All<string>();
+            var poolsSymbols = _pools.AllKeys<string>();
             var graph = BuildGraph(poolsSymbols);
             var path = FindFastestRoute(graph, entrySymbol, endSymbol);
             if (path == null) return new PoolRoute();
@@ -2081,7 +2081,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         
         public PoolRoute GetPoolBestRoute(string entrySymbol, string endSymbol, BigInteger amount)
         {
-            var poolsSymbols = _pool_symbols.All<string>();
+            var poolsSymbols = _pools.AllKeys<string>();
             var graph = BuildGraph(poolsSymbols);
             var path = FindBestRoute(graph, entrySymbol, endSymbol, amount);
             if (path == null) return new PoolRoute();
