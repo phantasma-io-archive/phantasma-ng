@@ -1782,6 +1782,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         // Day -> Math.floor(((time % 31556926) % 2629743) / 86400)
         public TradingVolume GetTradingVolumeToday(string symbol0, string symbol1)
         {
+            Runtime.Expect(_DEXversion > 1, " This method is not available in this version of the DEX");
             var tradingMap = GetTradingVolume(symbol0, symbol1);
             var today = DateTime.Today.Date;
             var todayTimestamp = (Timestamp)today;
@@ -1801,6 +1802,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         public TradingVolume[] GetTradingVolumes(string symbol0, string symbol1)
         {
+            Runtime.Expect(_DEXversion > 1, " This method is not available in this version of the DEX");
             var tradingMap = GetTradingVolume(symbol0, symbol1);
             return tradingMap.AllValues<TradingVolume>();
         }
@@ -2063,6 +2065,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         public PoolRoute GetPoolRoute(string entrySymbol, string endSymbol)
         {
+            Runtime.Expect(_DEXversion > 1, " This method is not available in this version of the DEX");
             if (PoolExists(entrySymbol, endSymbol)) return new PoolRoute(entrySymbol, endSymbol, new PoolRouteItem[]{new PoolRouteItem(entrySymbol, endSymbol, 0, 0)});
             var poolsSymbols = _pools.AllKeys<string>();
             var graph = BuildGraph(poolsSymbols);
@@ -2081,6 +2084,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         
         public PoolRoute GetPoolBestRoute(string entrySymbol, string endSymbol, BigInteger amount)
         {
+            Runtime.Expect(_DEXversion >= 1, " This method is not available in this version of the DEX");
             var poolsSymbols = _pools.AllKeys<string>();
             var graph = BuildGraph(poolsSymbols);
             var path = FindBestRoute(graph, entrySymbol, endSymbol, amount);
@@ -2165,7 +2169,6 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             path.RemoveAt(path.Count - 1);
             visited.Remove(current);
         }
-
         
         internal List<string> FindFastestRoute(Dictionary<string, List<string>> graph, string start, string end)
         {
@@ -2276,6 +2279,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         public BigInteger GetMyNFTID(Address from, string symbol0, string symbol1)
         {
+            Runtime.Expect(_DEXversion > 1, " This method is not available in this version of the DEX");
             var nfts = Runtime.GetOwnerships(DomainSettings.LiquidityTokenSymbol, from);
             BigInteger id = 0;
             for (int i = 0; i < nfts.Length; i++)
@@ -2302,6 +2306,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         public LPTokenContentRAM GetMyPoolRAM(Address from, string symbol0, string symbol1)
         {
+            Runtime.Expect(_DEXversion > 1, " This method is not available in this version of the DEX");
             Runtime.Expect(PoolExists(symbol0, symbol1), $"Pool {symbol0}/{symbol1} already exists.");
             Pool pool = GetPool(symbol0, symbol1);
             Runtime.Expect(UserHasLP(from, pool.Symbol0, pool.Symbol1), $"User doesn't have LP");
@@ -2329,6 +2334,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns>Array of Pools</returns>
         public Pool[] GetPools()
         {
+            Runtime.Expect(_DEXversion > 1, " This method is not available in this version of the DEX");
             return _pools.AllValues<Pool>();
         }
 
@@ -2340,6 +2346,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns>Pool</returns>
         public Pool GetPool(string symbol0, string symbol1)
         {
+            Runtime.Expect(_DEXversion > 1, " This method is not available in this version of the DEX");
             Runtime.Expect(PoolExists(symbol0, symbol1), $"Pool {symbol0}/{symbol1} doesn't exist.");
 
             if (_pools.ContainsKey($"{symbol0}_{symbol1}"))
@@ -3384,6 +3391,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="symbol1"></param>
         public void ClaimFees(Address from, string symbol0, string symbol1)
         {
+            Runtime.Expect(_DEXversion > 1, " This method is not available in this version of the DEX");
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
             // Check if user has LP Token
@@ -3420,6 +3428,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         public (BigInteger, BigInteger) GetUnclaimedFees(Address from, string symbol0, string symbol1)
         {
+            Runtime.Expect(_DEXversion > 1, " This method is not available in this version of the DEX");
+
             // Check if user has LP Token
             Runtime.Expect(UserHasLP(from, symbol0, symbol1), "User doesn't have LP");
 
@@ -3602,6 +3612,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
         public void BurnNFT(Address from, BigInteger nftID)
         {
+            Runtime.Expect(_DEXversion > 1, " This method is not available in this version of the DEX");
+
             if (!Runtime.NFTExists(DomainSettings.LiquidityTokenSymbol, nftID))
                 return;
 
