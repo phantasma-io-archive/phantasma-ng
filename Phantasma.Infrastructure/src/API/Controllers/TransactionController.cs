@@ -201,7 +201,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             var res = NexusAPI.TRPC.BroadcastTxSync(txData);
             if (res.Code != 0)
             {
-                return $"CheckTx returned code {res.Code} {res.Log}";
+                return $"CheckTx returned code {res.Code} {res.Log}\nHash:{res.Hash}\nError:{res.Data}";
             }
             
             return tx.Hash.ToString();
