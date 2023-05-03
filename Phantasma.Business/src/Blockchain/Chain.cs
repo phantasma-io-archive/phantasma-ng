@@ -497,7 +497,7 @@ namespace Phantasma.Business.Blockchain
             if (!this.Nexus.HasGenesis()) return new List<ValidatorUpdate>();
             var validators = this.Nexus.GetValidators(this.CurrentBlock.Timestamp);
             if (validators.Length == 0) return new List<ValidatorUpdate>();
-            if ( this.Nexus.GetProtocolVersion(this.Storage) <= 13 ) return new List<ValidatorUpdate>();
+            if ( this.Nexus.GetProtocolVersion(this.Storage) <= 14 ) return new List<ValidatorUpdate>();
         
             var validatorUpdateList = new List<ValidatorUpdate>();
             Timestamp lastActivity;
