@@ -794,7 +794,6 @@ public class ExchangeContractTests
     {
         CoreClass core = new CoreClass();
         var poolOwner = new ExchangeUser(soul.Symbol, kcal.Symbol, core);
-
         
         core.InitFunds();
         core.Migrate();
@@ -946,13 +945,13 @@ public class ExchangeContractTests
         // Check if the pool was created
         var pool = poolOwner.GetPool(kcal.Symbol, cool.Symbol);
 
-        Assert.True(pool.Symbol0 == kcal.Symbol);
-        Assert.True(pool.Amount0 == amount0);
-        Assert.True(pool.Symbol1 == cool.Symbol); 
-        Assert.True(pool.Amount1 == amount1);
-        Assert.True(pool.TotalLiquidity == totalLiquidity);
-        Assert.True(pool.Symbol0Address == token1Address.Address.Text);
-        Assert.True(pool.Symbol1Address == virtualTokenAddress.Address.Text);
+        Assert.Equal(pool.Symbol0, kcal.Symbol);
+        Assert.Equal(pool.Amount0, amount0);
+        Assert.Equal(pool.Symbol1, cool.Symbol); 
+        Assert.Equal(pool.Amount1, amount1);
+        Assert.Equal(pool.TotalLiquidity, totalLiquidity);
+        Assert.Equal(pool.Symbol0Address, token1Address.Address.Text);
+        Assert.Equal(pool.Symbol1Address, virtualTokenAddress.Address.Text);
 
         Console.WriteLine($"Check Values | {pool.Symbol0}({pool.Symbol0Address}) -> {pool.Amount0} | {pool.Symbol1}({pool.Symbol1Address}) -> {pool.Amount1} || {pool.TotalLiquidity}");
     }
@@ -1050,7 +1049,7 @@ public class ExchangeContractTests
 
         var pool = poolOwner.GetPool(kcal.Symbol, cool.Symbol);
         BigInteger totalLiquidity = ExchangeContract.Sqrt(initialAmount0SameDecimals * initialAmount1SameDecimals) * UnitConversion.GetUnitValue(DomainSettings.MAX_TOKEN_DECIMALS);
-        Assert.True(totalLiquidity == pool.TotalLiquidity);
+        Assert.Equal(totalLiquidity, pool.TotalLiquidity);
 
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(kcal.Symbol, amount0, cool.Symbol, amount1);
@@ -1878,7 +1877,7 @@ public class ExchangeContractTests
 
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(soul.Symbol, UnitConversion.ToBigInteger(1000, soul.Decimals), kcal.Symbol, 0);
-        Assert.True(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
 
         // Get Rate
         var unclaimed = poolOwner.GetUnclaimedFees(soul.Symbol, kcal.Symbol);
@@ -1988,7 +1987,7 @@ public class ExchangeContractTests
 
         // Add Liquidity to the pool
         poolOwner.AddLiquidity(soul.Symbol, UnitConversion.ToBigInteger(10000, soul.Decimals), kcal.Symbol, 0);
-        Assert.True(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
 
         // Get Pool
         var pool = poolOwner.GetPool(soul.Symbol, kcal.Symbol);

@@ -13,7 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: [ 'amd64', 'arm64' ]
+        version: [ 'amd64' ]
+      #version: [ 'amd64', 'arm64' ]
     
     steps:
       - uses: actions/checkout@v3
