@@ -45,7 +45,7 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.Log", 1, Runtime_Log);
             callback("Runtime.Notify", 3, Runtime_Notify);
             callback("Runtime.DeployContract", 4, Runtime_DeployContract);
-            callback("Runtime.UpgradeContract", 3, Runtime_UpgradeContract);
+            callback("Runtime.UpgradeContract", 4, Runtime_UpgradeContract);
             callback("Runtime.KillContract", 2, Runtime_KillContract);
             callback("Runtime.GetBalance", 2, Runtime_GetBalance);
             callback("Runtime.TransferTokens", 4, Runtime_TransferTokens);
@@ -61,9 +61,13 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.ReadTokenRAM", 2, Runtime_ReadTokenRAM);
             callback("Runtime.ReadToken", 2, Runtime_ReadToken);
             callback("Runtime.WriteToken", 4, Runtime_WriteToken);
+            callback("Runtime.ContractExists", 1, Runtime_ContractExists);
             callback("Runtime.TokenExists", 1, Runtime_TokenExists);
             callback("Runtime.GetTokenDecimals", 1, Runtime_TokenGetDecimals);
             callback("Runtime.GetTokenFlags", 1, Runtime_TokenGetFlags);
+            callback("Runtime.GetTokenSupply", 1, Runtime_TokenGetSupply);
+            callback("Runtime.GetAvailableTokenSymbols", 0, Runtime_GetAvailableTokenSymbols);
+            callback("Runtime.GetAvailableNFTSymbols", 0, Runtime_GetAvailableNFTSymbols);
 
             callback("Nexus.GetGovernanceValue", 1, Nexus_GetGovernanceValue);
             callback("Nexus.BeginInit", 1, Nexus_BeginInit);
@@ -95,6 +99,7 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Map.Count", 2, Map_Count);
             callback("Map.Clear", 1, Map_Clear);
             callback("Map.Keys", 2, Map_Keys);
+            callback("Map.Keys", 2, Map_Values);
 
             callback("List.Get", 4, List_Get);
             callback("List.Add", 2, List_Add);
@@ -801,6 +806,34 @@ namespace Phantasma.Business.Blockchain.VM
 
             return ExecutionState.Running;
         }
+        
+        private static ExecutionState Map_Values(RuntimeVM vm)
+        {
+            var contextName = vm.CurrentContext.Name;
+            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+
+            vm.ExpectStackSize(2);
+
+            var contractName = vm.PopString("contract");
+            if (vm.ProtocolVersion >= 13)
+            {
+                vm.Expect(vm.ContractDeployed(contractName), $"contract {contractName} is not deployed");
+
+                vm.Expect(!Nexus.IsDangerousSymbol(contractName.ToUpper()), $"contract {contractName} is not allowed to use this function");
+                vm.Expect(!Nexus.IsNativeContract(contractName.ToLower()), $"contract {contractName} is not allowed to use this function");
+            }
+
+            var field = vm.PopString("field");
+            var mapKey = SmartContract.GetKeyForField(contractName, field, false);
+
+            var map = new StorageMap(mapKey, vm.Storage);
+
+            var values = map.AllValues<byte[]>();
+            var val = VMObject.FromObject(values);
+            vm.Stack.Push(val);
+
+            return ExecutionState.Running;
+        }
 
         private static ExecutionState Map_Count(RuntimeVM vm)
         {
@@ -1454,11 +1487,28 @@ namespace Phantasma.Business.Blockchain.VM
         {
             vm.ExpectStackSize(1);
 
-            var temp = vm.Stack.Pop();
-            vm.Expect(temp.Type == VMType.String, "expected string for symbol");
-            var symbol = temp.AsString();
+            var obj = vm.Stack.Pop();
+            vm.Expect(obj.Type == VMType.String, "expected string for symbol");
+            var symbol = obj.AsString();
 
             var success = vm.TokenExists(symbol);
+
+            var result = new VMObject();
+            result.SetValue(success);
+            vm.Stack.Push(result);
+
+            return ExecutionState.Running;
+        }
+
+        private static ExecutionState Runtime_ContractExists(RuntimeVM vm)
+        {
+            vm.ExpectStackSize(1);
+
+            var obj = vm.Stack.Pop();
+            vm.Expect(obj.Type == VMType.String, "expected string for contract name");
+            var contractName = obj.AsString();
+
+            var success = vm.ContractExists(contractName);
 
             var result = new VMObject();
             result.SetValue(success);
@@ -1506,6 +1556,52 @@ namespace Phantasma.Business.Blockchain.VM
 
             return ExecutionState.Running;
         }
+
+        private static ExecutionState Runtime_TokenGetSupply(RuntimeVM vm)
+        {
+            vm.ExpectStackSize(1);
+
+            var symbol = vm.PopString("symbol");
+
+            if (!vm.TokenExists(symbol))
+            {
+                return ExecutionState.Fault;
+            }
+
+            var supply = vm.GetTokenSupply(symbol);
+
+            var result = new VMObject();
+
+            result.SetValue(supply);
+            vm.Stack.Push(result);
+
+            return ExecutionState.Running;
+        }
+
+        private static ExecutionState Runtime_GetAvailableTokenSymbols(RuntimeVM vm)
+        {
+            var symbols = vm.GetTokens();
+
+            symbols = symbols.Where(x => vm.GetToken(x).IsFungible()).ToArray();
+
+            var result = VMObject.FromArray(symbols);
+            vm.Stack.Push(result);
+
+            return ExecutionState.Running;
+        }
+
+        private static ExecutionState Runtime_GetAvailableNFTSymbols(RuntimeVM vm)
+        {
+            var symbols = vm.GetTokens();
+
+            symbols = symbols.Where(x => !vm.GetToken(x).IsFungible()).ToArray();
+
+            var result = VMObject.FromArray(symbols);
+            vm.Stack.Push(result);
+
+            return ExecutionState.Running;
+        }
+
         #endregion
 
         #region Contract / Token Deployment
@@ -1827,6 +1923,11 @@ namespace Phantasma.Business.Blockchain.VM
                 var possibleFlags = Enum.GetValues(typeof(TokenFlags)).Cast<TokenFlags>().ToArray();
                 foreach (var entry in possibleFlags)
                 {
+                    if (entry == TokenFlags.None)
+                    {
+                        continue;
+                    }
+
                     var flag = entry; // this line necessary for lambda closure to catch the correct value
                     var propName = $"is{flag}";
 

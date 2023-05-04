@@ -1,6 +1,10 @@
 using System;
+using System.Drawing;
+using System.IO;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Utils;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -97,6 +101,72 @@ namespace Phantasma.Infrastructure.API.Controllers
             catch (Exception e)
             {
                 throw new APIException(e.Message);
+            }
+        }
+        
+        [APIInfo(typeof(IActionResult), "Reads a image from a given archive.", false, 0, false)]
+        [HttpGet("ReadImage")]
+        public IActionResult ReadImage([APIParameter("Archive hash", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText, string format = "png")
+        {
+            Hash hash;
+
+            if (!Hash.TryParse(hashText, out hash))
+            {
+                throw new APIException("invalid hash");
+            }
+
+            var nexus = NexusAPI.GetNexus();
+
+            var archive = nexus.GetArchive(nexus.RootStorage, hash);
+            if (archive == null)
+            {
+                throw new APIException("archive not found");
+            }
+            
+            // if archive size > 4mb then it is not an image
+            if (archive.Size >= 4 * 1000 * 1024)
+            {
+                throw new APIException("invalid image size");
+            }
+            
+            try
+            {
+                var bytes = nexus.ReadArchiveBlock(archive, 0);
+                for (int i = 1; i < archive.BlockCount; i++)
+                {
+                    bytes = ByteArrayUtils.ConcatBytes(bytes, nexus.ReadArchiveBlock(archive, i));
+                }
+                
+                if ( format == "jpg" || format == "jpeg" )
+                    return File(bytes, "image/jpeg");
+                else if ( format == "gif" )
+                    return File(bytes, "image/gif");
+                else if ( format == "bmp" )
+                    return File(bytes, "image/bmp");
+                else if ( format == "tiff" )
+                    return File(bytes, "image/tiff");
+                else if ( format == "ico" )
+                    return File(bytes, "image/x-icon");
+                /*else if ( format == "mp4")
+                    return File(bytes, "video/mp4");
+                else if ( format == "mp3")
+                    return File(bytes, "audio/mpeg");*/
+                
+                return File(bytes, "image/png");
+
+            }
+            catch (Exception e)
+            {
+                throw new APIException(e.Message);
+            }
+        }
+
+        private Image BytesToImage(byte[] imageData)
+        {
+            using (MemoryStream ms = new MemoryStream(imageData))
+            {
+                Image image = Image.FromStream(ms);
+                return image;
             }
         }
     }

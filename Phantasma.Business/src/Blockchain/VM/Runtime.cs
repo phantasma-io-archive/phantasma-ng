@@ -8,6 +8,7 @@ using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM;
+using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
@@ -246,13 +247,30 @@ namespace Phantasma.Business.Blockchain.VM
             DelayPayment = true;
 
             var allowance = this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowedGas), from).AsNumber();
+            
+            var _methodTableForGasExtraction = (Chain as Chain).GenerateMethodTable();
+
+            IEnumerable<DisasmMethodCall> methods = new List<DisasmMethodCall>();
+            try
+            {
+                methods = DisasmUtils.ExtractMethodCalls(EntryScript, _methodTableForGasExtraction, detectAndUseJumps: true);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+                
+            bool isWhitelisted = TransactionExtensions.IsWhitelisted(methods);
+            bool hasSpendGas = TransactionExtensions.HasSpendGas(methods);
+            
             if (allowance <= 0)
             {
                 // if no allowance is given, create one
                 this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas), from, target, gasPrice, gasLimit);
             }
-
-            this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), from);
+            
+            if ( !hasSpendGas)
+                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), from);
 
             DelayPayment = false;
 
@@ -2308,6 +2326,11 @@ namespace Phantasma.Business.Blockchain.VM
         public bool IsEntryContext(ExecutionContext context)
         {
             Core.Throw.IfNull(context, nameof(context));
+
+            if (IsTrigger)
+            {
+                return false;
+            }
 
             return EntryContext.Address == context.Address;
         }
