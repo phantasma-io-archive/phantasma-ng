@@ -83,8 +83,10 @@ namespace Phantasma.Core.Domain
         public Signature[] Signatures { get; private set; }
 
         public Hash Hash { get; private set; }
-        
+
         //public TransactionGas TransactionGas { get; private set; }
+
+        public bool IsEVMTransaction => Script != null && Script.Length > 16 && (Opcode)Script[0] == Opcode.EVM;
 
         public static Transaction? Unserialize(byte[] bytes)
         {

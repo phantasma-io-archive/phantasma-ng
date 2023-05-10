@@ -115,7 +115,7 @@ public interface INexus
     ValidatorEntry GetValidator(StorageContext storage, string tAddress);
     void RegisterPlatformAddress(StorageContext storage, string platform, Address localAddress, string externalAddress);
     bool IsPlatformAddress(StorageContext storage, Address address);
-    string[] GetTokens(StorageContext storage);
+    string[] GetAvailableTokenSymbols(StorageContext storage);
     string[] GetChains(StorageContext storage);
     string[] GetPlatforms(StorageContext storage);
     string[] GetFeeds(StorageContext storage);

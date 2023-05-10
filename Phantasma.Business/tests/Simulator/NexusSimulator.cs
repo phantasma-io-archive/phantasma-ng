@@ -771,7 +771,7 @@ public class NexusSimulator
                 scriptString = new string[] {
                 $"alias r3, $result",
                 $"alias r4, $owner",
-                $"@{AccountTrigger.OnMint}: nop",
+                $"@{ContractTrigger.OnMint}: nop",
                 $"load $owner 0x{addressStr}",
                 "push $owner",
                 "extcall \"Address()\"",
@@ -821,7 +821,7 @@ public class NexusSimulator
                 $"alias r3, $result",
                 $"alias r4, $owner",
 
-                $@"load $triggerMint, ""{AccountTrigger.OnMint}""",
+                $@"load $triggerMint, ""{ContractTrigger.OnMint}""",
                 $"pop $currentTrigger",
 
                 $"equal $triggerMint, $currentTrigger, $result",
@@ -851,12 +851,12 @@ public class NexusSimulator
 
         if (version >= 4)
         {
-            var triggerMap = new Dictionary<AccountTrigger, int>();
+            var triggerMap = new Dictionary<ContractTrigger, int>();
 
-            var onMintLabel = AccountTrigger.OnMint.ToString();
+            var onMintLabel = ContractTrigger.OnMint.ToString();
             if (labels.ContainsKey(onMintLabel))
             {
-                triggerMap[AccountTrigger.OnMint] = labels[onMintLabel];
+                triggerMap[ContractTrigger.OnMint] = labels[onMintLabel];
             }
 
             var methods = AccountContract.GetTriggersForABI(triggerMap);

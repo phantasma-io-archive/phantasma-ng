@@ -176,7 +176,7 @@ namespace Phantasma.Core.Domain
         public void StopTask(IChainTask task);
         public IChainTask GetTask(BigInteger taskID);
 
-        TriggerResult InvokeTriggerOnAccount(bool allowThrow, Address address, AccountTrigger trigger, params object[] args);
+        TriggerResult InvokeTriggerOnContract(bool allowThrow, Address address, ContractTrigger trigger, params object[] args);
         TriggerResult InvokeTriggerOnToken(bool allowThrow, IToken token, TokenTrigger trigger, params object[] args);
 
         /*void AddAllowance(Address destination, string symbol, BigInteger amount);

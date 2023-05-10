@@ -99,7 +99,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var abi = ContractInterface.FromBytes(abiBytes);
             Runtime.Expect(abi.MethodCount > 0, "unexpected empty contract abi");
 
-            var witnessTriggerName = nameof(AccountTrigger.OnWitness);
+            var witnessTriggerName = nameof(ContractTrigger.OnWitness);
             if (abi.HasMethod(witnessTriggerName))
             {
                 var contextName = target.Text;
@@ -313,14 +313,14 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         }
 
 
-        public static ContractMethod GetTriggerForABI(AccountTrigger trigger)
+        public static ContractMethod GetTriggerForABI(ContractTrigger trigger)
         {
             return GetTriggersForABI(new[] { trigger }).First();
         }
 
-        public static IEnumerable<ContractMethod> GetTriggersForABI(IEnumerable<AccountTrigger> triggers)
+        public static IEnumerable<ContractMethod> GetTriggersForABI(IEnumerable<ContractTrigger> triggers)
         {
-            var entries = new Dictionary<AccountTrigger, int>();
+            var entries = new Dictionary<ContractTrigger, int>();
             foreach (var trigger in triggers)
             {
                 entries[trigger] = 0;
@@ -329,7 +329,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return GetTriggersForABI(entries);
         }
 
-        public static IEnumerable<ContractMethod> GetTriggersForABI(Dictionary<AccountTrigger, int> triggers)
+        public static IEnumerable<ContractMethod> GetTriggersForABI(Dictionary<ContractTrigger, int> triggers)
         {
             var result = new List<ContractMethod>();
 
@@ -340,15 +340,15 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
                 switch (trigger)
                 {
-                    case AccountTrigger.OnWitness:
-                    case AccountTrigger.OnUpgrade:
+                    case ContractTrigger.OnWitness:
+                    case ContractTrigger.OnUpgrade:
                         result.Add(new ContractMethod(trigger.ToString(), VMType.None, offset, new[] { new ContractParameter("from", VMType.Object) }));
                         break;
 
-                    case AccountTrigger.OnBurn:
-                    case AccountTrigger.OnMint:
-                    case AccountTrigger.OnReceive:
-                    case AccountTrigger.OnSend:
+                    case ContractTrigger.OnBurn:
+                    case ContractTrigger.OnMint:
+                    case ContractTrigger.OnReceive:
+                    case ContractTrigger.OnSend:
                         result.Add(new ContractMethod(trigger.ToString(), VMType.None, offset, new[] {
                             new ContractParameter("from", VMType.Object),
                             new ContractParameter("to", VMType.Object),

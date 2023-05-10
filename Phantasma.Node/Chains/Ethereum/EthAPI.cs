@@ -132,7 +132,7 @@ namespace Phantasma.Node.Chains.Ethereum
                     fromBlock: new BlockParameter(start),
                     toBlock: new BlockParameter(end));
 
-            var logs = EthUtils.RunSync(() => transferEventHandler.GetAllChanges(filter));
+            var logs = EthUtils.RunSync(() => transferEventHandler.GetAllChangesAsync(filter));
 
             return logs;
 

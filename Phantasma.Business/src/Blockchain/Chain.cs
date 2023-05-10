@@ -441,7 +441,7 @@ namespace Phantasma.Business.Blockchain
                 table.AddContractToTable(contract);
             }
 
-            var tokens = this.Nexus.GetTokens(Nexus.RootStorage);
+            var tokens = this.Nexus.GetAvailableTokenSymbols(Nexus.RootStorage);
             foreach (var symbol in tokens)
             {
                 if (Nexus.IsSystemToken(symbol) && symbol != DomainSettings.LiquidityTokenSymbol)
@@ -1194,7 +1194,7 @@ namespace Phantasma.Business.Blockchain
                 return GetContractByName(storage, name);
             }
 
-            var symbols = Nexus.GetTokens(storage);
+            var symbols = Nexus.GetAvailableTokenSymbols(storage);
             foreach (var symbol in symbols)
             {
                 var tokenAddress = TokenUtils.GetContractAddress(symbol);
