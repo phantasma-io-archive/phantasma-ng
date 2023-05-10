@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Text;
+
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM;
+
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
@@ -115,6 +116,7 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Oracle.Read", 1, Oracle_Read);
             callback("Oracle.Price", 1, Oracle_Price);
             callback("Oracle.Quote", 3, Oracle_Quote);
+
             // TODO
             //callback("Oracle.Block", Oracle_Block);
             //callback("Oracle.Transaction", Oracle_Transaction);
@@ -228,24 +230,19 @@ namespace Phantasma.Business.Blockchain.VM
             var obj = vm.Stack.Pop();
 
             var bytes = obj.Serialize();
-            var str = Serialization.Unserialize<string>(bytes);
 
             vm.Notify(kind, address, bytes);
             return ExecutionState.Running;
         }
 
         #region ORACLES
-        // TODO proper exceptions
         private static ExecutionState Oracle_Read(RuntimeVM vm)
         {
             vm.ExpectStackSize(1);
 
             var url = vm.PopString("url");
 
-            if (vm.Oracle == null)
-            {
-                return ExecutionState.Fault;
-            }
+            vm.Expect(vm.Oracle != null, "null oracle");
 
             url = url.Trim().ToLowerInvariant();
             if (string.IsNullOrEmpty(url))
@@ -253,7 +250,7 @@ namespace Phantasma.Business.Blockchain.VM
                 return ExecutionState.Fault;
             }
 
-            var result = vm.Oracle.Read<byte[]>(vm.Time,/*vm.Transaction.Hash, */url);
+            var result = vm.Oracle.Read<byte[]>(vm.Time, url);
             vm.Stack.Push(VMObject.FromObject(result));
 
             return ExecutionState.Running;
@@ -339,19 +336,12 @@ namespace Phantasma.Business.Blockchain.VM
 
         private static ExecutionState Runtime_TransactionHash(RuntimeVM vm)
         {
-            try
-            {
-                var tx = vm.Transaction;
-                Throw.IfNull(tx, nameof(tx));
+            vm.Expect(vm.Transaction != null, "transaction hash not available here");
 
-                var result = new VMObject();
-                result.SetValue(tx.Hash);
-                vm.Stack.Push(result);
-            }
-            catch (Exception e)
-            {
-                throw new VMException(vm, e.Message);
-            }
+            var tx = vm.Transaction;
+            var result = new VMObject();
+            result.SetValue(tx.Hash);            
+            vm.Stack.Push(result);
 
             return ExecutionState.Running;
         }
@@ -1118,6 +1108,7 @@ namespace Phantasma.Business.Blockchain.VM
                         throw new VMException(vm, $"Minting token {symbol} not allowed from this context");
                     }
                     else
+                    if (vm.ProtocolVersion < 14)
                     {
                         vm.ExpectWarning(vm.IsPrimaryValidator(source), "only primary validator can mint system tokens", source);
                     }
@@ -1740,7 +1731,7 @@ namespace Phantasma.Business.Blockchain.VM
             vm.Expect(oldContract != null, "could not fetch previous contract");
             vm.Expect(abi.Implements(oldContract.ABI), "new abi does not implement all methods of previous abi");
 
-            var triggerName = AccountTrigger.OnUpgrade.ToString();
+            var triggerName = ContractTrigger.OnUpgrade.ToString();
             vm.ValidateTriggerGuard($"{contractName}.{triggerName}");
 
             var triggerResult = vm.InvokeTrigger(false, script, contractName, abi, triggerName, from);
@@ -1819,7 +1810,7 @@ namespace Phantasma.Business.Blockchain.VM
             vm.Expect(customContract != null, "could not contract script");
 
             var abi = contract.ABI;
-            var triggerName = AccountTrigger.OnKill.ToString();
+            var triggerName = ContractTrigger.OnKill.ToString();
 
             vm.ValidateTriggerGuard($"{contractName}.{triggerName}");
             

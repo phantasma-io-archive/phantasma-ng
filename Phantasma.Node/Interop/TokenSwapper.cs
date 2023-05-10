@@ -204,7 +204,7 @@ namespace Phantasma.Node.Interop
             var nexus = NexusAPI.GetNexus();
 
             var hash = Hash.FromUnpaddedHex(asset);
-            var symbols = nexus.GetTokens(nexus.RootStorage);
+            var symbols = nexus.GetAvailableTokenSymbols(nexus.RootStorage);
 
             foreach (var symbol in symbols)
             {

@@ -202,11 +202,11 @@ public class AccountContracTestLegacy
             $"alias r8, $currentAddress",
             $"alias r9, $sourceAddress",
 
-            $@"load $triggerSend, ""{AccountTrigger.OnSend}""",
-            $@"load $triggerReceive, ""{AccountTrigger.OnReceive}""",
-            $@"load $triggerBurn, ""{AccountTrigger.OnBurn}""",
-            $@"load $triggerMint, ""{AccountTrigger.OnMint}""",
-            $@"load $triggerWitness, ""{AccountTrigger.OnWitness}""",
+            $@"load $triggerSend, ""{ContractTrigger.OnSend}""",
+            $@"load $triggerReceive, ""{ContractTrigger.OnReceive}""",
+            $@"load $triggerBurn, ""{ContractTrigger.OnBurn}""",
+            $@"load $triggerMint, ""{ContractTrigger.OnMint}""",
+            $@"load $triggerWitness, ""{ContractTrigger.OnWitness}""",
             $"pop $currentTrigger",
             $"pop $currentAddress",
 
@@ -532,7 +532,7 @@ public class AccountContracTestLegacy
         Assert.Equal(Encoding.UTF8.GetString(testABI), scriptABI.AsString());
 
         // GetTriggerForABI
-        var result = AccountContract.GetTriggerForABI(AccountTrigger.OnWitness);
+        var result = AccountContract.GetTriggerForABI(ContractTrigger.OnWitness);
         Assert.Equal(result.name, "OnWitness");
         Assert.Equal(result.parameters.Length, 1);
         Assert.Equal(result.parameters[0].name, "from");

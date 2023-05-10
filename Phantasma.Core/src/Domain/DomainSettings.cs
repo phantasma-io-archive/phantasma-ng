@@ -13,7 +13,8 @@ namespace Phantasma.Core.Domain
         Success,
     }
 
-    public enum AccountTrigger
+    // ContractTrigger is also used for account scripts
+    public enum ContractTrigger
     {
         OnMint, // address, symbol, amount
         OnBurn, // address, symbol, amount

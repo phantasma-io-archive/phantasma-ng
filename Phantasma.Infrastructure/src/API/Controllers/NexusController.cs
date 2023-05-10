@@ -17,7 +17,7 @@ namespace Phantasma.Infrastructure.API.Controllers
 
             var tokenList = new List<TokenResult>();
 
-            var symbols = nexus.GetTokens(nexus.RootStorage);
+            var symbols = nexus.GetAvailableTokenSymbols(nexus.RootStorage);
             foreach (var token in symbols)
             {
                 var entry = NexusAPI.FillToken(token, false, extended);

@@ -898,7 +898,7 @@ public class InteropTests : IDisposable
                     It.IsAny<string>())
                 ).Returns(token);
 
-        nexusMoq.Setup(n => n.GetTokens(
+        nexusMoq.Setup(n => n.GetAvailableTokenSymbols(
             It.IsAny<StorageContext>())
             ).Returns(new string[] {token.Symbol});
 

@@ -596,7 +596,7 @@ namespace Phantasma.Business.Blockchain.VM
         }
 
         #region TRIGGERS
-        public TriggerResult InvokeTriggerOnAccount(bool allowThrow, Address address, AccountTrigger trigger, params object[] args)
+        public TriggerResult InvokeTriggerOnContract(bool allowThrow, Address address, ContractTrigger trigger, params object[] args)
         {
             ExpectAddressSize(address, nameof(address));
             ExpectEnumIsDefined(trigger, nameof(trigger));
@@ -845,6 +845,11 @@ namespace Phantasma.Business.Blockchain.VM
                 return false;
             }
 
+            if (CurrentContext.Name.Equals(EVMContext.ContextName) && _evmWitnesses.Contains(address))
+            {
+                return true;
+            }
+
             bool accountResult;
 
             if (address == Validator && TransactionIndex < 0)
@@ -854,7 +859,7 @@ namespace Phantasma.Business.Blockchain.VM
             else if (address.IsUser && HasGenesis && OptimizedHasAddressScript(RootStorage, address))
             {
                 TriggerResult triggerResult;
-                triggerResult = InvokeTriggerOnAccount(false, address, AccountTrigger.OnWitness, address);
+                triggerResult = InvokeTriggerOnContract(false, address, ContractTrigger.OnWitness, address);
 
                 if (triggerResult == TriggerResult.Missing)
                 {
@@ -1864,7 +1869,7 @@ namespace Phantasma.Business.Blockchain.VM
 
         public string[] GetTokens()
         {
-            return Nexus.GetTokens(RootStorage);
+            return Nexus.GetAvailableTokenSymbols(RootStorage);
         }
 
         public IContract[] GetContracts()
@@ -2305,6 +2310,17 @@ namespace Phantasma.Business.Blockchain.VM
         }
         #endregion
 
+        public override ExecutionContext FindContext(string contextName)
+        {
+            if (contextName.StartsWith(EVMContext.ContextName))
+            {
+                var rawTx = contextName.Substring(EVMContext.ContextName.Length + 1);
+                return new EVMContext(rawTx, this);
+            }
+
+            return base.FindContext(contextName);
+        }
+
         public bool IsEntryContext(ExecutionContext context)
         {
             Core.Throw.IfNull(context, nameof(context));
@@ -2352,6 +2368,19 @@ namespace Phantasma.Business.Blockchain.VM
         public VMObject InvokeContractAtTimestamp(string contractName, string methodName, params object[] args)
         {
             return Chain.InvokeContractAtTimestamp(Storage, Time, contractName, methodName, args);
+        }
+
+        private HashSet<Address> _evmWitnesses = new HashSet<Address>();
+
+        public void EVM_Block(Address source, Action callback)
+        {
+            Expect(source.IsUser, "only user address can be EVM witness");
+            Expect(CurrentContext.Name == EVMContext.ContextName, "must be running in EVM context");
+            _evmWitnesses.Add(source);
+
+            callback();
+
+            _evmWitnesses.Remove(source);
         }
 
         public string NexusName => Nexus.Name;

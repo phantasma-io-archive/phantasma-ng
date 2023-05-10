@@ -174,6 +174,7 @@ namespace Phantasma.Business.Blockchain.VM
                     return 10;
 
                 case Opcode.SWITCH:
+                case Opcode.EVM:
                     return 100;
 
                 case Opcode.NOP:
