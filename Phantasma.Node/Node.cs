@@ -195,10 +195,9 @@ namespace Phantasma.Node
             this._neoAPI.SetLogger((s) => Log.Information(s));*/
 
             var ethRpcList = Settings.Instance.Oracle.EthRpcNodes;
-            
             var ethWIF = Settings.Instance.GetInteropWif(_nodeKeys, EthereumWallet.EthereumPlatform);
             //TODO
-            var ethKeys = PhantasmaKeys.FromWIF("L4GcHJVrUPz6nW2EKJJGV2yxfa5UoaG8nfnaTAgzmWyuAmt3BYKg");
+            var ethKeys = PhantasmaKeys.FromWIF(ethWIF);
 
             this._ethAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()));
             this._cryptoCompareAPIKey = Settings.Instance.Oracle.CryptoCompareAPIKey;

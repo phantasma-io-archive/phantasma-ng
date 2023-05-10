@@ -32,14 +32,11 @@ cp -R "$TESTNET_ROOT"/node1/config_node1.json "$TESTNET_ROOT"/node1/publish/conf
 cp -R "$TESTNET_ROOT"/node2/config_node2.json "$TESTNET_ROOT"/node2/publish/config.json
 cp -R "$TESTNET_ROOT"/node3/config_node3.json "$TESTNET_ROOT"/node3/publish/config.json
 
-docker build --platform=linux/x86_64 -t phantasma-devnet:latest -f DOCKER/Dockerfile .
+docker build --platform=linux/amd64 -t phantasma-devnet -f DOCKER/Dockerfile .
 
-#rm -rf "$TESTNET_ROOT"/node0/publish
-#rm -rf "$TESTNET_ROOT"/node1/publish
-#rm -rf "$TESTNET_ROOT"/node2/publish
-#rm -rf "$TESTNET_ROOT"/node3/publish
+rm -rf "$TESTNET_ROOT"/node0/publish
+rm -rf "$TESTNET_ROOT"/node1/publish
+rm -rf "$TESTNET_ROOT"/node2/publish
+rm -rf "$TESTNET_ROOT"/node3/publish
 
-docker tag phantasma-devnet:latest phantasmachain/phantasma-devnet:latest
-
-# Publish Container
-docker push phantasmachain/phantasma-devnet:latest
+docker tag phantasma-devnet:latest phantasmachain/phantasma-devnet:$LAST_COMMIT

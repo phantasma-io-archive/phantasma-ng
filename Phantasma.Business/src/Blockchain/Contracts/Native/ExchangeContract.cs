@@ -181,6 +181,82 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         }
     }
 
+    public struct PoolRouteItem : ISerializable
+    {
+        public string FromSymbol;
+        public string ToSymbol;
+        public BigInteger AmountIn;
+        public BigInteger AmountOut;
+
+        public PoolRouteItem(string fromSymbol, string toSymbol, BigInteger amountIn, BigInteger amountOut)
+        {
+            this.FromSymbol = fromSymbol;
+            this.ToSymbol = toSymbol;
+            this.AmountIn = amountIn;
+            this.AmountOut = amountOut;
+        }
+
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.WriteVarString(FromSymbol);
+            writer.WriteVarString(ToSymbol);
+            writer.WriteBigInteger(AmountIn);
+            writer.WriteBigInteger(AmountOut);
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            this.FromSymbol = reader.ReadVarString();
+            this.ToSymbol = reader.ReadVarString();
+            this.AmountIn = reader.ReadBigInteger();
+            this.AmountOut = reader.ReadBigInteger();
+        }
+    } 
+    
+    public struct PoolRoute : ISerializable
+    {
+        public string EntrySymbol;
+        public string EndSymbol;
+        public PoolRouteItem[] Route;
+        
+        public PoolRoute()
+        {
+            this.EntrySymbol = "";
+            this.EndSymbol = "";
+            this.Route = new PoolRouteItem[0];
+        }
+        
+        public PoolRoute(string entrySymbol, string endSymbol, PoolRouteItem[] route)
+        {
+            this.EntrySymbol = entrySymbol;
+            this.EndSymbol = endSymbol;
+            this.Route = route;
+        }
+        
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.WriteVarString(EntrySymbol);
+            writer.WriteVarString(EndSymbol);
+            writer.WriteVarInt(Route.Length);
+            foreach (var item in Route)
+            {
+                item.SerializeData(writer);
+            }
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            this.EntrySymbol = reader.ReadVarString();
+            this.EndSymbol = reader.ReadVarString();
+            var length = (int)reader.ReadVarInt();
+            Route = new PoolRouteItem[length];
+            for (int i = 0; i < length; i++)
+            {
+                Route[i].UnserializeData(reader);
+            }
+        }
+    }
+
     public struct LPHolderInfo : ISerializable
     {
         public BigInteger NFTID;
@@ -216,7 +292,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             ClaimedSymbol1 = reader.ReadBigInteger();
         }
     }
-
+    
     public enum ExchangeOrderSide
     {
         Buy,
@@ -226,9 +302,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
     public enum ExchangeOrderType
     {
         OTC,
-        Limit,              //normal limit order
-        ImmediateOrCancel,  //special limit order, any unfulfilled part of the order gets cancelled if not immediately fulfilled
-        Market,             //normal market order
+        Limit, //normal limit order
+        ImmediateOrCancel, //special limit order, any unfulfilled part of the order gets cancelled if not immediately fulfilled
+        Market, //normal market order
         //TODO: FillOrKill = 4,         //Either gets 100% fulfillment or it gets cancelled , no partial fulfillments like in IoC order types
     }
 
@@ -248,7 +324,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public readonly ExchangeOrderSide Side;
         public readonly ExchangeOrderType Type;
 
-        public ExchangeOrder(BigInteger uid, Timestamp timestamp, Address creator, Address provider, BigInteger amount, string baseSymbol, BigInteger price, string quoteSymbol, ExchangeOrderSide side, ExchangeOrderType type)
+        public ExchangeOrder(BigInteger uid, Timestamp timestamp, Address creator, Address provider, BigInteger amount,
+            string baseSymbol, BigInteger price, string quoteSymbol, ExchangeOrderSide side, ExchangeOrderType type)
         {
             Uid = uid;
             Timestamp = timestamp;
@@ -280,7 +357,6 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             Side = order.Side;
             Type = order.Type;
-
         }
     }
 
@@ -299,7 +375,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public static readonly ExchangeProvider Null = new ExchangeProvider
         {
             address = Address.Null
-        }; 
+        };
+
         public Address address;
         public string id;
         public string name;
@@ -329,7 +406,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
         #region Exchange
 
-        private string BuildOrderKey(ExchangeOrderSide side, string baseSymbol, string quoteSymbol) => $"{side}_{baseSymbol}_{quoteSymbol}";
+        private string BuildOrderKey(ExchangeOrderSide side, string baseSymbol, string quoteSymbol) =>
+            $"{side}_{baseSymbol}_{quoteSymbol}";
 
         public BigInteger GetMinimumQuantity(BigInteger tokenDecimals) => BigInteger.Pow(10, (int)tokenDecimals / 2);
         public BigInteger GetMinimumTokenQuantity(IToken token) => GetMinimumQuantity(token.Decimals);
@@ -359,7 +437,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             return false;
         }
-        
+
         /// <summary>
         /// Validate the parameters for the exchange
         /// </summary>
@@ -368,17 +446,23 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="totalFee"></param>
         /// <param name="feePercentForExchange"></param>
         /// <param name="feePercentForPool"></param>
-        private void ValidateExchangeParameters(string id, string name, BigInteger totalFee, BigInteger feePercentForExchange, BigInteger feePercentForPool)
+        private void ValidateExchangeParameters(string id, string name, BigInteger totalFee,
+            BigInteger feePercentForExchange, BigInteger feePercentForPool)
         {
             const int NameMaxLength = 100; // Define a reasonable maximum length for the exchange name
 
             Runtime.Expect(ValidationUtils.IsValidIdentifier(id), "invalid id");
-            Runtime.Expect(!string.IsNullOrEmpty(name) && name.Length <= NameMaxLength, $"Name should not be empty and should have a length less than or equal to {NameMaxLength}");
+            Runtime.Expect(!string.IsNullOrEmpty(name) && name.Length <= NameMaxLength,
+                $"Name should not be empty and should have a length less than or equal to {NameMaxLength}");
 
-            Runtime.Expect(totalFee >= ExhcangeDexMinimumFee, "Total fee should be higher than " + ExhcangeDexMinimumFee);
-            Runtime.Expect(feePercentForExchange + feePercentForPool == 100, $"Exchange Fee percentage({feePercentForExchange}) + Pool Percentage({feePercentForPool}) should be equal to 100%");
-            Runtime.Expect(feePercentForExchange >= 1 && feePercentForExchange <= 99, "Fee percentage for exchange should be between 1% and 99%");
-            Runtime.Expect(feePercentForPool >= 1 && feePercentForPool <= 99, "Fee percentage for pool should be between 1% and 99%");
+            Runtime.Expect(totalFee >= ExhcangeDexMinimumFee,
+                "Total fee should be higher than " + ExhcangeDexMinimumFee);
+            Runtime.Expect(feePercentForExchange + feePercentForPool == 100,
+                $"Exchange Fee percentage({feePercentForExchange}) + Pool Percentage({feePercentForPool}) should be equal to 100%");
+            Runtime.Expect(feePercentForExchange >= 1 && feePercentForExchange <= 99,
+                "Fee percentage for exchange should be between 1% and 99%");
+            Runtime.Expect(feePercentForPool >= 1 && feePercentForPool <= 99,
+                "Fee percentage for pool should be between 1% and 99%");
         }
 
         /// <summary>
@@ -387,12 +471,13 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="from"></param>
         /// <param name="id"></param>
         /// <param name="name"></param>
-        public void CreateExchange(Address from, string id, string name, BigInteger totalFee, BigInteger feePercentForExchange, BigInteger feePercentForPool)
+        public void CreateExchange(Address from, string id, string name, BigInteger totalFee,
+            BigInteger feePercentForExchange, BigInteger feePercentForPool)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
             ValidateExchangeParameters(id, name, totalFee, feePercentForExchange, feePercentForPool);
-            
+
             var exchange = new ExchangeProvider()
             {
                 address = from,
@@ -415,18 +500,20 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="totalFee"></param>
         /// <param name="feePercentForExchange"></param>
         /// <param name="feePercentForPool"></param>
-        public void EditExchange(Address from, string id, string name, BigInteger totalFee, BigInteger feePercentForExchange, BigInteger feePercentForPool)
+        public void EditExchange(Address from, string id, string name, BigInteger totalFee,
+            BigInteger feePercentForExchange, BigInteger feePercentForPool)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
             ValidateExchangeParameters(id, name, totalFee, feePercentForExchange, feePercentForPool);
-            
+
             var exchange = GetExchange(from);
             var exchangeIndex = GetExchangeID(from);
-            
-            Runtime.Expect(exchange.address != ExchangeProvider.Null.address && exchangeIndex >= 0, "Exchange not found");
+
+            Runtime.Expect(exchange.address != ExchangeProvider.Null.address && exchangeIndex >= 0,
+                "Exchange not found");
             Runtime.Expect(exchange.address == from, "Sender is not authorized to edit this exchange");
-            
+
             exchange.name = name;
             exchange.TotalFeePercent = totalFee;
             exchange.FeePercentForExchange = feePercentForExchange;
@@ -495,10 +582,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="orderType"></param>
         /// <param name="orderSize"></param>
         /// <param name="price"></param>
-        private void OpenOrder(Address from, Address provider, string baseSymbol, string quoteSymbol, ExchangeOrderSide side, ExchangeOrderType orderType, BigInteger orderSize, BigInteger price)
+        private void OpenOrder(Address from, Address provider, string baseSymbol, string quoteSymbol,
+            ExchangeOrderSide side, ExchangeOrderType orderType, BigInteger orderSize, BigInteger price)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
-            
+
             Runtime.Expect(!string.IsNullOrEmpty(baseSymbol), "invalid base symbol");
             Runtime.Expect(!string.IsNullOrEmpty(quoteSymbol), "invalid quote symbol");
 
@@ -511,7 +599,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(Runtime.TokenExists(quoteSymbol), "invalid quote token");
             var quoteToken = Runtime.GetToken(quoteSymbol);
             Runtime.Expect(quoteToken.Flags.HasFlag(TokenFlags.Fungible), "token must be fungible");
-            
+
             Runtime.Expect(orderSize > 0, "invalid order size");
             Runtime.Expect(price >= 0, "invalid order price");
 
@@ -543,7 +631,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             if (orderType == Market)
             {
                 orderEscrowAmount = orderSize;
-                Runtime.Expect(orderEscrowAmount >= GetMinimumTokenQuantity(orderEscrowToken), "market order size is not sufficient");
+                Runtime.Expect(orderEscrowAmount >= GetMinimumTokenQuantity(orderEscrowToken),
+                    "market order size is not sufficient");
             }
             else
             {
@@ -562,7 +651,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             StorageList orderList;
             BigInteger orderIndex = 0;
 
-            thisOrder = new ExchangeOrder(uid, Runtime.Time, from, provider, orderSize, baseSymbol, price, quoteSymbol, side, orderType);
+            thisOrder = new ExchangeOrder(uid, Runtime.Time, from, provider, orderSize, baseSymbol, price, quoteSymbol,
+                side, orderType);
             Runtime.Notify(EventKind.OrderCreated, from, uid);
 
             var key = BuildOrderKey(side, quoteSymbol, baseSymbol);
@@ -590,12 +680,14 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
                     if (side == Buy)
                     {
-                        if (makerOrder.Price > takerOrder.Price && orderType != Market) // too expensive, we wont buy at this price
+                        if (makerOrder.Price > takerOrder.Price &&
+                            orderType != Market) // too expensive, we wont buy at this price
                         {
                             continue;
                         }
 
-                        if (bestIndex == -1 || makerOrder.Price < bestPrice || makerOrder.Price == bestPrice && makerOrder.Timestamp < bestPriceTimestamp)
+                        if (bestIndex == -1 || makerOrder.Price < bestPrice || makerOrder.Price == bestPrice &&
+                            makerOrder.Timestamp < bestPriceTimestamp)
                         {
                             bestIndex = i;
                             bestPrice = makerOrder.Price;
@@ -604,12 +696,14 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                     }
                     else
                     {
-                        if (makerOrder.Price < takerOrder.Price && orderType != Market) // too cheap, we wont sell at this price
+                        if (makerOrder.Price < takerOrder.Price &&
+                            orderType != Market) // too cheap, we wont sell at this price
                         {
                             continue;
                         }
 
-                        if (bestIndex == -1 || makerOrder.Price > bestPrice || makerOrder.Price == bestPrice && makerOrder.Timestamp < bestPriceTimestamp)
+                        if (bestIndex == -1 || makerOrder.Price > bestPrice || makerOrder.Price == bestPrice &&
+                            makerOrder.Timestamp < bestPriceTimestamp)
                         {
                             bestIndex = i;
                             bestPrice = makerOrder.Price;
@@ -635,26 +729,34 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                     //and then calculate the corresponding fulfilled order size in quote tokens
                     if (takerEscrowSymbol == baseSymbol)
                     {
-                        var makerEscrowBaseEquivalent = Runtime.ConvertQuoteToBase(makerEscrow, makerOrder.Price, baseToken, quoteToken);
-                        takerEscrowUsage = takerAvailableEscrow < makerEscrowBaseEquivalent ? takerAvailableEscrow : makerEscrowBaseEquivalent;
+                        var makerEscrowBaseEquivalent =
+                            Runtime.ConvertQuoteToBase(makerEscrow, makerOrder.Price, baseToken, quoteToken);
+                        takerEscrowUsage = takerAvailableEscrow < makerEscrowBaseEquivalent
+                            ? takerAvailableEscrow
+                            : makerEscrowBaseEquivalent;
 
-                        makerEscrowUsage = CalculateEscrowAmount(takerEscrowUsage, makerOrder.Price, baseToken, quoteToken, Buy);
+                        makerEscrowUsage = CalculateEscrowAmount(takerEscrowUsage, makerOrder.Price, baseToken,
+                            quoteToken, Buy);
                     }
                     else
                     {
-                        var takerEscrowBaseEquivalent = Runtime.ConvertQuoteToBase(takerAvailableEscrow, makerOrder.Price, baseToken, quoteToken);
-                        makerEscrowUsage = makerEscrow < takerEscrowBaseEquivalent ? makerEscrow : takerEscrowBaseEquivalent;
+                        var takerEscrowBaseEquivalent = Runtime.ConvertQuoteToBase(takerAvailableEscrow,
+                            makerOrder.Price, baseToken, quoteToken);
+                        makerEscrowUsage = makerEscrow < takerEscrowBaseEquivalent
+                            ? makerEscrow
+                            : takerEscrowBaseEquivalent;
 
-                        takerEscrowUsage = CalculateEscrowAmount(makerEscrowUsage, makerOrder.Price, baseToken, quoteToken, Buy);
+                        takerEscrowUsage = CalculateEscrowAmount(makerEscrowUsage, makerOrder.Price, baseToken,
+                            quoteToken, Buy);
                     }
 
-                    Runtime.Expect(takerEscrowUsage <= takerAvailableEscrow, "Taker tried to use more escrow than available");
+                    Runtime.Expect(takerEscrowUsage <= takerAvailableEscrow,
+                        "Taker tried to use more escrow than available");
                     Runtime.Expect(makerEscrowUsage <= makerEscrow, "Maker tried to use more escrow than available");
 
                     if (takerEscrowUsage < GetMinimumSymbolQuantity(takerEscrowSymbol) ||
                         makerEscrowUsage < GetMinimumSymbolQuantity(makerEscrowSymbol))
                     {
-
                         break;
                     }
 
@@ -671,18 +773,17 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                         makerOrders.RemoveAt(bestIndex);
                         _orderMap.Remove(makerOrder.Uid);
 
-                        Runtime.Expect(_escrows.ContainsKey(makerOrder.Uid), "An orderbook entry must have registered escrow");
+                        Runtime.Expect(_escrows.ContainsKey(makerOrder.Uid),
+                            "An orderbook entry must have registered escrow");
                         _escrows.Remove(makerOrder.Uid);
 
                         Runtime.Notify(EventKind.OrderClosed, makerOrder.Creator, makerOrder.Uid);
                     }
                     else
                         _escrows.Set(makerOrder.Uid, makerEscrow - makerEscrowUsage);
-
                 }
                 else
                     break;
-
             } while (orderEscrowUsage < orderEscrowAmount);
 
             var leftoverEscrow = orderEscrowAmount - orderEscrowUsage;
@@ -718,7 +819,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="quoteSymbol"></param>
         /// <param name="orderSize"></param>
         /// <param name="side"></param>
-        public void OpenMarketOrder(Address from, Address provider, string baseSymbol, string quoteSymbol, BigInteger orderSize, ExchangeOrderSide side)
+        public void OpenMarketOrder(Address from, Address provider, string baseSymbol, string quoteSymbol,
+            BigInteger orderSize, ExchangeOrderSide side)
         {
             OpenOrder(from, provider, baseSymbol, quoteSymbol, side, Market, orderSize, 0);
         }
@@ -733,7 +835,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="price">Amount of quote symbol tokens the user wants to pay/receive per unit of base symbol tokens</param>
         /// <param name="side">If the order is a buy or sell order</param>
         /// <param name="IoC">"Immediate or Cancel" flag: if true, requires any unfulfilled parts of the order to be cancelled immediately after a single attempt at fulfilling it.</param>
-        public void OpenLimitOrder(Address from, Address provider, string baseSymbol, string quoteSymbol, BigInteger orderSize, BigInteger price, ExchangeOrderSide side, bool IoC)
+        public void OpenLimitOrder(Address from, Address provider, string baseSymbol, string quoteSymbol,
+            BigInteger orderSize, BigInteger price, ExchangeOrderSide side, bool IoC)
         {
             OpenOrder(from, provider, baseSymbol, quoteSymbol, side, IoC ? ImmediateOrCancel : Limit, orderSize, price);
         }
@@ -746,7 +849,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="quoteSymbol"></param>
         /// <param name="ammount"></param>
         /// <param name="price"></param>
-        public void OpenOTCOrder(Address from, string baseSymbol, string quoteSymbol, BigInteger ammount, BigInteger price)
+        public void OpenOTCOrder(Address from, string baseSymbol, string quoteSymbol, BigInteger ammount,
+            BigInteger price)
         {
             OpenOrder(from, Address.Null, baseSymbol, quoteSymbol, Sell, OTC, ammount, price);
         }
@@ -760,7 +864,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
             Runtime.Expect(uid >= 0, "Invalid order UID");
             Runtime.Expect(_orderMap.ContainsKey(uid), "order not found");
-            
+
             var key = _orderMap.Get<BigInteger, string>(uid);
             StorageList orderList = _orders.Get<string, StorageList>(key);
 
@@ -783,7 +887,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                         {
                             var escrowSymbol = order.Side == Sell ? order.QuoteSymbol : order.BaseSymbol;
                             Runtime.TransferTokens(escrowSymbol, Address, order.Creator, leftoverEscrow);
-                            Runtime.Notify(EventKind.TokenReceive, order.Creator, new TokenEventData(escrowSymbol, leftoverEscrow, Runtime.Chain.Name));
+                            Runtime.Notify(EventKind.TokenReceive, order.Creator,
+                                new TokenEventData(escrowSymbol, leftoverEscrow, Runtime.Chain.Name));
                         }
                     }
 
@@ -803,7 +908,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
          TODO: implement code for trail stops and a method to allow a 3rd party to update the trail stop, without revealing user or order info
          */
 
-        public BigInteger CalculateEscrowAmount(BigInteger orderSize, BigInteger orderPrice, IToken baseToken, IToken quoteToken, ExchangeOrderSide side)
+        public BigInteger CalculateEscrowAmount(BigInteger orderSize, BigInteger orderPrice, IToken baseToken,
+            IToken quoteToken, ExchangeOrderSide side)
         {
             switch (side)
             {
@@ -817,7 +923,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
         }
 
-        public string CalculateEscrowSymbol(IToken baseToken, IToken quoteToken, ExchangeOrderSide side) => side == Sell ? baseToken.Symbol : quoteToken.Symbol;
+        public string CalculateEscrowSymbol(IToken baseToken, IToken quoteToken, ExchangeOrderSide side) =>
+            side == Sell ? baseToken.Symbol : quoteToken.Symbol;
 
         /// <summary>
         /// Get Exchange Order by UID
@@ -863,13 +970,18 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return GetOrderBook(baseSymbol, quoteSymbol, true, side);
         }
 
-        private ExchangeOrder[] GetOrderBook(string baseSymbol, string quoteSymbol, bool oneSideFlag, ExchangeOrderSide side = Buy)
+        private ExchangeOrder[] GetOrderBook(string baseSymbol, string quoteSymbol, bool oneSideFlag,
+            ExchangeOrderSide side = Buy)
         {
             var buyKey = BuildOrderKey(Buy, quoteSymbol, baseSymbol);
             var sellKey = BuildOrderKey(Sell, quoteSymbol, baseSymbol);
 
-            var buyOrders = oneSideFlag && side == Buy || !oneSideFlag ? _orders.Get<string, StorageList>(buyKey) : new StorageList();
-            var sellOrders = oneSideFlag && side == Sell || !oneSideFlag ? _orders.Get<string, StorageList>(sellKey) : new StorageList();
+            var buyOrders = oneSideFlag && side == Buy || !oneSideFlag
+                ? _orders.Get<string, StorageList>(buyKey)
+                : new StorageList();
+            var sellOrders = oneSideFlag && side == Sell || !oneSideFlag
+                ? _orders.Get<string, StorageList>(sellKey)
+                : new StorageList();
 
             var buyCount = buyOrders.Context == null ? 0 : buyOrders.Count();
             var sellCount = sellOrders.Context == null ? 0 : sellOrders.Count();
@@ -888,9 +1000,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             return orderbook;
         }
+
         #endregion
 
         #region OTC TRADES
+
 #pragma warning disable 0649
         internal StorageList _otcBook;
         internal BigInteger _maxOTCOrders = 3;
@@ -904,7 +1018,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
             return _otcBook.All<ExchangeOrder>();
         }
-        
+
         /// <summary>
         /// Method used to create OTC orders
         /// </summary>
@@ -921,7 +1035,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(amount > 0, "invalid amount");
             Runtime.Expect(price > 0, "invalid price");
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
-            
+
             var uid = Runtime.GenerateUID();
             var userOrders = 0;
             var count = _otcBook.Count();
@@ -950,7 +1064,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(baseBalance >= amount, "invalid seller amount");
             Runtime.TransferTokens(baseSymbol, from, Address, price);
 
-            var order = new ExchangeOrder(uid, Runtime.Time, from, Address, amount, baseSymbol, price, quoteSymbol, Sell, OTC);
+            var order = new ExchangeOrder(uid, Runtime.Time, from, Address, amount, baseSymbol, price, quoteSymbol,
+                Sell, OTC);
             _otcBook.Add(order);
         }
 
@@ -1009,7 +1124,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                     _otcBook.RemoveAt(i);
 
                     Runtime.TransferTokens(order.BaseSymbol, Address, order.Creator, order.Price);
-                    Runtime.Notify(EventKind.TokenReceive, order.Creator, new TokenEventData(order.BaseSymbol, order.Amount, Runtime.Chain.Name));
+                    Runtime.Notify(EventKind.TokenReceive, order.Creator,
+                        new TokenEventData(order.BaseSymbol, order.Amount, Runtime.Chain.Name));
                     return;
                 }
             }
@@ -1096,6 +1212,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.TransferTokens(quoteSymbol, buyer, owner, price);
             Runtime.TransferToken(baseSymbol, owner, buyer, tokenID);
         }*/
+
         #endregion
 
         #region Dex
@@ -1180,11 +1297,19 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var total = GetRate(fromSymbol, toSymbol, amount);
             Runtime.Expect(total > 0, "amount to swap needs to be larger than zero");
 
-            if (!PoolExists(fromSymbol, toSymbol))
+            var route = GetPoolBestRoute(fromSymbol, toSymbol, amount);
+
+            if (!PoolExists(fromSymbol, toSymbol) || route.Route.Length > 1)
             {
-                var rate = GetRate(fromSymbol, "SOUL", amount);
-                SwapTokens(from, fromSymbol, "SOUL", amount);
-                SwapTokens(from, "SOUL", toSymbol, rate);
+                Runtime.Expect(route.Route.Length > 0, "No route found");
+                BigInteger amountToSwap = amount;
+                BigInteger rate = amount;
+                for (int i = 0; i < route.Route.Length; i++)
+                {
+                    rate =  GetRate(route.Route[i].FromSymbol, route.Route[i].ToSymbol, amountToSwap);
+                    SwapTokens(from, route.Route[i].FromSymbol, route.Route[i].ToSymbol, amountToSwap);
+                    amountToSwap = rate;
+                }
                 return;
             }
 
@@ -1328,7 +1453,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             else
             {
                 var amountInOtherSymbol = GetRate(feeSymbol, fromSymbol, feeAmount);
-                var amountIKCAL = GetRate(fromSymbol, feeSymbol, feeAmount);
+                var amountIKCAL = feeAmount;
                 Console.WriteLine($"AmountOther: {amountInOtherSymbol} | feeAmount:{feeAmount} | feeBalance:{feeBalance} | amountOfKcal: {amountIKCAL}");
 
                 if (amountInOtherSymbol < minAmount)
@@ -1339,7 +1464,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 // round up
                 //amountInOtherSymbol++;
 
-                SwapTokens(from, fromSymbol, feeSymbol, feeAmount);
+                SwapTokens(from, fromSymbol, feeSymbol, amountInOtherSymbol);
             }
 
             var finalFeeBalance = Runtime.GetBalance(feeSymbol, from);
@@ -1391,11 +1516,17 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(toInfo.IsFungible(), "must be fungible");
 
             //Runtime.Expect(PoolExists(fromSymbol, toSymbol), $"Pool {fromSymbol}/{toSymbol} doesn't exist.");
-            if (!PoolExists(fromSymbol, toSymbol))
+            var route = GetPoolBestRoute(fromSymbol, toSymbol, amount);
+
+            if (!PoolExists(fromSymbol, toSymbol) || route.Route.Length > 1)
             {
-                BigInteger rate1 = GetRate(fromSymbol, "SOUL", amount);
-                BigInteger rate2 = GetRate("SOUL", toSymbol, rate1);
-                return rate2;
+                Runtime.Expect(route.Route.Length > 0, "No route found");
+                BigInteger finalRate = amount;
+                for (int i = 0; i < route.Route.Length; i++)
+                {
+                    finalRate = GetRate(route.Route[i].FromSymbol, route.Route[i].ToSymbol, finalRate);
+                }
+                return finalRate;
             }
 
             BigInteger rate = 0;
@@ -1617,7 +1748,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
         // value in "per thousands"
         private const int DEXSeriesID = 0;
-        internal StorageMap _pools;
+        internal StorageMap _pools; // <string, Pool> |-> string : $"symbol0_symbol1" |-> Pool : key to the list
+        internal StorageList _pool_symbols; // <string> |-> string : $"symbol0_symbol1"
+        internal StorageList _pool_routes;
         //internal StorageMap _lp_tokens; // <string, BigInteger>
         internal StorageMap _lp_holders; // <string, storage_list<LPHolderInfo>> |-> string : $"symbol0_symbol1" |-> LPHolderInfo[] : key to the list 
         internal StorageMap _trading_volume; // <string, stoage_map<uint,TradingVolume>> |-> string : $"symbol0_symbol1" |-> TradingVolume[] : key to the list 
@@ -1649,6 +1782,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         // Day -> Math.floor(((time % 31556926) % 2629743) / 86400)
         public TradingVolume GetTradingVolumeToday(string symbol0, string symbol1)
         {
+            if ( Runtime.ProtocolVersion >= 14) Runtime.Expect(_DEXversion >= 1, " This method is not available in this version of the DEX");
             var tradingMap = GetTradingVolume(symbol0, symbol1);
             var today = DateTime.Today.Date;
             var todayTimestamp = (Timestamp)today;
@@ -1668,6 +1802,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         public TradingVolume[] GetTradingVolumes(string symbol0, string symbol1)
         {
+            if ( Runtime.ProtocolVersion >= 14) Runtime.Expect(_DEXversion >= 1, " This method is not available in this version of the DEX");
             var tradingMap = GetTradingVolume(symbol0, symbol1);
             return tradingMap.AllValues<TradingVolume>();
         }
@@ -1923,6 +2058,208 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
         #region Pool Related
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="entrySymbol"></param>
+        /// <param name="endSymbol"></param>
+        /// <returns></returns>
+        public PoolRoute GetPoolRoute(string entrySymbol, string endSymbol)
+        {
+            Runtime.Expect(_DEXversion >= 1, " This method is not available in this version of the DEX");
+            if (PoolExists(entrySymbol, endSymbol)) return new PoolRoute(entrySymbol, endSymbol, new PoolRouteItem[]{new PoolRouteItem(entrySymbol, endSymbol, 0, 0)});
+            var poolsSymbols = _pools.AllKeys<string>();
+            var graph = BuildGraph(poolsSymbols);
+            var path = FindFastestRoute(graph, entrySymbol, endSymbol);
+            if (path == null) return new PoolRoute();
+            PoolRouteItem[] poolRouteItems = new PoolRouteItem[path.Count];
+            for (int i = 0; i < path.Count; i++)
+            {
+                var symbols = path[i].Split('_');
+                var pool = GetPool(symbols[0], symbols[1]);
+                poolRouteItems[i] = new PoolRouteItem(symbols[0], symbols[1], 0, 0);
+            }
+            PoolRoute poolRoute = new PoolRoute(entrySymbol, endSymbol, poolRouteItems);
+            return poolRoute;
+        }
+        
+        public PoolRoute GetPoolBestRoute(string entrySymbol, string endSymbol, BigInteger amount)
+        {
+            Runtime.Expect(_DEXversion >= 1, " This method is not available in this version of the DEX");
+            var poolsSymbols = _pools.AllKeys<string>();
+            var graph = BuildGraph(poolsSymbols);
+            var path = FindBestRoute(graph, entrySymbol, endSymbol, amount);
+            if (path == null) return new PoolRoute();
+            PoolRouteItem[] poolRouteItems = new PoolRouteItem[path.Count];
+            for (int i = 0; i < path.Count; i++)
+            {
+                var symbols = path[i].Split('_');
+                var pool = GetPool(symbols[0], symbols[1]);
+                poolRouteItems[i] = new PoolRouteItem(symbols[0], symbols[1], 0, 0);
+            }
+            PoolRoute poolRoute = new PoolRoute(entrySymbol, endSymbol, poolRouteItems);
+            return poolRoute;
+        }
+        
+        internal Dictionary<string, List<string>> BuildGraph(string[] pairs)
+        {
+            var graph = new Dictionary<string, List<string>>();
+
+            foreach (var pair in pairs)
+            {
+                var tokens = pair.Split('_');
+                if (!graph.ContainsKey(tokens[0]))
+                {
+                    graph[tokens[0]] = new List<string>();
+                }
+
+                if (!graph.ContainsKey(tokens[1]))
+                {
+                    graph[tokens[1]] = new List<string>();
+                }
+
+                graph[tokens[0]].Add(tokens[1]);
+                graph[tokens[1]].Add(tokens[0]);
+            }
+
+            return graph;
+        }
+        
+        internal List<string> FindBestRoute(Dictionary<string, List<string>> graph, string start, string end, BigInteger amount)
+        {
+            var allRoutes = new List<List<string>>();
+            FindAllRoutes(graph, start, end, new List<string>(), new HashSet<string>(), allRoutes);
+
+            List<string> bestRoute = null;
+            decimal bestRouteImpact = decimal.MaxValue;
+
+            foreach (var route in allRoutes)
+            {
+                decimal routeImpact = CalculateTotalPriceImpact(route, amount);
+
+                if (routeImpact < bestRouteImpact)
+                {
+                    bestRoute = route;
+                    bestRouteImpact = routeImpact;
+                }
+            }
+
+            return bestRoute != null ? ConvertRouteToPairs(bestRoute) : Enumerable.Empty<string>().ToList();
+        }
+        
+        internal void FindAllRoutes(Dictionary<string, List<string>> graph, string current, string end, List<string> path, HashSet<string> visited, List<List<string>> routes)
+        {
+            path.Add(current);
+            visited.Add(current);
+
+            if (current == end)
+            {
+                routes.Add(new List<string>(path));
+            }
+            else
+            {
+                foreach (var neighbor in graph[current])
+                {
+                    if (!visited.Contains(neighbor))
+                    {
+                        FindAllRoutes(graph, neighbor, end, path, visited, routes);
+                    }
+                }
+            }
+
+            path.RemoveAt(path.Count - 1);
+            visited.Remove(current);
+        }
+        
+        internal List<string> FindFastestRoute(Dictionary<string, List<string>> graph, string start, string end)
+        {
+            var visited = new HashSet<string>();
+            var queue = new Queue<List<string>>();
+            queue.Enqueue(new List<string> { start });
+
+            while (queue.Count > 0)
+            {
+                var currentPath = queue.Dequeue();
+                var currentNode = currentPath[^1];
+
+                if (currentNode == end)
+                {
+                    return ConvertRouteToPairs(currentPath);
+                }
+
+                if (!visited.Contains(currentNode))
+                {
+                    visited.Add(currentNode);
+
+                    foreach (var neighbor in graph[currentNode])
+                    {
+                        var newPath = new List<string>(currentPath) { neighbor };
+                        queue.Enqueue(newPath);
+                    }
+                }
+            }
+            
+            return Enumerable.Empty<string>().ToList();
+        }
+        
+        internal List<string> ConvertRouteToPairs(List<string> route)
+        {
+            var pairRoute = new List<string>();
+
+            for (int i = 0; i < route.Count - 1; i++)
+            {
+                pairRoute.Add($"{route[i]}_{route[i + 1]}");
+            }
+
+            return pairRoute;
+        }
+        
+        internal decimal CalculateTotalPriceImpact(List<string> route, BigInteger amount)
+        {
+            decimal totalPriceImpact = 0;
+
+            for (int i = 0; i < route.Count - 1; i++)
+            {
+                string pair = $"{route[i]}_{route[i + 1]}";
+                totalPriceImpact += GetPriceImpact(route[i], route[i + 1], amount);
+            }
+
+            return totalPriceImpact;
+        }
+
+        internal decimal GetPriceImpact(string symbol0, string symbol1, BigInteger amount)
+        {
+            Runtime.Expect(PoolExists(symbol0, symbol1), "Pool doesn't exist.");
+            var pool = GetPool(symbol0, symbol1);
+            BigInteger amount0 = 0;
+            BigInteger amount1 = 0;
+            BigInteger amountReceive = 0;
+            BigInteger poolAmount = 0;
+            IToken token0 = Runtime.GetToken(symbol0);
+            IToken token1 = Runtime.GetToken(symbol1);
+            BigInteger ratio = UnitConversion.ConvertDecimals(pool.Amount0, token0.Decimals, DomainSettings.MAX_TOKEN_DECIMALS) *UnitConversion.ConvertDecimals(pool.Amount1, token1.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
+            
+            if (PoolIsReal(symbol0, symbol1))
+            {
+                amount0 = UnitConversion.ConvertDecimals(pool.Amount0, token0.Decimals, DomainSettings.MAX_TOKEN_DECIMALS) + UnitConversion.ConvertDecimals(amount, token0.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
+                amount1 = UnitConversion.ConvertDecimals(ratio / amount0, DomainSettings.MAX_TOKEN_DECIMALS,
+                    token1.Decimals);
+                amountReceive = pool.Amount1 - amount1;
+                poolAmount = pool.Amount1;
+            }
+            else
+            {
+                amount1 = UnitConversion.ConvertDecimals(pool.Amount1, token1.Decimals, DomainSettings.MAX_TOKEN_DECIMALS) + UnitConversion.ConvertDecimals(amount, token1.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
+                amount0 = UnitConversion.ConvertDecimals(ratio / amount1, DomainSettings.MAX_TOKEN_DECIMALS,
+                    token0.Decimals);
+                amountReceive = pool.Amount0 - amount0;
+                poolAmount = pool.Amount0;
+            }
+            
+            decimal result = (decimal) amountReceive * 100 / (decimal) poolAmount;
+            return result;
+        }
+        
+        /// <summary>
         /// This method is used to check if the pool is Real or Virtual.
         /// </summary>
         /// <param name="symbol0">Symbol of 1st Token</param>
@@ -1933,8 +2270,16 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return symbol0 == DomainSettings.StakingTokenSymbol || symbol1 == DomainSettings.StakingTokenSymbol;
         }
 
+        /// <summary>
+        /// Get NFT ID
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="symbol0"></param>
+        /// <param name="symbol1"></param>
+        /// <returns></returns>
         public BigInteger GetMyNFTID(Address from, string symbol0, string symbol1)
         {
+            if(Runtime.ProtocolVersion >= 14) Runtime.Expect(_DEXversion >= 1, " This method is not available in this version of the DEX");
             var nfts = Runtime.GetOwnerships(DomainSettings.LiquidityTokenSymbol, from);
             BigInteger id = 0;
             for (int i = 0; i < nfts.Length; i++)
@@ -1952,8 +2297,16 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return id;
         }
 
+        /// <summary>
+        /// Get Pool RAM
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="symbol0"></param>
+        /// <param name="symbol1"></param>
+        /// <returns></returns>
         public LPTokenContentRAM GetMyPoolRAM(Address from, string symbol0, string symbol1)
         {
+            if(Runtime.ProtocolVersion >= 14) Runtime.Expect(_DEXversion >= 1, " This method is not available in this version of the DEX");
             Runtime.Expect(PoolExists(symbol0, symbol1), $"Pool {symbol0}/{symbol1} already exists.");
             Pool pool = GetPool(symbol0, symbol1);
             Runtime.Expect(UserHasLP(from, pool.Symbol0, pool.Symbol1), $"User doesn't have LP");
@@ -1981,6 +2334,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns>Array of Pools</returns>
         public Pool[] GetPools()
         {
+            Runtime.Expect(_DEXversion >= 1, " This method is not available in this version of the DEX");
             return _pools.AllValues<Pool>();
         }
 
@@ -1992,6 +2346,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns>Pool</returns>
         public Pool GetPool(string symbol0, string symbol1)
         {
+            if(Runtime.ProtocolVersion >= 14) Runtime.Expect(_DEXversion >= 1, " This method is not available in this version of the DEX");
             Runtime.Expect(PoolExists(symbol0, symbol1), $"Pool {symbol0}/{symbol1} doesn't exist.");
 
             if (_pools.ContainsKey($"{symbol0}_{symbol1}"))
@@ -2158,6 +2513,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             // Create the pool and store it
             Pool pool = InitializePool(symbol0, symbol1, amount0, amount1, totalLiquidity);
             _pools.Set($"{symbol0}_{symbol1}", pool);
+            _pool_symbols.Add($"{symbol0}_{symbol1}");
 
             // Mint LP tokens and transfer the tokens to the pool
             MintLPTokensAndTransferToPool(from, pool.Symbol0, amount0, pool.Symbol1, amount1, totalLiquidity);
@@ -2295,8 +2651,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Pool pool = GetPool(symbol0, symbol1);
             UpdateSymbolsAndTokensIfNeeded(ref symbol0, ref symbol1, ref amount0, ref amount1, ref token0Info, ref token1Info, pool);
 
-            BigInteger sameDecimalsAmount0 = ConvertAmountToStakingTokenDecimals(amount0, token0Info);
-            BigInteger sameDecimalsAmount1 = ConvertAmountToStakingTokenDecimals(amount1, token1Info);
+            BigInteger sameDecimalsAmount0 = ConvertAmountToMAXTokenDecimals(amount0, token0Info);
+            BigInteger sameDecimalsAmount1 = ConvertAmountToMAXTokenDecimals(amount1, token1Info);
 
             // Something missing 
             decimal poolRatio = GetPoolRatioAmounts(pool, ref amount0, ref amount1, ref  sameDecimalsAmount0, ref sameDecimalsAmount1, token0Info, token1Info);
@@ -2335,6 +2691,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
         }
 
+        private BigInteger ConvertAmountToMAXTokenDecimals(BigInteger amount, IToken tokenInfo)
+        {
+            return UnitConversion.ConvertDecimals(amount, tokenInfo.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
+        }
+        
         private BigInteger ConvertAmountToStakingTokenDecimals(BigInteger amount, IToken tokenInfo)
         {
             return UnitConversion.ConvertDecimals(amount, tokenInfo.Decimals, DomainSettings.StakingTokenDecimals);
@@ -2349,11 +2710,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
             if (amount0 == 0)
             {
-                amount0 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(sameDecimalsAmount1, DomainSettings.FiatTokenDecimals) / poolRatio, token0Info.Decimals);
+                amount0 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(sameDecimalsAmount1, DomainSettings.MAX_TOKEN_DECIMALS) / poolRatio, token0Info.Decimals);
             }
             else if (amount1 == 0)
             {
-                amount1 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(sameDecimalsAmount0, DomainSettings.FiatTokenDecimals) / poolRatio, token1Info.Decimals);
+                amount1 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(sameDecimalsAmount0, DomainSettings.MAX_TOKEN_DECIMALS) / poolRatio, token1Info.Decimals);
             }
         }
         
@@ -2361,12 +2722,24 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
             var poolRatio = GetPoolRatio(pool, token0Info, token1Info);
             var tradeRatioAmount = GetAmountRatio(amount0, token0Info, amount1, token1Info);
+            if (amount0 == 0)
+            {
+                amount0 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(sameDecimalsAmount1, DomainSettings.MAX_TOKEN_DECIMALS) / poolRatio, token0Info.Decimals);
+            }
+            else if (amount1 == 0)
+            {
+                amount1 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(sameDecimalsAmount0, DomainSettings.MAX_TOKEN_DECIMALS) / poolRatio, token1Info.Decimals);
+            }
+            
+            sameDecimalsAmount0 = ConvertAmountToMAXTokenDecimals(amount0, token0Info);
+            sameDecimalsAmount1 = ConvertAmountToMAXTokenDecimals(amount1, token1Info);
+            
             if (tradeRatioAmount != poolRatio)
             {
-                amount1 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(sameDecimalsAmount0, DomainSettings.FiatTokenDecimals) / poolRatio, token1Info.Decimals);
+                amount1 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(sameDecimalsAmount0, DomainSettings.MAX_TOKEN_DECIMALS) / poolRatio, token1Info.Decimals);
 
-                sameDecimalsAmount0 = UnitConversion.ConvertDecimals(amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals);
-                sameDecimalsAmount1 = UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals);
+                sameDecimalsAmount0 = UnitConversion.ConvertDecimals(amount0, token0Info.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
+                sameDecimalsAmount1 = UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
 
                 tradeRatioAmount = GetAmountRatio(amount0, token0Info, amount1, token1Info);
             }
@@ -2376,8 +2749,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         
         private void ValidateAmounts(BigInteger amount0, BigInteger amount1, IToken token0Info, IToken token1Info, Pool pool, decimal poolRatio)
         {
-            BigInteger sameDecimalsAmount0 = ConvertAmountToFiatTokenDecimals(amount0, token0Info);
-            BigInteger sameDecimalsAmount1 = ConvertAmountToFiatTokenDecimals(amount1, token1Info);
+            BigInteger sameDecimalsAmount0 = ConvertAmountToMAXTokenDecimals(amount0, token0Info);
+            BigInteger sameDecimalsAmount1 = ConvertAmountToMAXTokenDecimals(amount1, token1Info);
 
             decimal tradeRatioAmount = GetAmountRatio(amount0, token0Info, amount1, token1Info);
             Runtime.Expect(tradeRatioAmount == poolRatio, $"TradeRatio < 0 | {poolRatio} != {tradeRatioAmount}");
@@ -2421,9 +2794,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         
         private void UpdateLiquidity(Address from, string symbol0, string symbol1, BigInteger amount0, BigInteger amount1, IToken token0Info, IToken token1Info, ref Pool pool)
         {
-            BigInteger sameDecimalsAmount0 = ConvertAmountToStakingTokenDecimals(amount0, token0Info);
-            BigInteger sameDecimalsAmount1 = ConvertAmountToStakingTokenDecimals(amount1, token1Info);
-            BigInteger poolSameDecimalsAmount0 = ConvertAmountToFiatTokenDecimals(pool.Amount0, token0Info);
+            BigInteger sameDecimalsAmount0 = ConvertAmountToMAXTokenDecimals(amount0, token0Info);
+            BigInteger sameDecimalsAmount1 = ConvertAmountToMAXTokenDecimals(amount1, token1Info);
+            BigInteger poolSameDecimalsAmount0 = ConvertAmountToMAXTokenDecimals(pool.Amount0, token0Info);
 
             BigInteger liquidity = sameDecimalsAmount0 * pool.TotalLiquidity / poolSameDecimalsAmount0;
 
@@ -2619,11 +2992,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             BigInteger liquidity = 0;
 
             // Pool Amounts Same Decimals
-            BigInteger poolSameDecimalsAmount0 = UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals);
-            BigInteger poolSameDecimalsAmount1 = UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals);
+            BigInteger poolSameDecimalsAmount0 = UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
+            BigInteger poolSameDecimalsAmount1 = UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
 
-            BigInteger sameDecimalsAmount0 = UnitConversion.ConvertDecimals(amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals);
-            BigInteger sameDecimalsAmount1 = UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals);
+            BigInteger sameDecimalsAmount0 = UnitConversion.ConvertDecimals(amount0, token0Info.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
+            BigInteger sameDecimalsAmount1 = UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
 
             // Calculate Amounts
             decimal poolRatio = 0;
@@ -2634,16 +3007,16 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             // Calculate Amounts if they are 0
             if (amount0 == 0)
             {
-                amount0 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(sameDecimalsAmount1, DomainSettings.FiatTokenDecimals) / poolRatio, token0Info.Decimals);
+                amount0 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(sameDecimalsAmount1, DomainSettings.MAX_TOKEN_DECIMALS) / poolRatio, token0Info.Decimals);
             }
             else if (amount1 == 0)
             {
-                amount1 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(sameDecimalsAmount0, DomainSettings.FiatTokenDecimals) / poolRatio, token1Info.Decimals);
+                amount1 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(sameDecimalsAmount0, DomainSettings.MAX_TOKEN_DECIMALS) / poolRatio, token1Info.Decimals);
             }
 
             // To the same Decimals for ease of calculation
-            sameDecimalsAmount0 = UnitConversion.ConvertDecimals(amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals);
-            sameDecimalsAmount1 = UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals);
+            sameDecimalsAmount0 = UnitConversion.ConvertDecimals(amount0, token0Info.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
+            sameDecimalsAmount1 = UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
 
             tradeRatioAmount = GetAmountRatio(amount0, token0Info, amount1, token1Info);
 
@@ -2655,10 +3028,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             {
                 if (tradeRatioAmount != poolRatio)
                 {
-                    amount1 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(sameDecimalsAmount0, DomainSettings.FiatTokenDecimals) / poolRatio, token1Info.Decimals);
+                    amount1 = UnitConversion.ToBigInteger(UnitConversion.ToDecimal(sameDecimalsAmount0, DomainSettings.MAX_TOKEN_DECIMALS) / poolRatio, token1Info.Decimals);
 
-                    sameDecimalsAmount0 = UnitConversion.ConvertDecimals(amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals);
-                    sameDecimalsAmount1 = UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals);
+                    sameDecimalsAmount0 = UnitConversion.ConvertDecimals(amount0, token0Info.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
+                    sameDecimalsAmount1 = UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
 
                     tradeRatioAmount = GetAmountRatio(amount0, token0Info, amount1, token1Info);
 
@@ -2769,6 +3142,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             if (pool.Amount0 == 0)
             {
                 _pools.Remove($"{pool.Symbol0}_{pool.Symbol1}");
+                _pool_symbols.Remove($"{pool.Symbol0}_{pool.Symbol1}");
             }
             else
             {
@@ -2942,8 +3316,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         private decimal GetPoolRatio(Pool pool, IToken token0Info, IToken token1Info)
         {
-            BigInteger poolSameDecimalsAmount0 = UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals);
-            BigInteger poolSameDecimalsAmount1 = UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals);
+            BigInteger poolSameDecimalsAmount0 = UnitConversion.ConvertDecimals(pool.Amount0, token0Info.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
+            BigInteger poolSameDecimalsAmount1 = UnitConversion.ConvertDecimals(pool.Amount1, token1Info.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
             if (poolSameDecimalsAmount1 > 0)
                 return decimal.Round(UnitConversion.ToDecimal(poolSameDecimalsAmount0, DomainSettings.FiatTokenDecimals) / UnitConversion.ToDecimal(poolSameDecimalsAmount1, DomainSettings.FiatTokenDecimals), DomainSettings.MAX_TOKEN_DECIMALS / 2, MidpointRounding.AwayFromZero);
             return 0;
@@ -2951,10 +3325,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
         private decimal GetAmountRatio(BigInteger amount0, IToken token0Info, BigInteger amount1, IToken token1Info)
         {
-            BigInteger amount0SameDecimals = UnitConversion.ConvertDecimals(amount0, token0Info.Decimals, DomainSettings.FiatTokenDecimals);
-            BigInteger amount1SameDecimals = UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, DomainSettings.FiatTokenDecimals);
+            BigInteger amount0SameDecimals = UnitConversion.ConvertDecimals(amount0, token0Info.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
+            BigInteger amount1SameDecimals = UnitConversion.ConvertDecimals(amount1, token1Info.Decimals, DomainSettings.MAX_TOKEN_DECIMALS);
             if (amount1 > 0)
-                return decimal.Round(UnitConversion.ToDecimal(amount0SameDecimals, DomainSettings.FiatTokenDecimals) / UnitConversion.ToDecimal(amount1SameDecimals, DomainSettings.FiatTokenDecimals), DomainSettings.MAX_TOKEN_DECIMALS / 2, MidpointRounding.AwayFromZero);
+                return decimal.Round(UnitConversion.ToDecimal(amount0SameDecimals, DomainSettings.MAX_TOKEN_DECIMALS) / UnitConversion.ToDecimal(amount1SameDecimals, DomainSettings.MAX_TOKEN_DECIMALS), DomainSettings.MAX_TOKEN_DECIMALS / 2, MidpointRounding.AwayFromZero);
             return 0;
         }
         #endregion
@@ -2974,12 +3348,19 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var count = holdersList.Count();
             var feeAmount = totalFeeAmount;
             BigInteger amount = 0;
+            BigInteger distributed = 0;
             LPHolderInfo holder = new LPHolderInfo();
             LPTokenContentRAM nftRAM = new LPTokenContentRAM();
 
-            while (index < count)
+            var holderInfo = holdersList.All<LPHolderInfo>();
+            foreach (var _holder in holderInfo)
             {
-                holder = holdersList.Get<LPHolderInfo>(index);
+                holder = _holder;
+                if (!Runtime.NFTExists(DomainSettings.LiquidityTokenSymbol, holder.NFTID))
+                {
+                    continue;
+                }
+                
                 var nft = Runtime.ReadToken(DomainSettings.LiquidityTokenSymbol, holder.NFTID);
                 nftRAM = GetMyPoolRAM(nft.CurrentOwner, pool.Symbol0, pool.Symbol1);
                 amount = CalculateFeeForUser(totalFeeAmount, nftRAM.Liquidity, pool.TotalLiquidity);
@@ -2987,17 +3368,16 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                     Runtime.Expect(amount > 0, $"Amount failed for user: {nft.CurrentOwner}, amount:{amount}, feeAmount:{feeAmount}, feeTotal:{totalFeeAmount}");
 
                 feeAmount -= amount;
+                distributed += amount;
                 if (pool.Symbol0 == symbolDistribute)
                     holder.UnclaimedSymbol0 += amount;
                 else
                     holder.UnclaimedSymbol1 += amount;
 
                 holdersList.Replace(index, holder);
-
-                index++;
             }
 
-            Runtime.Expect(feeAmount <= 1, $"{feeAmount} was > than 0");
+            Runtime.Expect(feeAmount <= 1 || feeAmount == totalFeeAmount || distributed + feeAmount == totalFeeAmount, $"feeAmount {feeAmount} was > than 0, distributed: {distributed}, total fee: {totalFeeAmount}");
 
             // Update List
             _lp_holders.Set($"{pool.Symbol0}_{pool.Symbol1}", holdersList);
@@ -3011,6 +3391,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="symbol1"></param>
         public void ClaimFees(Address from, string symbol0, string symbol1)
         {
+            if ( Runtime.ProtocolVersion >= 14) Runtime.Expect(_DEXversion >= 1, " This method is not available in this version of the DEX");
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
             // Check if user has LP Token
@@ -3047,6 +3428,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         public (BigInteger, BigInteger) GetUnclaimedFees(Address from, string symbol0, string symbol1)
         {
+            if ( Runtime.ProtocolVersion >= 14) Runtime.Expect(_DEXversion >= 1, " This method is not available in this version of the DEX");
+
             // Check if user has LP Token
             Runtime.Expect(UserHasLP(from, symbol0, symbol1), "User doesn't have LP");
 
@@ -3199,7 +3582,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 Runtime.TransferTokens(newPool.Symbol0, Address, from, oldAmount0);
                 Runtime.TransferTokens(newPool.Symbol1, Address, from, oldAmount1);
             }
-
+            
+            //var holders = GetHolderList(pool.Symbol0, pool.Symbol1); 
+            //holders.Remove()
 
             // Update the pool values
             if (pool.Amount0 == oldAmount0)
@@ -3227,6 +3612,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
         public void BurnNFT(Address from, BigInteger nftID)
         {
+            if ( Runtime.ProtocolVersion >= 14) Runtime.Expect(_DEXversion >= 1, " This method is not available in this version of the DEX");
+
             if (!Runtime.NFTExists(DomainSettings.LiquidityTokenSymbol, nftID))
                 return;
 

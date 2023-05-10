@@ -141,8 +141,15 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             foreach (var addr in masters)
             {
                 var masterDate = Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetMasterDate), addr).AsTimestamp();
-
-                if (Runtime.ProtocolVersion >= 12)
+                // This is to check if the user is a master for more than 3 months (90 days)
+                if (Runtime.ProtocolVersion >= 14)
+                {
+                    if (masterDate <= _lastInflationDate)
+                    {
+                        rewardList.Add(addr);
+                    }
+                }
+                else if (Runtime.ProtocolVersion == 12)
                 {
                     if (masterDate <= _nextInflationDate)
                     {
