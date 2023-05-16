@@ -320,6 +320,10 @@ namespace Phantasma.Node.Oracles
                     var txRcpt = _cli.EthAPI.GetTransactionReceipt(hash.ToString());
                     tx = EthereumInterop.MakeInteropTx(nexus, txRcpt, _cli.EthAPI, ((TokenSwapper)tokenSwapper).SwapAddresses[platformName]);
                     break;
+                case BSCWallet.BSCPlatform:
+                    var txRcptBSC = _cli.BscAPI.GetTransactionReceipt(hash.ToString());
+                    tx = EthereumInterop.MakeInteropTx(nexus, txRcptBSC, _cli.BscAPI, ((TokenSwapper)tokenSwapper).SwapAddresses[platformName]);
+                    break;
 
                 default:
                     throw new OracleException("Uknown oracle platform: " + platformName);

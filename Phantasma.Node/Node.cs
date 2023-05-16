@@ -56,6 +56,7 @@ namespace Phantasma.Node
         private List<string> _seeds = new List<string>();
         private NeoAPI _neoAPI;
         private EthAPI _ethAPI;
+        private EthAPI _bscAPI;
         private string _cryptoCompareAPIKey = null;
         private Thread _tokenSwapperThread;
 
@@ -66,6 +67,7 @@ namespace Phantasma.Node
 
         public NeoAPI NeoAPI { get { return _neoAPI; } }
         public EthAPI EthAPI { get { return _ethAPI; } }
+        public EthAPI BscAPI { get { return _bscAPI; } }
         public string CryptoCompareAPIKey  { get { return _cryptoCompareAPIKey; } }
         public PhantasmaKeys NodeKeys { get { return _nodeKeys; } }
         public ABCIConnector ABCIConnector { get; private set; }
@@ -200,6 +202,7 @@ namespace Phantasma.Node
             var ethKeys = PhantasmaKeys.FromWIF(ethWIF);
 
             this._ethAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()));
+            this._bscAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()));
             this._cryptoCompareAPIKey = Settings.Instance.Oracle.CryptoCompareAPIKey;
             if (!string.IsNullOrEmpty(this._cryptoCompareAPIKey))
             {

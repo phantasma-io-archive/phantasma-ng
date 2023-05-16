@@ -1449,18 +1449,35 @@ namespace Phantasma.Business.Blockchain
         }
 
 #region SWAPS
+        /// <summary>
+        /// Get Swap list for an address
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="address"></param>
+        /// <returns></returns>
         private StorageList GetSwapListForAddress(StorageContext storage, Address address)
         {
             var key = ByteArrayUtils.ConcatBytes(Encoding.UTF8.GetBytes(".swapaddr"), address.ToByteArray());
             return new StorageList(key, storage);
         }
-
+        
+        /// <summary>
+        /// Get the swap map
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <returns></returns>
         private StorageMap GetSwapMap(StorageContext storage)
         {
             var key = Encoding.UTF8.GetBytes(".swapmap");
             return new StorageMap(key, storage);
         }
 
+        /// <summary>
+        /// Register a swap
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="from"></param>
+        /// <param name="swap"></param>
         public void RegisterSwap(StorageContext storage, Address from, ChainSwap swap)
         {
             var list = GetSwapListForAddress(storage, from);
@@ -1470,6 +1487,13 @@ namespace Phantasma.Business.Blockchain
             map.Set<Hash, ChainSwap>(swap.sourceHash, swap);
         }
 
+        /// <summary>
+        /// Get a swap
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="sourceHash"></param>
+        /// <returns></returns>
+        /// <exception cref="ChainException"></exception>
         public ChainSwap GetSwap(StorageContext storage, Hash sourceHash)
         {
             var map = GetSwapMap(storage);
@@ -1482,6 +1506,12 @@ namespace Phantasma.Business.Blockchain
             throw new ChainException("invalid chain swap hash: " + sourceHash);
         }
 
+        /// <summary>
+        /// Get Swap Hashs for address
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public Hash[] GetSwapHashesForAddress(StorageContext storage, Address address)
         {
             var list = GetSwapListForAddress(storage, address);

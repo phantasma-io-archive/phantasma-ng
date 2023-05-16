@@ -1690,7 +1690,7 @@ namespace Phantasma.Business.Blockchain.VM
 
         public void SwapTokens(string sourceChain, Address from, string targetChain, Address to, string symbol, BigInteger value)
         {
-            Expect(ProtocolVersion < 13, "this method is obsolete");
+            Expect(ProtocolVersion <= 15, "this method is obsolete");
 
             ExpectNameLength(sourceChain, nameof(sourceChain));
             ExpectAddressSize(from, nameof(from));
@@ -1708,19 +1708,19 @@ namespace Phantasma.Business.Blockchain.VM
             {
                 Expect(sourceChain != DomainSettings.PlatformName, "invalid platform as source chain");
 
-                if (token.IsFungible())
+                /*if (token.IsFungible())
                 {
                     Nexus.MintTokens(this, token, from, to, sourceChain, value);
                 }
                 else
                 {
                     Nexus.MintToken(this, token, from, to, sourceChain, value);
-                }
+                }*/
             }
             else if (PlatformExists(targetChain))
             {
                 Expect(targetChain != DomainSettings.PlatformName, "invalid platform as target chain");
-                Nexus.BurnTokens(this, token, from, to, targetChain, value);
+                //Nexus.BurnTokens(this, token, from, to, targetChain, value);
 
                 var swap = new ChainSwap(DomainSettings.PlatformName, sourceChain, Transaction.Hash, targetChain, targetChain, Hash.Null);
                 Chain.RegisterSwap(Storage, to, swap);
@@ -1747,14 +1747,14 @@ namespace Phantasma.Business.Blockchain.VM
                     }
                 }*/
 
-                if (token.IsFungible())
+                /*if (token.IsFungible())
                 {
                     Nexus.BurnTokens(this, token, from, to, targetChain, value);
                 }
                 else
                 {
                     Nexus.BurnToken(this, token, from, to, targetChain, value);
-                }
+                }*/
 
                 var swap = new ChainSwap(DomainSettings.PlatformName, sourceChain, Transaction.Hash, DomainSettings.PlatformName, targetChain, Hash.Null);
                 Chain.RegisterSwap(Storage, to, swap);
@@ -1768,11 +1768,11 @@ namespace Phantasma.Business.Blockchain.VM
 
                 if (token.IsFungible())
                 {
-                    Nexus.MintTokens(this, token, from, to, sourceChain, value);
+                    //Nexus.MintTokens(this, token, from, to, sourceChain, value);
                 }
                 else
                 {
-                    Nexus.MintToken(this, token, from, to, sourceChain, value);
+                    //Nexus.MintToken(this, token, from, to, sourceChain, value);
                 }
             }
             else
