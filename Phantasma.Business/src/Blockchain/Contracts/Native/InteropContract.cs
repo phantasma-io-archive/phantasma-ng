@@ -112,6 +112,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public string ExternalAddress;
         public bool IsSwapEnabled;
         public PlatformTokens[] Tokens;
+        public bool MainSwapper;
         
         public void SerializeData(BinaryWriter writer)
         {
@@ -128,6 +129,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             {
                 token.SerializeData(writer);
             }
+            writer.Write(MainSwapper);
         }
 
         public void UnserializeData(BinaryReader reader)
@@ -148,6 +150,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 temp.UnserializeData(reader);
                 this.Tokens[i] = temp;
             }
+            this.MainSwapper = reader.ReadBoolean();
         }
     }
 
@@ -214,6 +217,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 platformsForAddress = new PlatformDetails[0];
             }
 
+            var validators = Runtime.GetValidators();
+            bool isMainSwapper = validators.First(v => v.address == from).address == from;
+            
+            
             var platformInfoDetails = new PlatformDetails()
             {
                 Name = platform,
@@ -224,7 +231,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 ExternalAddress = externalAddress,
                 LocalAddress = localAddress,
                 IsSwapEnabled = isSwapEnabled,
-                Tokens = new PlatformTokens[0]
+                Tokens = new PlatformTokens[0],
+                MainSwapper = isMainSwapper
             };
             
             var tempPlatfroms = platformsForAddress.ToList();
@@ -267,7 +275,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 ExternalAddress = externalAddress,
                 LocalAddress = localAddress,
                 IsSwapEnabled = isSwapEnabled,
-                Tokens = platformDetails.Tokens
+                Tokens = platformDetails.Tokens,
+                MainSwapper = platformDetails.MainSwapper
             };
             
             var tempPlatfroms = platformsForAddress.ToList();
@@ -406,6 +415,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
             return _platformsAddresses.AllValues<PlatformDetails[]>().SelectMany(p => p).Where(p => p.Tokens.Any(t => t.Symbol == symbol) && p.Name == platform).ToArray();
         }
+        
+        public PlatformDetails[] GetAvailableMainSwappers(string platform, string symbol)
+        {
+            return _platformsAddresses.AllValues<PlatformDetails[]>().SelectMany(p => p).Where(p => p.MainSwapper && p.Name == platform && p.Tokens.Any(t => t.Symbol == symbol)).ToArray();
+        }
 
         public void SendTokensToPlatform(Address from, string externalAddress, string fromPlatform, string toPlatform, string symbol, BigInteger amount)
         {
@@ -450,8 +464,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
             return _crossChainTransfers.AllValues<StorageList>().Select(s => s.All<CrossChainTransfer>()).SelectMany(c => c).Where(c => c.status == CrossChainTransferStatus.Pending || c.status == CrossChainTransferStatus.InProgress).ToArray();
         }
-
-
+        
         public void ClaimCrossChainTransferToProcess(Address from, string platform, string identifier)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -494,24 +507,28 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             // Validate transfer on the other chain
             bool isValid = false;
             var result = Runtime.ReadTransactionFromOracle(platform, "main", hash);
+            
             // Validate the transaction
             
             
             Runtime.Expect(isValid, "invalid transfer");
             crossChainTransfer.status = CrossChainTransferStatus.Confirmed;
+            
+            // Pay the Swapper for the service
+            Runtime.TransferTokens(crossChainTransfer.Symbol, this.Address, crossChainTransfer.Swapper, crossChainTransfer.Amount);
         }
         
-        public void SettleCrossChainTransaction(Address from, string platform, string chain)
+        public void SettleCrossChainTransaction(Address from, string platform, string chain, Hash hash)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(from.IsUser, "must be user address");
             
-            var platformDetails = GetPlatformsForAddress(from);
+            var platformDetails = GetAllPlatforms();
 
             if (platform != DomainSettings.PlatformName)
             {
                 Runtime.Expect(HasPlatformInfo(from, platform), "unsupported platform");
-                var platformInfo = GetPlatformInfoForAddress(from, platform);
+                var platformInfo = 
             }
             else
             {
