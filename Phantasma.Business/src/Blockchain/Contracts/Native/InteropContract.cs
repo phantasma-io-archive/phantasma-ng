@@ -210,6 +210,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(localAddress.IsInterop, "swap target must be interop address");
             
             Runtime.Expect(!HasPlatformInfo(from, platform), "platform already registered");
+            Runtime.Expect(IsValidPlatform(platform), "invalid platform");
 
             var platformsForAddress = GetPlatformsForAddress(from);
             if (platformsForAddress == null)
@@ -219,8 +220,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             var validators = Runtime.GetValidators();
             bool isMainSwapper = validators.First(v => v.address == from).address == from;
-            
-            
+
             var platformInfoDetails = new PlatformDetails()
             {
                 Name = platform,
@@ -325,6 +325,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             //Runtime.Notify(EventKind.Custom, from, new TokenEventData(DomainSettings.StakingTokenSymbol, stakeAmount, Runtime.Chain.Name));
         }
         
+        /// <summary>
+        /// Remove Tokens from the platform for a specific address.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="platform"></param>
+        /// <param name="symbol"></param>
         public void RemoveTokenFromPlatform(Address from, string platform, string symbol)
         {
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
@@ -405,22 +411,53 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             return true;
         }
+
+        private bool IsValidPlatform(string platform)
+        {
+            return platform.Equals("ethereum", StringComparison.OrdinalIgnoreCase) ||
+                   platform.Equals("binance", StringComparison.OrdinalIgnoreCase) ;
+        }
         
+        /// <summary>
+        /// Get all Platforms (Swappers)
+        /// </summary>
+        /// <returns></returns>
         public PlatformDetails[] GetAllPlatforms()
         {
             return _platformsAddresses.AllValues<PlatformDetails[]>().SelectMany(p => p).ToArray();
         }
 
+        /// <summary>
+        /// Get Available Swappers for a specific platform and symbol
+        /// </summary>
+        /// <param name="platform"></param>
+        /// <param name="symbol"></param>
+        /// <returns></returns>
         public PlatformDetails[] GetAvailableSwappers(string platform, string symbol)
         {
             return _platformsAddresses.AllValues<PlatformDetails[]>().SelectMany(p => p).Where(p => p.Tokens.Any(t => t.Symbol == symbol) && p.Name == platform).ToArray();
         }
         
+        /// <summary>
+        /// Get Available Main Swappers (For Wallets) for a specific platform and symbol
+        /// </summary>
+        /// <param name="platform"></param>
+        /// <param name="symbol"></param>
+        /// <returns></returns>
         public PlatformDetails[] GetAvailableMainSwappers(string platform, string symbol)
         {
             return _platformsAddresses.AllValues<PlatformDetails[]>().SelectMany(p => p).Where(p => p.MainSwapper && p.Name == platform && p.Tokens.Any(t => t.Symbol == symbol)).ToArray();
         }
 
+        /// <summary>
+        /// Sends tokens to a specific platform (From Phantasma to another platform)
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="externalAddress"></param>
+        /// <param name="fromPlatform"></param>
+        /// <param name="toPlatform"></param>
+        /// <param name="symbol"></param>
+        /// <param name="amount"></param>
         public void SendTokensToPlatform(Address from, string externalAddress, string fromPlatform, string toPlatform, string symbol, BigInteger amount)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -455,16 +492,31 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             _crossChainTransfers.Set<Address, StorageList>(from, storageList);
         }
         
+        /// <summary>
+        /// Get all Cross Chain Transfers.
+        /// </summary>
+        /// <returns></returns>
         public CrossChainTransfer[] GetAllCrossChainTransfers()
         {
             return _crossChainTransfers.AllValues<StorageList>().Select(s => s.All<CrossChainTransfer>()).SelectMany(c => c).ToArray();
         }
         
+        /// <summary>
+        /// Get Cross Chain Tranfers that are pending or in progress.
+        /// </summary>
+        /// <returns></returns>
         public CrossChainTransfer[] GetCrossChainTransfers()
         {
             return _crossChainTransfers.AllValues<StorageList>().Select(s => s.All<CrossChainTransfer>()).SelectMany(c => c).Where(c => c.status == CrossChainTransferStatus.Pending || c.status == CrossChainTransferStatus.InProgress).ToArray();
         }
         
+        /// <summary>
+        /// Claim Cross Chain Transfer to process.
+        /// This method is called by the Swapper to claim a transfer to process.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="platform"></param>
+        /// <param name="identifier"></param>
         public void ClaimCrossChainTransferToProcess(Address from, string platform, string identifier)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -493,6 +545,14 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             _crossChainTransfers.Set<Address, StorageList>(from, storageList);
         }
 
+        /// <summary>
+        /// Complete Cross Chain Transfer
+        /// This is for the blockchain to validate the transfer on the other chain.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="platform"></param>
+        /// <param name="identifier"></param>
+        /// <param name="hash"></param>
         public void CompleteCrossChainTransfer(Address from, string platform, string identifier, Hash hash)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -504,7 +564,22 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var crossChainTransfer = crossChainTransfers.FirstOrDefault(c => c.Identifier == identifier);
             Runtime.Expect(crossChainTransfer.Identifier == identifier, "invalid identifier");
             
+            
+            
             // Validate transfer on the other chain
+            // Get the address for that transaction
+            // Validate the transaction
+            // Get the amount
+            // Validate the amount
+            // Get the symbol
+            // Validate the symbol
+            // Get the platform
+            // Validate the platform
+            // Get the chain
+            // Validate the chain
+            // if all is valid, then set the status to Confirmed
+            // Pay the Swapper for the service
+            
             bool isValid = false;
             var result = Runtime.ReadTransactionFromOracle(platform, "main", hash);
             
@@ -516,128 +591,39 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             
             // Pay the Swapper for the service
             Runtime.TransferTokens(crossChainTransfer.Symbol, this.Address, crossChainTransfer.Swapper, crossChainTransfer.Amount);
+            Runtime.Notify(EventKind.ChainSwap, from, new TransactionSettleEventData(hash, platform, crossChainTransfer.ToPlatform));
         }
         
+        /// <summary>
+        /// This is used to settle a Cross Chain Transaction from the other chain to Phantasma.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="platform"></param>
+        /// <param name="chain"></param>
+        /// <param name="hash"></param>
         public void SettleCrossChainTransaction(Address from, string platform, string chain, Hash hash)
         {
+            // From USER
+            // Platform = ETH / BNB 
+            // Chain = ETH / BNB 
+            // Hash = Hash of the transaction on the other chain
+            
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(from.IsUser, "must be user address");
+            Runtime.Expect(platform == DomainSettings.PlatformName, "invalid platform, this method can only be called from other chains.");
             
             var platformDetails = GetAllPlatforms();
-
-            if (platform != DomainSettings.PlatformName)
-            {
-                Runtime.Expect(HasPlatformInfo(from, platform), "unsupported platform");
-                var platformInfo = 
-            }
-            else
-            {
-                platformDetails = null;
-            }
-
+            
+            // From the hash get the transaction
+            // Get the address the received the transaction
+            // Check if the address is registered 
+            // if registered, task the Swapper to claim the transfer.
+            // if not registered, create a new CrossChainTransfer and wait for the user to claim it.
+            
             var interopTx = Runtime.ReadTransactionFromOracle(platform, chain, hash);
 
             Runtime.Expect(interopTx.Hash == hash, "unxpected hash");
-
-            int swapCount = 0;
-
-            foreach (var transfer in interopTx.Transfers)
-            {
-                var count = _withdraws.Count();
-                var index = -1;
-                for (int i = 0; i < count; i++)
-                {
-                    var entry = _withdraws.Get<InteropWithdraw>(i);
-                    if (entry.destination == transfer.destinationAddress && entry.transferAmount == transfer.Value && entry.transferSymbol == transfer.Symbol)
-                    {
-                        index = i;
-                        break;
-                    }
-                }
-
-                if (index >= 0)
-                {
-                    Runtime.Expect(Runtime.TokenExists(transfer.Symbol), "invalid token");
-                    var token = Runtime.GetToken(transfer.Symbol);
-
-                    if (token.Flags.HasFlag(TokenFlags.Fungible))
-                    {
-                        Runtime.Expect(transfer.Value > 0, "amount must be positive and greater than zero");
-                    }
-                    else
-                    {
-                        Runtime.Expect(Runtime.NFTExists(transfer.Symbol, transfer.Value), $"nft {transfer.Value} must exist");
-                    }
-
-                    Runtime.Expect(token.Flags.HasFlag(TokenFlags.Transferable), "token must be transferable");
-                    Runtime.Expect(token.Flags.HasFlag(TokenFlags.Swappable), "transfer token must be swappable");
-
-                    var withdraw = _withdraws.Get<InteropWithdraw>(index);
-                    _withdraws.RemoveAt(index);
-
-                    var org = Runtime.GetOrganization(DomainSettings.ValidatorsOrganizationName);
-                    Runtime.Expect(org.IsMember(from), $"{from.Text} is not a validator node");
-                    Runtime.TransferTokens(withdraw.feeSymbol, Address, from, withdraw.feeAmount);
-
-                    RegisterHistory(hash, withdraw.hash, DomainSettings.PlatformName, Runtime.Chain.Name, transfer.sourceAddress, hash, platform, chain, withdraw.destination, transfer.Symbol, transfer.Value);
-                    swapCount++;
-                }
-                else if (platformDetails != null)
-                {
-                    foreach (var entry in platformDetails)
-                    {
-                        if (transfer.destinationAddress == entry.)
-                        {
-                            Runtime.Expect(!transfer.sourceAddress.IsNull, "invalid source address");
-
-                            // Here we detect if this transfer occurs between two swap addresses
-                            var isInternalTransfer = Runtime.IsPlatformAddress(transfer.sourceAddress);
-
-                            if (!isInternalTransfer)
-                            {
-                                Runtime.Expect(Runtime.TokenExists(transfer.Symbol), "invalid token");
-                                var token = Runtime.GetToken(transfer.Symbol);
-
-                                if (token.Flags.HasFlag(TokenFlags.Fungible))
-                                {
-                                    Runtime.Expect(transfer.Value > 0, "amount must be positive and greater than zero");
-                                }
-                                else
-                                {
-                                    Runtime.Expect(Runtime.NFTExists(transfer.Symbol, transfer.Value), $"nft {transfer.Value} must exist");
-                                }
-
-
-                                Runtime.Expect(token.Flags.HasFlag(TokenFlags.Transferable), "token must be transferable");
-                                Runtime.Expect(token.Flags.HasFlag(TokenFlags.Swappable), "transfer token must be swappable");
-
-                                Runtime.Expect(transfer.interopAddress.IsUser, "invalid destination address");
-
-                                Runtime.SwapTokens(platform, transfer.sourceAddress, Runtime.Chain.Name, transfer.interopAddress, transfer.Symbol, transfer.Value);
-
-
-                                if (!token.Flags.HasFlag(TokenFlags.Fungible))
-                                {
-                                    var externalNft = Runtime.ReadNFTFromOracle(platform, transfer.Symbol, transfer.Value);
-                                    var ram = externalNft.Serialize();
-
-                                    var localNft = Runtime.ReadToken(transfer.Symbol, transfer.Value);
-                                    Runtime.WriteToken(from, transfer.Symbol, transfer.Value, ram); // TODO "from" here might fail due to contract triggers, review this later
-                                }
-
-                                var settleHash = Runtime.Transaction.Hash;
-                                RegisterHistory(settleHash, hash, platform, chain, transfer.sourceAddress, settleHash, DomainSettings.PlatformName, Runtime.Chain.Name, transfer.interopAddress, transfer.Symbol, transfer.Value);
-
-                                swapCount++;
-                            }
-
-                            break;
-                        }
-                    }
-                }
-            }
-
-            Runtime.Expect(swapCount > 0, "nothing to settle");
+            
             Runtime.Notify(EventKind.ChainSwap, from, new TransactionSettleEventData(hash, platform, chain));
         }
 
@@ -646,6 +632,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             
         }
         #endregion
+        
+        #region Old Methods
 
         public void SettleTransaction(Address from, string platform, string chain, Hash hash)
         {
@@ -948,6 +936,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             return result;
         }
+        #endregion
         #endregion
     }
 }
