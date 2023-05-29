@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Neo;
+using Nethereum.RPC.Eth.DTOs;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
@@ -292,6 +293,48 @@ namespace Phantasma.Node.Oracles
             }
 
             return interopTuple.Item1;
+        }
+
+        /// <summary>
+        /// Oracle PullTransactionFromPlatform
+        /// </summary>
+        /// <param name="platformName"></param>
+        /// <param name="chainName"></param>
+        /// <param name="hash"></param>
+        /// <returns></returns>
+        /// <exception cref="OracleException"></exception>
+        protected override InteropTransactionData PullTransactionFromPlatform(string platformName, string chainName, Hash hash)
+        {
+            Log.Debug($"{platformName} pull tx: {hash}");
+            InteropTransactionData tx = Read<InteropTransactionData>(platformName, chainName, hash, StorageConst.Transaction);
+            if (tx != null && tx.Hash != Hash.Null)
+            {
+                Log.Debug($"Found tx {hash} in oracle storage");
+                return tx;
+            }
+
+            var nexus = NexusAPI.GetNexus();
+            TransactionReceipt txRcpt = null;
+            switch (platformName)
+            {
+                case EthereumWallet.EthereumPlatform:
+                    txRcpt = _cli.EthAPI.GetTransactionReceipt(hash.ToString());
+                    tx = EthereumInterop.MakeInteropTransaction(txRcpt);
+                    break;
+                case BSCWallet.BSCPlatform:
+                    txRcpt = _cli.BscAPI.GetTransactionReceipt(hash.ToString());
+                    tx = EthereumInterop.MakeInteropTransaction(txRcpt);
+                    break;
+                default:
+                    throw new OracleException("Uknown oracle platform: " + platformName);
+            }
+            
+            if (!Persist<InteropTransactionData>(platformName, chainName, tx.Hash, StorageConst.Transaction, tx))
+            {
+                Log.Error($"Oracle transaction { hash } on platform { platformName } updated!");
+            }
+            
+            return tx;
         }
 
         protected override InteropTransaction PullPlatformTransaction(string platformName, string chainName, Hash hash)

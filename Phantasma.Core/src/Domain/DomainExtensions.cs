@@ -152,6 +152,15 @@ namespace Phantasma.Core.Domain
             return tx;
         }
 
+        public static InteropTransactionData ReadCrossChainTransactionFromOracle(this IRuntime runtime, string platform, string chain,
+            Hash hash)
+        {
+            var url = GetOracleTransactionURL(platform, chain, hash);
+            var bytes = runtime.ReadOracle(url);
+            var tx = Serialization.Unserialize<InteropTransactionData>(bytes);
+            return tx;
+        }
+        
         public static InteropNFT ReadNFTFromOracle(this IRuntime runtime, string platform, string symbol, BigInteger tokenID)
         {
             var url = GetOracleNFTURL(platform, symbol, tokenID);

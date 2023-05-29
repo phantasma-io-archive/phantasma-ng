@@ -424,6 +424,11 @@ namespace Phantasma.Node.Interop
             return result;*/
         }
 
+        private static Dictionary<string, List<InteropTransactionData>> GetInteropTransfersFromHash()
+        {
+            
+        }
+
         private static Dictionary<string, List<InteropTransfer>> GetInteropTransfers(Nexus nexus,
                 TransactionReceipt txr, EthAPI api, string[] swapAddresses)
         {
@@ -496,41 +501,8 @@ namespace Phantasma.Node.Interop
 
             // ERC20
             var erc20_events = txr.DecodeAllEvents<TransferEventDTO>();
-            foreach (var evt in erc20_events)
-            {
-                var asset = EthUtils.FindSymbolFromAsset(nexus, evt.Log.Address);
-                if (asset == null)
-                {
-                    Log.Warning($"Asset [{evt.Log.Address}] not supported");
-                    continue;
-                }
-
-                var targetAddress = EthereumWallet.EncodeAddress(evt.Event.To);
-                var sourceAddress = EthereumWallet.EncodeAddress(evt.Event.From);
-                var amount = BigInteger.Parse(evt.Event.Value.ToString());
-
-                if (nodeSwapAddresses.Contains(targetAddress))
-                {
-                    if (!interopTransfers.ContainsKey(evt.Log.TransactionHash))
-                    {
-                        interopTransfers.Add(evt.Log.TransactionHash, new List<InteropTransfer>());
-                    }
-
-                    interopTransfers[evt.Log.TransactionHash].Add
-                    (
-                        new InteropTransfer
-                        (
-                            EthereumWallet.EthereumPlatform,
-                            sourceAddress,
-                            DomainSettings.PlatformName,
-                            targetAddress,
-                            interopAddress,
-                            asset,
-                            amount
-                        )
-                    );
-                }
-            }
+            HandleERC20Events(nexus, erc20_events);
+            
 
             if (tx.Value != null && tx.Value.Value > 0)
             {
@@ -566,6 +538,46 @@ namespace Phantasma.Node.Interop
             return interopTransfers;
         }
 
+        private static List<InteropTransfer> HandleERC20Events(Nexus nexus, List<EventLog<TransferEventDTO>> erc20_events)
+        {
+            foreach (var evt in erc20_events)
+            {
+                var contractAddress = evt.Log.Address;
+                var asset = EthUtils.FindSymbolFromAsset(nexus, contractAddress);
+                if (asset == null)
+                {
+                    Log.Warning($"Asset [{evt.Log.Address}] not supported");
+                    continue;
+                }
+
+                var targetAddress = EthereumWallet.EncodeAddress(evt.Event.To);
+                var sourceAddress = EthereumWallet.EncodeAddress(evt.Event.From);
+                var amount = BigInteger.Parse(evt.Event.Value.ToString());
+
+                if (nodeSwapAddresses.Contains(targetAddress))
+                {
+                    if (!interopTransfers.ContainsKey(evt.Log.TransactionHash))
+                    {
+                        interopTransfers.Add(evt.Log.TransactionHash, new List<InteropTransfer>());
+                    }
+
+                    interopTransfers[evt.Log.TransactionHash].Add
+                    (
+                        new InteropTransfer
+                        (
+                            EthereumWallet.EthereumPlatform,
+                            sourceAddress,
+                            DomainSettings.PlatformName,
+                            targetAddress,
+                            interopAddress,
+                            asset,
+                            amount
+                        )
+                    );
+                }
+            }
+        }
+
         public static InteropTransaction MakeInteropTx(string txHash, List<InteropTransfer> transfers)
         {
             return ((transfers.Count() > 0)
@@ -586,6 +598,14 @@ namespace Phantasma.Node.Interop
                 ? new InteropTransaction(Hash.Parse(txr.TransactionHash), interopTransfers.ToArray())
                 : new InteropTransaction(Hash.Null, interopTransfers.ToArray()));
 
+        }
+
+        public static InteropTransactionData MakeInteropTransaction(TransactionReceipt txr)
+        {
+            Log.Debug("Checking Transaction from X tx: " + txr.TransactionHash);
+            IList<InteropTransfer> interopTransfers = new List<InteropTransfer>();
+
+            return new InteropTransactionData();
         }
 
         public static decimal GetNormalizedFee(FeeUrl[] fees)
@@ -720,8 +740,7 @@ namespace Phantasma.Node.Interop
             return VerifyEthTx(sourceHash, txStr);
         }
 
-
-
+        
         // NOTE no locks happen here because this callback is called from within a lock
         internal override Hash SettleSwap(Hash sourceHash, Address destination, IToken token, BigInteger amount)
         {

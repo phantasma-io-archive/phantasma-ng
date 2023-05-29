@@ -412,10 +412,15 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return true;
         }
 
+        /// <summary>
+        /// Check if it's a valid platform.
+        /// </summary>
+        /// <param name="platform"></param>
+        /// <returns></returns>
         private bool IsValidPlatform(string platform)
         {
             return platform.Equals("ethereum", StringComparison.OrdinalIgnoreCase) ||
-                   platform.Equals("binance", StringComparison.OrdinalIgnoreCase) ;
+                   platform.Equals("binance", StringComparison.OrdinalIgnoreCase);
         }
         
         /// <summary>
@@ -581,7 +586,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             // Pay the Swapper for the service
             
             bool isValid = false;
-            var result = Runtime.ReadTransactionFromOracle(platform, "main", hash);
+            var result = Runtime.ReadCrossChainTransactionFromOracle(platform, "main", hash);
+            
             
             // Validate the transaction
             

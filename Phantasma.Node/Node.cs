@@ -196,13 +196,14 @@ namespace Phantasma.Node
             this._neoAPI = new RemoteRPCNode(neoScanURL, neoRpcList.ToArray());
             this._neoAPI.SetLogger((s) => Log.Information(s));*/
 
-            var ethRpcList = Settings.Instance.Oracle.EthRpcNodes;
+            var ethRpcList = Settings.Instance.Oracle.GetPlatformSettings(SwapPlatformChain.Eth).RpcNodes;
+            var bscRpcList = Settings.Instance.Oracle.GetPlatformSettings(SwapPlatformChain.BSC).RpcNodes;
             var ethWIF = Settings.Instance.GetInteropWif(_nodeKeys, EthereumWallet.EthereumPlatform);
-            //TODO
             var ethKeys = PhantasmaKeys.FromWIF(ethWIF);
 
-            this._ethAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()));
-            this._bscAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()));
+            this._ethAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()), ethRpcList.ToList());
+            this._bscAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()), bscRpcList.ToList());
+            
             this._cryptoCompareAPIKey = Settings.Instance.Oracle.CryptoCompareAPIKey;
             if (!string.IsNullOrEmpty(this._cryptoCompareAPIKey))
             {

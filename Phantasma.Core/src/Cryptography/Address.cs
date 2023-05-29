@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Phantasma.Core.Cryptography.Hashing;
 using Phantasma.Core.Domain;
@@ -39,7 +40,7 @@ namespace Phantasma.Core.Cryptography
         public bool IsUser => Kind == AddressKind.User;
 
         public string TendermintAddress => Base16.Encode(_bytes[2..].Sha256()[..20]);
-        
+
         public byte[] TendermintPublicKey => _bytes[2..].Sha256()[..20];
 
         public bool IsNull
@@ -403,6 +404,13 @@ namespace Phantasma.Core.Cryptography
                     return -1;
             }
             return 0;
+        }
+        
+        public string ConvertPhantasmaToEthereum()
+        {
+            var bytes = this.ToByteArray().Skip(1).ToArray();
+            var encoded = Base16.Encode(bytes);
+            return "0x" + encoded;
         }
 
         public bool ValidateSignedData(string signedData, string random, string data)
