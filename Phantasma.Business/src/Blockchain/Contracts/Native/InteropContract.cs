@@ -282,6 +282,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             _PlatformSwappers.Set(platform.ToLower(), new StorageList());
         }
         
+        /// <summary>
+        /// Method used to get the list of platform swappers.
+        /// </summary>
+        /// <param name="platform"></param>
+        /// <returns></returns>
         private StorageList GetPlatformSwappers(string platform)
         {
             if (!_PlatformSwappers.ContainsKey(platform.ToLower()))
@@ -292,6 +297,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return _PlatformSwappers.Get<string, StorageList>(platform.ToLower());
         }
 
+        /// <summary>
+        /// Method used to Set the Platform Swapper
+        /// </summary>
+        /// <param name="platform"></param>
+        /// <param name="externalContractAddress"></param>
+        /// <param name="swapper"></param>
         private void SetPlatformSwapper(string platform, string externalContractAddress, TokenSwapToSwap swapper)
         {
             var swappersList = GetPlatformSwappers(platform);
@@ -318,6 +329,16 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             _PlatformSwappers.Set(platform, swappersList);
         }
 
+        /// <summary>
+        /// Method used to add a swapper to the list.
+        /// </summary>
+        /// <param name="platform"></param>
+        /// <param name="symbol"></param>
+        /// <param name="decimals"></param>
+        /// <param name="externalContractAddress"></param>
+        /// <param name="InternalAddress"></param>
+        /// <param name="externalAddress"></param>
+        /// <param name="isActive"></param>
         private void AddSwapper(string platform, string symbol, int decimals, string externalContractAddress, Address InternalAddress, string externalAddress, bool isActive)
         {
             var swappersList = GetPlatformSwappers(platform);
@@ -341,6 +362,15 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             SetPlatformSwapper(platform, externalContractAddress, tokenSwapToSwap);
         }
 
+        /// <summary>
+        /// Method used to update a swapper.
+        /// </summary>
+        /// <param name="platform"></param>
+        /// <param name="symbol"></param>
+        /// <param name="externalContractAddress"></param>
+        /// <param name="InternalAddress"></param>
+        /// <param name="externalAddress"></param>
+        /// <param name="isActive"></param>
         private void UpdateSwapper(string platform, string symbol, string externalContractAddress,
             Address InternalAddress, string externalAddress, bool isActive)
         {
@@ -790,11 +820,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <summary>
         /// This is used to settle a Cross Chain Transaction from the other chain to Phantasma.
         /// </summary>
-        /// <param name="from"></param>
-        /// <param name="platform"></param>
-        /// <param name="chain"></param>
+        /// <param name="from">USER</param>
+        /// <param name="platform">ETH / BSC</param>
+        /// <param name="chain">ethereum</param>
         /// <param name="hash"></param>
-        public void SettleCrossChainTransaction(Address from, string platform, string chain, Hash hash)
+        public void SettleCrossChainTransaction(Address from, string externalAddress, string platform, string chain, Hash hash)
         {
             // From USER
             // Platform = ETH / BSC
@@ -808,15 +838,58 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var platformDetails = GetAllPlatforms();
             
             // From the hash get the transaction
-            // Get the address the received the transaction
-            // Check if the address is registered 
-            // if registered, task the Swapper to claim the transfer.
-            // if not registered, create a new CrossChainTransfer and wait for the user to claim it.
-            
-            var interopTx = Runtime.ReadTransactionFromOracle(platform, chain, hash);
+            var resultTransactionData = Runtime.ReadCrossChainTransactionFromOracle(platform, "main", hash);
+            Runtime.Expect(resultTransactionData.Hash == hash, "unxpected hash");
 
-            Runtime.Expect(interopTx.Hash == hash, "unxpected hash");
+            // Get the address the received the transaction
+            byte platformId = platform.Equals("ethereum", StringComparison.InvariantCulture) ? (byte)3 
+                : platform.Equals("bsc", StringComparison.InvariantCulture) ? (byte)2 : (byte)2;
+            var userExternalAddress = Address.EncodeAddress(platformId, externalAddress );
             
+            Runtime.Expect(userExternalAddress == resultTransactionData.Transfers[0].sourceAddress, "invalid external address");
+            var transfer = resultTransactionData.Transfers[0];
+
+            // Check if the address is registered 
+            var platformInfo = platformDetails.FirstOrDefault(p => Address.EncodeAddress(platformId, p.ExternalAddress) == resultTransactionData.Transfers[0].destinationAddress);
+            var existsPlatform = platformDetails.Any(p => Address.EncodeAddress(platformId, p.ExternalAddress) == resultTransactionData.Transfers[0].destinationAddress);
+            Runtime.Expect(existsPlatform, "Invalid Swapper Address");
+            // if registered, task the Swapper to claim the transfer.
+            
+            Runtime.Expect(Runtime.TokenExists(transfer.Symbol), "invalid token");
+            var token = Runtime.GetToken(transfer.Symbol);
+
+            Runtime.Expect(token.Flags.HasFlag(TokenFlags.Fungible), "token must be fungible");
+            Runtime.Expect(transfer.Value > 0, "amount must be positive and greater than zero");
+
+            Runtime.Expect(token.Flags.HasFlag(TokenFlags.Transferable), "token must be transferable");
+            Runtime.Expect(token.Flags.HasFlag(TokenFlags.Swappable), "transfer token must be swappable");
+            
+            Runtime.Expect(transfer.interopAddress.IsUser, "invalid destination address");
+            
+            Runtime.SwapTokens(platform, transfer.sourceAddress, Runtime.Chain.Name, transfer.interopAddress, transfer.Symbol, transfer.Value);
+
+            // TODO: FINISH THIS UP 
+            /*
+            var crossChainTransfer = new CrossChainTransfer()
+            {
+                Identifier = from.Text + externalAddress + fromPlatform + toPlatform + symbol + trans + Runtime.Time,
+                status = CrossChainTransferStatus.Pending,
+                FromUserAddress = from,
+                UserExternalAddress = externalAddress,
+                Swapper = Address.Null,
+                Symbol = symbol,
+                Amount = amount,
+                PhantasmaHash = Runtime.Transaction.Hash,
+                FromPlatform = fromPlatform,
+                ToPlatform = toPlatform,
+                StartedAt = Runtime.Time,
+                UpdatedAt = Runtime.Time,
+            };
+            
+            var storageList = _crossChainTransfers.Get<Address, StorageList>(from);
+            storageList.Add<CrossChainTransfer>(crossChainTransfer);
+            _crossChainTransfers.Set<Address, StorageList>(from, storageList);*/
+
             Runtime.Notify(EventKind.ChainSwap, from, new TransactionSettleEventData(hash, platform, chain));
         }
 
@@ -931,7 +1004,6 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                                 Runtime.Expect(transfer.interopAddress.IsUser, "invalid destination address");
 
                                 Runtime.SwapTokens(platform, transfer.sourceAddress, Runtime.Chain.Name, transfer.interopAddress, transfer.Symbol, transfer.Value);
-
 
                                 if (!token.Flags.HasFlag(TokenFlags.Fungible))
                                 {

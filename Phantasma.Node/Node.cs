@@ -133,7 +133,7 @@ namespace Phantasma.Node
             // NEW NEW NEW NEW NEW 
 
 
-            //SetupOracleApis();
+            SetupOracleApis();
 
             SetupNexusApi();
 
@@ -198,11 +198,13 @@ namespace Phantasma.Node
 
             var ethRpcList = Settings.Instance.Oracle.GetPlatformSettings(SwapPlatformChain.Eth).RpcNodes;
             var bscRpcList = Settings.Instance.Oracle.GetPlatformSettings(SwapPlatformChain.BSC).RpcNodes;
-            var ethWIF = Settings.Instance.GetInteropWif(_nodeKeys, EthereumWallet.EthereumPlatform);
-            var ethKeys = PhantasmaKeys.FromWIF(ethWIF);
+            //var ethWIF = Settings.Instance.GetInteropWif(_nodeKeys, EthereumWallet.EthereumPlatform);
+            //var ethKeys = PhantasmaKeys.FromWIF(ethWIF);
 
-            this._ethAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()), ethRpcList.ToList());
-            this._bscAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()), bscRpcList.ToList());
+            //this._ethAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()), ethRpcList.ToList());
+            this._ethAPI = new EthAPI(null, ethRpcList.ToList());
+            //this._bscAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()), bscRpcList.ToList());
+            this._bscAPI = new EthAPI(null, bscRpcList.ToList());
             
             this._cryptoCompareAPIKey = Settings.Instance.Oracle.CryptoCompareAPIKey;
             if (!string.IsNullOrEmpty(this._cryptoCompareAPIKey))

@@ -426,7 +426,7 @@ namespace Phantasma.Node.Interop
             return result;*/
         }
 
-        private static Dictionary<string, List<InteropTransfer>> GetInteropTransfersFromHash(TransactionReceipt txr, Transaction txResult, EthAPI api, List<Swapper> swappers)
+        private static Dictionary<string, List<InteropTransfer>> GetInteropTransfersFromHash(Nexus nexus, TransactionReceipt txr, Transaction txResult, EthAPI api, List<Swapper> swappers)
         {
             Log.Debug($"Get interop transfers for tx {txr.TransactionHash}");
             var interopTransfers = new Dictionary<string, List<InteropTransfer>>();
@@ -441,15 +441,14 @@ namespace Phantasma.Node.Interop
             var interopAddress = ExtractInteropAddress(txResult);
             // I Have the address of the User in the Phantasma Chain
             // Now I have to Check if the address is a contract or a user
-
-
+            interopTransfers = HandleERC20EventsFromHash(nexus, txr, interopAddress, swappers);
+            
             if (txResult.Value != null && txResult.Value.Value > 0)
             {
                 var targetAddress = EthereumWallet.EncodeAddress(txResult.To);
                 var sourceAddress = EthereumWallet.EncodeAddress(txResult.From);
-
-                // 
-                if (swappers.Any(s => s.InternalAddress == targetAddress) )
+                
+                if (swappers.Any(s => EthereumWallet.EncodeAddress(s.ExternalAddress) == targetAddress) )
                 {
                     var amount = BigInteger.Parse(txResult.Value.ToString());
 
@@ -474,11 +473,10 @@ namespace Phantasma.Node.Interop
                 }
             }
 
-
             return interopTransfers;
         }
 
-        private static void HandleERC20EventsFromHash(Nexus nexus, TransactionReceipt txr)
+        private static Dictionary<string, List<InteropTransfer>> HandleERC20EventsFromHash(Nexus nexus, TransactionReceipt txr, Address interopAddress, List<Swapper> swappers)
         {
             var erc20_events = txr.DecodeAllEvents<TransferEventDTO>();
             var interopTransfers = new Dictionary<string, List<InteropTransfer>>();
@@ -497,7 +495,7 @@ namespace Phantasma.Node.Interop
                 var sourceAddress = EthereumWallet.EncodeAddress(evt.Event.From);
                 var amount = BigInteger.Parse(evt.Event.Value.ToString());
 
-                if (nodeSwapAddresses.Contains(targetAddress))
+                if (swappers.Any(s => EthereumWallet.EncodeAddress(s.ExternalAddress) == targetAddress))
                 {
                     if (!interopTransfers.ContainsKey(evt.Log.TransactionHash))
                     {
@@ -707,7 +705,7 @@ namespace Phantasma.Node.Interop
 
         }
 
-        public static InteropTransactionData MakeInteropTransaction(TransactionReceipt txr, EthAPI api, List<Swapper> swappers)
+        public static InteropTransactionData MakeInteropTransaction(Nexus nexus, TransactionReceipt txr, EthAPI api, List<Swapper> swappers)
         {
             Log.Debug("Checking Transaction from X tx: " + txr.TransactionHash);
             IList<InteropTransfer> interopTransfers = new List<InteropTransfer>();
@@ -730,7 +728,7 @@ namespace Phantasma.Node.Interop
             }
             
             // Get the interop transfers
-            interopTransfers = GetInteropTransfersFromHash(txr, txResult, api, swappers).SelectMany(x => x.Value).ToList();
+            interopTransfers = GetInteropTransfersFromHash(nexus, txr, txResult, api, swappers).SelectMany(x => x.Value).ToList();
             
             
 
