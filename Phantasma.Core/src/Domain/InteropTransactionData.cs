@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 
@@ -9,16 +10,12 @@ public class InteropTransactionData
     public string TransactionHash { get; set; }
     public string BlockHash { get; set; }
     public string ContractAddress { get; set; }
+    public BigInteger Gas { get; set; }
+    public BigInteger GasPrice { get; set; }
     public BigInteger Status { get; set; }
+    public List<InteropTransfer> Transfers { get; set; }
     
-    
-    
-    public readonly string sourceChain;
-    public readonly Address sourceAddress;
-    public readonly string destinationChain;
-    public readonly Address destinationAddress;
-    public readonly Address interopAddress;
-    public readonly string Symbol;
-    public BigInteger Value;
-    public byte[] Data;
+    // SwapIn
+    // ClaimTokens
+    // SwapOut
 }

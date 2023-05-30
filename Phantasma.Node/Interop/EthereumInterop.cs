@@ -11,6 +11,7 @@ using Nethereum.Contracts;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.StandardTokenEIP20.ContractDefinition;
 using Phantasma.Business.Blockchain;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
@@ -21,6 +22,7 @@ using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Node.Utils;
 using Serilog;
 using EthereumKey = Phantasma.Node.Chains.Ethereum.EthereumKey;
+using Transaction = Nethereum.RPC.Eth.DTOs.Transaction;
 
 namespace Phantasma.Node.Interop
 {
@@ -424,9 +426,101 @@ namespace Phantasma.Node.Interop
             return result;*/
         }
 
-        private static Dictionary<string, List<InteropTransactionData>> GetInteropTransfersFromHash()
+        private static Dictionary<string, List<InteropTransfer>> GetInteropTransfersFromHash(TransactionReceipt txr, Transaction txResult, EthAPI api, List<Swapper> swappers)
         {
+            Log.Debug($"Get interop transfers for tx {txr.TransactionHash}");
+            var interopTransfers = new Dictionary<string, List<InteropTransfer>>();
+
+            if (txr.Status.Value == 0)
+            {
+                Log.Error($"tx {txr.TransactionHash} failed");
+                return interopTransfers;
+            }
             
+            // Get the interop Address
+            var interopAddress = ExtractInteropAddress(txResult);
+            // I Have the address of the User in the Phantasma Chain
+            // Now I have to Check if the address is a contract or a user
+
+
+            if (txResult.Value != null && txResult.Value.Value > 0)
+            {
+                var targetAddress = EthereumWallet.EncodeAddress(txResult.To);
+                var sourceAddress = EthereumWallet.EncodeAddress(txResult.From);
+
+                // 
+                if (swappers.Any(s => s.InternalAddress == targetAddress) )
+                {
+                    var amount = BigInteger.Parse(txResult.Value.ToString());
+
+                    if (!interopTransfers.ContainsKey(txResult.TransactionHash))
+                    {
+                        interopTransfers.Add(txResult.TransactionHash, new List<InteropTransfer>());
+                    }
+
+                    interopTransfers[txResult.TransactionHash].Add
+                    (
+                        new InteropTransfer
+                        (
+                            EthereumWallet.EthereumPlatform,
+                            sourceAddress,
+                            DomainSettings.PlatformName,
+                            targetAddress,
+                            interopAddress,
+                            "ETH", // TODO use const
+                            amount
+                        )
+                    );
+                }
+            }
+
+
+            return interopTransfers;
+        }
+
+        private static void HandleERC20EventsFromHash(Nexus nexus, TransactionReceipt txr)
+        {
+            var erc20_events = txr.DecodeAllEvents<TransferEventDTO>();
+            var interopTransfers = new Dictionary<string, List<InteropTransfer>>();
+
+            foreach (var evt in erc20_events)
+            {
+                var contractAddress = evt.Log.Address;
+                var asset = EthUtils.FindSymbolFromHash(nexus, contractAddress);
+                if (asset == null)
+                {
+                    Log.Warning($"Asset [{evt.Log.Address}] not supported");
+                    continue;
+                }
+
+                var targetAddress = EthereumWallet.EncodeAddress(evt.Event.To);
+                var sourceAddress = EthereumWallet.EncodeAddress(evt.Event.From);
+                var amount = BigInteger.Parse(evt.Event.Value.ToString());
+
+                if (nodeSwapAddresses.Contains(targetAddress))
+                {
+                    if (!interopTransfers.ContainsKey(evt.Log.TransactionHash))
+                    {
+                        interopTransfers.Add(evt.Log.TransactionHash, new List<InteropTransfer>());
+                    }
+
+                    interopTransfers[evt.Log.TransactionHash].Add
+                    (
+                        new InteropTransfer
+                        (
+                            EthereumWallet.EthereumPlatform,
+                            sourceAddress,
+                            DomainSettings.PlatformName,
+                            targetAddress,
+                            interopAddress,
+                            asset,
+                            amount
+                        )
+                    );
+                }
+            }
+
+            return interopTransfers;
         }
 
         private static Dictionary<string, List<InteropTransfer>> GetInteropTransfers(Nexus nexus,
@@ -457,9 +551,53 @@ namespace Phantasma.Node.Interop
             var nodeSwapAddresses = swapAddresses.Select(x => EthereumWallet.EncodeAddress(x));
             var interopAddress = ExtractInteropAddress(tx);
 
+            // ERC721
+            HandleERC721Events(nexus, txr, nodeSwapAddresses.ToList(), interopAddress).Select(erc => interopTransfers.TryAdd(erc.Key, erc.Value));
+
+            // ERC20
+            HandleERC20Events(nexus, txr, nodeSwapAddresses.ToList(), interopAddress).Select(erc => interopTransfers.TryAdd(erc.Key, erc.Value));
+
+            if (tx.Value != null && tx.Value.Value > 0)
+            {
+                var targetAddress = EthereumWallet.EncodeAddress(tx.To);
+                var sourceAddress = EthereumWallet.EncodeAddress(tx.From);
+
+                if (nodeSwapAddresses.Contains(targetAddress))
+                {
+                    var amount = BigInteger.Parse(tx.Value.ToString());
+
+                    if (!interopTransfers.ContainsKey(tx.TransactionHash))
+                    {
+                        interopTransfers.Add(tx.TransactionHash, new List<InteropTransfer>());
+                    }
+
+                    interopTransfers[tx.TransactionHash].Add
+                    (
+                        new InteropTransfer
+                        (
+                            EthereumWallet.EthereumPlatform,
+                            sourceAddress,
+                            DomainSettings.PlatformName,
+                            targetAddress,
+                            interopAddress,
+                            "ETH", // TODO use const
+                            amount
+                        )
+                    );
+                }
+            }
+
+
+            return interopTransfers;
+        }
+
+        private static Dictionary<string, List<InteropTransfer>> HandleERC721Events(Nexus nexus, TransactionReceipt txr, List<Address> nodeSwapAddresses, Address interopAddress )
+        {
             // ERC721 (NFT)
             // TODO currently this code block is mostly copypaste from ERC20 block, later make a single method for both...
             var erc721_events = txr.DecodeAllEvents<Nethereum.StandardNonFungibleTokenERC721.ContractDefinition.TransferEventDTOBase>();
+            var interopTransfers = new Dictionary<string, List<InteropTransfer>>();
+
             foreach (var evt in erc721_events)
             {
                 var asset = EthUtils.FindSymbolFromAsset(nexus, evt.Log.Address);
@@ -499,47 +637,14 @@ namespace Phantasma.Node.Interop
                 }
             }
 
-            // ERC20
-            var erc20_events = txr.DecodeAllEvents<TransferEventDTO>();
-            HandleERC20Events(nexus, erc20_events);
-            
-
-            if (tx.Value != null && tx.Value.Value > 0)
-            {
-                var targetAddress = EthereumWallet.EncodeAddress(tx.To);
-                var sourceAddress = EthereumWallet.EncodeAddress(tx.From);
-
-                if (nodeSwapAddresses.Contains(targetAddress))
-                {
-                    var amount = BigInteger.Parse(tx.Value.ToString());
-
-                    if (!interopTransfers.ContainsKey(tx.TransactionHash))
-                    {
-                        interopTransfers.Add(tx.TransactionHash, new List<InteropTransfer>());
-                    }
-
-                    interopTransfers[tx.TransactionHash].Add
-                    (
-                        new InteropTransfer
-                        (
-                            EthereumWallet.EthereumPlatform,
-                            sourceAddress,
-                            DomainSettings.PlatformName,
-                            targetAddress,
-                            interopAddress,
-                            "ETH", // TODO use const
-                            amount
-                        )
-                    );
-                }
-            }
-
-
             return interopTransfers;
         }
 
-        private static List<InteropTransfer> HandleERC20Events(Nexus nexus, List<EventLog<TransferEventDTO>> erc20_events)
+        private static Dictionary<string, List<InteropTransfer>> HandleERC20Events(Nexus nexus, TransactionReceipt txr, List<Address> nodeSwapAddresses, Address interopAddress )
         {
+            var erc20_events = txr.DecodeAllEvents<TransferEventDTO>();
+            var interopTransfers = new Dictionary<string, List<InteropTransfer>>();
+
             foreach (var evt in erc20_events)
             {
                 var contractAddress = evt.Log.Address;
@@ -576,6 +681,8 @@ namespace Phantasma.Node.Interop
                     );
                 }
             }
+
+            return interopTransfers;
         }
 
         public static InteropTransaction MakeInteropTx(string txHash, List<InteropTransfer> transfers)
@@ -600,10 +707,32 @@ namespace Phantasma.Node.Interop
 
         }
 
-        public static InteropTransactionData MakeInteropTransaction(TransactionReceipt txr)
+        public static InteropTransactionData MakeInteropTransaction(TransactionReceipt txr, EthAPI api, List<Swapper> swappers)
         {
             Log.Debug("Checking Transaction from X tx: " + txr.TransactionHash);
             IList<InteropTransfer> interopTransfers = new List<InteropTransfer>();
+            InteropTransactionData interopTxData = new InteropTransactionData();
+            
+            // Get Information about the transaction
+            var txResult = api.GetTransaction(txr.TransactionHash);
+            interopTxData.Hash = Hash.Parse(txr.TransactionHash);
+            interopTxData.BlockHash = txr.BlockHash;
+            interopTxData.Gas = txResult.Gas;
+            interopTxData.GasPrice = txResult.GasPrice;
+            interopTxData.Status = txr.Status.Value;
+            interopTxData.ContractAddress = txr.ContractAddress;
+            
+            // If the transction is not successful, return
+            if (txr.Status.Value == 0)
+            {
+                Log.Error($"tx {txr.TransactionHash} failed");
+                return interopTxData;
+            }
+            
+            // Get the interop transfers
+            interopTransfers = GetInteropTransfersFromHash(txr, txResult, api, swappers).SelectMany(x => x.Value).ToList();
+            
+            
 
             return new InteropTransactionData();
         }

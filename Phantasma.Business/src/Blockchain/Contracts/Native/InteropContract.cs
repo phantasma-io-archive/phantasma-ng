@@ -154,6 +154,83 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         }
     }
 
+    public struct TokenSwapToSwap : ISerializable
+    {
+        public string Platform;
+        public string Symbol;
+
+        public int Decimals;
+        public string ExternalContractAddress;
+        public Swapper[] Swappers;
+        
+        public TokenSwapToSwap(string platform, string symbol, int decimals , string externalContractAddress, Swapper[] swappers)
+        {
+            this.Platform = platform;
+            this.Symbol = symbol;
+            this.Decimals = decimals;
+            this.ExternalContractAddress = externalContractAddress;
+            this.Swappers = swappers;
+        }
+        
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.WriteVarString(Platform);
+            writer.WriteVarString(Symbol);
+            writer.WriteVarInt(Decimals);
+            writer.WriteVarString(ExternalContractAddress);
+            writer.WriteVarInt(Swappers.Length);
+            foreach (var swapper in Swappers)
+            {
+                swapper.SerializeData(writer);
+            }
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            this.Platform = reader.ReadVarString();
+            this.Symbol = reader.ReadVarString();
+            this.Decimals = (int)reader.ReadVarInt();
+            this.ExternalContractAddress = reader.ReadVarString();
+            var swapperCount = (int)reader.ReadVarInt();
+            this.Swappers = new Swapper[swapperCount];
+            for (int i = 0; i < swapperCount; i++)
+            {
+                var temp = new Swapper();
+                temp.UnserializeData(reader);
+                this.Swappers[i] = temp;
+            }
+        }
+    }
+    
+    public struct Swapper : ISerializable
+    {
+        public Address InternalAddress;
+        public string ExternalAddress;
+        public bool IsActive;
+
+        
+        public Swapper(Address internalAddress, string externalAddress, bool isActive)
+        {
+            this.InternalAddress = internalAddress;
+            this.ExternalAddress = externalAddress;
+            this.IsActive = isActive;
+        }
+
+        public void SerializeData(BinaryWriter writer)
+        {
+            writer.WriteAddress(InternalAddress);
+            writer.WriteVarString(ExternalAddress);
+            writer.Write(IsActive);
+        }
+
+        public void UnserializeData(BinaryReader reader)
+        {
+            this.InternalAddress = reader.ReadAddress();
+            this.ExternalAddress = reader.ReadVarString();
+            this.IsActive = reader.ReadBoolean();
+        }
+    }
+
     public sealed class InteropContract : NativeContract
     {
         public override NativeContractKind Kind => NativeContractKind.Interop;
@@ -161,11 +238,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 #pragma warning disable 0649
         private StorageMap _platformHashes;
         private StorageList _withdraws;
-        private StorageMap _platformsAddresses; // <Address, string>
+        private StorageMap _platformsAddresses; // <Address, PlatformDetails>
         private StorageMap _platformsSwaps; // <Address, StorageList<InteropHistory>>
         private StorageMap _swapperTransactions; // <Address, StorageList<InteropHistory>>
         private StorageMap _crossChainTransfers; // <Address, StorageList<CrossChainTransfer>>
         private StorageMap _crossChainUserTransfers; // <Address, StorageList<CrossChainTransferHistory>>
+        private StorageMap _PlatformSwappers; // <string, StorageList<TokenToSwap>>
         
         internal StorageMap _swapMap; //<Hash, Collection<InteropHistory>>
         internal StorageMap _historyMap; //<Address, Collection<Hash>>
@@ -192,6 +270,106 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         }
 
         #region New Swapper Way
+
+        private void RegisterPlatformSwappers(string platform)
+        {
+            if ( _PlatformSwappers.ContainsKey(platform.ToLower()))
+            {
+                // Already registered.
+                return;
+            }
+            
+            _PlatformSwappers.Set(platform.ToLower(), new StorageList());
+        }
+        
+        private StorageList GetPlatformSwappers(string platform)
+        {
+            if (!_PlatformSwappers.ContainsKey(platform.ToLower()))
+            {
+                RegisterPlatformSwappers(platform.ToLower());
+            }
+            
+            return _PlatformSwappers.Get<string, StorageList>(platform.ToLower());
+        }
+
+        private void SetPlatformSwapper(string platform, string externalContractAddress, TokenSwapToSwap swapper)
+        {
+            var swappersList = GetPlatformSwappers(platform);
+            if (swappersList.Count() == 0)
+            {
+                swappersList.Add<TokenSwapToSwap>(swapper);
+                _PlatformSwappers.Set(platform, swappersList);
+                return;
+            }
+
+            var swappers = swappersList.All<TokenSwapToSwap>();
+            for (int i = 0; i < swappers.Length; i++)
+            {
+                if (swappers[i].Symbol == swapper.Symbol && swappers[i].ExternalContractAddress == swapper.ExternalContractAddress)
+                {
+                    // Already registered.
+                    swappersList.Replace(i, swapper);
+                    _PlatformSwappers.Set(platform, swappersList);
+                    return;
+                }
+            }
+
+            swappersList.Add<TokenSwapToSwap>(swapper);
+            _PlatformSwappers.Set(platform, swappersList);
+        }
+
+        private void AddSwapper(string platform, string symbol, int decimals, string externalContractAddress, Address InternalAddress, string externalAddress, bool isActive)
+        {
+            var swappersList = GetPlatformSwappers(platform);
+            var tokenSwappers = swappersList.All<TokenSwapToSwap>();
+            Swapper swapper = new Swapper(InternalAddress, externalAddress, isActive);
+            for (int i = 0; i < tokenSwappers.Length; i++)
+            {
+                if (tokenSwappers[i].Symbol == symbol && tokenSwappers[i].ExternalContractAddress == externalContractAddress ) 
+                {
+                    var hasSwapper = tokenSwappers[i].Swappers.Select(_swapper => _swapper.ExternalAddress == externalAddress && _swapper.InternalAddress == InternalAddress).Any();
+                    if (!hasSwapper)
+                    {
+                        tokenSwappers[i].Swappers.ToList().Add(swapper);
+                        SetPlatformSwapper(platform, externalContractAddress, tokenSwappers[i]);
+                    }
+                    return;
+                }
+            }
+            
+            TokenSwapToSwap tokenSwapToSwap = new TokenSwapToSwap(platform, symbol, decimals, externalContractAddress, new Swapper[] { swapper });
+            SetPlatformSwapper(platform, externalContractAddress, tokenSwapToSwap);
+        }
+
+        private void UpdateSwapper(string platform, string symbol, string externalContractAddress,
+            Address InternalAddress, string externalAddress, bool isActive)
+        {
+            var platformTokensList = GetPlatformSwappers(platform);
+            var tokenSwappers = platformTokensList.All<TokenSwapToSwap>();
+            for (int i = 0; i < tokenSwappers.Length; i++)
+            {
+                if (tokenSwappers[i].Symbol == symbol && tokenSwappers[i].ExternalContractAddress == externalContractAddress ) 
+                {
+                    var swappersList = tokenSwappers[i].Swappers.ToList();
+                    var hasSwapper = swappersList.Select(_swapper => _swapper.ExternalAddress == externalAddress && _swapper.InternalAddress == InternalAddress).Any();
+                    if (hasSwapper)
+                    {
+                        if (!isActive)
+                        {
+                            // Remove
+                            var swapper = swappersList.First(_swapper =>
+                                _swapper.ExternalAddress == externalAddress && _swapper.InternalAddress == InternalAddress);
+                            swappersList.Remove(swapper);
+                            tokenSwappers[i].Swappers = swappersList.ToArray();
+                        }
+                        
+                        SetPlatformSwapper(platform, externalContractAddress, tokenSwappers[i]);
+                    }
+                    return;
+                }
+            }
+        }
+        
         /// <summary>
         /// Register a platform for a specific address
         /// </summary>
@@ -263,6 +441,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
             Runtime.Expect(HasPlatformInfo(from, platform), "platform not registered");
             
+            var validators = Runtime.GetValidators();
+            bool isMainSwapper = validators.First(v => v.address == from).address == from;
+            
             var platformDetails = GetPlatformDetailsForAddress(from, platform);
             var platformsForAddress = GetPlatformsForAddress(from);
             var platformDetailsUpdated = new PlatformDetails()
@@ -276,7 +457,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 LocalAddress = localAddress,
                 IsSwapEnabled = isSwapEnabled,
                 Tokens = platformDetails.Tokens,
-                MainSwapper = platformDetails.MainSwapper
+                MainSwapper = isMainSwapper
             };
             
             var tempPlatfroms = platformsForAddress.ToList();
@@ -321,6 +502,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             platformsForAddress[platformInfoIndex] = platformInfo;
             _platformsAddresses.Set(from, platformsForAddress);
             
+            AddSwapper(platform, symbol, decimals, externalContractAddress, localAddress, externalAddress, platformInfo.IsSwapEnabled);
+            
             // Emit event
             //Runtime.Notify(EventKind.Custom, from, new TokenEventData(DomainSettings.StakingTokenSymbol, stakeAmount, Runtime.Chain.Name));
         }
@@ -350,6 +533,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             
             platformsForAddress[platformInfoIndex] = platformInfo;
             _platformsAddresses.Set(from, platformsForAddress);
+            
+            UpdateSwapper(platform, symbol, token.ExternalContractAddress, platformInfo.LocalAddress, platformInfo.ExternalAddress, false);
         }
 
         /// <summary>
@@ -420,7 +605,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         private bool IsValidPlatform(string platform)
         {
             return platform.Equals("ethereum", StringComparison.OrdinalIgnoreCase) ||
-                   platform.Equals("binance", StringComparison.OrdinalIgnoreCase);
+                   platform.Equals("bsc", StringComparison.OrdinalIgnoreCase);
         }
         
         /// <summary>
@@ -568,30 +753,32 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var crossChainTransfers = GetCrossChainTransfers();
             var crossChainTransfer = crossChainTransfers.FirstOrDefault(c => c.Identifier == identifier);
             Runtime.Expect(crossChainTransfer.Identifier == identifier, "invalid identifier");
-            
-            
-            
-            // Validate transfer on the other chain
-            // Get the address for that transaction
-            // Validate the transaction
-            // Get the amount
-            // Validate the amount
-            // Get the symbol
-            // Validate the symbol
-            // Get the platform
-            // Validate the platform
-            // Get the chain
-            // Validate the chain
-            // if all is valid, then set the status to Confirmed
-            // Pay the Swapper for the service
-            
+
             bool isValid = false;
-            var result = Runtime.ReadCrossChainTransactionFromOracle(platform, "main", hash);
+            var resultTransactionData = Runtime.ReadCrossChainTransactionFromOracle(platform, "main", hash);
+            // Ethereum == 2 // BSC == 3
+            byte platformId = platform.Equals("ethereum", StringComparison.InvariantCulture) ? (byte)3 
+                : platform.Equals("bsc", StringComparison.InvariantCulture) ? (byte)2 : (byte)2;
+            var userExternalAddress = Address.EncodeAddress(platformId, crossChainTransfer.UserExternalAddress);
+            var swapperExternalAddress = Address.EncodeAddress(platformId, crossChainTransfer.SwapperExternalAddress);
             
+            if (resultTransactionData != null)
+            {
+                var transfers = resultTransactionData.Transfers.ToList();
+                foreach (var transfer in transfers)
+                {
+                    if ( transfer.sourceAddress == swapperExternalAddress &&
+                         transfer.destinationAddress == userExternalAddress &&
+                         transfer.Symbol == crossChainTransfer.Symbol &&
+                         transfer.Value == crossChainTransfer.Amount)
+                    {
+                        isValid = true;
+                        break;
+                    }
+                }
+            }
             
             // Validate the transaction
-            
-            
             Runtime.Expect(isValid, "invalid transfer");
             crossChainTransfer.status = CrossChainTransferStatus.Confirmed;
             
@@ -610,8 +797,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public void SettleCrossChainTransaction(Address from, string platform, string chain, Hash hash)
         {
             // From USER
-            // Platform = ETH / BNB 
-            // Chain = ETH / BNB 
+            // Platform = ETH / BSC
+            // Chain = ETH / BSC
             // Hash = Hash of the transaction on the other chain
             
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -640,7 +827,6 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         #endregion
         
         #region Old Methods
-
         public void SettleTransaction(Address from, string platform, string chain, Hash hash)
         {
             Runtime.Expect(Runtime.ProtocolVersion < 13, "this method is obsolete");

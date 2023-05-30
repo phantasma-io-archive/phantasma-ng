@@ -366,6 +366,17 @@ namespace Phantasma.Core.Cryptography
 
         public byte PlatformID => (byte)(1 + _bytes[0] - AddressKind.Interop);
 
+        public static Address EncodeAddress(byte platformID, string addressText)
+        {
+            Throw.If(!IsValidAddress(addressText), "invalid ethereum address");
+            var input = addressText.Substring(2);
+            var bytes = Base16.Decode(input);
+
+            var pubKey = new byte[33];
+            ByteArrayUtils.CopyBytes(bytes, 0, pubKey, 0, bytes.Length);
+            return Address.FromInterop(platformID, pubKey);
+        }
+        
         public static Address FromInterop(byte platformID, byte[] publicKey)
         {
             Throw.If(publicKey == null || publicKey.Length != 33, "public key is invalid");

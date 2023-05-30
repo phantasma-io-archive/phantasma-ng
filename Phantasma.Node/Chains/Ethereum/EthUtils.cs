@@ -41,6 +41,18 @@ namespace Phantasma.Node.Chains.Ethereum
 
             return symbol;
         }
+
+        public static string FindSymbolFromHash(Nexus nexus, Hash hash)
+        {
+            var symbol = nexus.GetPlatformTokenByHashInterop(hash, "ethereum", nexus.RootStorage);
+
+            if (String.IsNullOrEmpty(symbol))
+            {
+                return null;
+            }
+
+            return symbol;
+        }
     }
 
     public class Sha3Keccak

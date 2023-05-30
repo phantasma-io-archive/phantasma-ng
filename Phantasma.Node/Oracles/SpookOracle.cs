@@ -315,15 +315,16 @@ namespace Phantasma.Node.Oracles
 
             var nexus = NexusAPI.GetNexus();
             TransactionReceipt txRcpt = null;
+            var swappers = nexus.GetSwappersForPlatformAndSymbol(platformName, DomainSettings.FuelTokenSymbol, nexus.RootStorage);
             switch (platformName)
             {
                 case EthereumWallet.EthereumPlatform:
                     txRcpt = _cli.EthAPI.GetTransactionReceipt(hash.ToString());
-                    tx = EthereumInterop.MakeInteropTransaction(txRcpt);
+                    tx = EthereumInterop.MakeInteropTransaction(txRcpt, _cli.EthAPI, swappers.ToList());
                     break;
                 case BSCWallet.BSCPlatform:
                     txRcpt = _cli.BscAPI.GetTransactionReceipt(hash.ToString());
-                    tx = EthereumInterop.MakeInteropTransaction(txRcpt);
+                    tx = EthereumInterop.MakeInteropTransaction(txRcpt, _cli.BscAPI, swappers.ToList());
                     break;
                 default:
                     throw new OracleException("Uknown oracle platform: " + platformName);

@@ -149,6 +149,11 @@ public class OracleSimulator : OracleReader
         throw new OracleException($"unknown transaction for {platformName}.{chainName} : {hash}");
     }
 
+    protected override InteropTransactionData PullTransactionFromPlatform(string platformName, string chainName, Hash hash)
+    {
+        throw new System.NotImplementedException();
+    }
+
     protected override BigInteger PullFee(Timestamp time, string platform)
     {
         return UnitConversion.ToBigInteger(0.1m, DomainSettings.FiatTokenDecimals);

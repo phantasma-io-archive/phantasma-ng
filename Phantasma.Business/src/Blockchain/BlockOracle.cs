@@ -76,6 +76,11 @@ namespace Phantasma.Business.Blockchain
             throw new NotImplementedException();
         }
 
+        protected override InteropTransactionData PullTransactionFromPlatform(string platformName, string chainName, Hash hash)
+        {
+            throw new NotImplementedException();
+        }
+
         protected override InteropNFT PullPlatformNFT(string platformName, string symbol, BigInteger tokenID)
         {
             throw new NotImplementedException();

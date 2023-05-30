@@ -2455,7 +2455,6 @@ public class Nexus : INexus
         //throw new ChainException("Cannot read governance values without a genesis block");
     }
 
-
     private static byte[] _optimizedGovernanceKey = null;
 
     private BigInteger OptimizedGetGovernanceValue(StorageContext storage, string name)
@@ -2678,6 +2677,70 @@ public class Nexus : INexus
         }
 
         return hashes.Distinct().ToArray();
+    }
+    
+    private TokenSwapToSwap GetTokenSwapToSwapFromPlatformAndSymbol(string platform, string symbool, StorageContext storage)
+    {
+        var key = SmartContract.GetKeyForField(NativeContractKind.Interop, "_PlatformSwappers", true);
+
+        var swappersMap = new StorageMap(key, storage);
+        var swapperList = swappersMap.Get<string, StorageList>(platform);
+        var swappers = swapperList.All<TokenSwapToSwap>();
+        
+        foreach( var swapper in swappers)
+        {
+            if (swapper.Symbol == symbool)
+            {
+                return swapper;
+            }
+        }
+        return new TokenSwapToSwap();
+    }
+    
+    public Swapper[] GetSwappersForPlatformAndSymbol(string platform, string symbol, StorageContext storage)
+    {
+        var key = SmartContract.GetKeyForField(NativeContractKind.Interop, "_PlatformSwappers", true);
+        var tokenSwapToSwap = GetTokenSwapToSwapFromPlatformAndSymbol(platform, symbol, storage);
+        return tokenSwapToSwap.Swappers;
+    }
+    
+    private TokenSwapToSwap[] GetTokensSwapFromPlatform(string platform, StorageContext storage)
+    {
+        var key = SmartContract.GetKeyForField(NativeContractKind.Interop, "_PlatformSwappers", true);
+
+        var swappers = new StorageMap(key, storage);
+        return swappers.Get<string, StorageList>(platform).All<TokenSwapToSwap>();
+    }
+    
+
+    public string GetPlatformTokenByHashInterop(Hash hash, string platform, StorageContext storage)
+    {
+        if (hash == Hash.Null)
+            return null;
+        
+        var tokens = GetTokens(storage);
+        if (platform == DomainSettings.PlatformName)
+        {
+            foreach (var token in tokens)
+            {
+                if (Hash.FromString(token) == hash)
+                    return token;
+            }
+        }
+        
+        var tokensSwapFromPlatform = GetTokensSwapFromPlatform(platform, storage);
+        
+        foreach (var token in tokens)
+        {
+            foreach (var externalToken in tokensSwapFromPlatform)
+            {
+                if ( externalToken.Symbol == token &&
+                     Hash.FromString(externalToken.ExternalContractAddress) == hash)
+                    return token;
+            }
+        }
+        
+        return null;
     }
 
     public string GetPlatformTokenByHash(Hash hash, string platform, StorageContext storage)

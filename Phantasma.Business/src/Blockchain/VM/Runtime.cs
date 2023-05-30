@@ -230,67 +230,7 @@ namespace Phantasma.Business.Blockchain.VM
             return result;
         }
 
-        private bool EnforceGasSpending()
-        {
-            Address from, target;
-            BigInteger gasPrice, gasLimit;
-
-            if (!TransactionExtensions.ExtractGasDetailsFromScript(EntryScript, out from, out target, out gasPrice, out gasLimit))
-            {
-                return false;
-            }
-
-            // set the current context to entry context
-            CurrentContext = FindContext(EntryContextName);
-
-            // this is required, otherwise we get stuck in infinite loop
-            DelayPayment = true;
-
-            var allowance = this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowedGas), from).AsNumber();
-            
-            var _methodTableForGasExtraction = (Chain as Chain).GenerateMethodTable();
-
-            IEnumerable<DisasmMethodCall> methods = new List<DisasmMethodCall>();
-            try
-            {
-                methods = DisasmUtils.ExtractMethodCalls(EntryScript, _methodTableForGasExtraction, detectAndUseJumps: true);
-            }
-            catch(Exception e)
-            {
-                Console.WriteLine(e.Message);
-            }
-                
-            bool isWhitelisted = TransactionExtensions.IsWhitelisted(methods);
-            bool hasSpendGas = TransactionExtensions.HasSpendGas(methods);
-            
-            if (allowance <= 0)
-            {
-                // if no allowance is given, create one
-                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas), from, target, gasPrice, gasLimit);
-            }
-            
-            if ( !hasSpendGas)
-                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), from);
-
-            DelayPayment = false;
-
-            return true;
-
-            /*
-            if (allowance >= UsedGas)
-            {
-                // if we have an allowance but no spend gas call was part of the script, call spend gas anyway
-                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
-            }
-            else
-            {
-                // if we don't have an allowance, allow gas
-                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas));
-
-                // and call spend gas
-                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
-            }*/
-        }
+        
 
         public override ExecutionContext LoadContext(string contextName)
         {
@@ -554,6 +494,68 @@ namespace Phantasma.Business.Blockchain.VM
             }
 
             return result;
+        }
+        
+        private bool EnforceGasSpending()
+        {
+            Address from, target;
+            BigInteger gasPrice, gasLimit;
+
+            if (!TransactionExtensions.ExtractGasDetailsFromScript(EntryScript, out from, out target, out gasPrice, out gasLimit))
+            {
+                return false;
+            }
+
+            // set the current context to entry context
+            CurrentContext = FindContext(EntryContextName);
+
+            // this is required, otherwise we get stuck in infinite loop
+            DelayPayment = true;
+
+            var allowance = this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowedGas), from).AsNumber();
+            
+            var _methodTableForGasExtraction = (Chain as Chain).GenerateMethodTable();
+
+            IEnumerable<DisasmMethodCall> methods = new List<DisasmMethodCall>();
+            try
+            {
+                methods = DisasmUtils.ExtractMethodCalls(EntryScript, _methodTableForGasExtraction, detectAndUseJumps: true);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+                
+            bool isWhitelisted = TransactionExtensions.IsWhitelisted(methods);
+            bool hasSpendGas = TransactionExtensions.HasSpendGas(methods);
+            
+            if (allowance <= 0)
+            {
+                // if no allowance is given, create one
+                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas), from, target, gasPrice, gasLimit);
+            }
+            
+            if ( !hasSpendGas)
+                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas), from);
+
+            DelayPayment = false;
+
+            return true;
+
+            /*
+            if (allowance >= UsedGas)
+            {
+                // if we have an allowance but no spend gas call was part of the script, call spend gas anyway
+                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
+            }
+            else
+            {
+                // if we don't have an allowance, allow gas
+                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.AllowGas));
+
+                // and call spend gas
+                this.CallNativeContext(NativeContractKind.Gas, nameof(GasContract.SpendGas));
+            }*/
         }
         #endregion
 
@@ -1493,6 +1495,13 @@ namespace Phantasma.Business.Blockchain.VM
             return Chain.Name == parentName;
         }
 
+        /// <summary>
+        /// Method is used to Mint Tokens
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="from"></param>
+        /// <param name="target"></param>
+        /// <param name="amount"></param>
         public void MintTokens(string symbol, Address from, Address target, BigInteger amount)
         {
             ExpectNameLength(symbol, nameof(symbol));
@@ -1526,6 +1535,16 @@ namespace Phantasma.Business.Blockchain.VM
             Nexus.MintTokens(this, token, from, target, Chain.Name, amount);
         }
 
+        /// <summary>
+        /// Method is used to Mint a NFT with a specific SeriesID
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="from"></param>
+        /// <param name="target"></param>
+        /// <param name="rom"></param>
+        /// <param name="ram"></param>
+        /// <param name="seriesID"></param>
+        /// <returns></returns>
         public BigInteger MintToken(string symbol, Address from, Address target, byte[] rom, byte[] ram, BigInteger seriesID)
         {
             ExpectNameLength(symbol, nameof(symbol));
@@ -1563,6 +1582,12 @@ namespace Phantasma.Business.Blockchain.VM
             return tokenID;
         }
 
+        /// <summary>
+        /// Method is used to Burn Tokens
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="target"></param>
+        /// <param name="amount"></param>
         public void BurnTokens(string symbol, Address target, BigInteger amount)
         {
             ExpectNameLength(symbol, nameof(symbol));
@@ -1579,6 +1604,12 @@ namespace Phantasma.Business.Blockchain.VM
             Nexus.BurnTokens(this, token, target, target, Chain.Name, amount);
         }
 
+        /// <summary>
+        /// Method is used to Burn a NFT
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="target"></param>
+        /// <param name="tokenID"></param>
         public void BurnToken(string symbol, Address target, BigInteger tokenID)
         {
             ExpectNameLength(symbol, nameof(symbol));
@@ -1595,6 +1626,14 @@ namespace Phantasma.Business.Blockchain.VM
             Nexus.BurnToken(this, token, target, target, Chain.Name, tokenID);
         }
 
+        /// <summary>
+        /// Method is used to Infuse a token with another token
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="from"></param>
+        /// <param name="tokenID"></param>
+        /// <param name="infuseSymbol"></param>
+        /// <param name="value"></param>
         public void InfuseToken(string symbol, Address from, BigInteger tokenID, string infuseSymbol, BigInteger value)
         {
             ExpectNameLength(symbol, nameof(symbol));
@@ -1614,12 +1653,29 @@ namespace Phantasma.Business.Blockchain.VM
             Nexus.InfuseToken(this, token, from, tokenID, infuseToken, value);
         }
 
+        /// <summary>
+        /// Method is used to get a Token Series.
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="seriesID"></param>
+        /// <returns></returns>
         public ITokenSeries GetTokenSeries(string symbol, BigInteger seriesID)
         {
             ExpectNameLength(symbol, nameof(symbol));
             return Nexus.GetTokenSeries(RootStorage, symbol, seriesID);
         }
 
+        /// <summary>
+        /// Method is used to create a new token series.
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="from"></param>
+        /// <param name="seriesID"></param>
+        /// <param name="maxSupply"></param>
+        /// <param name="mode"></param>
+        /// <param name="script"></param>
+        /// <param name="abi"></param>
+        /// <returns></returns>
         public ITokenSeries CreateTokenSeries(string symbol, Address from, BigInteger seriesID, BigInteger maxSupply, TokenSeriesMode mode, byte[] script, ContractInterface abi)
         {
             ExpectNameLength(symbol, nameof(symbol));
@@ -1641,6 +1697,13 @@ namespace Phantasma.Business.Blockchain.VM
             return Nexus.CreateSeries(RootStorage, token, seriesID, maxSupply, mode, script, abi);
         }
 
+        /// <summary>
+        /// Transfer tokens from one address to another.
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="source"></param>
+        /// <param name="destination"></param>
+        /// <param name="amount"></param>
         public void TransferTokens(string symbol, Address source, Address destination, BigInteger amount)
         {
             ExpectNameLength(symbol, nameof(symbol));
@@ -1672,6 +1735,13 @@ namespace Phantasma.Business.Blockchain.VM
             Nexus.TransferTokens(this, token, source, destination, amount);
         }
 
+        /// <summary>
+        /// Method Used to Transfer NFT from one address to another
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="source"></param>
+        /// <param name="destination"></param>
+        /// <param name="tokenID"></param>
         public void TransferToken(string symbol, Address source, Address destination, BigInteger tokenID)
         {
             ExpectNameLength(symbol, nameof(symbol));
@@ -1688,6 +1758,16 @@ namespace Phantasma.Business.Blockchain.VM
             Nexus.TransferToken(this, token, source, destination, tokenID);
         }
 
+        /// <summary>
+        /// Swap Token, this method is used to Cross Chain Swap Tokens
+        /// </summary>
+        /// <param name="sourceChain"></param>
+        /// <param name="from"></param>
+        /// <param name="targetChain"></param>
+        /// <param name="to"></param>
+        /// <param name="symbol"></param>
+        /// <param name="value"></param>
+        /// <exception cref="ChainException"></exception>
         public void SwapTokens(string sourceChain, Address from, string targetChain, Address to, string symbol, BigInteger value)
         {
             Expect(ProtocolVersion <= 15, "this method is obsolete");
@@ -1990,7 +2070,6 @@ namespace Phantasma.Business.Blockchain.VM
 
             Nexus.MigrateTokenOwner(RootStorage, from, to);
         }
-
 
         public void MigrateMember(string organization, Address admin, Address source, Address destination)
         {
