@@ -309,10 +309,10 @@ public class OracleTests
         foreach (var txHash in block.TransactionHashes)
         {
             var blkResult = block.GetResultForTransaction(txHash);
-            nexus.GetOracleReader().ReadTransaction("phantasma", "main", txHash);
-            nexus.GetOracleReader().ReadTransaction("phantasma", "main", txHash);
-            nexus.GetOracleReader().ReadTransaction("phantasma", "main", txHash);
-            nexus.GetOracleReader().ReadTransaction("phantasma", "main", txHash);
+            nexus.GetOracleReader().ReadTransaction(Timestamp.Now, "phantasma", "main", txHash);
+            nexus.GetOracleReader().ReadTransaction(Timestamp.Now, "phantasma", "main", txHash);
+            nexus.GetOracleReader().ReadTransaction(Timestamp.Now, "phantasma", "main", txHash);
+            nexus.GetOracleReader().ReadTransaction(Timestamp.Now, "phantasma", "main", txHash);
 
             var vmObj = VMObject.FromBytes(blkResult);
             Console.WriteLine("price: " + vmObj);

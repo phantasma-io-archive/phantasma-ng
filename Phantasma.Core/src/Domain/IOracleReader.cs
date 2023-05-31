@@ -14,7 +14,7 @@ public interface IOracleReader
     void SetCurrentHeight(string platformName, string chainName, string height);
     List<InteropBlock> ReadAllBlocks(string platformName, string chainName);
     T Read<T>(Timestamp time, string url) where T : class;
-    InteropTransaction ReadTransaction(string platform, string chain, Hash hash);
+    InteropTransaction ReadTransaction(Timestamp time, string platform, string chain, Hash hash);
     void Clear();
     void MergeTxData();
     int GetMultiplier();

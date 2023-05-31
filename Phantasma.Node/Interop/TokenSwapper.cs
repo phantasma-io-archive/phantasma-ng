@@ -634,7 +634,7 @@ namespace Phantasma.Node.Interop
 
         private Hash SettleSwapToExternal(Hash sourceHash, string destPlatform)
         {
-            var swap = OracleReader.ReadTransaction(DomainSettings.PlatformName, DomainSettings.RootChainName, sourceHash);
+            var swap = OracleReader.ReadTransaction(Timestamp.Now, DomainSettings.PlatformName, DomainSettings.RootChainName, sourceHash);
             var transfers = swap.Transfers.Where(x => x.destinationAddress.IsInterop).ToArray();
 
             // TODO not support yet

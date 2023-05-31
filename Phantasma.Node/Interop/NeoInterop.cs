@@ -11,6 +11,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 using Phantasma.Infrastructure.Pay;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Node.Chains.Neo2;
@@ -286,7 +287,7 @@ namespace Phantasma.Node.Interop
         {
             foreach (var txHash in block.Transactions)
             {
-                var interopTx = OracleReader.ReadTransaction("neo", "neo", txHash);
+                var interopTx = OracleReader.ReadTransaction(Timestamp.Now, "neo", "neo", txHash);
 
                 if (interopTx.Transfers.Length == 0)
                 {

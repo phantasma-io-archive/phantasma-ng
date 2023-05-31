@@ -20,6 +20,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Node.Chains.Ethereum;
@@ -301,7 +302,7 @@ namespace Phantasma.Node.Interop
         {
             foreach (var txHash in block.Transactions)
             {
-                var interopTx = OracleReader.ReadTransaction(EthereumWallet.EthereumPlatform, "ethethereum", txHash);
+                var interopTx = OracleReader.ReadTransaction(Timestamp.Now, EthereumWallet.EthereumPlatform, "ethethereum", txHash);
 
                 foreach (var interopTransfer in interopTx.Transfers)
                 {

@@ -122,7 +122,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             var oracleReader = nexus.GetOracleReader();
 
             var txswaps = swapList.
-                Select(x => new KeyValuePair<ChainSwap, InteropTransaction>(x, oracleReader.ReadTransaction(x.sourcePlatform, x.sourceChain, x.sourceHash))).ToArray();
+                Select(x => new KeyValuePair<ChainSwap, InteropTransaction>(x, oracleReader.ReadTransaction(Timestamp.Now, x.sourcePlatform, x.sourceChain, x.sourceHash))).ToArray();
 
             var swaps = txswaps.Where(x => x.Value != null && x.Value.Transfers.Length > 0).
                 Select(x => new SwapResult()

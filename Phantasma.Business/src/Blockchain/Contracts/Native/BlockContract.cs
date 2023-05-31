@@ -32,6 +32,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         private void DoSettlement(IChain sourceChain, Address sourceAddress, Address targetAddress, string symbol, BigInteger value, byte[] data)
         {
             Runtime.Expect(Runtime.ProtocolVersion < 13, "this method is obsolete");
+            Runtime.Expect(false, "this method is obsolete");
             Runtime.Expect(value > 0, "value must be greater than zero");
             Runtime.Expect(targetAddress.IsUser, "target must not user address");
 

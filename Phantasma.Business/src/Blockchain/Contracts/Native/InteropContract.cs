@@ -468,8 +468,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public void UpdatePlatformDetails(Address from, string platform, Address localAddress,
             string externalAddress, string mainSymbol, string fuelSymbol, int decimals, bool isSwapEnabled )
         {
+            Runtime.Expect(from.IsUser, "Needs to be a user address");
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
             Runtime.Expect(HasPlatformInfo(from, platform), "platform not registered");
+            Runtime.Expect(Nexus.IsDangerousAddress(from), "invalid target address");
+
             
             var validators = Runtime.GetValidators();
             bool isMainSwapper = validators.First(v => v.address == from).address == from;
@@ -508,8 +511,14 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public void RegisterTokenOnPlatform(Address from, string platform, string symbol, int decimals, string externalContractAddress, Address localContractAddress, Address localAddress, string externalAddress)
         {
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
+            Runtime.Expect(from.IsUser, "Needs to be a user address");
             Runtime.Expect(HasPlatformInfo(from, platform), "No platform registered for this address");
-            
+            Runtime.Expect(Runtime.TokenExists(symbol), "token not registered");
+            Runtime.Expect(Nexus.IsDangerousAddress(from), "invalid target address");
+            var tokenInfo = Runtime.GetToken(symbol);
+            Runtime.Expect(tokenInfo.IsTransferable(), "token not transferable");
+            Runtime.Expect(tokenInfo.IsFungible(), "token not fungible");
+
             var platformsForAddress = GetPlatformsForAddress(from);
             var platformInfoIndex = platformsForAddress.ToList().FindIndex(p => p.Name == platform);
             var platformInfo = platformsForAddress.FirstOrDefault(p => p.Name == platform);
@@ -546,9 +555,15 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="symbol"></param>
         public void RemoveTokenFromPlatform(Address from, string platform, string symbol)
         {
+            Runtime.Expect(from.IsUser, "witness failed");
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
             Runtime.Expect(HasPlatformInfo(from, platform), "No platform registered for this address");
-            
+            Runtime.Expect(Nexus.IsDangerousAddress(from), "invalid target address");
+            Runtime.Expect(Runtime.TokenExists(symbol), "token not registered");
+            var tokenInfo = Runtime.GetToken(symbol);
+            Runtime.Expect(tokenInfo.IsTransferable(), "token not transferable");
+            Runtime.Expect(tokenInfo.IsFungible(), "token not fungible");
+
             var platformsForAddress = GetPlatformsForAddress(from);
             var platformInfoIndex = platformsForAddress.ToList().FindIndex(p => p.Name == platform);
             var platformInfo = platformsForAddress.FirstOrDefault(p => p.Name == platform);
@@ -685,6 +700,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(fromPlatform != toPlatform, "platforms must be different");
             Runtime.Expect(fromPlatform == DomainSettings.PlatformName, "platform must be Phantasma");
             Runtime.Expect(amount > 0, "invalid amount");
+            Runtime.Expect(Runtime.TokenExists(symbol), "invalid token");
+            var tokenInfo = Runtime.GetToken(symbol);
+            Runtime.Expect(tokenInfo.IsTransferable(), "token not transferable");
+            Runtime.Expect(tokenInfo.IsFungible(), "token not fungible");
             
             // Get all Platforms
             var availableSwappers = GetAvailableSwappers(toPlatform, symbol);
@@ -737,7 +756,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="from"></param>
         /// <param name="platform"></param>
         /// <param name="identifier"></param>
-        public void ClaimCrossChainTransferToProcess(Address from, string platform, string identifier)
+        public void AcceptCrossChainTransferA(Address from, string platform, string identifier)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(HasPlatformInfo(from, platform), "No platform registered for this address");
@@ -820,20 +839,22 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <summary>
         /// This is used to settle a Cross Chain Transaction from the other chain to Phantasma.
         /// </summary>
+        /// <param name="Caller">Validator</param>
         /// <param name="from">USER</param>
         /// <param name="platform">ETH / BSC</param>
         /// <param name="chain">ethereum</param>
         /// <param name="hash"></param>
-        public void SettleCrossChainTransaction(Address from, string externalAddress, string platform, string chain, Hash hash)
+        public void SettleCrossChainTransaction(Address Caller, Address from, string externalAddress, string platform, string chain, Hash hash)
         {
             // From USER
             // Platform = ETH / BSC
             // Chain = ETH / BSC
             // Hash = Hash of the transaction on the other chain
-            
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(Runtime.IsWitness(Caller), "invalid witness");
+            Runtime.Expect(Runtime.IsKnownValidator(Caller), "invalid witness");
             Runtime.Expect(from.IsUser, "must be user address");
             Runtime.Expect(platform == DomainSettings.PlatformName, "invalid platform, this method can only be called from other chains.");
+            Runtime.Expect(!hash.IsNull, "Invalid Hash");
             
             var platformDetails = GetAllPlatforms();
             
@@ -913,6 +934,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public void SettleTransaction(Address from, string platform, string chain, Hash hash)
         {
             Runtime.Expect(Runtime.ProtocolVersion < 13, "this method is obsolete");
+            Runtime.Expect(false, "this method is obsolete");
+
 
             Runtime.Expect(!Filter.Enabled, "swap settlements disabled");
 
@@ -1051,6 +1074,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public void WithdrawTokens(Address from, Address to, string symbol, BigInteger value)
         {
             Runtime.Expect(Runtime.ProtocolVersion < 13, "this method is obsolete");
+            Runtime.Expect(false, "this method is obsolete");
 
             Runtime.Expect(!Filter.Enabled, "swap withdraws disabled");
 
