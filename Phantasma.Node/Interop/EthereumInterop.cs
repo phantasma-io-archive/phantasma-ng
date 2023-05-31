@@ -7,9 +7,12 @@ using System.Numerics;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+
+using Nethereum.Signer;
 using Nethereum.Contracts;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.StandardTokenEIP20.ContractDefinition;
+
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core.Cryptography;
@@ -20,7 +23,9 @@ using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Node.Utils;
+
 using Serilog;
+
 using EthereumKey = Phantasma.Node.Chains.Ethereum.EthereumKey;
 using Transaction = Nethereum.RPC.Eth.DTOs.Transaction;
 
@@ -331,19 +336,21 @@ namespace Phantasma.Node.Interop
         public static Address ExtractInteropAddress(Nethereum.RPC.Eth.DTOs.Transaction tx)
         {
             //Using the transanction from RPC to build a txn for signing / signed
-            var transaction = Nethereum.Signer.TransactionFactory.CreateTransaction(tx.To, tx.Gas, tx.GasPrice, tx.Value, tx.Input, tx.Nonce,
+            var transaction = TransactionFactory.CreateLegacyTransaction(tx.To, tx.Gas, tx.GasPrice, tx.Value, tx.Input, tx.Nonce,
                 tx.R, tx.S, tx.V);
             
             //Get the account sender recovered
             Nethereum.Signer.EthECKey accountSenderRecovered = null;
-            if (transaction is Nethereum.Signer.TransactionChainId)
+            if (transaction is LegacyTransactionChainId)
             {
-                var txnChainId = transaction as Nethereum.Signer.TransactionChainId;
-                accountSenderRecovered = Nethereum.Signer.EthECKey.RecoverFromSignature(transaction.Signature, transaction.RawHash, txnChainId.GetChainIdAsBigInteger());
+                var txnChainId = transaction as LegacyTransactionChainId;
+                var sig = txnChainId.Signature.ToEthECDSASignature();
+                accountSenderRecovered = Nethereum.Signer.EthECKey.RecoverFromSignature(sig, txnChainId.RawHash, txnChainId.GetChainIdAsBigInteger());
             }
             else
             {
-                accountSenderRecovered = Nethereum.Signer.EthECKey.RecoverFromSignature(transaction.Signature, transaction.RawHash);
+                var sig = transaction.Signature.ToEthECDSASignature();
+                accountSenderRecovered = Nethereum.Signer.EthECKey.RecoverFromSignature(sig, transaction.RawHash);
             }
 
             var pubKey = accountSenderRecovered.GetPubKey();

@@ -333,8 +333,19 @@ namespace Phantasma.Core.Cryptography
             return LengthInBytes;
         }
 
+
+        // WARNING the performance of this is not the best.
+        // Rewrite it later without using try..catch and preferably also without instantiating a new address
         public static bool IsValidAddress(string text)
         {
+            lock (_textToAddressCache)
+            {
+                if (_textToAddressCache.ContainsKey(text))
+                {
+                    return true;
+                }
+            }
+
             try
             {
                 var addr = Address.FromText(text);

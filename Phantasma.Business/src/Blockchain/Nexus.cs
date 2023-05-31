@@ -5,13 +5,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.Blockchain.VM;
-using Phantasma.Business.VM;
 using Phantasma.Business.VM.Utils;
+
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
@@ -19,6 +20,7 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Utils;
+
 using Serilog;
 using Timestamp = Phantasma.Core.Types.Timestamp;
 
@@ -104,7 +106,7 @@ public class Nexus : INexus
         {
             InitGenesisValues();
 
-            var tokens = GetTokens(storage);
+            var tokens = GetAvailableTokenSymbols(storage);
             _migratingNexus = tokens.Any(x => x.Equals(DomainSettings.StakingTokenSymbol));
 
             if (_migratingNexus)
@@ -770,10 +772,11 @@ public class Nexus : INexus
                 }
                 else
                 {
+                    bool isValidEVM = source.IsEVMContext() && amount <= StakeContract.DefaultMasterThreshold;
                     bool isValidContext = Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
-                                          Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName();
+                                          Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName() || isValidEVM;
                     bool isValidOrigin = source == SmartContract.GetAddressForNative(NativeContractKind.Stake) || 
-                                         source == SmartContract.GetAddressForNative(NativeContractKind.Gas);
+                                         source == SmartContract.GetAddressForNative(NativeContractKind.Gas) || isValidEVM;
 
                     Runtime.ExpectWarning(isValidContext , $"minting of {token.Symbol} can only happen via master claim", source);
                     //Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
@@ -821,8 +824,8 @@ public class Nexus : INexus
             Runtime.Expect(tokenTriggerResult == TriggerResult.Success, $"token trigger {tokenTrigger} failed or missing");
         }
 
-        var accountTrigger = isSettlement ? AccountTrigger.OnReceive : AccountTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"account trigger {accountTrigger} failed");
+        var accountTrigger = isSettlement ? ContractTrigger.OnReceive : ContractTrigger.OnMint;
+        Runtime.Expect(Runtime.InvokeTriggerOnContract(true, destination, accountTrigger, source, destination, token.Symbol, amount) != TriggerResult.Failure, $"account trigger {accountTrigger} failed");
 
         if (isSettlement)
         {
@@ -856,8 +859,8 @@ public class Nexus : INexus
             Runtime.Expect(tokenTriggerResult == TriggerResult.Success, $"token {tokenTrigger} trigger failed or missing");
         }
 
-        var accountTrigger = isSettlement ? AccountTrigger.OnReceive : AccountTrigger.OnMint;
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"account trigger {accountTrigger} failed");
+        var accountTrigger = isSettlement ? ContractTrigger.OnReceive : ContractTrigger.OnMint;
+        Runtime.Expect(Runtime.InvokeTriggerOnContract(true, destination, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"account trigger {accountTrigger} failed");
 
         var nft = ReadNFT(Runtime, token.Symbol, tokenID);
         WriteNFT(Runtime, token.Symbol, tokenID, Runtime.Chain.Name, source, destination, nft.ROM, nft.RAM,
@@ -944,7 +947,7 @@ public class Nexus : INexus
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, isSettlement ? TokenTrigger.OnSend : TokenTrigger.OnBurn, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token trigger failed");
 
         // If trigger is missing the code will be executed
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, source, isSettlement ? AccountTrigger.OnSend : AccountTrigger.OnBurn, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account trigger failed");
+        Runtime.Expect(Runtime.InvokeTriggerOnContract(true, source, isSettlement ? ContractTrigger.OnSend : ContractTrigger.OnBurn, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account trigger failed");
 
         if (isSettlement)
         {
@@ -1029,8 +1032,8 @@ public class Nexus : INexus
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, tokenTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"token {tokenTrigger} trigger failed: ");
         
         // If trigger is missing the code will be executed
-        var accountTrigger = isSettlement ? AccountTrigger.OnSend : AccountTrigger.OnBurn;
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, source, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"accont {accountTrigger} trigger failed: ");
+        var accountTrigger = isSettlement ? ContractTrigger.OnSend : ContractTrigger.OnBurn;
+        Runtime.Expect(Runtime.InvokeTriggerOnContract(true, source, accountTrigger, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, $"accont {accountTrigger} trigger failed: ");
     }
     
     private void DestroyNFTIfSettlement(IRuntime Runtime, IToken token, Address source, Address destination, BigInteger tokenID, bool isSettlement)
@@ -1141,8 +1144,8 @@ public class Nexus : INexus
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnSend, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token onSend trigger failed");
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnReceive, source, destination, token.Symbol, amount) != TriggerResult.Failure, "token onReceive trigger failed");
 
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, source, AccountTrigger.OnSend, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account onSend trigger failed");
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, AccountTrigger.OnReceive, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account onReceive trigger failed");
+        Runtime.Expect(Runtime.InvokeTriggerOnContract(true, source, ContractTrigger.OnSend, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account onSend trigger failed");
+        Runtime.Expect(Runtime.InvokeTriggerOnContract(true, destination, ContractTrigger.OnReceive, source, destination, token.Symbol, amount) != TriggerResult.Failure, "account onReceive trigger failed");
 
 #if ALLOWANCE_OPERATIONS
         Runtime.RemoveAllowance(destination, token.Symbol);
@@ -1186,9 +1189,9 @@ public class Nexus : INexus
 
         Runtime.Expect(Runtime.InvokeTriggerOnToken(true, token, TokenTrigger.OnReceive, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "token receive trigger failed");
 
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, source, AccountTrigger.OnSend, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "account send trigger failed");
+        Runtime.Expect(Runtime.InvokeTriggerOnContract(true, source, ContractTrigger.OnSend, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "account send trigger failed");
 
-        Runtime.Expect(Runtime.InvokeTriggerOnAccount(true, destination, AccountTrigger.OnReceive, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "account received trigger failed");
+        Runtime.Expect(Runtime.InvokeTriggerOnContract(true, destination, ContractTrigger.OnReceive, source, destination, token.Symbol, tokenID) != TriggerResult.Failure, "account received trigger failed");
 
         WriteNFT(Runtime, token.Symbol, tokenID, Runtime.Chain.Name, nft.Creator, destination, nft.ROM, nft.RAM,
                 nft.SeriesID, Runtime.Time, nft.Infusion, true);
@@ -1705,7 +1708,7 @@ public class Nexus : INexus
 
         var storage = RootStorage;
 
-        var symbols = GetTokens(storage);
+        var symbols = GetAvailableTokenSymbols(storage);
         foreach (var symbol in symbols)
         {
             var token = GetTokenInfo(storage, symbol);
@@ -2545,7 +2548,7 @@ public class Nexus : INexus
     private const string FeedTag = "feeds";
     private const string OrganizationTag = "orgs";
 
-    public string[] GetTokens(StorageContext storage)
+    public string[] GetAvailableTokenSymbols(StorageContext storage)
     {
         var list = GetSystemList(TokenTag, storage);
         return list.All<string>();
@@ -2650,7 +2653,7 @@ public class Nexus : INexus
 
     public Hash[] GetPlatformTokenHashes(string platform, StorageContext storage)
     {
-        var tokens = GetTokens(storage);
+        var tokens = GetAvailableTokenSymbols(storage);
 
         var hashes = new List<Hash>();
 
@@ -2745,7 +2748,7 @@ public class Nexus : INexus
 
     public string GetPlatformTokenByHash(Hash hash, string platform, StorageContext storage)
     {
-        var tokens = GetTokens(storage);
+        var tokens = GetAvailableTokenSymbols(storage);
 
         if (platform == DomainSettings.PlatformName)
         {
@@ -2819,7 +2822,7 @@ public class Nexus : INexus
 
     public IToken GetTokenInfo(StorageContext storage, Address contractAddress)
     {
-        var symbols = GetTokens(storage);
+        var symbols = GetAvailableTokenSymbols(storage);
         foreach (var symbol in symbols)
         {
             var tokenAddress = TokenUtils.GetContractAddress(symbol);
@@ -2836,7 +2839,7 @@ public class Nexus : INexus
 
     public void MigrateTokenOwner(StorageContext storage, Address oldOwner, Address newOwner)
     {
-        var symbols = GetTokens(storage);
+        var symbols = GetAvailableTokenSymbols(storage);
         foreach (var symbol in symbols)
         {
             var token = (TokenInfo) GetTokenInfo(storage, symbol);

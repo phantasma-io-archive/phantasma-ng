@@ -208,11 +208,11 @@ public static class NexusAPI
                 {
                     if (method.IsProperty())
                     {
-                        if (symbol == DomainSettings.RewardTokenSymbol && method.name == "getImageURL")
+                        if (symbol == DomainSettings.RewardTokenSymbol && method.name == TokenUtils.ImageURLMethodName)
                         {
                             properties.Add(new TokenPropertyResult() { Key = "ImageURL", Value = "https://phantasma.io/img/crown.png" });
                         }
-                        else if (symbol == DomainSettings.RewardTokenSymbol && method.name == "getInfoURL")
+                        else if (symbol == DomainSettings.RewardTokenSymbol && method.name == TokenUtils.InfoURLMethodName)
                         {
                             properties.Add(new TokenPropertyResult() { Key = "InfoURL", Value = "https://phantasma.io/crown/" + ID });
                         }
@@ -643,7 +643,7 @@ public static class NexusAPI
         var validator = Nexus.GetValidatorType(address, Timestamp.Now);
 
         var balanceList = new List<BalanceResult>();
-        var symbols = Nexus.GetTokens(Nexus.RootStorage);
+        var symbols = Nexus.GetAvailableTokenSymbols(Nexus.RootStorage);
         var chains = Nexus.GetChains(Nexus.RootStorage);
         foreach (var symbol in symbols)
         {

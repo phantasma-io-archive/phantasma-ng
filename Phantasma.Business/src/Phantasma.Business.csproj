@@ -11,6 +11,7 @@
     <Version>1.0.7</Version>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Nethereum.Web3" Version="4.14.0" />
     <PackageReference Include="Serilog" Version="2.11.0" />
   </ItemGroup>
   <ItemGroup>

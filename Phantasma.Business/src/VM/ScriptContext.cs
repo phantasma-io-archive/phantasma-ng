@@ -1,10 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Numerics;
+using Nethereum.Contracts.QueryHandlers.MultiCall;
+using Phantasma.Business.Blockchain.VM;
 using Phantasma.Core;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 using Phantasma.Core.Performance;
+using Phantasma.Core.Utils;
 using Serilog;
 
 namespace Phantasma.Business.VM
@@ -23,15 +28,16 @@ namespace Phantasma.Business.VM
         private ExecutionState _state;
         public string Error { get; private set; }
 
-        private Opcode opcode;
+        private Opcode _currentOpcode;
 
         public ScriptContext(string name, byte[] script, uint offset)
         {
             this._name = name;
-            this._state = ExecutionState.Running;
             this.Script = script;
             this.InstructionPointer = offset;
-            this.opcode = Opcode.NOP;
+
+            this._state = ExecutionState.Running;
+            this._currentOpcode = Opcode.NOP;
         }
 
         public override ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack)
@@ -121,7 +127,7 @@ namespace Phantasma.Business.VM
         {
             if (!condition)
             {
-                throw new Exception($"Script execution failed: {error} @ {opcode} : {InstructionPointer}");
+                throw new Exception($"Script execution failed: {error} @ {_currentOpcode} : {InstructionPointer}");
             }
         }
 
@@ -140,11 +146,11 @@ namespace Phantasma.Business.VM
         {
             try
             {
-                opcode = (Opcode)Read8();
+                _currentOpcode = (Opcode)Read8();
 
-                frame.VM.ValidateOpcode(opcode);
+                frame.VM.ValidateOpcode(_currentOpcode);
 
-                switch (opcode)
+                switch (_currentOpcode)
                 {
                     case Opcode.NOP:
                         {
@@ -412,9 +418,15 @@ namespace Phantasma.Business.VM
                             break; // put here a breakpoint for debugging
                         }
 
+                    case Opcode.EVM:
+                        {
+                            Call_EVM(ref frame);
+                            break;
+                        }
+
                     default:
                         {
-                            throw new VMException(frame.VM, $"Unknown VM opcode: {(int)opcode}");
+                            throw new VMException(frame.VM, $"Unknown VM opcode: {(int)_currentOpcode}");
                         }
                 }
             }
@@ -617,7 +629,7 @@ namespace Phantasma.Business.VM
         {
             bool shouldJump;
 
-            if (opcode == Opcode.JMP)
+            if (_currentOpcode == Opcode.JMP)
             {
                 shouldJump = true;
             }
@@ -628,7 +640,7 @@ namespace Phantasma.Business.VM
 
                 shouldJump = frame.Registers[src].AsBool();
 
-                if (opcode == Opcode.JMPNOT)
+                if (_currentOpcode == Opcode.JMPNOT)
                 {
                     shouldJump = !shouldJump;
                 }
@@ -957,7 +969,7 @@ namespace Phantasma.Business.VM
                         var b = valB.AsBool();
 
                         bool result;
-                        switch (opcode)
+                        switch (_currentOpcode)
                         {
                             case Opcode.AND: result = (a && b); break;
                             case Opcode.OR: result = (a || b); break;
@@ -986,7 +998,7 @@ namespace Phantasma.Business.VM
                         var a = (uint)numA;
                         var b = (uint)numB;
 
-                        if (opcode != Opcode.AND) {
+                        if (_currentOpcode != Opcode.AND) {
                             SetState(ExecutionState.Fault);
                         }
 
@@ -1011,7 +1023,7 @@ namespace Phantasma.Business.VM
                         var b = (long)numB;
 
                         BigInteger result;
-                        switch (opcode)
+                        switch (_currentOpcode)
                         {
                             case Opcode.AND: result = (a & b); break;
                             case Opcode.OR: result = (a | b); break;
@@ -1078,7 +1090,7 @@ namespace Phantasma.Business.VM
             var b = frame.Registers[srcB].AsNumber();
 
             bool result;
-            switch (opcode)
+            switch (_currentOpcode)
             {
                 case Opcode.LT: result = (a < b); break;
                 case Opcode.GT: result = (a > b); break;
@@ -1208,7 +1220,7 @@ namespace Phantasma.Business.VM
             Expect(dst < frame.Registers.Length, "invalid dst register");
 
 
-            if (opcode == Opcode.ADD && frame.Registers[srcA].Type == VMType.String)
+            if (_currentOpcode == Opcode.ADD && frame.Registers[srcA].Type == VMType.String)
             {
                 Expect(frame.Registers[srcB].Type == VMType.String, "invalid string as right operand");
 
@@ -1225,7 +1237,7 @@ namespace Phantasma.Business.VM
 
                 BigInteger result;
 
-                switch (opcode)
+                switch (_currentOpcode)
                 {
                     case Opcode.ADD: result = a + b; break;
                     case Opcode.SUB: result = a - b; break;
@@ -1359,6 +1371,29 @@ namespace Phantasma.Business.VM
                 throw new VMException(frame.VM, $"VM switch instruction failed: execution state did not halt");
             }
             
+        }
+
+        private void Call_EVM(ref ExecutionFrame frame)
+        {
+            Expect(InstructionPointer == 1, "EVM opcode must appear in beginning of a script");
+
+            var evm_script = this.Script.Skip((int)InstructionPointer).ToArray();
+
+            var contextName = $"{EVMContext.ContextName}:{Base16.Encode(evm_script)}";
+
+            ExecutionContext context = frame.VM.FindContext(contextName);
+
+            if (context == null)
+            {
+                throw new VMException(frame.VM, $"EVM instruction failed: could not create EVM context");
+            }
+
+            _state = frame.VM.SwitchContext(context, InstructionPointer);
+
+            if (_state == ExecutionState.Running)
+            {
+                throw new VMException(frame.VM, $"EVM context should have terminated, possible bug?");
+            }
         }
 
         /// <summary>

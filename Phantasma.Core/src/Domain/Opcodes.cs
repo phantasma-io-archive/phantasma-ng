@@ -73,6 +73,8 @@ namespace Phantasma.Core.Domain
         DEBUG,
 
         // add
-        SUBSTR
+        SUBSTR,
+
+        EVM = 255,
     }
 }

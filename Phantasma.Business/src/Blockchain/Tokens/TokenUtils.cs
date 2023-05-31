@@ -14,7 +14,10 @@ using Phantasma.Core.Types;
 namespace Phantasma.Business.Blockchain.Tokens
 {
     public static class TokenUtils
-    {
+    {        
+        public static readonly string ImageURLMethodName = "getImageURL";
+        public static readonly string InfoURLMethodName = "getInfoURL";
+
         public static Address GetContractAddress(this IToken token)
         {
             return GetContractAddress(token.Symbol);
