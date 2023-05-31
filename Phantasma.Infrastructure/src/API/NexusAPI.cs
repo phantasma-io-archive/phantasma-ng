@@ -95,6 +95,7 @@ public static class NexusAPI
 
         return TokenSwapper;
     }
+    
 
     public static TokenResult FillToken(string tokenSymbol, bool fillSeries, bool extended)
     {

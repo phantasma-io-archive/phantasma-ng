@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Phantasma.Core.Cryptography.Hashing;
 using Phantasma.Core.Domain;
@@ -39,7 +40,7 @@ namespace Phantasma.Core.Cryptography
         public bool IsUser => Kind == AddressKind.User;
 
         public string TendermintAddress => Base16.Encode(_bytes[2..].Sha256()[..20]);
-        
+
         public byte[] TendermintPublicKey => _bytes[2..].Sha256()[..20];
 
         public bool IsNull
@@ -376,6 +377,17 @@ namespace Phantasma.Core.Cryptography
 
         public byte PlatformID => (byte)(1 + _bytes[0] - AddressKind.Interop);
 
+        public static Address EncodeAddress(byte platformID, string addressText)
+        {
+            Throw.If(!IsValidAddress(addressText), "invalid ethereum address");
+            var input = addressText.Substring(2);
+            var bytes = Base16.Decode(input);
+
+            var pubKey = new byte[33];
+            ByteArrayUtils.CopyBytes(bytes, 0, pubKey, 0, bytes.Length);
+            return Address.FromInterop(platformID, pubKey);
+        }
+        
         public static Address FromInterop(byte platformID, byte[] publicKey)
         {
             Throw.If(publicKey == null || publicKey.Length != 33, "public key is invalid");
@@ -414,6 +426,13 @@ namespace Phantasma.Core.Cryptography
                     return -1;
             }
             return 0;
+        }
+        
+        public string ConvertPhantasmaToEthereum()
+        {
+            var bytes = this.ToByteArray().Skip(1).ToArray();
+            var encoded = Base16.Encode(bytes);
+            return "0x" + encoded;
         }
 
         public bool ValidateSignedData(string signedData, string random, string data)

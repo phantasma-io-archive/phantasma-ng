@@ -7,6 +7,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Types;
 using Phantasma.Infrastructure.Pay.Chains;
+using Serilog;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -20,7 +21,11 @@ namespace Phantasma.Infrastructure.API.Controllers
         {
             var nexus = NexusAPI.GetNexus();
             var tokenSwapper = NexusAPI.GetTokenSwapper();
-
+            
+            // TODO: Change this call so it will trigger the checks on the chain
+            // Get the information form the InteropContract All the Platforms
+            // check if the sourcePlatform and destPlatform are valid
+            
             if (!tokenSwapper.SupportsSwap(sourcePlatform, destPlatform))
             {
                 throw new APIException($"swaps between {sourcePlatform} and {destPlatform} not available");
@@ -54,6 +59,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                 }
                 catch
                 {
+                    Log.Information("Swap not found on Phantasma chain");
                     // do nothing, just continue
                 }
             }
