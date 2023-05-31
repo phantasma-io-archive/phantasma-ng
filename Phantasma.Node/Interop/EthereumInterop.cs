@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 using Nethereum.Signer;
 using Nethereum.Contracts;
+using Nethereum.Model;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.StandardTokenEIP20.ContractDefinition;
 
@@ -23,10 +24,8 @@ using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Node.Utils;
-
-using Serilog;
-
 using EthereumKey = Phantasma.Node.Chains.Ethereum.EthereumKey;
+using Log = Serilog.Log;
 using Transaction = Nethereum.RPC.Eth.DTOs.Transaction;
 
 namespace Phantasma.Node.Interop
