@@ -708,7 +708,7 @@ namespace Phantasma.Node.Interop
         public static InteropTransactionData MakeInteropTransaction(Nexus nexus, TransactionReceipt txr, EthAPI api, List<Swapper> swappers)
         {
             Log.Debug("Checking Transaction from X tx: " + txr.TransactionHash);
-            IList<InteropTransfer> interopTransfers = new List<InteropTransfer>();
+            List<InteropTransfer> interopTransfers = new List<InteropTransfer>();
             InteropTransactionData interopTxData = new InteropTransactionData();
             
             // Get Information about the transaction
@@ -729,10 +729,8 @@ namespace Phantasma.Node.Interop
             
             // Get the interop transfers
             interopTransfers = GetInteropTransfersFromHash(nexus, txr, txResult, api, swappers).SelectMany(x => x.Value).ToList();
-            
-            
-
-            return new InteropTransactionData();
+            interopTxData.Transfers = interopTransfers;
+            return interopTxData;
         }
 
         public static decimal GetNormalizedFee(FeeUrl[] fees)

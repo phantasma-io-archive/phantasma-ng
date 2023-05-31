@@ -866,7 +866,17 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             
             Runtime.Expect(transfer.interopAddress.IsUser, "invalid destination address");
             
-            Runtime.SwapTokens(platform, transfer.sourceAddress, Runtime.Chain.Name, transfer.interopAddress, transfer.Symbol, transfer.Value);
+            
+            // The the user calls this method to settle the transaction.
+            // Instead of using Swap Tokens
+            // We need to come up with a Solution for this because since it's decentralized
+            // We need to give a task to the Swapper to claim the transfer.
+            // Then he transfers the amount to the user.
+            // Then he will call a complete method to complete the transaction.
+            // The user will automaticly received the amounts and the transaction will be completed.
+            
+            // Runtime.SwapTokens(platform, transfer.sourceAddress, Runtime.Chain.Name, transfer.interopAddress, transfer.Symbol, transfer.Value);
+            
 
             // TODO: FINISH THIS UP 
             /*
