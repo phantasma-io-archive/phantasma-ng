@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
@@ -14,82 +15,68 @@ namespace Phantasma.Infrastructure.API.Controllers
     public class SwapController : BaseControllerV1
     {
         [APIInfo(typeof(string), "Tries to settle a pending swap for a specific hash.", false, 0, true)]
-        [HttpGet("SettleSwap")]
-        public string SettleSwap([APIParameter("Name of platform where swap transaction was created", "phantasma")] string sourcePlatform
+        [HttpGet("SettleCrossChainSwap")]
+        public string SettleCrossChainSwap(string address, [APIParameter("Name of platform where swap transaction was created", "phantasma")] string sourcePlatform
                 , [APIParameter("Name of platform to settle", "phantasma")] string destPlatform
                 , [APIParameter("Hash of transaction to settle", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText)
         {
             var nexus = NexusAPI.GetNexus();
-            var tokenSwapper = NexusAPI.GetTokenSwapper();
-            
-            // TODO: Change this call so it will trigger the checks on the chain
-            // Get the information form the InteropContract All the Platforms
-            // check if the sourcePlatform and destPlatform are valid
-            
-            if (!tokenSwapper.SupportsSwap(sourcePlatform, destPlatform))
-            {
-                throw new APIException($"swaps between {sourcePlatform} and {destPlatform} not available");
-            }
-
-            if (!nexus.PlatformExists(nexus.RootStorage, sourcePlatform))
-            {
-                throw new APIException("Invalid source platform");
-            }
-
-            if (!nexus.PlatformExists(nexus.RootStorage, destPlatform))
-            {
-                throw new APIException("Invalid destination platform");
-            }
-
             Hash hash;
             if (!Hash.TryParse(hashText, out hash) || hash == Hash.Null)
             {
                 throw new APIException("Invalid hash");
             }
 
-            if (destPlatform == DomainSettings.PlatformName)
-            {
-                try
-                {
-                    var swap = nexus.RootChain.GetSwap(nexus.RootStorage, hash);
-                    if (swap.destinationHash != Hash.Null)
-                    {
-                        return swap.destinationHash.ToString();
-                    }
-                }
-                catch
-                {
-                    Log.Information("Swap not found on Phantasma chain");
-                    // do nothing, just continue
-                }
-            }
-
             try
             {
-                var destHash = tokenSwapper.SettleSwap(sourcePlatform, destPlatform, hash);
-
-                if (destHash == Hash.Null)
-                {
-                    throw new APIException("Swap failed or destination hash is not yet available");
-                }
-                else
-                {
-                    return destHash.ToString();
-                }
+                // Send a transaction to the interop contract the Validator Pays for it.
+                // For the user to settle swap the transction.
+                NexusAPI.SettleCrossChainSwap(Address.FromText(address), sourcePlatform, destPlatform, hash);
+                return hashText;
             }
             catch (Exception e)
             {
                 throw new APIException(e.Message);
             }
         }
+        
+        [APIInfo(typeof(TokenSwapToSwap[]), "Returns all the platforms with all the swappers for a specific platform.", false, 0, true)]
+        [HttpGet("GetSwappersForPlatform")]
+        public TokenSwapToSwap[] GetSwappersForPlatform(string platform)
+        {
+            var nexus = NexusAPI.GetNexus();
+            TokenSwapToSwap[] swappersPlatforms;
+            swappersPlatforms = nexus.GetTokensSwapFromPlatform(platform, nexus.RootStorage);
+            return swappersPlatforms;
+        }
+        
+        [APIInfo(typeof(PlatformDetails), "Returns all the platforms with all the swappers for a specific platform.", false, 0, true)]
+        [HttpGet("GetPlatformDetails")]
+        public PlatformDetails GetPlatformDetails(string address, string platform)
+        {
+            if ( string.IsNullOrEmpty(address) )
+            {
+                throw new APIException("Invalid address");
+            }
+            
+            if ( !Address.IsValidAddress(address) )
+            {
+                throw new APIException("Invalid address");
+            }
+            
+            var nexus = NexusAPI.GetNexus();
+            var platformDetails = nexus.RootChain
+                .InvokeContractAtTimestamp(nexus.RootChain.Storage, Timestamp.Now, NativeContractKind.Interop, nameof(InteropContract.GetPlatformDetailsForAddress), address, platform)
+                .ToStruct<PlatformDetails>();
+            return platformDetails;
+        }
 
-        [APIInfo(typeof(SwapResult[]), "Returns platform swaps for a specific address.", false, 0, true)]
+        [APIInfo(typeof(CrossChainTransfer[]), "Returns platform swaps for a specific address.", false, 0, true)]
         [HttpGet("GetSwapsForAddress")]
-        public SwapResult[] GetSwapsForAddress([APIParameter("Address or account name", "helloman")] string account,
+        public CrossChainTransfer[] GetSwapsForAddress([APIParameter("Address or account name", "helloman")] string account,
                 string platform, bool extended = false)
         {
             var nexus = NexusAPI.GetNexus();
-            var tokenSwapper = NexusAPI.GetTokenSwapper();
 
             Address address;
 
@@ -116,49 +103,12 @@ namespace Phantasma.Infrastructure.API.Controllers
             {
                 throw new APIException("invalid address");
             }
-
-            var swapList = tokenSwapper.GetPendingSwaps(address);
-
-            var oracleReader = nexus.GetOracleReader();
-
-            var txswaps = swapList.
-                Select(x => new KeyValuePair<ChainSwap, InteropTransaction>(x, oracleReader.ReadTransaction(Timestamp.Now, x.sourcePlatform, x.sourceChain, x.sourceHash))).ToArray();
-
-            var swaps = txswaps.Where(x => x.Value != null && x.Value.Transfers.Length > 0).
-                Select(x => new SwapResult()
-                {
-                    sourcePlatform = x.Key.sourcePlatform,
-                    sourceChain = x.Key.sourceChain,
-                    sourceHash = x.Key.sourceHash.ToString(),
-                    destinationPlatform = x.Key.destinationPlatform,
-                    destinationChain = x.Key.destinationChain,
-                    destinationHash = x.Key.destinationHash == Hash.Null ? "pending" : x.Key.destinationHash.ToString(),
-                    sourceAddress = x.Value.Transfers[0].sourceAddress.Text,
-                    destinationAddress = x.Value.Transfers[0].destinationAddress.Text,
-                    symbol = x.Value.Transfers[0].Symbol,
-                    value = x.Value.Transfers[0].Value.ToString(),
-                });
-
-            if (extended)
-            {
-                var oldSwaps = (InteropHistory[])nexus.RootChain.InvokeContractAtTimestamp(nexus.RootChain.Storage, Timestamp.Now, "interop", nameof(InteropContract.GetSwapsForAddress), address).ToObject();
-
-                swaps = swaps.Concat(oldSwaps.Select(x => new SwapResult()
-                {
-                    sourcePlatform = x.sourcePlatform,
-                    sourceChain = x.sourceChain,
-                    sourceHash = x.sourceHash.ToString(),
-                    destinationPlatform = x.destPlatform,
-                    destinationChain = x.destChain,
-                    destinationHash = x.destHash.ToString(),
-                    sourceAddress = x.sourceAddress.Text,
-                    destinationAddress = x.destAddress.Text,
-                    symbol = x.symbol,
-                    value = x.value.ToString(),
-                }));
-            }
-
-            return swaps.ToArray();
+            
+            var swaps = nexus.RootChain
+                    .InvokeContractAtTimestamp(nexus.RootChain.Storage, Timestamp.Now, NativeContractKind.Interop, nameof(InteropContract.GetCrossChainTransfersForUser), address)
+                    .ToArray<CrossChainTransfer>();
+            
+            return swaps;
         }
     }
 }

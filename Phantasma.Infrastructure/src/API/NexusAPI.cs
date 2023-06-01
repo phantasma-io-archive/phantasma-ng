@@ -27,6 +27,7 @@ public static class NexusAPI
     public static Nexus Nexus { get; set; }
     public static ITokenSwapper TokenSwapper { get; set; }
     public static NodeRpcClient TRPC { get; set; }
+    private static PhantasmaKeys _keys { get; set; }
 
     public static List<ValidatorSettings> Validators { get; set; }
 
@@ -736,5 +737,34 @@ public static class NexusAPI
         } while (retryCount < 5);
 
         return null;
+    }
+
+    public static void SetKey(PhantasmaKeys Key)
+    {
+        _keys = Key;
+    }
+
+    internal static string SettleCrossChainSwap(Address address, string externalAddress, string platform, Hash hash )
+    {
+        string result = "";
+        try
+        {
+            ScriptBuilder sb = new ScriptBuilder();
+            var script = sb.AllowGas(_keys.Address, Address.Null, Transaction.DefaultGasLimit, Transaction.DefaultGasLimit)
+                .CallContract(NativeContractKind.Interop, nameof(InteropContract.SettleCrossChainTransaction), _keys.Address, address, externalAddress, platform, Nexus.RootChain.Name, hash)
+                .SpendGas(_keys.Address)
+                .EndScript();
+            Transaction tx = new Transaction(Nexus.Name, Nexus.RootChain.Name, script, Timestamp.Now + TimeSpan.FromMinutes(5), "Cross Chain Swap");
+            tx.Sign(_keys);
+            var encodedScript = Base16.Encode(tx.ToByteArray(true));
+            var resultBroadcast = TRPC.BroadcastTxSync(encodedScript);
+            result = resultBroadcast.Hash;
+        }
+        catch (Exception e)
+        {
+            result = "Error settling cross chain swap: " + e.Message;
+        }
+        
+        return result;
     }
 }

@@ -2707,7 +2707,7 @@ public class Nexus : INexus
         return tokenSwapToSwap.Swappers;
     }
     
-    private TokenSwapToSwap[] GetTokensSwapFromPlatform(string platform, StorageContext storage)
+    public TokenSwapToSwap[] GetTokensSwapFromPlatform(string platform, StorageContext storage)
     {
         var key = SmartContract.GetKeyForField(NativeContractKind.Interop, "_PlatformSwappers", true);
 

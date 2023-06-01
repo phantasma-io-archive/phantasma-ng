@@ -123,6 +123,12 @@ namespace Phantasma.Node.Oracles
     		return blockList;
         }
 
+        /// <summary>
+        /// Get Current Height
+        /// </summary>
+        /// <param name="platformName"></param>
+        /// <param name="chainName"></param>
+        /// <returns></returns>
         public override string GetCurrentHeight(string platformName, string chainName)
         {
             var storageKey = StorageConst.CurrentHeight + platformName + chainName;
@@ -135,6 +141,12 @@ namespace Phantasma.Node.Oracles
             return "";
         }
 
+        /// <summary>
+        /// Set Current Height
+        /// </summary>
+        /// <param name="platformName"></param>
+        /// <param name="chainName"></param>
+        /// <param name="height"></param>
         public override void SetCurrentHeight(string platformName, string chainName, string height)
         {
             var storageKey = StorageConst.CurrentHeight + platformName + chainName;
@@ -143,6 +155,16 @@ namespace Phantasma.Node.Oracles
             keyStore.Set(storageKey, height);
         }
 
+        /// <summary>
+        /// Method used to Store information.
+        /// </summary>
+        /// <param name="platform"></param>
+        /// <param name="chainName"></param>
+        /// <param name="hash"></param>
+        /// <param name="type"></param>
+        /// <param name="data"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         private bool Persist<T>(string platform, string chainName, Hash hash, StorageConst type, T data)
         {
             var storageKey = type + chainName + hash.ToString();
@@ -159,6 +181,13 @@ namespace Phantasma.Node.Oracles
             return false;
         }
 
+        /// <summary>
+        /// Pull Fee
+        /// </summary>
+        /// <param name="time"></param>
+        /// <param name="platform"></param>
+        /// <returns></returns>
+        /// <exception cref="OracleException"></exception>
         protected override BigInteger PullFee(Timestamp time, string platform)
         {
             platform = platform.ToLower();
@@ -196,6 +225,12 @@ namespace Phantasma.Node.Oracles
             }
         }
 
+        /// <summary>
+        /// Pull Token Price.
+        /// </summary>
+        /// <param name="time"></param>
+        /// <param name="symbol"></param>
+        /// <returns></returns>
         protected override decimal PullPrice(Timestamp time, string symbol)
         {
             var apiKey = _cli.CryptoCompareAPIKey;
@@ -215,6 +250,15 @@ namespace Phantasma.Node.Oracles
             return price;
         }
 
+        /// <summary>
+        /// Pull Platform block
+        /// </summary>
+        /// <param name="platformName"></param>
+        /// <param name="chainName"></param>
+        /// <param name="hash"></param>
+        /// <param name="height"></param>
+        /// <returns></returns>
+        /// <exception cref="OracleException"></exception>
         protected override InteropBlock PullPlatformBlock(string platformName, string chainName, Hash hash, BigInteger height = new BigInteger())
         {
             if (hash == Hash.Null && height == BigInteger.Zero)
@@ -338,6 +382,14 @@ namespace Phantasma.Node.Oracles
             return tx;
         }
 
+        /// <summary>
+        /// Pull Platform transaction
+        /// </summary>
+        /// <param name="platformName"></param>
+        /// <param name="chainName"></param>
+        /// <param name="hash"></param>
+        /// <returns></returns>
+        /// <exception cref="OracleException"></exception>
         protected override InteropTransaction PullPlatformTransaction(string platformName, string chainName, Hash hash)
         {
             Log.Debug($"{platformName} pull tx: {hash}");
