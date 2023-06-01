@@ -301,7 +301,7 @@ public static class NexusAPI
         {
             _methodTable = (Nexus.RootChain as Chain).GenerateMethodTable();
         }
-        TransactionExtensions.ExtractGasDetailsFromScript(tx.Script, out from, out target, out gasPrice, out gasLimit, _methodTable);
+        TransactionExtensions.ExtractGasDetailsFromScript(tx.Script, Nexus.GetProtocolVersion(Nexus.RootStorage), out from, out target, out gasPrice, out gasLimit, _methodTable);
 
         var result = new TransactionResult
         {

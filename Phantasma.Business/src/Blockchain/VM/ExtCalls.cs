@@ -22,28 +22,15 @@ namespace Phantasma.Business.Blockchain.VM
     public static class ExtCalls
     {
         // naming scheme should be "namespace.methodName" for methods, and "type()" for constructors
-        internal static void RegisterWithRuntime(RuntimeVM vm)
+        internal static void RegisterWithRuntime(uint ProtocolVersion, RuntimeVM vm)
         {
-            IterateExtcalls((name, argCount, method) =>
+            IterateExtcalls(ProtocolVersion, (name, argCount, method) =>
             {
                 vm.RegisterMethod(name, argCount, method);
             });
         }
         
-        internal static void RegisterWithRuntime(Timestamp time, RuntimeVM vm)
-        {
-            IterateExtcalls(time, (name, argCount, method) =>
-            {
-                vm.RegisterMethod(name, argCount, method);
-            });
-        }
-
-        internal static void IterateExtcalls(Action<string, int, ExtcallDelegate> callback)
-        {
-            IterateExtcalls(Timestamp.Now, callback);
-        }
-        
-        internal static void IterateExtcalls(Timestamp time, Action<string, int, ExtcallDelegate> callback)
+        internal static void IterateExtcalls(uint ProtocolVersion, Action<string, int, ExtcallDelegate> callback)
         {
             callback("Runtime.TransactionHash", 0, Runtime_TransactionHash); // --> done
             callback("Runtime.Time", 0, Runtime_Time);
@@ -59,15 +46,13 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.Log", 1, Runtime_Log);
             callback("Runtime.Notify", 3, Runtime_Notify);
             callback("Runtime.DeployContract", 4, Runtime_DeployContract);
-            // FIX To a issue that happens when you try to upgrade a contract was discoved and path 18 april 2023
-            if (time <= 1681819200)
-            {
+            
+            // PATCH To a issue that happens when you try to upgrade a contract was discoved and path 18 april 2023
+            if (ProtocolVersion < 14)
                 callback("Runtime.UpgradeContract", 3, Runtime_UpgradeContract);
-            }
             else
-            {
                 callback("Runtime.UpgradeContract", 4, Runtime_UpgradeContract);
-            }
+            
             callback("Runtime.KillContract", 2, Runtime_KillContract);
             callback("Runtime.GetBalance", 2, Runtime_GetBalance);
             callback("Runtime.TransferTokens", 4, Runtime_TransferTokens);

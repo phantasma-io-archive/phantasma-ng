@@ -22,7 +22,7 @@ public class WalletTests
         var script = ScriptUtils.BeginScript().AllowGas(source.Address, Address.Null, 1, 999).TransferTokens(DomainSettings.StakingTokenSymbol, source.Address, dest.Address, amount).SpendGas(source.Address).EndScript();
 
         var table = DisasmUtils.GetDefaultDisasmTable();
-        var methods = DisasmUtils.ExtractMethodCalls(script, table);
+        var methods = DisasmUtils.ExtractMethodCalls(script, DomainSettings.LatestKnownProtocol, table);
 
         Assert.True(methods != null && methods.Count() == 3);
     }

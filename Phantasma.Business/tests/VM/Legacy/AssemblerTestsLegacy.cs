@@ -2333,7 +2333,7 @@ public class AssemblerTestsLegacy
         var table = DisasmUtils.GetDefaultDisasmTable();
         table[methodName] = 0; // this method has no args
 
-        var calls = DisasmUtils.ExtractMethodCalls(script, table);
+        var calls = DisasmUtils.ExtractMethodCalls(script, DomainSettings.LatestKnownProtocol, table);
 
         Assert.True(calls.Count() == 1);
         Assert.True(calls.First().MethodName == methodName);

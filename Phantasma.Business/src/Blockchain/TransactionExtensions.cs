@@ -40,9 +40,9 @@ namespace Phantasma.Business.Blockchain
         private static string GasContractName = NativeContractKind.Gas.GetContractName();
         private static string GasSpendGasMethod = nameof(GasContract.SpendGas);
         
-        public static bool ExtractGasDetailsFromScript(byte[] script, out Address from, out Address target, out BigInteger gasPrice, out BigInteger gasLimit, Dictionary<string, int> methodArgumentCountTable = null)
+        public static bool ExtractGasDetailsFromScript(byte[] script, uint ProtocolVersion, out Address from, out Address target, out BigInteger gasPrice, out BigInteger gasLimit, Dictionary<string, int> methodArgumentCountTable = null)
         {
-            var methods = DisasmUtils.ExtractMethodCalls(script, methodArgumentCountTable);
+            var methods = DisasmUtils.ExtractMethodCalls(script, ProtocolVersion, methodArgumentCountTable);
             return ExtractGasDetailsFromMethods(methods, out from, out target, out gasPrice, out gasLimit, methodArgumentCountTable);
         }
         

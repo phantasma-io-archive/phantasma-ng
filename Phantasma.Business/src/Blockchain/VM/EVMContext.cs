@@ -352,7 +352,7 @@ namespace Phantasma.Business.Blockchain.VM
             string result = null;
             error = null;
 
-            ExtCalls.IterateExtcalls((methodName, argCount, extCall) =>
+            ExtCalls.IterateExtcalls(nexus.GetProtocolVersion(nexus.RootStorage), (methodName, argCount, extCall) =>
             {
                 if (result != null)
                 {

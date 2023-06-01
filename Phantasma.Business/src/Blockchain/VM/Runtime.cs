@@ -103,7 +103,7 @@ namespace Phantasma.Business.Blockchain.VM
 
             MaxGas = 600;  // a minimum amount required for allowing calls to Gas contract etc
 
-            ExtCalls.RegisterWithRuntime(Time, this);
+            ExtCalls.RegisterWithRuntime(ProtocolVersion, this);
         }
 
         public bool IsTrigger => DelayPayment;
@@ -501,7 +501,7 @@ namespace Phantasma.Business.Blockchain.VM
             Address from, target;
             BigInteger gasPrice, gasLimit;
 
-            if (!TransactionExtensions.ExtractGasDetailsFromScript(EntryScript, out from, out target, out gasPrice, out gasLimit))
+            if (!TransactionExtensions.ExtractGasDetailsFromScript(EntryScript, ProtocolVersion, out from, out target, out gasPrice, out gasLimit))
             {
                 return false;
             }
@@ -519,7 +519,7 @@ namespace Phantasma.Business.Blockchain.VM
             IEnumerable<DisasmMethodCall> methods = new List<DisasmMethodCall>();
             try
             {
-                methods = DisasmUtils.ExtractMethodCalls(EntryScript, _methodTableForGasExtraction, detectAndUseJumps: true);
+                methods = DisasmUtils.ExtractMethodCalls(EntryScript, ProtocolVersion, _methodTableForGasExtraction, detectAndUseJumps: true);
             }
             catch(Exception e)
             {

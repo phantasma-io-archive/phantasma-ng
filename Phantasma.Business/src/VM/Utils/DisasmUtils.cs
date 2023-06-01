@@ -69,7 +69,7 @@ namespace Phantasma.Business.VM.Utils
         private readonly static Dictionary<string, int> _defaultDisasmTable = GetDefaultDisasmTable();
 
 
-        public static Dictionary<string, int> GetDefaultDisasmTable()
+        public static Dictionary<string, int> GetDefaultDisasmTable(uint ProtocolVersion = DomainSettings.LatestKnownProtocol)
         {
             if (_defaultDisasmTable != null)
             {
@@ -78,7 +78,7 @@ namespace Phantasma.Business.VM.Utils
 
             var table = new Dictionary<string, int>();
 
-            ExtCalls.IterateExtcalls((methodName, argCount, method) =>
+            ExtCalls.IterateExtcalls(ProtocolVersion, (methodName, argCount, method) =>
             {
                 table[methodName] = argCount;
             });
@@ -177,11 +177,11 @@ namespace Phantasma.Business.VM.Utils
             return ExtractContractNames(disassembler);
         }
 
-        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(Disassembler disassembler, Dictionary<string, int> methodArgumentCountTable = null, bool detectAndUseJumps = false)
+        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(Disassembler disassembler, uint ProtocolVersion, Dictionary<string, int> methodArgumentCountTable = null, bool detectAndUseJumps = false)
         {
             if (methodArgumentCountTable == null)
             {
-                methodArgumentCountTable = GetDefaultDisasmTable();
+                methodArgumentCountTable = GetDefaultDisasmTable(ProtocolVersion);
             }
 
             var instructions = disassembler.Instructions.ToArray();
@@ -294,10 +294,10 @@ namespace Phantasma.Business.VM.Utils
             return result;
         }
 
-        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(byte[] script, Dictionary<string, int> methodArgumentCountTable = null, bool detectAndUseJumps = false)
+        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(byte[] script, uint ProtocolVersion, Dictionary<string, int> methodArgumentCountTable = null, bool detectAndUseJumps = false)
         {
             var disassembler = new Disassembler(script);
-            return ExtractMethodCalls(disassembler, methodArgumentCountTable, detectAndUseJumps);
+            return ExtractMethodCalls(disassembler, ProtocolVersion, methodArgumentCountTable, detectAndUseJumps);
         }
     }
 }

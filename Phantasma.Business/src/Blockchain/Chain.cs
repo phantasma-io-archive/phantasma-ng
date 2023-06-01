@@ -312,7 +312,7 @@ namespace Phantasma.Business.Blockchain
                 {
                     try
                     {
-                        methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: true);
+                        methods = DisasmUtils.ExtractMethodCalls(tx.Script, protocolVersion, _methodTableForGasExtraction, detectAndUseJumps: true);
                     }
                     catch (Exception ex)
                     {
@@ -323,7 +323,7 @@ namespace Phantasma.Business.Blockchain
                 }
                 else
                 {
-                    methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: false);
+                    methods = DisasmUtils.ExtractMethodCalls(tx.Script, protocolVersion, _methodTableForGasExtraction, detectAndUseJumps: false);
                 }
                 
                 
@@ -426,7 +426,7 @@ namespace Phantasma.Business.Blockchain
 
         public Dictionary<string, int> GenerateMethodTable()
         {
-            var table = DisasmUtils.GetDefaultDisasmTable();
+            var table = DisasmUtils.GetDefaultDisasmTable(GetCurrentProtocolVersion());
 
             var contracts = GetContracts(this.Storage);
 
