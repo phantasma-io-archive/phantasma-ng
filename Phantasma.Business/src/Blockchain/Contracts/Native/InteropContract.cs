@@ -814,7 +814,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         public CrossChainTransfer[] GetAllCrossChainTransfers()
         {
-            return _crossChainTransfers.AllValues<StorageList>().Select(s => s.All<CrossChainTransfer>()).SelectMany(c => c).ToArray();
+            return _crossChainTransfers
+                .AllValues<StorageList>()
+                .Select(s => s.All<CrossChainTransfer>())
+                .SelectMany(c => c)
+                .ToArray();
         }
         
         /// <summary>
@@ -823,7 +827,29 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         public CrossChainTransfer[] GetCrossChainTransfers()
         {
-            return _crossChainTransfers.AllValues<StorageList>().Select(s => s.All<CrossChainTransfer>()).SelectMany(c => c).Where(c => c.status == CrossChainTransferStatus.Pending || c.status == CrossChainTransferStatus.InProgress && !c.FromExternalChain).ToArray();
+            return _crossChainTransfers
+                .AllValues<StorageList>()
+                .Select(s => s.All<CrossChainTransfer>())
+                .SelectMany(c => c)
+                .Where(c => c.status == CrossChainTransferStatus.Pending || 
+                            c.status == CrossChainTransferStatus.InProgress && 
+                            !c.FromExternalChain)
+                .ToArray();
+        }
+        
+        /// <summary>
+        /// Get all the transfers of a user.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
+        public CrossChainTransfer[] GetCrossChainTransfersForUser(Address from)
+        {
+            return _crossChainTransfers
+                .AllValues<StorageList>()
+                .Select(s => s.All<CrossChainTransfer>())
+                .SelectMany(c => c)
+                .Where(c => c.FromUserAddress == from)
+                .ToArray();
         }
 
         /// <summary>
@@ -833,7 +859,14 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         public CrossChainTransfer[] GetCrossChainTransfersForSwapper(Address swapper)
         {
-            return _crossChainTransfers.AllValues<StorageList>().Select(s => s.All<CrossChainTransfer>()).SelectMany(c => c).Where(c => c.status == CrossChainTransferStatus.Pending || c.status == CrossChainTransferStatus.InProgress && c.Swapper == swapper).ToArray();
+            return _crossChainTransfers
+                .AllValues<StorageList>()
+                .Select(s => s.All<CrossChainTransfer>())
+                .SelectMany(c => c)
+                .Where(c => c.status == CrossChainTransferStatus.Pending || 
+                            c.status == CrossChainTransferStatus.InProgress && 
+                            c.Swapper == swapper)
+                .ToArray();
         }
         
         /// <summary>
@@ -843,7 +876,25 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         public CrossChainTransfer[] GetExternalCrossChainTransfersForSwapper(Address swapper)
         {
-            return _crossChainTransfers.AllValues<StorageList>().Select(s => s.All<CrossChainTransfer>()).SelectMany(c => c).Where(c =>c.status == CrossChainTransferStatus.Pending || c.status == CrossChainTransferStatus.InProgress && c.Swapper == swapper && c.FromExternalChain).ToArray();
+            return _crossChainTransfers
+                .AllValues<StorageList>()
+                .Select(s => s.All<CrossChainTransfer>())
+                .SelectMany(c => c)
+                .Where(c =>c.status == CrossChainTransferStatus.Pending || 
+                           c.status == CrossChainTransferStatus.InProgress && 
+                           c.Swapper == swapper && c.FromExternalChain)
+                .ToArray();
+        }
+
+        /// <summary>
+        /// Check if a transfer exists.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="hash"></param>
+        /// <returns></returns>
+        public bool HasCrossChainTransfer(Address from, Hash hash)
+        {
+            return _crossChainTransfers.ContainsKey(from) && _crossChainTransfers.Get<Address, StorageList>(from).All<CrossChainTransfer>().ToList().Any(c => c.PhantasmaHash == hash);
         }
         
         /// <summary>
@@ -1050,6 +1101,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(platform == DomainSettings.PlatformName, "invalid platform, this method can only be called from other chains.");
             Runtime.Expect(!hash.IsNull, "Invalid Hash");
             
+            // Check if this transaction already exists
+            Runtime.Expect(!HasCrossChainTransfer(from, hash), "Cross Chain Transaction already exists");
+            
             var platformDetails = GetAllPlatforms();
             
             // From the hash get the transaction
@@ -1080,15 +1134,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             
             Runtime.Expect(transfer.interopAddress.IsUser, "invalid destination address");
 
-            // The the user calls this method to settle the transaction.
-            // Instead of using Swap Tokens
-            // We need to come up with a Solution for this because since it's decentralized
-            // We need to give a task to the Swapper to claim the transfer.
-            // Then he transfers the amount to the user.
-            // Then he will call a complete method to complete the transaction.
-            // The user will automaticly received the amounts and the transaction will be completed.
             var fee = transfer.Value * platformInfo.FeePercentage / 100;
-            
             var crossChainTransfer = new CrossChainTransfer()
             {
                 FromExternalChain =  true,
@@ -1096,7 +1142,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 status = CrossChainTransferStatus.Pending,
                 FromUserAddress = from,
                 UserExternalAddress = externalAddress,
-                Swapper = Address.Null,
+                Swapper = platformInfo.LocalAddress,
+                SwapperExternalAddress = platformInfo.ExternalAddress,
                 Symbol = transfer.Symbol,
                 Amount = transfer.Value,
                 Fee = fee,
