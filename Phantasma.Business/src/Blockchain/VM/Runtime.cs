@@ -103,7 +103,7 @@ namespace Phantasma.Business.Blockchain.VM
 
             MaxGas = 600;  // a minimum amount required for allowing calls to Gas contract etc
 
-            ExtCalls.RegisterWithRuntime(this);
+            ExtCalls.RegisterWithRuntime(Time, this);
         }
 
         public bool IsTrigger => DelayPayment;
