@@ -195,7 +195,6 @@ namespace Phantasma.Node.Oracles
             switch (assetID)
             {
                 case "ed07cffad18f1308db51920d99a2af60ac66a7b3": return "SOUL";
-                case "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b": return "NEO";
                 case "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7": return "GAS";
                 default: return null;
             }

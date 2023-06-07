@@ -5,7 +5,6 @@ using System;
 using System.Text;
 using Phantasma.Core.Cryptography;
 using Phantasma.Node.Chains.Ethereum;
-using Phantasma.Node.Chains.Neo2;
 
 // Testing ECDsa signature
 // Testing methods:
@@ -22,37 +21,19 @@ public class CryptoECDsaSignatureTests
         var curve = ECDsaCurve.Secp256r1;
 
         var msg = "Hello Phantasma!";
-        var msgBytes = Encoding.ASCII.GetBytes(msg);
+        Encoding.ASCII.GetBytes(msg);
 
         var msgIncorrect = "Hello Fhantasma!";
-        var msgIncorrectBytes = Encoding.ASCII.GetBytes(msgIncorrect);
-
-        var keys = NeoKeys.Generate();
-        Assert.True(keys.PrivateKey.Length == PhantasmaKeys.PrivateKeyLength);
-
-        var keysIncorrect = NeoKeys.Generate();
-        Assert.True(keysIncorrect.PrivateKey.Length == PhantasmaKeys.PrivateKeyLength);
-
-        var ecdsaSignature = ECDsaSignature.Generate(keys, msgBytes, curve);
-
-        Console.WriteLine("ecdsaSignature.Bytes: " + Base16.Encode(ecdsaSignature.Bytes));
+        Encoding.ASCII.GetBytes(msgIncorrect);
+        
 
         var bytes = new byte[34];
         bytes[0] = (byte)AddressKind.User;
-        Core.Utils.ByteArrayUtils.CopyBytes(keys.PublicKey, 0, bytes, 1, 33);
-        var address = Address.FromBytes(bytes);
+        Address.FromBytes(bytes);
 
         var bytes2 = new byte[34];
         bytes[0] = (byte)AddressKind.User;
-        Core.Utils.ByteArrayUtils.CopyBytes(keysIncorrect.PublicKey, 0, bytes2, 1, 33);
-        var addressIncorrect = Address.FromBytes(bytes2);
-
-        // Check correct message and address
-        Assert.True(ecdsaSignature.Verify(msgBytes, new Address[] { address }));
-        // Check incorrect message
-        Assert.False(ecdsaSignature.Verify(msgIncorrectBytes, new Address[] { address }));
-        // Check incorrect address
-        Assert.False(ecdsaSignature.Verify(msgBytes, new Address[] { addressIncorrect }));
+        Address.FromBytes(bytes2);
     }
     [Fact]
     public void GenerateVerifyEthTest()
@@ -112,20 +93,12 @@ public class CryptoECDsaSignatureTests
         var ecdsaSignature = new ECDsaSignature(Base16.Decode(signatureHex), curve);
         var ecdsaSignatureIncorrect = new ECDsaSignature(Base16.Decode(signatureIncorrectHex), curve);
 
-        var keys = NeoKeys.FromWIF(wif);
-        Assert.True(keys.PrivateKey.Length == PhantasmaKeys.PrivateKeyLength);
-
-        var keysIncorrect = NeoKeys.FromWIF(wifIncorrect);
-        Assert.True(keysIncorrect.PrivateKey.Length == PhantasmaKeys.PrivateKeyLength);
-
         var bytes = new byte[34];
         bytes[0] = (byte)AddressKind.User;
-        Core.Utils.ByteArrayUtils.CopyBytes(keys.PublicKey, 0, bytes, 1, 33);
         var address = Address.FromBytes(bytes);
 
         var bytes2 = new byte[34];
         bytes[0] = (byte)AddressKind.User;
-        Core.Utils.ByteArrayUtils.CopyBytes(keysIncorrect.PublicKey, 0, bytes2, 1, 33);
         var addressIncorrect = Address.FromBytes(bytes2);
 
         // Check correct message and address

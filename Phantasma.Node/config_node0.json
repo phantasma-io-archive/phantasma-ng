@@ -75,9 +75,6 @@
     ],
 
     "Oracle": {
-      "neoscan.api": "mankinighost.phantasma.io:4000",
-      "neo.rpc.specific.nodes": [],
-
       "eth.fee.urls": [
         {
           "url": "https://gasprice.poa.network/",
@@ -185,19 +182,6 @@
 				"wif":"",
 				"rpc.nodes": []
 			},
-            {
-                "name": "neo",
-                "enabled": false,
-                "height": "8408240",
-                "wif":"",
-                "rpc.nodes": [
-                    "http://seed1.ngd.network:10332",
-                    "http://seed9.ngd.network:10332",
-                    "http://seed6.ngd.network:10332",
-                    "http://seed4.ngd.network:10332",
-                    "http://seed7.ngd.network:10332"
-                  ]
-            },
 			{
 				"name": "eth",
 				"enabled": false,

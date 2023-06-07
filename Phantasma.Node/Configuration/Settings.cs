@@ -113,11 +113,6 @@ namespace Phantasma.Node
 
             switch (platformName)
             {
-                case "neo":
-                    customWIF = this.Oracle.NeoWif;
-                    break;
-
-
                 case "ethereum":
                     customWIF = this.Oracle.EthWif;
                     break;

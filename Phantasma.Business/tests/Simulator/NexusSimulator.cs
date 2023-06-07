@@ -17,7 +17,6 @@ using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.Blockchain.Contracts.Native;
 
 using Phantasma.Node.Chains.Ethereum;
-using Phantasma.Node.Chains.Neo2;
 using Phantasma.Infrastructure.Pay.Chains;
 
 using VMType = Phantasma.Core.Domain.VMType;
@@ -338,8 +337,6 @@ public class NexusSimulator
     {
         var neoPlatform = NeoWallet.NeoPlatform;
         var neoKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.RootStorage), neoPlatform);
-        var neoText = NeoKeys.FromWIF(neoKeys.ToWIF()).Address;
-        var neoAddress = NeoWallet.EncodeAddress(neoText);
 
         var ethPlatform = EthereumWallet.EthereumPlatform;
         var ethKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.RootStorage), ethPlatform);
@@ -351,7 +348,6 @@ public class NexusSimulator
         var bscText = EthereumKey.FromWIF(bscKeys.ToWIF()).Address;
         var bscAddress = BSCWallet.EncodeAddress(bscText);
 
-        Nexus.CreatePlatform(Nexus.RootStorage, neoText, neoAddress, neoPlatform, "GAS");
         Nexus.CreatePlatform(Nexus.RootStorage, ethText, ethAddress, ethPlatform, "ETH");
         Nexus.CreatePlatform(Nexus.RootStorage, bscText, bscAddress, bscPlatform, "BNB");
 
