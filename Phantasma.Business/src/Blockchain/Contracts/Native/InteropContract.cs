@@ -554,7 +554,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             {
                 FromExternalChain = false,
                 Identifier = from.Text + externalAddress + fromPlatform + toPlatform + symbol + amount + Runtime.Time,
-                status = CrossChainTransferStatus.Pending,
+                Status = CrossChainTransferStatus.Pending,
                 FromUserAddress = from,
                 UserExternalAddress = externalAddress,
                 Swapper = Address.Null,
@@ -596,8 +596,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 .AllValues<StorageList>()
                 .Select(s => s.All<CrossChainTransfer>())
                 .SelectMany(c => c)
-                .Where(c => c.status == CrossChainTransferStatus.Pending ||
-                            c.status == CrossChainTransferStatus.InProgress &&
+                .Where(c => c.Status == CrossChainTransferStatus.Pending ||
+                            c.Status == CrossChainTransferStatus.InProgress &&
                             !c.FromExternalChain)
                 .ToArray();
         }
@@ -616,6 +616,21 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 .Where(c => c.FromUserAddress == from)
                 .ToArray();
         }
+        
+        /// <summary>
+        /// Returns a list of External CrossChainTransfers for a user.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
+        public CrossChainTransfer[] GetExternalCrossChainTranfersForUser(Address from)
+        {
+            return _crossChainTransfers
+                .Get<Address, StorageList>(from)
+                .All<CrossChainTransfer>()
+                .Where(transfer => transfer.FromExternalChain == true &&
+                                   from == transfer.FromUserAddress)
+                .ToArray();
+        }
 
         /// <summary>
         /// Get all the transfers of that swapper.
@@ -628,8 +643,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 .AllValues<StorageList>()
                 .Select(s => s.All<CrossChainTransfer>())
                 .SelectMany(c => c)
-                .Where(c => c.status == CrossChainTransferStatus.Pending ||
-                            c.status == CrossChainTransferStatus.InProgress &&
+                .Where(c => c.Status == CrossChainTransferStatus.Pending ||
+                            c.Status == CrossChainTransferStatus.InProgress &&
                             c.Swapper == swapper)
                 .ToArray();
         }
@@ -645,12 +660,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 .AllValues<StorageList>()
                 .Select(s => s.All<CrossChainTransfer>())
                 .SelectMany(c => c)
-                .Where(c => c.status == CrossChainTransferStatus.Pending ||
-                            c.status == CrossChainTransferStatus.InProgress &&
+                .Where(c => c.Status == CrossChainTransferStatus.Pending ||
+                            c.Status == CrossChainTransferStatus.InProgress &&
                             c.Swapper == swapper && c.FromExternalChain)
                 .ToArray();
         }
-
+        
         /// <summary>
         /// Check if a transfer exists.
         /// </summary>
@@ -685,7 +700,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var crossChainTransfers = GetCrossChainTransfers();
             var crossChainTransfer = crossChainTransfers.FirstOrDefault(c => c.Identifier == identifier);
             Runtime.Expect(crossChainTransfer.Identifier == identifier, "invalid identifier");
-            if (crossChainTransfer.status == CrossChainTransferStatus.InProgress)
+            if (crossChainTransfer.Status == CrossChainTransferStatus.InProgress)
             {
                 // 1 Hour to complete
                 Runtime.Expect(crossChainTransfer.UpdatedAt.Value + 3600 > Runtime.Time,
@@ -694,7 +709,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             // Update details
             var fee = crossChainTransfer.Amount * platformDetail.FeePercentage / 100;
-            crossChainTransfer.status = CrossChainTransferStatus.InProgress;
+            crossChainTransfer.Status = CrossChainTransferStatus.InProgress;
             crossChainTransfer.Swapper = from;
             crossChainTransfer.SwapperExternalAddress = platformDetail.ExternalAddress;
             crossChainTransfer.UpdatedAt = Runtime.Time;
@@ -757,7 +772,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             // Validate the transaction
             Runtime.Expect(isValid, "invalid transfer");
-            crossChainTransfer.status = CrossChainTransferStatus.Confirmed;
+            crossChainTransfer.Status = CrossChainTransferStatus.Confirmed;
             crossChainTransfer.ExternalHash = hash;
             crossChainTransfer.UpdatedAt = Runtime.Time;
             crossChainTransfer.EndedAt = Runtime.Time;
@@ -841,7 +856,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 crossChainTransfer.AmountSubFee);
 
             // Update the status
-            crossChainTransfer.status = CrossChainTransferStatus.Confirmed;
+            crossChainTransfer.Status = CrossChainTransferStatus.Confirmed;
             crossChainTransfer.PhantasmaHash = Runtime.Transaction.Hash;
             crossChainTransfer.UpdatedAt = Runtime.Time;
             crossChainTransfer.EndedAt = Runtime.Time;
@@ -865,15 +880,15 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="platform">ETH / BSC</param>
         /// <param name="chain">ethereum</param>
         /// <param name="hash"></param>
-        public void SettleCrossChainTransaction(Address Caller, Address from, string externalAddress, string platform,
+        public void SettleCrossChainTransaction(Address caller, Address from, string externalAddress, string platform,
             string chain, Hash hash)
         {
             // From USER
             // Platform = ETH / BSC
             // Chain = ETH / BSC
             // Hash = Hash of the transaction on the other chain
-            Runtime.Expect(Runtime.IsWitness(Caller), "invalid witness");
-            Runtime.Expect(Runtime.IsKnownValidator(Caller), "invalid witness");
+            Runtime.Expect(Runtime.IsWitness(caller), "invalid witness");
+            Runtime.Expect(Runtime.IsKnownValidator(caller), "invalid witness");
             Runtime.Expect(from.IsUser, "must be user address");
             Runtime.Expect(platform == DomainSettings.PlatformName,
                 "invalid platform, this method can only be called from other chains.");
@@ -892,57 +907,98 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             byte platformId = platform.Equals("ethereum", StringComparison.InvariantCulture) ? (byte)3
                 : platform.Equals("bsc", StringComparison.InvariantCulture) ? (byte)2 : (byte)2;
             var userExternalAddress = Address.EncodeAddress(platformId, externalAddress);
+            int platformsEncountered = 0;
+            PlatformDetails platformInfo;
+            bool existsPlatform = false;
+            InteropTransfer transfer;
+            var crossChainTransfers = GetExternalCrossChainTranfersForUser(from);
+            CrossChainTransfer crossChainTransfer = new CrossChainTransfer();
+            BigInteger AmountSent = 0;
             
-            
-            Runtime.Expect(userExternalAddress == resultTransactionData.Transfers[0].sourceAddress,
-                "invalid external address");
-            var transfer = resultTransactionData.Transfers[0];
-
-            // Check if the address is registered 
-            var platformInfo = platformDetails.FirstOrDefault(p =>
-                Address.EncodeAddress(platformId, p.ExternalAddress) ==
-                resultTransactionData.Transfers[0].destinationAddress);
-            var existsPlatform = platformDetails.Any(p =>
-                Address.EncodeAddress(platformId, p.ExternalAddress) ==
-                resultTransactionData.Transfers[0].destinationAddress);
-            Runtime.Expect(existsPlatform, "Invalid Swapper Address");
-
-            Runtime.Expect(Runtime.TokenExists(transfer.Symbol), "invalid token");
-            var token = Runtime.GetToken(transfer.Symbol);
-
-            Runtime.Expect(token.Flags.HasFlag(TokenFlags.Fungible), "token must be fungible");
-            Runtime.Expect(transfer.Value > 0, "amount must be positive and greater than zero");
-
-            Runtime.Expect(token.Flags.HasFlag(TokenFlags.Transferable), "token must be transferable");
-            Runtime.Expect(token.Flags.HasFlag(TokenFlags.Swappable), "transfer token must be swappable");
-
-            Runtime.Expect(transfer.interopAddress.IsUser, "invalid destination address");
-
-            var fee = transfer.Value * platformInfo.FeePercentage / 100;
-            var crossChainTransfer = new CrossChainTransfer()
+            // Change from here to check all of the amounts that were transfers and check the destination address if it's a platform address
+            for (int i = 0; i < resultTransactionData.Transfers.Count; i++)
             {
-                FromExternalChain = true,
-                Identifier = from.Text + externalAddress + platform + "phantasma" + transfer.Symbol + hash +
-                             Runtime.Time,
-                status = CrossChainTransferStatus.Pending,
-                FromUserAddress = from,
-                UserExternalAddress = externalAddress,
-                Swapper = platformInfo.LocalAddress,
-                SwapperExternalAddress = platformInfo.ExternalAddress,
-                Symbol = transfer.Symbol,
-                Amount = transfer.Value,
-                Fee = fee,
-                PhantasmaHash = Hash.Null,
-                ExternalHash = hash,
-                FromPlatform = platform,
-                ToPlatform = "phantasma",
-                StartedAt = Runtime.Time,
-                UpdatedAt = Runtime.Time,
-            };
+                transfer = resultTransactionData.Transfers[i];
+                if ( transfer.sourceAddress == transfer.destinationAddress)
+                {
+                    continue;
+                }
+                
+                if (transfer.Value <= 0)
+                {
+                    continue;
+                }
 
-            // Store it 
+                if (!Runtime.TokenExists(transfer.Symbol))
+                {
+                    continue;
+                }
+                    
+                var token = Runtime.GetToken(transfer.Symbol);
+                if (!(token.Flags.HasFlag(TokenFlags.Fungible) && 
+                    token.Flags.HasFlag(TokenFlags.Transferable) &&
+                    token.Flags.HasFlag(TokenFlags.Swappable)))
+                {
+                    continue;
+                }
+                
+                if ( !transfer.interopAddress.IsUser)
+                {
+                    continue;
+                }
+                
+                platformInfo = platformDetails.FirstOrDefault(p =>
+                    Address.EncodeAddress(platformId, p.ExternalAddress) ==
+                    transfer.destinationAddress);
+                existsPlatform = platformDetails.Any(p =>
+                    Address.EncodeAddress(platformId, p.ExternalAddress) ==
+                    transfer.destinationAddress);
+                
+                if (!existsPlatform)
+                {
+                    continue;
+                }
+                
+                platformsEncountered++;
+                crossChainTransfer = crossChainTransfers
+                    .FirstOrDefault(c => c.SwapperExternalAddress == platformInfo.ExternalAddress &&
+                                         c.Symbol == transfer.Symbol && 
+                                         c.Status == CrossChainTransferStatus.Pending);
+
+                if (crossChainTransfer.Identifier == null)
+                {
+                    continue;
+                }
+                
+                AmountSent += transfer.Value;
+                
+
+            }
+            
+            Runtime.Expect(platformsEncountered > 0, "No platforms were encountered in the transaction");
+            Runtime.Expect(AmountSent > 0, "No amount was sent in the transaction");
+
+            if (AmountSent < crossChainTransfer.AmountSubFee)
+            {
+                Runtime.TransferTokens(crossChainTransfer.Symbol, this.Address, crossChainTransfer.FromUserAddress, AmountSent);
+                Runtime.TransferTokens(crossChainTransfer.Symbol, this.Address, crossChainTransfer.Swapper, crossChainTransfer.Fee);
+            }
+            else
+            {
+                Runtime.TransferTokens(crossChainTransfer.Symbol, this.Address, crossChainTransfer.FromUserAddress, crossChainTransfer.AmountSubFee);
+                Runtime.TransferTokens(crossChainTransfer.Symbol, this.Address, crossChainTransfer.Swapper, crossChainTransfer.Fee);
+            }
+            
+            crossChainTransfer.Status = CrossChainTransferStatus.Confirmed;
+            crossChainTransfer.UpdatedAt = Runtime.Time;
+            crossChainTransfer.ExternalHash = hash;
+            crossChainTransfer.EndedAt = Runtime.Time;
+
+            // Update it  
             var storageList = _crossChainTransfers.Get<Address, StorageList>(from);
-            storageList.Add<CrossChainTransfer>(crossChainTransfer);
+            var crossChainTransfersList = storageList.All<CrossChainTransfer>().ToList();
+            var index = crossChainTransfersList.FindIndex(c => c.Identifier == crossChainTransfer.Identifier);
+            storageList.Replace(index, crossChainTransfersList);
             _crossChainTransfers.Set<Address, StorageList>(from, storageList);
         }
         
@@ -1046,7 +1102,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             {
                 FromExternalChain = true,
                 Identifier = from.Text + externalAddress + platform + Runtime.Transaction.Hash.ToString() + "phantasma" + symbol + amount + chain + Runtime.Time,
-                status = CrossChainTransferStatus.Pending,
+                Status = CrossChainTransferStatus.Pending,
                 FromUserAddress = from,
                 UserExternalAddress = externalAddress,
                 Swapper = Address.Null,
@@ -1066,6 +1122,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var storageList = _crossChainTransfers.Get<Address, StorageList>(from);
             storageList.Add<CrossChainTransfer>(crossChainTransfer);
             _crossChainTransfers.Set<Address, StorageList>(from, storageList);
+            
+            _crossChainBetting.Set<CrossChainTransfer, StorageList>(crossChainTransfer, new StorageList());
         }
 
         /// <summary>
@@ -1109,6 +1167,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
             else
             {
+                // Tokens only need to be transfered once because the amount of the cross chain swap is always the same.
                 Runtime.TransferTokens(crossChainSwap.Symbol, from, this.Address, crossChainSwap.Amount);
 
                 AddBet(crossChainSwap, bet);
@@ -1127,7 +1186,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 }
                 
                 // Update the cross chain swap status
-                crossChainSwap.status = CrossChainTransferStatus.InProgress;
+                crossChainSwap.Status = CrossChainTransferStatus.InProgress;
                 crossChainSwap.UpdatedAt = Runtime.Time;
                 crossChainSwap.Swapper = from;
                 crossChainSwap.SwapperExternalAddress = platformDetail.ExternalAddress;
@@ -1168,16 +1227,23 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var bets = GetBetsForTransaction(crossChainBet);
             return bets.OrderBy(bet => bet.BetFeeAmount).FirstOrDefault().BetFeeAmount;
         }
-
+        
         /// <summary>
         /// Returns the cross chain swap bet winner.
         /// </summary>
         /// <param name="from"></param>
         /// <param name="platform"></param>
         /// <returns></returns>
-        public string GetCrossChainSwapAddressToSwap(Address from, string platform)
+        public string GetCrossChainSwapAddressToSwap(Address from, string platform, string symbol)
         {
-            return "";
+            Runtime.Expect(from.IsUser, "must be user address");
+            var crossChainTransfers = GetExternalCrossChainTranfersForUser(from);
+            var crossChainTransfer = crossChainTransfers
+                .FirstOrDefault(c => c.FromPlatform == platform && 
+                                     c.Status == CrossChainTransferStatus.InProgress &&
+                                     c.Symbol == symbol);
+            
+            return crossChainTransfer.SwapperExternalAddress;
         }
         #endregion
 

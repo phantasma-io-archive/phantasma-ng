@@ -9,7 +9,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native;
 
 public struct CrossChainTransfer : ISerializable
 {
-    public CrossChainTransferStatus status;
+    public CrossChainTransferStatus Status;
     public bool FromExternalChain;
     public string Identifier;
     public Address FromUserAddress;
@@ -30,7 +30,7 @@ public struct CrossChainTransfer : ISerializable
         
     public void SerializeData(BinaryWriter writer)
     {
-        writer.WriteVarInt((int)status);
+        writer.WriteVarInt((int)Status);
         writer.Write(FromExternalChain);
         writer.WriteVarString(Identifier);
         writer.WriteAddress(FromUserAddress);
@@ -52,7 +52,7 @@ public struct CrossChainTransfer : ISerializable
 
     public void UnserializeData(BinaryReader reader)
     {
-        this.status = (CrossChainTransferStatus)reader.ReadVarInt();
+        this.Status = (CrossChainTransferStatus)reader.ReadVarInt();
         this.FromExternalChain = reader.ReadBoolean();
         this.Identifier = reader.ReadVarString();
         this.FromUserAddress = reader.ReadAddress();
