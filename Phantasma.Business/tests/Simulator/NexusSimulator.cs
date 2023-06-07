@@ -260,12 +260,6 @@ public class NexusSimulator
         }
 
         /*
-        var neoPlatform = NeoWallet.NeoPlatform;
-        var neoKeys = InteropUtils.GenerateInteropKeys(owner, Nexus.GetGenesisHash(Nexus.RootStorage), neoPlatform);
-        var neoText = NeoKeys.FromWIF(neoKeys.ToWIF()).Address;
-        var neoAddress = NeoWallet.EncodeAddress(neoText);
-
-        
         var ethPlatform = EthereumWallet.EthereumPlatform;
         var ethKeys = InteropUtils.GenerateInteropKeys(_owner, Nexus.GetGenesisHash(Nexus.RootStorage), ethPlatform);
         var ethText = EthereumKey.FromWIF(ethKeys.ToWIF()).Address;
@@ -335,9 +329,6 @@ public class NexusSimulator
 
     public void InitPlatforms()
     {
-        var neoPlatform = NeoWallet.NeoPlatform;
-        var neoKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.RootStorage), neoPlatform);
-
         var ethPlatform = EthereumWallet.EthereumPlatform;
         var ethKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.RootStorage), ethPlatform);
         var ethText = EthereumKey.FromWIF(ethKeys.ToWIF()).Address;
