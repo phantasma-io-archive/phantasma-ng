@@ -16,7 +16,6 @@ using Phantasma.Infrastructure.API;
 using Phantasma.Infrastructure.API.Controllers;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Node.Chains.Ethereum;
-using Phantasma.Node.Chains.Neo2;
 using Serilog;
 using TransactionResult = Phantasma.Infrastructure.API.TransactionResult;
 
@@ -143,7 +142,6 @@ namespace Phantasma.Node.Interop
 
         internal readonly StorageContext Storage;
         private readonly BigInteger MinimumFee;
-        private readonly NeoAPI neoAPI;
         private readonly EthAPI ethAPI;
 
         private readonly Dictionary<string, BigInteger> interopBlocks;
@@ -152,7 +150,7 @@ namespace Phantasma.Node.Interop
 
         private HashSet<string> _supportedPlatforms = new HashSet<string>();
 
-        public TokenSwapper(Node node, PhantasmaKeys swapKey, NeoAPI neoAPI, EthAPI ethAPI, BigInteger minFee, string[] supportedPlatforms)
+        public TokenSwapper(Node node, PhantasmaKeys swapKey, EthAPI ethAPI, BigInteger minFee, string[] supportedPlatforms)
         {
             var nexus = NexusAPI.GetNexus();
 
@@ -160,7 +158,6 @@ namespace Phantasma.Node.Interop
             this.SwapKeys = swapKey;
             this.OracleReader = nexus.GetOracleReader();
             this.MinimumFee = minFee;
-            this.neoAPI = neoAPI;
             this.ethAPI = ethAPI;
 
             this.Storage = new KeyStoreStorage(nexus.CreateKeyStoreAdapter("swaps"));
@@ -168,7 +165,6 @@ namespace Phantasma.Node.Interop
             this.interopBlocks = new Dictionary<string, BigInteger>();
 
             interopBlocks[DomainSettings.PlatformName] = BigInteger.Parse(Settings.Instance.Oracle.PhantasmaInteropHeight);
-            interopBlocks["neo"] = BigInteger.Parse(Settings.Instance.Oracle.NeoInteropHeight);
             interopBlocks["ethereum"] = BigInteger.Parse(Settings.Instance.Oracle.EthInteropHeight);
 
             var inProgressMap = new StorageMap(InProgressTag, this.Storage);
@@ -289,14 +285,8 @@ namespace Phantasma.Node.Interop
                         Log.Warning("No interop platforms found. Make sure that the Nexus was created correctly.");
                         return;
                     }
-
-                    _swappers["neo"] = new NeoInterop(this, neoAPI, interopBlocks["neo"], Settings.Instance.Oracle.NeoQuickSync);
-                    var platformInfo = nexus.GetPlatformInfo(nexus.RootStorage, "neo");
-                    SwapAddresses["neo"] = platformInfo.InteropAddresses.Select(x => x.ExternalAddress).ToArray();
-
+                    
                     _swappers["ethereum"] = new EthereumInterop(this, ethAPI, interopBlocks["ethereum"], nexus.GetPlatformTokenHashes("ethereum", nexus.RootStorage).Select(x => x.ToString().Substring(0, 40)).ToArray(), Settings.Instance.Oracle.EthConfirmations);
-                    platformInfo = nexus.GetPlatformInfo(nexus.RootStorage, "ethereum");
-                    SwapAddresses["ethereum"] = platformInfo.InteropAddresses.Select(x => x.ExternalAddress).ToArray();
 
                     Log.Information("Available swap addresses:");
                     foreach (var x in SwapAddresses)

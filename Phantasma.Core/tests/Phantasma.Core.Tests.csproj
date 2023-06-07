@@ -10,14 +10,14 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2"/>
-        <PackageReference Include="NSubstitute" Version="4.4.0"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
+        <PackageReference Include="NSubstitute" Version="4.4.0" />
         <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.15">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Shouldly" Version="4.1.0"/>
-        <PackageReference Include="xunit" Version="2.4.2"/>
+        <PackageReference Include="Shouldly" Version="4.1.0" />
+        <PackageReference Include="xunit" Version="2.4.2" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -25,9 +25,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Phantasma.Business\tests\Phantasma.Business.Tests.csproj"/>
-        <ProjectReference Include="..\..\Phantasma.Node\Phantasma.Node.csproj"/>
-        <ProjectReference Include="..\src\Phantasma.Core.csproj"/>
+        <ProjectReference Include="..\..\Phantasma.Business\tests\Phantasma.Business.Tests.csproj" />
+        <ProjectReference Include="..\..\Phantasma.Node\Phantasma.Node.csproj" />
+        <ProjectReference Include="..\src\Phantasma.Core.csproj" />
     </ItemGroup>
 
 </Project>

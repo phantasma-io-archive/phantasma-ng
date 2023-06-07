@@ -3,7 +3,6 @@ namespace Phantasma.Node;
 public enum SwapPlatformChain
 {
     Phantasma,
-    Neo,
-    Eth,
-    BSC,
+    Eth = 2,
+    BSC = 3,
 }

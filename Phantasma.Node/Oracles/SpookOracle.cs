@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using Neo;
 using Nethereum.RPC.Eth.DTOs;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
@@ -13,11 +12,8 @@ using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Infrastructure.API;
 using Phantasma.Infrastructure.Pay.Chains;
-using Phantasma.Node.Chains.Neo2;
 using Phantasma.Node.Interop;
 using Serilog;
-using NeoBlock = Neo.Network.P2P.Payloads.Block;
-using NeoTx = Neo.Network.P2P.Payloads.Transaction;
 
 namespace Phantasma.Node.Oracles
 {
@@ -165,9 +161,6 @@ namespace Phantasma.Node.Oracles
 
             switch (platform)
             {
-                case NeoWallet.NeoPlatform:
-                    return UnitConversion.ToBigInteger(0.1m, DomainSettings.FiatTokenDecimals);
-
                 case EthereumWallet.EthereumPlatform:
 
                     CachedFee fee;
@@ -235,28 +228,6 @@ namespace Phantasma.Node.Oracles
             Tuple<InteropBlock, InteropTransaction[]> interopTuple;
             switch (platformName)
             {
-                case NeoWallet.NeoPlatform:
-
-                    NeoBlock neoBlock;
-
-                    if (height == 0)
-                    {
-                        neoBlock = _cli.NeoAPI.GetBlock(new UInt256(NeoUtils.ReverseHex(hash.ToString()).HexToBytes()));
-                    }
-                    else
-                    {
-                        neoBlock = _cli.NeoAPI.GetBlock(height);
-                    }
-
-                    if (neoBlock == null)
-                    {
-                        throw new OracleException($"Neo block is null");
-                    }
-
-                    var coldStorage = Settings.Instance.Oracle.SwapColdStorageNeo;
-                    interopTuple = NeoInterop.MakeInteropBlock(neoBlock, _cli.NeoAPI,
-                            ((TokenSwapper)tokenSwapper).SwapAddresses[platformName], coldStorage);
-                    break;
                 case EthereumWallet.EthereumPlatform:
                     var hashes = nexus.GetPlatformTokenHashes(EthereumWallet.EthereumPlatform, nexus.RootStorage)
                         .Select(x => x.ToString().Substring(0, 40)).ToArray();
@@ -353,13 +324,6 @@ namespace Phantasma.Node.Oracles
 
             switch (platformName)
             {
-                case NeoWallet.NeoPlatform:
-                    NeoTx neoTx;
-                    UInt256 uHash = new UInt256(NeoUtils.ReverseHex(hash.ToString()).HexToBytes());
-                    neoTx = _cli.NeoAPI.GetTransaction(uHash);
-                    var coldStorage = Settings.Instance.Oracle.SwapColdStorageNeo;
-                    tx = NeoInterop.MakeInteropTx(neoTx, _cli.NeoAPI, ((TokenSwapper)tokenSwapper).SwapAddresses[platformName], coldStorage);
-                    break;
                 case EthereumWallet.EthereumPlatform:
                     var txRcpt = _cli.EthAPI.GetTransactionReceipt(hash.ToString());
                     tx = EthereumInterop.MakeInteropTx(nexus, txRcpt, _cli.EthAPI, ((TokenSwapper)tokenSwapper).SwapAddresses[platformName]);

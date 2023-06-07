@@ -1,5 +1,4 @@
 using System;
-using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -7,43 +6,39 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Phantasma.Business.Blockchain;
-using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
-using Phantasma.Core.Storage.Context;
 using Serilog;
 using Tendermint;
 using Tendermint.Abci;
 using Tendermint.Extensions;
 using Tendermint.RPC;
-using Tendermint.Types;
 using Chain = Phantasma.Business.Blockchain.Chain;
 using Timestamp = Phantasma.Core.Types.Timestamp;
 
 namespace Phantasma.Node;
+
 public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 {
     private Nexus _nexus;
     private PhantasmaKeys _owner;
     private NodeRpcClient _rpc;
-    private IEnumerable<Address> _initialValidators;
-    private IEnumerable<ValidatorSettings> _initialValidatorsSettings;
-    private List<Transaction> _pendingTxs = new List<Transaction>();
-    private BigInteger _minimumFee;
-    private Timestamp currentBlockTime;
-    private NodeConnector _nodeConnector;
-    private int _delayRequests = 1000;
+    private readonly IEnumerable<Address> _initialValidators;
+    private readonly List<Transaction> _pendingTxs = new();
+    private readonly BigInteger _minimumFee;
+    private Timestamp _currentBlockTime;
+    private readonly NodeConnector _nodeConnector;
+    private readonly int _delayRequests = 1000;
 
     // TODO add logger
-    public ABCIConnector(IEnumerable<Address> initialValidators, IEnumerable<ValidatorSettings> validatorSettings, NodeConnector nodeConnector, BigInteger minimumFee)
+    public ABCIConnector(IEnumerable<Address> initialValidators, IEnumerable<ValidatorSettings> validatorSettings,
+        NodeConnector nodeConnector, BigInteger minimumFee)
     {
         _minimumFee = minimumFee;
         _initialValidators = initialValidators;
-        _initialValidatorsSettings = validatorSettings;
         _nodeConnector = nodeConnector;
         Log.Information("ABCI Connector initialized");
     }
@@ -55,7 +50,6 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         _rpc = new NodeRpcClient(tendermintEndpoint);
         _nexus.RootChain.ValidatorKeys = _owner;
         Log.Information("ABCI Connector - Set node Info");
-
     }
 
     public bool IsTransactionPending(Hash hash)
@@ -71,16 +65,17 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     /// <returns></returns>
     public override Task<ResponseBeginBlock> BeginBlock(RequestBeginBlock request, ServerCallContext context)
     {
-        Timestamp time = new Timestamp((uint) request.Header.Time.Seconds);
-        currentBlockTime = time;
+        Timestamp time = new Timestamp((uint)request.Header.Time.Seconds);
+        _currentBlockTime = time;
         Log.Information("Begin block {Height} at {time}", request.Header.Height, time);
 
         var response = new ResponseBeginBlock();
         try
         {
-            var proposerAddress = Base16.Encode(request.Header.ProposerAddress.ToByteArray());
-            Log.Information("proposer {ProposerAddress} current node {CurrentAddress}", proposerAddress, this._owner.Address.TendermintAddress);
-            if (proposerAddress.Equals(this._owner.Address.TendermintAddress))
+            var proposerAddress = request.Header.ProposerAddress.ToByteArray().Encode();
+            Log.Information("proposer {ProposerAddress} current node {CurrentAddress}", proposerAddress,
+                _owner.Address.TendermintAddress);
+            if (proposerAddress.Equals(_owner.Address.TendermintAddress))
             {
                 foreach (var tx in _pendingTxs)
                 {
@@ -98,35 +93,34 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                             Console.WriteLine(e.Message);
                         }
                     }
+
                     Log.Information("Broadcast tx {Transaction} done", tx);
                 }
             }
 
             var chain = _nexus.RootChain as Chain;
 
-            IEnumerable<Transaction> systemTransactions;
-            if (chain.CurrentBlock != null)
+            if (chain?.CurrentBlock != null)
             {
                 Log.Information("Requesting the block because it is not null");
                 while (chain.CurrentBlock != null)
                 {
                     AttemptRequestBlock(chain);
-
                     Thread.Sleep(_delayRequests);
-                    //Task.Delay(_delayRequests).Wait();
                 }
             }
-            
-            systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, time, this._initialValidators); 
+
+            chain?.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, time,
+                _initialValidators);
         }
         catch (Exception e)
         {
             Log.Information(e.ToString());
         }
-        
+
         return Task.FromResult(response);
     }
-    
+
     /// <summary>
     /// Next is called when a new transaction is received. To validate the transaction.
     /// </summary>
@@ -146,11 +140,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                 var txString = request.Tx.ToStringUtf8();
                 var tx = Transaction.Unserialize(Base16.Decode(txString));
 
-                (CodeType code, string message) = chain.CheckTx(tx, currentBlockTime);
+                (CodeType code, string message) = chain.CheckTx(tx, _currentBlockTime);
 
                 var response = new ResponseCheckTx();
                 response.Code = 0;
-                if (code == CodeType.Ok)    
+                if (code == CodeType.Ok)
                 {
                     return Task.FromResult(ResponseHelper.Check.Ok());
                 }
@@ -165,7 +159,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
         return Task.FromResult(ResponseHelper.Check.Create(CodeType.Error, "Generic Error"));
     }
-    
+
     /// <summary>
     /// DeliverTx is called when a transaction is included in a block.
     /// </summary>
@@ -179,7 +173,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         var chain = _nexus.RootChain as Chain;
 
         var txString = request.Tx.ToStringUtf8();
-        
+
         var newTx = Transaction.Unserialize(Base16.Decode(txString));
 
         var result = chain.DeliverTx(newTx);
@@ -195,7 +189,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         };
 
         // Fix for null transaction that crashed the chain to many times!
-        if ( result.Events != null) // Yes it was just a null check that was missing!
+        if (result.Events != null) // Yes it was just a null check that was missing!
             if (result.Events.Count() > 0)
             {
                 var newEvents = new List<Tendermint.Abci.Event>();
@@ -215,6 +209,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
                     newEvents.Add(newEvent);
                 }
+
                 response.Events.AddRange(newEvents);
             }
 
@@ -276,7 +271,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
         return Task.FromResult(response);
     }
-    
+
     /// <summary>
     /// Commit the block to storage.
     /// </summary>
@@ -301,13 +296,14 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             while (chain.CurrentBlock != null && attempts-- > 0)
             {
                 AttemptRequestBlock(chain);
-                
+
                 Thread.Sleep(_delayRequests);
             }
             //var data = chain.Commit();
         }
+
         var response = new ResponseCommit();
-        
+
         //response.Data = ByteString.CopyFrom(data); // this would change the app hash, we don't want that
         return Task.FromResult(response);
     }
@@ -321,20 +317,20 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     /// <returns></returns>
     private bool ValidateBlockFromRequest(Block block, Chain chain, Transaction[] transactions)
     {
-        if ( block == null ) return false;
-        if ( block.Height != chain.Height ) return false;
-        if ( block.Timestamp < chain.CurrentBlock.Timestamp ) return false;
-        if ( block.Payload == null ) return false;
-        if ( block.Validator != chain.CurrentBlock.Validator ) return false;
+        if (block == null) return false;
+        if (block.Height != chain.Height) return false;
+        if (block.Timestamp < chain.CurrentBlock.Timestamp) return false;
+        if (block.Payload == null) return false;
+        if (block.Validator != chain.CurrentBlock.Validator) return false;
         foreach (var tx in transactions)
         {
             if (block.GetStateForTransaction(tx.Hash) != chain.CurrentBlock.GetStateForTransaction(tx.Hash))
                 return false;
         }
-        
+
         return true;
     }
-    
+
     /// <summary>
     /// 
     /// </summary>
@@ -344,16 +340,16 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     /// <exception cref="Exception"></exception>
     private Task<byte[]> HandleRequestBlock(Chain chain, Tendermint.RPC.Endpoint.ResponseQuery response)
     {
-        if ( response.Code != (int) 0) return Task.FromResult(new byte[0]);
-        if ( response.Value == null ) return Task.FromResult(new byte[0]);
-        
+        if (response.Code != (int)0) return Task.FromResult(new byte[0]);
+        if (response.Value == null) return Task.FromResult(new byte[0]);
+
         Log.Information("at height:{height}", chain.CurrentBlock.Height);
         var blockString = ByteString.FromBase64(response.Value).ToStringUtf8();
         var split = blockString.Split("_");
         var blockEncoded = split[0].Split(":")[1];
         //Log.Information("Block info : {Block}", blockEncoded);
         var block = Serialization.Unserialize<Block>(Base16.Decode(blockEncoded));
-        
+
         var transactionsEncoded = split[1].Split(":")[1];
         //Log.Information("Transactions info : {Transactions}", transactionsEncoded);
         var transactions =
@@ -365,10 +361,10 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         {
             throw new Exception("Block is not valid");
         }*/
-        
+
         return Task.FromResult(chain.SetBlock(block, transactions, chain.CurrentChangeSet));
     }
-    
+
     private Task<byte[]> AttemptRequestBlock(Chain chain)
     {
         try
@@ -376,11 +372,13 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             //var heightRequest = string.Concat(((int)chain.CurrentBlock.Height).ToString().Select(c => "3" + c.ToString()));
             //Log.Error("Trying to request this height {height}, {height2}", heightRequest, chain.CurrentBlock.Height);
             Log.Information("Requesting Block...");
-            var result = _nodeConnector.RequestBlockHeightFromAddress(chain.CurrentBlock.Validator, (int)chain.CurrentBlock.Height);
-            var data =  HandleRequestBlock(chain, result);
+            var result =
+                _nodeConnector.RequestBlockHeightFromAddress(chain.CurrentBlock.Validator,
+                    (int)chain.CurrentBlock.Height);
+            var data = HandleRequestBlock(chain, result);
             return data;
         }
-        catch ( Exception e)
+        catch (Exception e)
         {
             Log.Information(e.ToString());
             Log.Error("Something went wrong while requesting the block");
@@ -411,14 +409,15 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
         uint version = DomainSettings.Phantasma30Protocol;
 
-        try 
+        try
         {
             lastBlockHash = _nexus.RootChain.GetLastBlockHash();
             lastBlock = _nexus.RootChain.GetBlockByHash(lastBlockHash);
             try
             {
                 version = _nexus.GetProtocolVersion(_nexus.RootStorage);
-            }catch(Exception e)
+            }
+            catch (Exception e)
             {
                 Log.Information("Error getting info {Exception}", e);
             }
@@ -443,17 +442,17 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         Log.Information($"ABCI Connector - Init Chain");
 
         var response = new ResponseInitChain();
-        var timestamp = new Timestamp((uint) request.Time.Seconds);
+        var timestamp = new Timestamp((uint)request.Time.Seconds);
 
         try
         {
             var signerAddress = _initialValidators.Last().TendermintAddress;
 
-            _nexus.SetInitialValidators(this._initialValidators);
+            _nexus.SetInitialValidators(_initialValidators);
 
-            if (this._owner.Address.TendermintAddress == signerAddress)
+            if (_owner.Address.TendermintAddress == signerAddress)
             {
-                var tx = _nexus.CreateGenesisTransaction(timestamp, this._owner);
+                var tx = _nexus.CreateGenesisTransaction(timestamp, _owner);
 
                 var txString = Base16.Encode(tx.ToByteArray(true));
                 Task.Factory.StartNew(() => _rpc.BroadcastTxSync(txString));
@@ -468,7 +467,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
         var appHash = Encoding.UTF8.GetBytes("A Phantasma was born...");
         response.AppHash = ByteString.CopyFrom(appHash);
-        return Task.FromResult( response );
+        return Task.FromResult(response);
     }
 
     public override Task<ResponseQuery> Query(RequestQuery request, ServerCallContext context)
@@ -491,25 +490,25 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
                     var height = int.Parse(request.Data.ToStringUtf8());
                     var hash = chain.GetBlockHashAtHeight(height);
-                    
-                    if ( hash == Hash.Null )
+
+                    if (hash == Hash.Null)
                     {
                         query.Code = (int)CodeType.Error;
                         query.Info = "Block get";
                         return Task.FromResult(query);
                     }
-                    
+
                     var block = chain.GetBlockByHash(hash);
-                    if ( block == null )
+                    if (block == null)
                     {
                         query.Code = (int)CodeType.Error;
                         query.Info = "Block get";
                         query.Value = "Block not found".ToByteString();
                         return Task.FromResult(query);
                     }
-                    
+
                     var transactions = chain.GetBlockTransactions(block);
-                    if ( transactions == null )
+                    if (transactions == null)
                     {
                         query.Code = (int)CodeType.Error;
                         query.Info = "Block get";
@@ -517,11 +516,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                         return Task.FromResult(query);
                     }
 
-                    
+
                     var blockBytes = block.ToByteArray(true);
                     var transactionsBytes = Serialization.Serialize(transactions.ToArray());
                     //var changeSet = chain.CurrentChangeSet.Serialize();
-                    
+
                     var response = "block:" + Base16.Encode(blockBytes);
                     response += "_transactions:" + Base16.Encode(transactionsBytes);
                     //response += "_changeSet:" + Base16.Encode(changeSet);
@@ -529,14 +528,13 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
                     query.Value = response.ToByteString();
                     query.Code = (int)CodeType.Ok;
                 }
-                catch ( Exception e )
+                catch (Exception e)
                 {
                     Log.Information("Error getting block {Exception}", e);
                     query.Info = "Block get";
                     query.Value = e.Message.ToByteString();
                     query.Code = (int)CodeType.Error;
                 }
-                
             }
             /* Not sure if this is is needed since we request the blocks from the RPC
              else if (request.Path.Contains("/set"))
@@ -554,34 +552,36 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             }*/
         }
 
-        return Task.FromResult( query );
+        return Task.FromResult(query);
     }
 
     public override Task<ResponseListSnapshots> ListSnapshots(RequestListSnapshots request, ServerCallContext context)
     {
         Log.Information($"ABCI Connector - ListSnapshots");
 
-        return Task.FromResult( new ResponseListSnapshots());
+        return Task.FromResult(new ResponseListSnapshots());
     }
 
     public override Task<ResponseOfferSnapshot> OfferSnapshot(RequestOfferSnapshot request, ServerCallContext context)
     {
         Log.Information($"ABCI Connector - OfferSnapshot");
 
-        return Task.FromResult( new ResponseOfferSnapshot());
+        return Task.FromResult(new ResponseOfferSnapshot());
     }
 
-    public override Task<ResponseLoadSnapshotChunk> LoadSnapshotChunk(RequestLoadSnapshotChunk request, ServerCallContext context)
+    public override Task<ResponseLoadSnapshotChunk> LoadSnapshotChunk(RequestLoadSnapshotChunk request,
+        ServerCallContext context)
     {
         Log.Information($"ABCI Connector - LoadSnapshotChunk");
 
-        return Task.FromResult( new ResponseLoadSnapshotChunk());
+        return Task.FromResult(new ResponseLoadSnapshotChunk());
     }
 
-    public override Task<ResponseApplySnapshotChunk> ApplySnapshotChunk(RequestApplySnapshotChunk request, ServerCallContext context)
+    public override Task<ResponseApplySnapshotChunk> ApplySnapshotChunk(RequestApplySnapshotChunk request,
+        ServerCallContext context)
     {
         Log.Information($"ABCI Connector - ApplySnapshotChunk");
 
-        return Task.FromResult( new ResponseApplySnapshotChunk());
+        return Task.FromResult(new ResponseApplySnapshotChunk());
     }
 }

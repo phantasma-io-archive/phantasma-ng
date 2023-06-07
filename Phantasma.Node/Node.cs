@@ -21,7 +21,6 @@ using Phantasma.Infrastructure.API;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Infrastructure.RocksDB;
 using Phantasma.Node.Chains.Ethereum;
-using Phantasma.Node.Chains.Neo2;
 using Phantasma.Node.Converters;
 using Phantasma.Node.Interop;
 using Phantasma.Node.Oracles;
@@ -31,7 +30,6 @@ using Serilog;
 using Tendermint.Abci;
 using Tendermint.RPC;
 using EthAccount = Nethereum.Web3.Accounts.Account;
-using NeoAPI = Phantasma.Node.Chains.Neo2.NeoAPI;
 
 namespace Phantasma.Node
 {
@@ -54,7 +52,6 @@ namespace Phantasma.Node
         private PhantasmaKeys _nodeKeys;
         private bool _nodeReady = false;
         private List<string> _seeds = new List<string>();
-        private NeoAPI _neoAPI;
         private EthAPI _ethAPI;
         private EthAPI _bscAPI;
         private string _cryptoCompareAPIKey = null;
@@ -65,7 +62,6 @@ namespace Phantasma.Node
         private string _tendermint_Proxy_URL;
         private Process _tendermintProcess;
 
-        public NeoAPI NeoAPI { get { return _neoAPI; } }
         public EthAPI EthAPI { get { return _ethAPI; } }
         public EthAPI BscAPI { get { return _bscAPI; } }
         public string CryptoCompareAPIKey  { get { return _cryptoCompareAPIKey; } }
@@ -158,7 +154,7 @@ namespace Phantasma.Node
             var platforms = Settings.Instance.Oracle.Swaps.Split(',');
             var minimumFee = Settings.Instance.Node.MinimumFee;
             var oracleSettings = Settings.Instance.Oracle;
-            var tokenSwapper = new TokenSwapper(this, _nodeKeys, _neoAPI, _ethAPI, minimumFee, platforms);
+            var tokenSwapper = new TokenSwapper(this, _nodeKeys, _ethAPI, minimumFee, platforms);
             NexusAPI.TokenSwapper = tokenSwapper;
 
             _tokenSwapperThread = new Thread(() =>
@@ -190,12 +186,6 @@ namespace Phantasma.Node
 
         private void SetupOracleApis()
         {
-            /*var neoScanURL = Settings.Instance.Oracle.NeoscanUrl;
-
-            var neoRpcList = Settings.Instance.Oracle.NeoRpcNodes;
-            this._neoAPI = new RemoteRPCNode(neoScanURL, neoRpcList.ToArray());
-            this._neoAPI.SetLogger((s) => Log.Information(s));*/
-
             var ethRpcList = Settings.Instance.Oracle.GetPlatformSettings(SwapPlatformChain.Eth).RpcNodes;
             var bscRpcList = Settings.Instance.Oracle.GetPlatformSettings(SwapPlatformChain.BSC).RpcNodes;
             //var ethWIF = Settings.Instance.GetInteropWif(_nodeKeys, EthereumWallet.EthereumPlatform);

@@ -2,7 +2,6 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using Microsoft.AspNetCore.Mvc.Diagnostics;
-using Neo.VM.Types;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Utils;

@@ -37,23 +37,6 @@ public class PayTests
         Assert.True(address.Equals("EOS8dBKtG9fbhC1wi1SscL32iFRsSi4PsZDT2EHJcYXwV5dAMiBcK", StringComparison.OrdinalIgnoreCase));
     }*/
 
-    [Fact]
-    public void TestNeoWallet()
-    {
-        var keys = PhantasmaKeys.FromWIF("L1nuBmNJ2HvLat5xyvpqmHpmXNe6rGGdAzGJgLjDLECaTCVgqjdx");
-        var wallet = new NeoWallet(keys, "https://api.neoscan.io");
-        var address = wallet.Address;
-
-        string expectedAddress = "AU2eYJkpZ2nG81RyqnzF5UL2qjdkpPEJqN";
-        Assert.True(address.Equals(expectedAddress, StringComparison.OrdinalIgnoreCase));
-
-        var encodedAddress = NeoWallet.EncodeAddress(expectedAddress);
-        Assert.True(encodedAddress.IsInterop);
-
-        var newAddress = NeoWallet.DecodeAddress(encodedAddress);
-        Assert.True(newAddress.Equals(expectedAddress, StringComparison.OrdinalIgnoreCase));
-    }
-
     /*
     [Fact]
     public void TestBitcoinWallet()
