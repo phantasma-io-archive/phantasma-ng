@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Validation;
 using Phantasma.Core.Types;
 
 namespace Phantasma.Infrastructure.API.Controllers

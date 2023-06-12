@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract.Interop;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Domain;

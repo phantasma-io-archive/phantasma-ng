@@ -11,6 +11,8 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.Pay;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Wallet;
 using Phantasma.Node.Chains.Ethereum;
 
 namespace Phantasma.Core.Tests.Domain;

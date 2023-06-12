@@ -12,6 +12,9 @@ using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.VM;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 

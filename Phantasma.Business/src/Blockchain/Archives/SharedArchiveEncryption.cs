@@ -1,8 +1,10 @@
 ﻿using System.IO;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Interfaces;
 
-namespace Phantasma.Business.Blockchain.Storage
+namespace Phantasma.Business.Blockchain.Archives
 {
     // allows to encrypt data shared between two addresses
     public class SharedArchiveEncryption : IArchiveEncryption

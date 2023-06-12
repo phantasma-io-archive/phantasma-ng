@@ -1,16 +1,8 @@
 ﻿using Phantasma.Core.Domain;
-using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Domain.Contract;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {
-    internal struct PrivacyQueue
-    {
-        public uint ID;
-        public int size;
-        public StorageList addresses; //<Address>
-        public StorageList signatures; //<RingSignature>
-    }
-
     public sealed class PrivacyContract : NativeContract
     {
         public override NativeContractKind Kind => NativeContractKind.Privacy;

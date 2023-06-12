@@ -2,12 +2,12 @@ using System;
 using System.IO;
 using System.Text;
 using Neo.Wallets;
+using Phantasma.Business.Blockchain.Archives;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Exceptions;
 
 namespace Phantasma.Business.Tests.Blockchain.Storage;
-
-using Phantasma.Business.Blockchain.Storage;
 
 using Xunit;
 

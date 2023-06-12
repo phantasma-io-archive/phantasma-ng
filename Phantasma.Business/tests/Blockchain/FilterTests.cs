@@ -12,6 +12,8 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using Xunit;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Oracle;
 
 namespace Phantasma.Business.Tests.Blockchain;
 

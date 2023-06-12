@@ -7,6 +7,10 @@ using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Gas;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 

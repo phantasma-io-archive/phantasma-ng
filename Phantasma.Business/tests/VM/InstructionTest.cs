@@ -3,6 +3,7 @@ using System.Text;
 using Phantasma.Business.VM;
 using Phantasma.Core;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.VM;
 using Shouldly;
 using Xunit;
 

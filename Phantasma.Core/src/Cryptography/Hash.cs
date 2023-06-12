@@ -3,6 +3,7 @@ using System.IO;
 using System.Numerics;
 using System.Text;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Utils;
 

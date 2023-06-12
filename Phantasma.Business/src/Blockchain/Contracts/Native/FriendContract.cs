@@ -1,5 +1,7 @@
 ﻿using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Events;
 using Phantasma.Core.Storage.Context;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
@@ -64,6 +66,5 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return friendList.All<Address>();
         }
         #endregion
-
     }
 }

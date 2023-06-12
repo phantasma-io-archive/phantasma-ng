@@ -6,6 +6,8 @@ using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.LeaderboardDetails;
 using Phantasma.Core.Numerics;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts;

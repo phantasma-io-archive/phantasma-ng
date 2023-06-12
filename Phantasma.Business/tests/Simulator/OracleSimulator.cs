@@ -5,6 +5,8 @@ using Phantasma.Core.Types;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Exceptions;
 using Phantasma.Core.Numerics;
 using Phantasma.Infrastructure.Pay.Chains;
 

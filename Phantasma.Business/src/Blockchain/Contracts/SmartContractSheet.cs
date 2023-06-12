@@ -1,3 +1,5 @@
+using Phantasma.Core.Domain.Contract;
+
 namespace Phantasma.Business.Blockchain.Contracts;
 
 using System;

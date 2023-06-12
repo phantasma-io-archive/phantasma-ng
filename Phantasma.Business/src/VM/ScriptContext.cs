@@ -7,6 +7,8 @@ using Nethereum.Contracts.QueryHandlers.MultiCall;
 using Phantasma.Business.Blockchain.VM;
 using Phantasma.Core;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Performance;
 using Phantasma.Core.Utils;

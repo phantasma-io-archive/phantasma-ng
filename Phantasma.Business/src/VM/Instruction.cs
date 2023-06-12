@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Numerics;
 
 namespace Phantasma.Business.VM

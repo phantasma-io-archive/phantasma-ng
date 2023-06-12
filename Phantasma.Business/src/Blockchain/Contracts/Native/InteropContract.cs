@@ -5,6 +5,12 @@ using System.Runtime.InteropServices;
 using Nethereum.Util;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Platform;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Token;
 using Phantasma.Core.Storage.Context;
 using UnitConversion = Phantasma.Core.Numerics.UnitConversion;
 
@@ -1012,7 +1018,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
             return _crossChainBetting.AllKeys<CrossChainTransfer>();
         }
-        
+
         /// <summary>
         /// Get Cross Chain Bet by Identifier
         /// </summary>
@@ -1153,10 +1159,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var bet = new Bet()
             {
                 Swapper = from,
-                platform = platform,
-                externalAddress = platformDetail.ExternalAddress,
+                Platform = platform,
+                ExternalAddress = platformDetail.ExternalAddress,
                 BetFeeAmount = BetFee,
-                symbol = crossChainSwap.Symbol,
+                Symbol = crossChainSwap.Symbol,
                 CreatedAt = Runtime.Time,
                 UpdatedAt = Runtime.Time,
             };

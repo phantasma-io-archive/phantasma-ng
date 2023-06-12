@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.IO;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain.Platform;
+using Phantasma.Core.Domain.Serializer;
 
 namespace Phantasma.Core.Tests.Domain;
 using Phantasma.Core.Domain;

@@ -3,6 +3,7 @@ using System.Linq;
 using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.VM;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.VM;
 using Shouldly;
 using Xunit;
 

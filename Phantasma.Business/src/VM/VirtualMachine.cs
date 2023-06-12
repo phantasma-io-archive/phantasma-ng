@@ -6,6 +6,9 @@ using System.Linq;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Performance;
 
 namespace Phantasma.Business.VM

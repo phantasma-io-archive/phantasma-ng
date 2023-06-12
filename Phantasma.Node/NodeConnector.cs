@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Net;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract.Validator;
 using RestSharp;
 using Serilog;
 using Tendermint.RPC;

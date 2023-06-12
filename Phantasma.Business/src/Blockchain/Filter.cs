@@ -7,6 +7,7 @@ using System.Numerics;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using System.Collections.Generic;
+using Phantasma.Core.Domain.Interfaces;
 
 namespace Phantasma.Business.Blockchain
 {

@@ -8,6 +8,7 @@ using Neo.Network.P2P.Payloads;
 using Neo.Wallets;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Utils;
 using Transaction = Neo.Network.P2P.Payloads.Transaction;

@@ -5,6 +5,9 @@ using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.TransactionData;
 
 namespace Phantasma.Business.Blockchain
 {

@@ -4,6 +4,8 @@ using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Types;
 using Xunit;
 

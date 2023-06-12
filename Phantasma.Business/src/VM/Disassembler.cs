@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Phantasma.Core;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.VM;
 
 namespace Phantasma.Business.VM
 {

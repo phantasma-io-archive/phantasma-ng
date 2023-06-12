@@ -8,6 +8,8 @@ using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.EdDSA;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Relay;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils;

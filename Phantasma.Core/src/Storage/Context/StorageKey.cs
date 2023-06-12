@@ -1,29 +1,13 @@
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Storage.Context
 {
-    public class StorageKeyComparer : IEqualityComparer<StorageKey>
-    {
-        public bool Equals(StorageKey left, StorageKey right)
-        {
-            return left.keyData.SequenceEqual(right.keyData);
-        }
-
-        public int GetHashCode(StorageKey obj)
-        {
-            unchecked
-            {
-                return obj.keyData.Sum(b => b);
-            }
-        }
-    }
-
     public struct StorageKey : ISerializable
     {
         public byte[] keyData { get; private set; }

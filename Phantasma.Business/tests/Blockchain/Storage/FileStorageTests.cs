@@ -2,12 +2,16 @@
 using System.Linq;
 using System.Numerics;
 using Phantasma.Business.Blockchain;
+using Phantasma.Business.Blockchain.Archives;
 using Phantasma.Business.Blockchain.Contracts.Native;
-using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Xunit;
@@ -30,7 +34,6 @@ public class FileStorageTests
     BigInteger initialAmount;
     BigInteger initialFuel;
     BigInteger startBalance;
-    StakeReward reward;
 
     public FileStorageTests()
     {
@@ -46,7 +49,6 @@ public class FileStorageTests
         gas = 99999;
         initialAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
         initialFuel = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
-        reward = new StakeReward(user.Address, Timestamp.Now);
         InitializeSimulator();
 
         startBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol, user.Address);

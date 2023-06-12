@@ -12,6 +12,9 @@ using Phantasma.Core.Numerics;
 
 using Xunit;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Market;
+using Phantasma.Core.Domain.Token;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
@@ -28,7 +31,6 @@ public class MarketContractTestLegacy
     BigInteger initialAmount;
     BigInteger initialFuel;
     BigInteger startBalance;
-    StakeReward reward;
 
     public MarketContractTestLegacy()
     {
@@ -44,7 +46,6 @@ public class MarketContractTestLegacy
         gas = 99999;
         initialAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
         initialFuel = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
-        reward = new StakeReward(user.Address, Timestamp.Now);
         InitializeSimulator();
 
         startBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol, user.Address);

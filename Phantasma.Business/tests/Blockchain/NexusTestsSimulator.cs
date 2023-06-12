@@ -8,6 +8,11 @@ using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Oracle;
+using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
@@ -33,7 +38,7 @@ public class NexusTestsSimulator
     BigInteger initialAmount;
     BigInteger initialFuel;
     BigInteger startBalance;
-    StakeReward reward;
+    
     private int version = DomainSettings.LatestKnownProtocol;
 
     public NexusTestsSimulator()

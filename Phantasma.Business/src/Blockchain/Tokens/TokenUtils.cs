@@ -8,6 +8,13 @@ using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 

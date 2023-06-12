@@ -4,6 +4,8 @@ using System.Numerics;
 using System.Text;
 using NSubstitute;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 using Shouldly;

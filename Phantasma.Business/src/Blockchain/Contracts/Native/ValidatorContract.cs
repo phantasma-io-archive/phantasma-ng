@@ -2,6 +2,10 @@
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Validation;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 

@@ -1,5 +1,5 @@
-using Phantasma.Core;
 using System.Runtime.CompilerServices;
+using Phantasma.Core;
 
 /**
  * 8-bit Galois Field
@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
  *
  */
 
-namespace Phantasma.Business.Blockchain.Storage.Sharding
+namespace Phantasma.Business.Blockchain.Archives.Sharding
 {
 
     public class GaloisField

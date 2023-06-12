@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract.LeaderboardDetails;
 using Phantasma.Core.Types;
 
 namespace Phantasma.Infrastructure.API.Controllers

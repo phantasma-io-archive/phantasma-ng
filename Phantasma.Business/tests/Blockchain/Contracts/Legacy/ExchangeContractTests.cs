@@ -14,6 +14,12 @@ using Phantasma.Core.Numerics;
 using Xunit;
 using Shouldly;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Exchange;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Token;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 

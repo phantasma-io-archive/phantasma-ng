@@ -4,10 +4,11 @@ using System.Numerics;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 
-namespace Phantasma.Business.Blockchain.Storage
+namespace Phantasma.Business.Blockchain.Archives
 {
     public class Archive: IArchive, ISerializable
     {

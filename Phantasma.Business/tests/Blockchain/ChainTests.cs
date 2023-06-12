@@ -19,6 +19,16 @@ using Phantasma.Business.VM;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.VM;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Validation;
+using Phantasma.Core.Domain.VM;
 
 namespace Phantasma.Business.Tests.Blockchain;
 

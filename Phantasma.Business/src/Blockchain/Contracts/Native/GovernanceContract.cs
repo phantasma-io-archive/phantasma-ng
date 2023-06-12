@@ -3,35 +3,15 @@ using System.Text;
 using Org.BouncyCastle.Asn1.X509;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Governance;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {
-    public enum ConstraintKind
-    {
-        MaxValue,
-        MinValue,
-        GreatThanOther,
-        LessThanOther,
-        MustIncrease,
-        MustDecrease,
-        Deviation,
-    }
-
-    public struct ChainConstraint
-    {
-        public ConstraintKind Kind;
-        public BigInteger Value;
-        public string Tag;
-    }
-
-    public struct GovernancePair
-    {
-        public string Name;
-        public BigInteger Value;
-    }
-
     public sealed class GovernanceContract : NativeContract
     {
         public override NativeContractKind Kind => NativeContractKind.Governance;
@@ -89,11 +69,24 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         }
 
         #region VALUES
+        /// <summary>
+        /// Returns if a governance value exists
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public bool HasValue(string name)
         {
             return _valueMap.ContainsKey(name);
         }
 
+        /// <summary>
+        /// Validates a governance value
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="previous"></param>
+        /// <param name="current"></param>
+        /// <param name="constraints"></param>
+        /// <param name="usePrevious"></param>
         private void ValidateConstraints(string name, BigInteger previous, BigInteger current, ChainConstraint[] constraints, bool usePrevious)
         {
             for (int i = 0; i < constraints.Length; i++)
@@ -148,6 +141,13 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
         }
 
+        /// <summary>
+        /// Creates a new governance value
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="name"></param>
+        /// <param name="initial"></param>
+        /// <param name="serializedConstraints"></param>
         public void CreateValue(Address from, string name, BigInteger initial, byte[] serializedConstraints)
         {
             Runtime.Expect(!HasName(name), "name already exists");
@@ -171,8 +171,13 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             Runtime.Notify(EventKind.ValueCreate, from, new ChainValueEventData() { Name = name, Value = initial });
         }
-
-        //Optimized function in Nexus.OptimizedGetGovernanceValue
+        
+        /// <summary>
+        /// Returns the value of a governance value
+        /// Optimized function in Nexus.OptimizedGetGovernanceValue
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public BigInteger GetValue(string name)
         {
             Runtime.Expect(HasValue(name), "invalid value name in GetValue");
@@ -180,6 +185,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return value;
         }
 
+        /// <summary>
+        /// Sets the value of a governance value
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
         public void SetValue(Address from, string name, BigInteger value)
         {
             Runtime.Expect(HasValue(name), "invalid value name in SetValue");

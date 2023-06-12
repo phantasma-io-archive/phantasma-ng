@@ -4,6 +4,8 @@ using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Utils;
 

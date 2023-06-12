@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.VM;
 using Shouldly;
 using Xunit;
-using ExecutionContext = Phantasma.Core.Domain.ExecutionContext;
+using ExecutionContext = Phantasma.Core.Domain.Execution.ExecutionContext;
 
 namespace Phantasma.Core.Tests.Domain;
 
@@ -133,7 +136,7 @@ public class ExecutionFrameTests
     }
 
     [ExcludeFromCodeCoverage]
-    private class TestExecutionContext : ExecutionContext
+    private class TestExecutionContext : Core.Domain.Execution.ExecutionContext
     {
         public override string Name => "TestExecutionContext";
 

@@ -5,6 +5,9 @@ using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.VM;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Performance;
 using Serilog;
 

@@ -1,5 +1,6 @@
 using System.Text;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Domain;

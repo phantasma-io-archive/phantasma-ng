@@ -1,8 +1,12 @@
+using System;
 using System.Numerics;
-using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Business.Blockchain.Archives;
 using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 
@@ -17,8 +21,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
         public static readonly BigInteger KilobytesPerStakeDefault = 40;
         public static readonly BigInteger FreeStoragePerContractDefault = 1024;
-
-
+        
         public const int DefaultForeignSpacedPercent = 20;
 
         public const int MaxKeySize = 256;
@@ -33,6 +36,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
         }
 
+        /// <summary>
+        /// Returns the size of storage for a stake amount
+        /// </summary>
+        /// <param name="stakeAmount"></param>
+        /// <returns></returns>
         public BigInteger CalculateStorageSizeForStake(BigInteger stakeAmount)
         {
             var kilobytesPerStake = (int)Runtime.GetGovernanceValue(KilobytesPerStakeTag);
@@ -42,6 +50,14 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return totalSize;
         }
 
+        /// <summary>
+        /// Method used to create a file in the storage.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="fileName"></param>
+        /// <param name="fileSize"></param>
+        /// <param name="contentMerkle"></param>
+        /// <param name="encryptionContent"></param>
         public void CreateFile(Address target, string fileName, BigInteger fileSize, byte[] contentMerkle, byte[] encryptionContent)
         {
             Runtime.Expect(!Nexus.IsDangerousAddress(target), "this address can't be used as source");
@@ -68,18 +84,36 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             AddFile(target, target, archive);
         }
 
+        /// <summary>
+        /// Checks if a file exists in the storage.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="hash"></param>
+        /// <returns></returns>
         public bool HasFile(Address target, Hash hash)
         {
             var archive = Runtime.GetArchive(hash);
             return archive.IsOwner(target);
         }
 
+        /// <summary>
+        /// Adds a file to user storage. (Shared Storage)
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="target"></param>
+        /// <param name="archiveHash"></param>
         public void AddFile(Address from, Address target, Hash archiveHash)
         {
             var archive = Runtime.GetArchive(archiveHash);
             AddFile(from, target, archive);
         }
 
+        /// <summary>
+        /// Adds a file to user storage. (Shared Storage)
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="target"></param>
+        /// <param name="archive"></param>
         private void AddFile(Address from, Address target, IArchive archive)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -89,8 +123,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(target.IsUser, "destination address must be user address");
 
             Runtime.Expect(archive != null, "archive does not exist");
-
-
+            
             BigInteger requiredSize = archive.Size;
 
             var targetUsedSize = GetUsedSpace(target);
@@ -109,6 +142,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             list.Add(archive.Hash);
         }
 
+        /// <summary>
+        /// Deletes a file from the storage.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="targetHash"></param>
         public void DeleteFile(Address from, Hash targetHash)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -132,8 +170,13 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(Runtime.RemoveOwnerFromArchive(targetHash, from), "owner removal failed");
             list.RemoveAt(targetIndex);
         }
-
-        // Checks if external address has permission to add files to target address
+        
+        /// <summary>
+        ///  Checks if external address has permission to add files to target address
+        /// </summary>
+        /// <param name="external"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
         public bool HasPermission(Address external, Address target)
         {
             if (external == target)
@@ -145,6 +188,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return permissions.Contains(external);
         }
 
+        /// <summary>
+        /// Adds a permission to an external address to add files to target address
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="externalAddr"></param>
         public void AddPermission(Address from, Address externalAddr)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -159,6 +207,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.AddressLink, from, externalAddr);
         }
 
+        /// <summary>
+        /// Deletes a permission to an external address to add files to target address.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="externalAddr"></param>
         public void DeletePermission(Address from, Address externalAddr)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -173,6 +226,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.AddressUnlink, from, externalAddr);
         }
 
+        /// <summary>
+        /// Migrate permissions from one address to another.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="oldAddr"></param>
+        /// <param name="newAddr"></param>
         public void MigratePermission(Address target, Address oldAddr, Address newAddr)
         {
             Runtime.Expect(Runtime.IsWitness(oldAddr), "invalid witness");
@@ -194,6 +253,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
         }
 
+        /// <summary>
+        /// Migrate storage from one address to another.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="target"></param>
         public void Migrate(Address from, Address target)
         {
             Runtime.Expect(Runtime.PreviousContext.Name == "account", "invalid context");
@@ -207,6 +271,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             _storageMap.Migrate<Address, StorageList>(from, target);
         }
 
+        /// <summary>
+        /// Returns the used space for an address.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
         public BigInteger GetUsedSpace(Address from)
         {
             //if (!_storageMap.ContainsKey<Address>(from))
@@ -237,6 +306,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return usedSize;
         }
 
+        /// <summary>
+        /// Returns the available space for an address.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
         public BigInteger GetAvailableSpace(Address from)
         {
             var stakedAmount = Runtime.GetStake(from);
@@ -252,13 +326,22 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return totalSize - usedSize;
         }
 
+        /// <summary>
+        /// Gets the list of files for an address.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
         public Hash[] GetFiles(Address from)
         {
             //Runtime.Expect(_storageMap.ContainsKey<Address>(from), "no files available for address");
             var list = _storageMap.Get<Address, StorageList>(from);
             return list.All<Hash>();
         }
-
+        
+        /// <summary>
+        /// Validate's a key
+        /// </summary>
+        /// <param name="key"></param>
         private void ValidateKey(byte[] key)
         {
             Runtime.Expect(key.Length > 0 && key.Length <= MaxKeySize, "invalid key");
@@ -267,12 +350,18 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(firstChar != '.', "permission denied"); // NOTE link correct PEPE here
         }
 
+        /// <summary>
+        /// Returns the data quota for an address.
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public BigInteger GetUsedDataQuota(Address address)
         {
             var result = _dataQuotas.Get<Address, BigInteger>(address);
             return result;
         }
 
+        [Obsolete("Method is obsolete.", false)]
         public void WriteData(Address target, byte[] key, byte[] value)
         {
             Runtime.Expect(Runtime.ProtocolVersion <= 12, "Method was deprecated in protocol version 13");
@@ -313,6 +402,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(temp.Length == value.Length, "storage write corruption");
         }
 
+        [Obsolete("Method is obsolete.", false)]
         public void DeleteData(Address target, byte[] key)
         {
             Runtime.Expect(Runtime.ProtocolVersion <= 12, "Method was deprecated in protocol version 13");
@@ -337,6 +427,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             _dataQuotas.Set(target, usedQuota);
         }
 
+        /// <summary>
+        /// Calculate the required storage size for a given content size.
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <param name="contentSize"></param>
+        /// <returns></returns>
         public static BigInteger CalculateRequiredSize(string fileName, BigInteger contentSize) => contentSize + Hash.Length + fileName.Length;
     }
 }

@@ -1,4 +1,5 @@
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Oracle;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Domain;

@@ -12,8 +12,13 @@ using Phantasma.Business.Tests.Simulator;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Domain;
 using Phantasma.Business.VM.Utils;
-using Transaction = Phantasma.Core.Domain.Transaction;
+using Transaction = Phantasma.Core.Domain.TransactionData.Transaction;
 using Phantasma.Business.VM;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.VM;
 
 namespace Phantasma.Business.Tests.VM.Legacy;
 

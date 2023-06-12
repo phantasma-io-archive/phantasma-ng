@@ -2,6 +2,8 @@
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Tasks;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.Blockchain

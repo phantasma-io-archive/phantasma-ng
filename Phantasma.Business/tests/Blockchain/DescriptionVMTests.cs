@@ -5,6 +5,10 @@ using System.Runtime.Intrinsics.X86;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.VM;
 
 namespace Phantasma.Business.Tests.Blockchain;
 

@@ -12,6 +12,16 @@ using Phantasma.Business.VM;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Tasks;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Validation;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 

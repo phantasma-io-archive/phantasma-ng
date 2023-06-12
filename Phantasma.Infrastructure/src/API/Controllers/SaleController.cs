@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain.Contract.Sale;
 using Phantasma.Core.Types;
 
 namespace Phantasma.Infrastructure.API.Controllers

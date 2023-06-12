@@ -1,4 +1,4 @@
-﻿namespace Phantasma.Business.Blockchain.Storage.Sharding
+﻿namespace Phantasma.Business.Blockchain.Archives.Sharding
 {
     public struct Shard
     {

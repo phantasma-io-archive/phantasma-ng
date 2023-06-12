@@ -2,6 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Numerics;
 
 namespace Phantasma.Core.Domain

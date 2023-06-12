@@ -3,6 +3,8 @@ using System.Linq;
 using System.Text;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Execution;
 using Phantasma.Core.Types;
 using Xunit;
 

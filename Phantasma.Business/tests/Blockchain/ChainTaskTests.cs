@@ -1,5 +1,6 @@
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Tasks;
 
 namespace Phantasma.Business.Tests.Blockchain;
 

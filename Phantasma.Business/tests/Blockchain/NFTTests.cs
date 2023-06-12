@@ -11,6 +11,9 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.TransactionData;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
@@ -26,7 +29,6 @@ public class NFTTests
     BigInteger initialAmount;
     BigInteger initialFuel;
     BigInteger startBalance;
-    StakeReward reward;
     BigInteger currentSupply;
 
     public NFTTests()
@@ -42,7 +44,6 @@ public class NFTTests
         gas = 99999;
         initialAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
         initialFuel = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
-        reward = new StakeReward(user.Address, Timestamp.Now);
         InitializeSimulator();
 
         startBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol, user.Address);

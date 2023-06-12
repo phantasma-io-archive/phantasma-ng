@@ -4,6 +4,8 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Serializer;
 using Phantasma.Infrastructure.Pay.Chains;
 
 namespace Phantasma.Node.Oracles

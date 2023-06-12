@@ -1,6 +1,8 @@
 using Moq;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Triggers;
 
 namespace Phantasma.Business.Tests;
 

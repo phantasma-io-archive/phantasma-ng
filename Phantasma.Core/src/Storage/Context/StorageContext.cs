@@ -2,6 +2,7 @@
 using System.Numerics;
 using System.Text;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Numerics;
 
 namespace Phantasma.Core.Storage.Context

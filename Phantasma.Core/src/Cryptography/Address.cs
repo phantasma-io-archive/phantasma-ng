@@ -5,19 +5,12 @@ using System.Linq;
 using System.Text;
 using Phantasma.Core.Cryptography.Hashing;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Cryptography
 {
-    public enum AddressKind
-    {
-        Invalid = 0,
-        User = 1,
-        System = 2,
-        Interop = 3,
-    }
-
     public struct Address: ISerializable, IComparable<Address>
     {
         public static readonly Address Null = new Address(NullPublicKey);

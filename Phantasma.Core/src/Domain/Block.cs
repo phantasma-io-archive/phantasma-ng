@@ -4,6 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Oracle;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 

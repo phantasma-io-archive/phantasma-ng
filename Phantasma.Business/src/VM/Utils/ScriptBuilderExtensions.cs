@@ -2,6 +2,7 @@
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
 
 namespace Phantasma.Business.VM.Utils
 {

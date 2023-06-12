@@ -6,6 +6,9 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Core.Domain;
 using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Node.Oracles;
@@ -26,7 +29,6 @@ public class OracleTests
     BigInteger initialAmount;
     BigInteger initialFuel;
     BigInteger startBalance;
-    StakeReward reward;
 
     public OracleTests()
     {
@@ -41,7 +43,6 @@ public class OracleTests
         gas = 99999;
         initialAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
         initialFuel = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
-        reward = new StakeReward(user.Address, Timestamp.Now);
         InitializeSimulator();
 
         startBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol, user.Address);

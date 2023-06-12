@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.VM;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Domain;

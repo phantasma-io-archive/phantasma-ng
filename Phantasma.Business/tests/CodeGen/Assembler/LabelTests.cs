@@ -3,6 +3,7 @@ using Moq;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.VM;
 using Xunit;
 
 namespace Phantasma.Business.Tests.CodeGen.Assembler;

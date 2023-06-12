@@ -1,5 +1,6 @@
 using System.Runtime.Intrinsics.Arm;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain.Exceptions;
 
 namespace Phantasma.Core.Tests.Domain;
 

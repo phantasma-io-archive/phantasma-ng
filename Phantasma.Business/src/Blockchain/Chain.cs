@@ -14,6 +14,19 @@ using Phantasma.Business.VM.Utils;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Tasks;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Validation;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
@@ -23,7 +36,7 @@ using Serilog.Core;
 using Tendermint.Abci;
 using Tendermint.Crypto;
 using Event = Phantasma.Core.Domain.Event;
-using Transaction = Phantasma.Core.Domain.Transaction;
+using Transaction = Phantasma.Core.Domain.TransactionData.Transaction;
 
 namespace Phantasma.Business.Blockchain
 {

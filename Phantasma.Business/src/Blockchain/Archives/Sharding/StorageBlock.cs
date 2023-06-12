@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 
-namespace Phantasma.Business.Blockchain.Storage.Sharding
+namespace Phantasma.Business.Blockchain.Archives.Sharding
 {
     public class StorageBlock
     {

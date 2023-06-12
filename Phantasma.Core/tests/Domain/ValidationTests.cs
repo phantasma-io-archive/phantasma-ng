@@ -1,4 +1,6 @@
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Validation;
+using Phantasma.Core.Domain.VM;
 using Shouldly;
 using Xunit;
 

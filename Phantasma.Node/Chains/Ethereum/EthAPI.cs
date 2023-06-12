@@ -9,6 +9,7 @@ using Nethereum.StandardTokenEIP20.ContractDefinition;
 using Nethereum.Web3;
 using Nethereum.Web3.Accounts;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Numerics;
 using Phantasma.Infrastructure.API;
 using Transaction = Nethereum.RPC.Eth.DTOs.Transaction;

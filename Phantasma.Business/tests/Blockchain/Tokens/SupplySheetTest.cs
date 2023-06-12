@@ -4,6 +4,7 @@ using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using Shouldly;

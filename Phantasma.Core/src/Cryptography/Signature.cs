@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Interfaces;
 
 namespace Phantasma.Core.Cryptography
 {

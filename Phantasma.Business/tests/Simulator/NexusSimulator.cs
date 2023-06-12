@@ -15,12 +15,21 @@ using Phantasma.Business.VM;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.Blockchain.Contracts.Native;
-
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Validation;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Node.Chains.Neo2;
 using Phantasma.Infrastructure.Pay.Chains;
 
-using VMType = Phantasma.Core.Domain.VMType;
+using VMType = Phantasma.Core.Domain.VM.VMType;
 
 namespace Phantasma.Business.Tests.Simulator;
 

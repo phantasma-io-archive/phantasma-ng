@@ -4,6 +4,9 @@ using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Storage.Context;
 
 namespace Phantasma.Business.Blockchain

@@ -9,6 +9,11 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Oracle;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Numerics;
 
 using Xunit;

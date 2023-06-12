@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Oracle;
 using Phantasma.Core.Types;
 
 namespace Phantasma.Business.Blockchain

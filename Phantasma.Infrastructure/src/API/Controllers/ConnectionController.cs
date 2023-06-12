@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Org.BouncyCastle.Math.EC;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Tendermint.RPC.Endpoint;

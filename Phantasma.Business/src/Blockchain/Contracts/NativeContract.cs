@@ -11,6 +11,11 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.VM;
 
 namespace Phantasma.Business.Blockchain.Contracts
 {
@@ -32,6 +37,10 @@ namespace Phantasma.Business.Blockchain.Contracts
             BuildMethodTable();
         }
 
+        /// <summary>
+        /// Set Runtime 
+        /// </summary>
+        /// <param name="runtime"></param>
         public void SetRuntime(IRuntime runtime)
         {
             if (Runtime != null && Runtime != runtime)
@@ -42,7 +51,11 @@ namespace Phantasma.Business.Blockchain.Contracts
             Runtime = runtime;
         }
 
-        // here we auto-initialize any fields from storage
+        /// <summary>
+        /// Load all the field from the storage
+        /// here we auto-initialize any fields from storage
+        /// </summary>
+        /// <param name="storage"></param>
         public void LoadFromStorage(StorageContext storage)
         {
             var contractType = GetType();
@@ -92,6 +105,14 @@ namespace Phantasma.Business.Blockchain.Contracts
             }
         }
 
+        /// <summary>
+        /// Load a field from storage
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="kind"></param>
+        /// <param name="fieldName"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public static T LoadFieldFromStorage<T>(StorageContext storage, NativeContractKind kind, string fieldName)
         {
             var contractName = kind.GetContractName();
@@ -104,7 +125,10 @@ namespace Phantasma.Business.Blockchain.Contracts
             return default;
         }
 
-        // here we persist any modifed fields back to storage
+        /// <summary>
+        /// Save changes to storage
+        /// here we persist any modifed fields back to storage
+        /// </summary>
         public void SaveChangesToStorage()
         {
             Throw.IfNull(Runtime, nameof(Runtime));
@@ -143,6 +167,9 @@ namespace Phantasma.Business.Blockchain.Contracts
         }
 
         #region METHOD TABLE
+        /// <summary>
+        /// Build the method table
+        /// </summary>
         private void BuildMethodTable()
         {
             var type = GetType();
@@ -203,11 +230,23 @@ namespace Phantasma.Business.Blockchain.Contracts
             ABI = new ContractInterface(methods, Enumerable.Empty<ContractEvent>());
         }
 
+        /// <summary>
+        /// Check if a method exists on this contract
+        /// </summary>
+        /// <param name="methodName"></param>
+        /// <returns></returns>
         public bool HasInternalMethod(string methodName)
         {
             return _methodTable.ContainsKey(methodName);
         }
 
+        /// <summary>
+        /// Call an internal method on this contract
+        /// </summary>
+        /// <param name="runtime"></param>
+        /// <param name="name"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
         public object CallInternalMethod(IRuntime runtime, string name, object[] args)
         {
             Throw.If(!_methodTable.ContainsKey(name), "unknowm internal method");
@@ -224,6 +263,14 @@ namespace Phantasma.Business.Blockchain.Contracts
             return method.Invoke(this, args);
         }
 
+        /// <summary>
+        /// Cast an argument to the expected type
+        /// </summary>
+        /// <param name="runtime"></param>
+        /// <param name="arg"></param>
+        /// <param name="expectedType"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         private object CastArgument(IRuntime runtime, object arg, Type expectedType)
         {
             if (arg == null)
@@ -424,6 +471,10 @@ namespace Phantasma.Business.Blockchain.Contracts
         #endregion
 
         private static Dictionary<Address, Type> _nativeContractMap = null;
+        /// <summary>
+        /// Register a Contract
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
         private static void RegisterContract<T>() where T : NativeContract
         {
             var alloc = (NativeContract)Activator.CreateInstance<T>();
@@ -431,12 +482,22 @@ namespace Phantasma.Business.Blockchain.Contracts
             _nativeContractMap[addr] = typeof(T);
         }
 
+        /// <summary>
+        /// Returns the Native Contract by its name
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public static NativeContract GetNativeContractByName(string name)
         {
             var kind = name.FindNativeContractKindByName();
             return GetNativeContractByKind(kind);
         }
 
+        /// <summary>
+        /// Returns the Native Contract by its kind
+        /// </summary>
+        /// <param name="kind"></param>
+        /// <returns></returns>
         public static NativeContract GetNativeContractByKind(NativeContractKind kind)
         {
             if (kind == NativeContractKind.Unknown)
@@ -448,6 +509,11 @@ namespace Phantasma.Business.Blockchain.Contracts
             return GetNativeContractByAddress(address);
         }
 
+        /// <summary>
+        /// Returns the Native Contract by its address 
+        /// </summary>
+        /// <param name="contractAddress"></param>
+        /// <returns></returns>
         public static NativeContract GetNativeContractByAddress(Address contractAddress)
         {
             if (_nativeContractMap == null)

@@ -1,39 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.VM;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.VM;
 
 namespace Phantasma.Business.VM.Utils
 {
-    public class DisasmMethodCall
-    {
-        public string ContractName;
-        public string MethodName;
-
-        public VMObject[] Arguments;
-
-        public override string ToString()
-        {
-            var sb = new StringBuilder();
-            sb.Append($"{ContractName}.{MethodName}(");
-            for (int i=0; i<Arguments.Length; i++)
-            {
-                if (i > 0)
-                {
-                    sb.Append(',');
-                }
-
-                var arg = Arguments[i];
-                sb.Append(arg.ToString());
-            }
-            sb.Append(")");
-            return sb.ToString();
-        }
-    }
-
     public static class DisasmUtils
     {
         private static VMObject[] PopArgs(string contract, string method, Stack<VMObject> stack, Dictionary<string, int> methodArgumentCountTable)

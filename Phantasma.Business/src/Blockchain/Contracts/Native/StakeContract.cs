@@ -6,31 +6,16 @@ using Org.BouncyCastle.Asn1.X509;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Stake;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Validation;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {
-    public struct EnergyStake
-    {
-        public BigInteger stakeAmount;
-        public Timestamp stakeTime;
-    }
-
-    public struct EnergyClaim
-    {
-        public BigInteger stakeAmount;
-        public Timestamp claimDate;
-        public bool isNew;
-    }
-
-    public struct VotingLogEntry
-    {
-        public Timestamp timestamp;
-        public BigInteger amount;
-    }
-
     public sealed class StakeContract : NativeContract
     {
         public override NativeContractKind Kind => NativeContractKind.Stake;
@@ -73,11 +58,27 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
         }
 
+        /// <summary>
+        /// Initializes the contract
+        /// </summary>
+        /// <param name="from"></param>
         public void Initialize(Address from)
         {
+            if (Runtime.ProtocolVersion <= 14)
+            {
+                _currentEnergyRatioDivisor = DefaultEnergyRatioDivisor; // used as 1/500, will initially generate 0.002 per staked token
+                return;
+            }
+            
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(Runtime.IsKnownValidator(from), "invalid validator");
             _currentEnergyRatioDivisor = DefaultEnergyRatioDivisor; // used as 1/500, will initially generate 0.002 per staked token
         }
 
+        /// <summary>
+        /// Returns the Master Threshold amount
+        /// </summary>
+        /// <returns></returns>
         public BigInteger GetMasterThreshold()
         {
             if (Runtime.HasGenesis)
@@ -89,25 +90,42 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return DefaultMasterThreshold;
         }
 
+        /// <summary>
+        /// Returns if the given address is a master
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public bool IsMaster(Address address)
         {
             var masters = Runtime.GetOrganization(DomainSettings.MastersOrganizationName);
             return masters.IsMember(address);
         }
 
+        /// <summary>
+        /// Returns the current master count
+        /// </summary>
+        /// <returns></returns>
         public BigInteger GetMasterCount()
         {
             var masters = Runtime.GetOrganization(DomainSettings.MastersOrganizationName);
             return masters.Size;
         }
 
+        /// <summary>
+        /// Returns the Masters addresses
+        /// </summary>
+        /// <returns></returns>
         public Address[] GetMasterAddresses()
         {
             var masters = Runtime.GetOrganization(DomainSettings.MastersOrganizationName);
             return masters.GetMembers();
         }
-
-        //verifies how many valid masters are in the condition to claim the reward for a specific master claim date, assuming no changes in their master status in the meantime
+        
+        /// <summary>
+        /// verifies how many valid masters are in the condition to claim the reward for a specific master claim date, assuming no changes in their master status in the meantime
+        /// </summary>
+        /// <param name="claimDate"></param>
+        /// <returns></returns>
         public BigInteger GetClaimMasterCount(Timestamp claimDate)
         {
             var masters = Runtime.GetOrganization(DomainSettings.MastersOrganizationName);
@@ -132,11 +150,21 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return result;
         }
 
+        /// <summary>
+        /// Returns the current master for a given claim distance
+        /// </summary>
+        /// <param name="claimDistance"></param>
+        /// <returns></returns>
         public Timestamp GetMasterClaimDate(BigInteger claimDistance)
         {
             return GetMasterClaimDateFromReference(claimDistance, default);
         }
 
+        /// <summary>
+        /// Returns the master claim date for a given address
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
         public Timestamp GetMasterClaimDateForAddress(Address target)
         {
             if (_masterClaims.ContainsKey(target))
@@ -146,6 +174,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return new Timestamp(0);
         }
 
+        /// <summary>
+        /// Returns the master claim date for a given address
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
         public Timestamp GetMasterDate(Address target)
         {
             if (_masterAgeMap.ContainsKey(target))
@@ -156,6 +189,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return new Timestamp(0);
         }
 
+        /// <summary>
+        /// Returns master claim date from a reference date
+        /// </summary>
+        /// <param name="claimDistance"></param>
+        /// <param name="referenceTime"></param>
+        /// <returns></returns>
         public Timestamp GetMasterClaimDateFromReference(BigInteger claimDistance, Timestamp referenceTime)
         {
             DateTime referenceDate;
@@ -194,6 +233,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return nextMasterClaim;
         }
 
+        /// <summary>
+        /// Returns the masters rewards for the given address
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
         public BigInteger GetMasterRewards(Address from)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -214,7 +258,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return individualAmount;
         }
 
-        // migrates the full stake from one address to other
+        /// <summary>
+        /// migrates the full stake from one address to other
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
         public void Migrate(Address from, Address to)
         {
             Runtime.Expect(Runtime.PreviousContext.Name == DesiredPreviousContext, "invalid context");
@@ -239,6 +287,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.AddressMigration, to, from);
         }
 
+        /// <summary>
+        /// Performs a master claim
+        /// </summary>
+        /// <param name="from"></param>
         public void MasterClaim(Address from)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -296,6 +348,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.MasterClaim, from, new MasterEventData(symbol, MasterClaimGlobalAmount, Runtime.Chain.Name, _lastMasterClaim));
         }
 
+        /// <summary>
+        /// Method used to stake tokens
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="stakeAmount"></param>
         public void Stake(Address from, BigInteger stakeAmount)
         {
             Runtime.Expect(stakeAmount >= MinimumValidStake, "invalid amount");
@@ -420,6 +477,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.TokenStake, from, new TokenEventData(DomainSettings.StakingTokenSymbol, stakeAmount, Runtime.Chain.Name));
         }
 
+        /// <summary>
+        /// Method used to unstake tokens
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="unstakeAmount"></param>
         public void Unstake(Address from, BigInteger unstakeAmount)
         {
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
@@ -568,6 +630,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
         }
 
+        /// <summary>
+        /// Returns the amount of time left before unstaking is possible
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
         public BigInteger GetTimeBeforeUnstake(Address from)
         {
             if (!_stakeMap.ContainsKey(from))
@@ -579,6 +646,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return (Runtime.Time - stake.stakeTime) % SecondsInDay;
         }
 
+        /// <summary>
+        /// Returns the timestamp of when the stake was made
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
         public Timestamp GetStakeTimestamp(Address from)
         {
             if (!_stakeMap.ContainsKey(from))
@@ -590,6 +662,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return stake.stakeTime;
         }
 
+        /// <summary>
+        /// Removes voting power from the user
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="amount"></param>
         private void RemoveVotingPower(Address from, BigInteger amount)
         {
             var votingLogbook = _voteHistory.Get<Address, StorageList>(from);
@@ -615,6 +692,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
         }
 
+        /// <summary>
+        /// Returns the unclaimed amount.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
         public BigInteger GetUnclaimed(Address from)
         {
             BigInteger total = 0;
@@ -695,6 +777,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return total;
         }
 
+        /// <summary>
+        /// Method used to claim the unclaimed amount.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="stakeAddress"></param>
         public void Claim(Address from, Address stakeAddress)
         {
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
@@ -755,6 +842,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
         }
 
+        /// <summary>
+        /// Returns the stake amount for a given address.
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public BigInteger GetStake(Address address)
         {
             BigInteger stake = 0;
@@ -767,6 +859,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return stake;
         }
 
+        /// <summary>
+        /// Returns the Storage stake amount for a given address.
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public BigInteger GetStorageStake(Address address)
         {
             var usedStorageSize = Runtime.CallNativeContext(NativeContractKind.Storage, "GetUsedSpace", address).AsNumber();
@@ -778,26 +875,53 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return usedStake;
         }
 
+        /// <summary>
+        /// Returns the Staked amount from a fuel amount.
+        /// </summary>
+        /// <param name="fuelAmount"></param>
+        /// <returns></returns>
         public BigInteger FuelToStake(BigInteger fuelAmount)
         {
             return UnitConversion.ConvertDecimals(fuelAmount * _currentEnergyRatioDivisor, DomainSettings.FuelTokenDecimals, DomainSettings.StakingTokenDecimals);
         }
 
+        /// <summary>
+        /// Returns the Fuel amount from a staked amount.
+        /// </summary>
+        /// <param name="stakeAmount"></param>
+        /// <returns></returns>
         public BigInteger StakeToFuel(BigInteger stakeAmount)
         {
             return UnitConversion.ConvertDecimals(stakeAmount, DomainSettings.StakingTokenDecimals, DomainSettings.FuelTokenDecimals) / _currentEnergyRatioDivisor;
         }
 
+        /// <summary>
+        /// Returns the Staked amount from a fuel amount.
+        /// </summary>
+        /// <param name="fuelAmount"></param>
+        /// <param name="_BaseEnergyRatioDivisor"></param>
+        /// <returns></returns>
         public static BigInteger FuelToStake(BigInteger fuelAmount, uint _BaseEnergyRatioDivisor)
         {
             return UnitConversion.ConvertDecimals(fuelAmount * _BaseEnergyRatioDivisor, DomainSettings.FuelTokenDecimals, DomainSettings.StakingTokenDecimals);
         }
 
+        /// <summary>
+        /// Returns the Fuel amount from a staked amount.
+        /// </summary>
+        /// <param name="stakeAmount"></param>
+        /// <param name="_BaseEnergyRatioDivisor"></param>
+        /// <returns></returns>
         public static BigInteger StakeToFuel(BigInteger stakeAmount, uint _BaseEnergyRatioDivisor)
         {
             return UnitConversion.ConvertDecimals(stakeAmount, DomainSettings.StakingTokenDecimals, DomainSettings.FuelTokenDecimals) / _BaseEnergyRatioDivisor;
         }
 
+        /// <summary>
+        /// Returns the voting power for a given address.
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public BigInteger GetAddressVotingPower(Address address)
         {
             var requiredVotingThreshold = Runtime.GetGovernanceValue(VotingStakeThresholdTag);
@@ -825,6 +949,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return power;
         }
 
+        /// <summary>
+        /// Returns the voting power for a given address.
+        /// </summary>
+        /// <param name="entry"></param>
+        /// <param name="currentTime"></param>
+        /// <returns></returns>
         private BigInteger CalculateEntryVotingPower(VotingLogEntry entry, Timestamp currentTime)
         {
             BigInteger baseMultiplier = 100;
@@ -850,11 +980,19 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             _currentEnergyRatioDivisor = rate;
         }*/
 
+        /// <summary>
+        /// Returns the current rate.
+        /// </summary>
+        /// <returns></returns>
         public BigInteger GetRate()
         {
             return _currentEnergyRatioDivisor;
         }
 
+        /// <summary>
+        /// Returns the last master claim timestamp.
+        /// </summary>
+        /// <returns></returns>
         public Timestamp GetLastMasterClaim()
         {
             return _lastMasterClaim;

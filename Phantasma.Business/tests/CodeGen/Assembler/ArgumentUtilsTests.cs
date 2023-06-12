@@ -1,5 +1,6 @@
 using System;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.VM;
 
 namespace Phantasma.Business.Tests.CodeGen.Assembler;
 

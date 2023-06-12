@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using System.IO;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.VM;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Domain;
