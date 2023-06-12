@@ -1,3 +1,6 @@
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
+
 namespace Phantasma.Core.Tests.Cryptography;
 
 using Xunit;

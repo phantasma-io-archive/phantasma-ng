@@ -3,7 +3,7 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Domain;
 using System.Linq;
 using Phantasma.Business.VM.Utils;
-
+using Phantasma.Core.Cryptography.Structs;
 using Xunit;
 namespace Phantasma.Business.Tests;
 

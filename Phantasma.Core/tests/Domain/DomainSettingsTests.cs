@@ -1,11 +1,14 @@
 using System.Collections.Generic;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
 using Phantasma.Core.Domain.Contract.Gas;
+using Phantasma.Core.Domain.Contract.Gas.Structs;
 using Phantasma.Core.Domain.Contract.Stake;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Domain;

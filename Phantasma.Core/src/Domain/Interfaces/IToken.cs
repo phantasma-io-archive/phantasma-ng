@@ -1,7 +1,9 @@
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
 using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
 
 namespace Phantasma.Core.Domain.Interfaces
 {

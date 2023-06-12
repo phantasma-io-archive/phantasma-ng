@@ -5,12 +5,14 @@ using System.Numerics;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context.Interfaces;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Storage.Context;
 
 public static class SetUtils
-{ 
+{
     private static byte[] count_prefix = "{count}".AsByteArray();
 
     private static byte[] CountKey(byte[] baseKey)
@@ -97,5 +99,4 @@ public static class SetUtils
 
         return values.ToArray();
     }
-
 }

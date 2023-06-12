@@ -6,6 +6,7 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Contract.Validator.Structs;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Infrastructure.API;

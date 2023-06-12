@@ -1,9 +1,13 @@
 using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
 using Phantasma.Core.Domain.Oracle;
+using Phantasma.Core.Domain.Oracle.Structs;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Core.Domain.Interfaces;
 

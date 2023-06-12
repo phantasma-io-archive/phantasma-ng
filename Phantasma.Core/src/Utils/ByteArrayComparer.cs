@@ -13,15 +13,16 @@ namespace Phantasma.Core.Utils
         {
             Throw.IfNull(key, nameof(key));
             unchecked // disable overflow, for the unlikely possibility that you
-            {         // are compiling with overflow-checking enabled
+            {
+                // are compiling with overflow-checking enabled
                 int hash = 27;
-                for (int i=0; i<key.Length; i++)
+                for (int i = 0; i < key.Length; i++)
                 {
                     hash = (13 * hash) + key[i];
                 }
+
                 return hash;
             }
         }
     }
-
 }

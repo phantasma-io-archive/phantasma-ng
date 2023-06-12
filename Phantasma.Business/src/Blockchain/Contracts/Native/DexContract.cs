@@ -7,15 +7,22 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Contract.Exchange;
+using Phantasma.Core.Domain.Contract.Exchange.Structs;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.Token.Structs;
 using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
@@ -1639,6 +1646,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(amount0 > 0 || amount1 > 0, "invalid amount, both amounts can't be 0");
             Runtime.Expect(symbol0 != symbol1, "Symbols cannot be the same...");
             Runtime.Expect(_DEXversion >= 1, "call migrateV3 first");
+            //Runtime.Expect(false, "");
 
             var token0Info = Runtime.GetToken(symbol0);
             Runtime.Expect(IsSupportedToken(symbol0), "source token is unsupported");

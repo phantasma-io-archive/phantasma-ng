@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Phantasma.Core.Storage.Context.Structs;
 
 namespace Phantasma.Core.Storage.Context;
 
-public class MemoryStorageContext: StorageContext
+public class MemoryStorageContext : StorageContext
 {
     private Dictionary<StorageKey, byte[]> _entries = new Dictionary<StorageKey, byte[]>(new StorageKeyComparer());
 
@@ -82,6 +83,7 @@ public class MemoryStorageContext: StorageContext
         {
             value = new byte[0];
         }
+
         _entries[key] = value;
     }
 
@@ -98,7 +100,7 @@ public class MemoryStorageContext: StorageContext
     public override void Visit(Action<byte[], byte[]> visitor, ulong searchCount = 0, byte[] prefix = null)
     {
         ulong count = 0;
-        foreach(var entry in _entries)
+        foreach (var entry in _entries)
         {
             var bytePrefix = entry.Key.keyData.Take(prefix.Length);
             if (count <= searchCount && bytePrefix.SequenceEqual(prefix))
@@ -113,7 +115,7 @@ public class MemoryStorageContext: StorageContext
             }
         }
     }
-    
+
     public override uint Count()
     {
         return (uint)_entries.Count;

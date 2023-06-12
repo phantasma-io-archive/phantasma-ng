@@ -1,6 +1,8 @@
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Tasks;
+using Phantasma.Core.Domain.Tasks.Enum;
 
 namespace Phantasma.Core.Domain.Interfaces;
 

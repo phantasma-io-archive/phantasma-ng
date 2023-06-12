@@ -6,8 +6,11 @@ using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract.Exchange;
+using Phantasma.Core.Domain.Contract.Exchange.Enums;
+using Phantasma.Core.Domain.Contract.Exchange.Structs;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
 using Xunit;
 

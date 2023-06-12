@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Cryptography.EdDSA

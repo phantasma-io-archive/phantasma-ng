@@ -1,6 +1,8 @@
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Oracle;
+using Phantasma.Core.Domain.Oracle.Enums;
+using Phantasma.Core.Domain.Oracle.Structs;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Domain;

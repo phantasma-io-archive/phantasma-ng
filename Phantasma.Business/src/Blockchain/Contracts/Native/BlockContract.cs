@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {

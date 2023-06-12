@@ -1,4 +1,5 @@
 using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 
 namespace Phantasma.Core.Domain.Validation
 {

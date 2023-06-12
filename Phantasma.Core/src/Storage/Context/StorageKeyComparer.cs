@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Phantasma.Core.Storage.Context.Structs;
 
 namespace Phantasma.Core.Storage.Context;
 

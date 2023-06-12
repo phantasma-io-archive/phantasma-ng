@@ -5,9 +5,11 @@ using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.VM;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Exceptions;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 
 namespace Phantasma.Business.VM.Utils
 {

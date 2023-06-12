@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Exceptions;
 using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Structs;
 using Phantasma.Infrastructure.Pay.Chains;
 
 namespace Phantasma.Node.Oracles

@@ -7,6 +7,8 @@ using System.Security.Cryptography;
 using Neo.Network.P2P.Payloads;
 using Neo.Wallets;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Numerics;

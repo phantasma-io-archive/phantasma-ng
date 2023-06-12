@@ -3,7 +3,9 @@ using System.Numerics;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.VM.Utils
 {

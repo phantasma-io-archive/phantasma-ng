@@ -1,14 +1,19 @@
 using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
 using Phantasma.Core.Domain.Execution;
 using Phantasma.Core.Domain.Tasks;
+using Phantasma.Core.Domain.Tasks.Enum;
 using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Core.Domain.Interfaces;
 

@@ -4,14 +4,21 @@ using System.Text;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.ECDsa;
 using Phantasma.Core.Cryptography.EdDSA;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
 using Phantasma.Core.Domain.Contract.Consensus;
+using Phantasma.Core.Domain.Contract.Consensus.Enums;
+using Phantasma.Core.Domain.Contract.Consensus.Structs;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {

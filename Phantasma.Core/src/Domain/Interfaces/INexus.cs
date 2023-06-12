@@ -1,16 +1,26 @@
 using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
 using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Contract.Validator.Enums;
+using Phantasma.Core.Domain.Contract.Validator.Structs;
 using Phantasma.Core.Domain.Oracle;
+using Phantasma.Core.Domain.Oracle.Enums;
+using Phantasma.Core.Domain.Oracle.Structs;
 using Phantasma.Core.Domain.Platform;
+using Phantasma.Core.Domain.Platform.Structs;
 using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.Token.Structs;
 using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Domain.Validation;
 using Phantasma.Core.Storage;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Interfaces;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Core.Domain.Interfaces;
 

@@ -4,14 +4,22 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Nethereum.Util;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Enums;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
 using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Domain.Platform;
+using Phantasma.Core.Domain.Platform.Structs;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using UnitConversion = Phantasma.Core.Numerics.UnitConversion;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native

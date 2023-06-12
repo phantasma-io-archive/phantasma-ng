@@ -7,6 +7,7 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
 using Shouldly;
 using Xunit;

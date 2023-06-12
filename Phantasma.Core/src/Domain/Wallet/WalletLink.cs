@@ -4,6 +4,8 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Numerics;
 
 namespace Phantasma.Core.Domain.Wallet
@@ -13,12 +15,12 @@ namespace Phantasma.Core.Domain.Wallet
         public const int WebSocketPort = 7090;
         public const int LinkProtocol = 2;
 
-        public class Error
+        public class ErrorDTO
         {
             public string message { get; set; }
         }
 
-        public class Authorization
+        public class AuthorizationDTO
         {
             public string wallet { get; set; }
             public string nexus { get; set; }
@@ -27,14 +29,14 @@ namespace Phantasma.Core.Domain.Wallet
             public int version { get; set; }
         }
 
-        public class Balance
+        public class BalanceDTO
         {
             public string symbol { get; set; }
             public string value { get; set; }
             public int decimals { get; set; }
         }
 
-        public class File
+        public class FileDTO
         {
             public string name { get; set; }
             public int size { get; set; }
@@ -42,7 +44,7 @@ namespace Phantasma.Core.Domain.Wallet
             public string hash { get; set; }
         }
 
-        public class Account
+        public class AccountDTO
         {
             public string alias { get; set; }
             public string address { get; set; }
@@ -50,32 +52,32 @@ namespace Phantasma.Core.Domain.Wallet
             public string avatar { get; set; }
             public string platform { get; set; }
             public string external { get; set; }
-            public Balance[] balances { get; set; }
-            public File[] files { get; set; }
+            public BalanceDTO[] balances { get; set; }
+            public FileDTO[] files { get; set; }
         }
 
-        public class Invocation
+        public class InvocationDTO
         {
             public string result { get; set; }
         }
 
-        public class Transaction
+        public class TransactionDTO
         {
             public string hash { get; set; }
         }
 
-        public class Signature
+        public class SignatureDTO
         {
             public string signature { get; set; }
             public string random { get; set; }
         }
 
-        public class Connection
+        public class ConnectionDTO
         {
             public string Token { get; }
             public int Version { get; }
 
-            public Connection(string token, int version)
+            public ConnectionDTO(string token, int version)
             {
                 this.Token = token;
                 this.Version = version;
@@ -84,7 +86,7 @@ namespace Phantasma.Core.Domain.Wallet
 
         private RandomNumberGenerator rnd = RandomNumberGenerator.Create();
 
-        private Dictionary<string, Connection> _connections = new Dictionary<string, Connection>();
+        private Dictionary<string, ConnectionDTO> _connections = new Dictionary<string, ConnectionDTO>();
 
         protected abstract WalletStatus Status { get; }
 
@@ -98,7 +100,7 @@ namespace Phantasma.Core.Domain.Wallet
         {
         }
 
-        private Connection ValidateRequest(string[] args)
+        private ConnectionDTO ValidateRequest(string[] args)
         {
             if (args.Length >= 3)
             {
@@ -120,7 +122,7 @@ namespace Phantasma.Core.Domain.Wallet
 
         protected abstract void Authorize(string dapp, string token, int version, Action<bool, string> callback);
 
-        protected abstract void GetAccount(string platform, Action<Account, string> callback);
+        protected abstract void GetAccount(string platform, Action<AccountDTO, string> callback);
 
         protected abstract void InvokeScript(string chain, byte[] script, int id, Action<byte[], string> callback);
 
@@ -571,14 +573,14 @@ namespace Phantasma.Core.Domain.Wallet
 
             if (!int.TryParse(args[0], out id))
             {
-                answer = APIUtils.FromAPIResult(new Error() { message = "Invalid request id" });
+                answer = APIUtils.FromAPIResult(new ErrorDTO() { message = "Invalid request id" });
                 callback(id, answer, false);
                 return;
             }
 
             if (args.Length != 2)
             {
-                answer = APIUtils.FromAPIResult(new Error() { message = "Malformed request" });
+                answer = APIUtils.FromAPIResult(new ErrorDTO() { message = "Malformed request" });
                 callback(id, answer, false);
                 return;
             }
@@ -595,7 +597,7 @@ namespace Phantasma.Core.Domain.Wallet
                 var status = this.Status;
                 if (status != WalletStatus.Ready)
                 {
-                    answer = APIUtils.FromAPIResult(new Error() { message = $"Wallet is {status}" });
+                    answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"Wallet is {status}" });
                     callback(id, answer, false);
                     return;
                 }
@@ -603,21 +605,21 @@ namespace Phantasma.Core.Domain.Wallet
 
             if (_isPendingRequest)
             {
-                answer = APIUtils.FromAPIResult(new Error() { message = $"A previous request is still pending" });
+                answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"A previous request is still pending" });
                 callback(id, answer, false);
                 return;
             }
 
             _isPendingRequest = true;
 
-            Connection connection = null;
+            ConnectionDTO connectionDto = null;
 
             if (requestType != "authorize")
             {
-                connection = ValidateRequest(args);
-                if (connection == null)
+                connectionDto = ValidateRequest(args);
+                if (connectionDto == null)
                 {
-                    answer = APIUtils.FromAPIResult(new Error() { message = "Invalid or missing API token" });
+                    answer = APIUtils.FromAPIResult(new ErrorDTO() { message = "Invalid or missing API token" });
                     callback(id, answer, false);
                     _isPendingRequest = false;
                     return;
@@ -645,7 +647,7 @@ namespace Phantasma.Core.Domain.Wallet
                                 var str = args[1];
                                 if (!int.TryParse(str, out version))
                                 {
-                                    answer = APIUtils.FromAPIResult(new Error() { message = $"authorize: Invalid version: {str}"});
+                                    answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"authorize: Invalid version: {str}"});
                                     callback(id, answer, false);
                                     _isPendingRequest = false;
                                     return;
@@ -658,9 +660,9 @@ namespace Phantasma.Core.Domain.Wallet
 
                             if (_connections.ContainsKey(dapp))
                             {
-                                connection = _connections[dapp];
+                                connectionDto = _connections[dapp];
                                 success = true;
-                                answer = APIUtils.FromAPIResult(new Authorization() { wallet = this.Name, nexus = this.Nexus, dapp = dapp, token = connection.Token, version = connection.Version });
+                                answer = APIUtils.FromAPIResult(new AuthorizationDTO() { wallet = this.Name, nexus = this.Nexus, dapp = dapp, token = connectionDto.Token, version = connectionDto.Version });
                             }
                             else
                             {
@@ -674,14 +676,14 @@ namespace Phantasma.Core.Domain.Wallet
                                 {
                                     if (authorized)
                                     {
-                                        _connections[dapp] = new Connection(token, version);
+                                        _connections[dapp] = new ConnectionDTO(token, version);
 
                                         success = true;
-                                        answer = APIUtils.FromAPIResult(new Authorization() { wallet = this.Name, nexus = this.Nexus, dapp = dapp, token = token });
+                                        answer = APIUtils.FromAPIResult(new AuthorizationDTO() { wallet = this.Name, nexus = this.Nexus, dapp = dapp, token = token });
                                     }
                                     else
                                     {
-                                        answer = APIUtils.FromAPIResult(new Error() { message = error});
+                                        answer = APIUtils.FromAPIResult(new ErrorDTO() { message = error});
                                     }
 
                                     callback(id, answer, success);
@@ -694,7 +696,7 @@ namespace Phantasma.Core.Domain.Wallet
                         }
                         else
                         {
-                            answer = APIUtils.FromAPIResult(new Error() { message = $"authorize: Invalid amount of arguments: {args.Length}" });
+                            answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"authorize: Invalid amount of arguments: {args.Length}" });
                         }
 
                         break;
@@ -704,7 +706,7 @@ namespace Phantasma.Core.Domain.Wallet
                     {
                         int expectedLength;
 
-                        switch (connection.Version)
+                        switch (connectionDto.Version)
                         {
                             case 1:
                                 expectedLength = 0;
@@ -719,7 +721,7 @@ namespace Phantasma.Core.Domain.Wallet
                         {
                             string platform;
 
-                            if (connection.Version >= 2)
+                            if (connectionDto.Version >= 2)
                             {
                                 platform = args[0].ToLower();
                             }
@@ -736,7 +738,7 @@ namespace Phantasma.Core.Domain.Wallet
                                 }
                                 else
                                 {
-                                    answer = APIUtils.FromAPIResult(new Error() { message = error });
+                                    answer = APIUtils.FromAPIResult(new ErrorDTO() { message = error });
                                 }
 
                                 callback(id, answer, success);
@@ -747,7 +749,7 @@ namespace Phantasma.Core.Domain.Wallet
                         }
                         else
                         {
-                            answer = APIUtils.FromAPIResult(new Error() { message = $"getAccount: Invalid amount of arguments: {args.Length}" });
+                            answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"getAccount: Invalid amount of arguments: {args.Length}" });
                         }
 
                         break;
@@ -757,7 +759,7 @@ namespace Phantasma.Core.Domain.Wallet
                     {
                         int expectedLength;
 
-                        switch (connection.Version)
+                        switch (connectionDto.Version)
                         {
                             case 1:
                                 expectedLength = 2;
@@ -773,7 +775,7 @@ namespace Phantasma.Core.Domain.Wallet
                             var data = Base16.Decode(args[0], false);
                             if (data == null)
                             {
-                                answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid input received" });
+                                answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"signTx: Invalid input received" });
                                 callback(id, answer, success);
                                 _isPendingRequest = false;
                             }
@@ -783,23 +785,23 @@ namespace Phantasma.Core.Domain.Wallet
 
                                 if (!Enum.TryParse<SignatureKind>(args[1], out signatureKind))
                                 {
-                                    answer = APIUtils.FromAPIResult(new Error() { message = $"signData: Invalid signature: " + args[1] });
+                                    answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"signData: Invalid signature: " + args[1] });
                                     callback(id, answer, false);
                                     _isPendingRequest = false;
                                     return;
                                 }
 
-                                var platform = connection.Version >= 2 ? args[2].ToLower() : "phantasma";
+                                var platform = connectionDto.Version >= 2 ? args[2].ToLower() : "phantasma";
 
                                 SignData(platform, signatureKind, data, id, (signature, random, txError) => {
                                     if (signature != null)
                                     {
                                         success = true;
-                                        answer = APIUtils.FromAPIResult(new Signature() { signature = signature, random = random });
+                                        answer = APIUtils.FromAPIResult(new SignatureDTO() { signature = signature, random = random });
                                     }
                                     else
                                     {
-                                        answer = APIUtils.FromAPIResult(new Error() { message = txError });
+                                        answer = APIUtils.FromAPIResult(new ErrorDTO() { message = txError });
                                     }
 
                                     callback(id, answer, success);
@@ -811,7 +813,7 @@ namespace Phantasma.Core.Domain.Wallet
                         }
                         else
                         {
-                            answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid amount of arguments: {args.Length}" });
+                            answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"signTx: Invalid amount of arguments: {args.Length}" });
                         }
                         break;
                     }
@@ -820,7 +822,7 @@ namespace Phantasma.Core.Domain.Wallet
                     {
                         int expectedLength;
 
-                        switch (connection.Version)
+                        switch (connectionDto.Version)
                         {
                             case 1:
                                 expectedLength = 4;
@@ -835,12 +837,12 @@ namespace Phantasma.Core.Domain.Wallet
                         {
                             int index = 0;
 
-                            if (connection.Version == 1)
+                            if (connectionDto.Version == 1)
                             {
                                 var txNexus = args[index]; index++;
                                 if (txNexus != this.Nexus)
                                 {
-                                    answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Expected nexus {this.Nexus}, instead got {txNexus}" });
+                                    answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"signTx: Expected nexus {this.Nexus}, instead got {txNexus}" });
                                     callback(id, answer, false);
                                     _isPendingRequest = false;
                                     return;
@@ -852,7 +854,7 @@ namespace Phantasma.Core.Domain.Wallet
 
                             if (script == null)
                             {
-                                answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid script data" });
+                                answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"signTx: Invalid script data" });
                             }
                             else
                             {
@@ -862,10 +864,10 @@ namespace Phantasma.Core.Domain.Wallet
                                 string platform;
                                 SignatureKind signatureKind;
 
-                                if (connection.Version >= 2) {
+                                if (connectionDto.Version >= 2) {
                                     if (!Enum.TryParse<SignatureKind>(args[index], out signatureKind))
                                     {
-                                        answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid signature: " + args[index] });
+                                        answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"signTx: Invalid signature: " + args[index] });
                                         callback(id, answer, false);
                                         _isPendingRequest = false;
                                         return;
@@ -884,11 +886,11 @@ namespace Phantasma.Core.Domain.Wallet
                                     if (hash != Hash.Null)
                                     {
                                         success = true;
-                                        answer = APIUtils.FromAPIResult(new Transaction() { hash = hash.ToString() });
+                                        answer = APIUtils.FromAPIResult(new TransactionDTO() { hash = hash.ToString() });
                                     }
                                     else
                                     {
-                                        answer = APIUtils.FromAPIResult(new Error() { message = txError });
+                                        answer = APIUtils.FromAPIResult(new ErrorDTO() { message = txError });
                                     }
 
                                     callback(id, answer, success);
@@ -901,7 +903,7 @@ namespace Phantasma.Core.Domain.Wallet
                         }
                         else
                         {
-                            answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid amount of arguments: {args.Length}" });
+                            answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"signTx: Invalid amount of arguments: {args.Length}" });
                         }
                         break;
                     }
@@ -915,7 +917,7 @@ namespace Phantasma.Core.Domain.Wallet
 
                             if (script == null)
                             {
-                                answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid script data" });
+                                answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"signTx: Invalid script data" });
                             }
                             else
                             {
@@ -924,11 +926,11 @@ namespace Phantasma.Core.Domain.Wallet
                                     if (invokeResult != null)
                                     {
                                         success = true;
-                                        answer = APIUtils.FromAPIResult(new Invocation() { result = Base16.Encode(invokeResult) });
+                                        answer = APIUtils.FromAPIResult(new InvocationDTO() { result = Base16.Encode(invokeResult) });
                                     }
                                     else
                                     {
-                                        answer = APIUtils.FromAPIResult(new Error() { message = invokeError });
+                                        answer = APIUtils.FromAPIResult(new ErrorDTO() { message = invokeError });
                                     }
 
                                     callback(id, answer, success);
@@ -939,7 +941,7 @@ namespace Phantasma.Core.Domain.Wallet
                         }
                         else
                         {
-                            answer = APIUtils.FromAPIResult(new Error() { message = $"invokeScript: Invalid amount of arguments: {args.Length}"});
+                            answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"invokeScript: Invalid amount of arguments: {args.Length}"});
                         }
 
                         break;
@@ -955,7 +957,7 @@ namespace Phantasma.Core.Domain.Wallet
 
                             if (bytes == null)
                             {
-                                answer = APIUtils.FromAPIResult(new Error() { message = $"invokeScript: Invalid archive data"});
+                                answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"invokeScript: Invalid archive data"});
                             }
                             else
                             {
@@ -964,11 +966,11 @@ namespace Phantasma.Core.Domain.Wallet
                                     if (result)
                                     {
                                         success = true;
-                                        answer = APIUtils.FromAPIResult(new Transaction() { hash = archiveHash.ToString() });
+                                        answer = APIUtils.FromAPIResult(new TransactionDTO() { hash = archiveHash.ToString() });
                                     }
                                     else
                                     {
-                                        answer = APIUtils.FromAPIResult(new Error() { message = error });
+                                        answer = APIUtils.FromAPIResult(new ErrorDTO() { message = error });
                                     }
 
                                     callback(id, answer, success);
@@ -979,14 +981,14 @@ namespace Phantasma.Core.Domain.Wallet
                         }
                         else
                         {
-                            answer = APIUtils.FromAPIResult(new Error() { message = $"writeArchive: Invalid amount of arguments: {args.Length}" });
+                            answer = APIUtils.FromAPIResult(new ErrorDTO() { message = $"writeArchive: Invalid amount of arguments: {args.Length}" });
                         }
 
                         break;
                     }
 
                 default:
-                    answer = APIUtils.FromAPIResult(new Error() { message = "Invalid request type" });
+                    answer = APIUtils.FromAPIResult(new ErrorDTO() { message = "Invalid request type" });
                     break;
             }
 

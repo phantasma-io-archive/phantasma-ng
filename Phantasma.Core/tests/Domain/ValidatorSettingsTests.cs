@@ -1,6 +1,7 @@
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Contract.Validator.Structs;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Domain;

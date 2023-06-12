@@ -7,11 +7,16 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract.Exchange;
+using Phantasma.Core.Domain.Contract.Exchange.Enums;
+using Phantasma.Core.Domain.Contract.Exchange.Structs;
 using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
 

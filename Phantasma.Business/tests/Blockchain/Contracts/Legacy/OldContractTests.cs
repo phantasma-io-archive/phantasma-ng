@@ -12,9 +12,15 @@ using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Structs;
 using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
+using Phantasma.Core.Domain.VM.Structs;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 

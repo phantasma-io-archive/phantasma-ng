@@ -5,7 +5,9 @@ using System.Runtime.CompilerServices;
 using Phantasma.Business.VM;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
 using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 
 namespace Phantasma.Business.Blockchain.VM
 {

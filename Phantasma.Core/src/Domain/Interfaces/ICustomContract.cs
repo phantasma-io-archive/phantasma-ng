@@ -1,4 +1,5 @@
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
 
 namespace Phantasma.Core.Domain.Interfaces;

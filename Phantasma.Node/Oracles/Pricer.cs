@@ -1,6 +1,7 @@
 ﻿using System;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Serilog;
 
 namespace Phantasma.Node.Oracles

@@ -4,6 +4,7 @@ using System.Text;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context.Structs;
 
 namespace Phantasma.Core.Storage.Context
 {
@@ -62,7 +63,10 @@ namespace Phantasma.Core.Storage.Context
             return Serialization.Unserialize(bytes, type);
         }
 
-        public void Put(byte[] key, BigInteger value) { Put(key, value.ToSignedByteArray()); }
+        public void Put(byte[] key, BigInteger value)
+        {
+            Put(key, value.ToSignedByteArray());
+        }
 
         public void Put<T>(byte[] key, T obj)
         {
@@ -76,9 +80,15 @@ namespace Phantasma.Core.Storage.Context
             Put(key, bytes);
         }
 
-        public void Put(string key, byte[] value) { Put(Encoding.UTF8.GetBytes(key), value); }
+        public void Put(string key, byte[] value)
+        {
+            Put(Encoding.UTF8.GetBytes(key), value);
+        }
 
-        public void Delete(string key) { Delete(Encoding.UTF8.GetBytes(key)); }
+        public void Delete(string key)
+        {
+            Delete(Encoding.UTF8.GetBytes(key));
+        }
 
         public abstract void Visit(Action<byte[], byte[]> visitor, ulong searchCount = 0, byte[] prefix = null);
     }

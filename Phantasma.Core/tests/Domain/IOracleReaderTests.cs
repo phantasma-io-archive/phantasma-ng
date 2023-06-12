@@ -5,6 +5,7 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.Oracle;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Domain;

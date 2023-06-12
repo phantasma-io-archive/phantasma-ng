@@ -7,11 +7,16 @@ using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.EdDSA;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Contract.Relay;
+using Phantasma.Core.Domain.Contract.Relay.Structs;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts;

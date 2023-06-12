@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Shouldly;
 using Xunit;
 using ExecutionContext = Phantasma.Core.Domain.Execution.ExecutionContext;

@@ -6,47 +6,6 @@ using Phantasma.Core.Cryptography;
 
 namespace Phantasma.Infrastructure.Pay
 {
-    [Flags]
-    public enum CryptoCurrencyCaps
-    {
-        None = 0,
-        Balance = 0x1,
-        Transfer = 0x2,
-        Stake = 0x4,
-    }
-
-    public struct CryptoCurrencyInfo
-    {
-        public readonly string Symbol;
-        public readonly string Name;
-        public readonly int Decimals;
-        public readonly string Platform;
-        public readonly CryptoCurrencyCaps Caps;
-
-        public CryptoCurrencyInfo(string symbol, string name, int decimals, string platform, CryptoCurrencyCaps caps)
-        {
-            Symbol = symbol;
-            Name = name;
-            Decimals = decimals;
-            Platform = platform;
-            Caps = caps;
-        }
-    }
-
-    public struct WalletBalance
-    {
-        public readonly string Symbol;
-        public readonly decimal Amount;
-        public readonly string Chain;
-
-        public WalletBalance(string symbol, decimal amount, string chain = "main")
-        {
-            Symbol = symbol;
-            Amount = amount;
-            Chain = chain;
-        }
-    }
-
     public abstract class CryptoWallet
     {
         public abstract string Platform { get; }

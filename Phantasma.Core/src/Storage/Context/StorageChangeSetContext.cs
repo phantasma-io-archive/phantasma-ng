@@ -5,15 +5,17 @@ using System.Linq;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Storage.Context;
 
-public class StorageChangeSetContext: StorageContext, ISerializable
+public class StorageChangeSetContext : StorageContext, ISerializable
 {
     public StorageContext baseContext { get; private set; }
 
-    private readonly Dictionary<StorageKey, StorageChangeSetEntry> _entries = new Dictionary<StorageKey, StorageChangeSetEntry>(new StorageKeyComparer());
+    private readonly Dictionary<StorageKey, StorageChangeSetEntry> _entries =
+        new Dictionary<StorageKey, StorageChangeSetEntry>(new StorageKeyComparer());
 
     public StorageChangeSetContext(StorageContext baseContext)
     {
@@ -172,14 +174,13 @@ public class StorageChangeSetContext: StorageContext, ISerializable
             {
                 return;
             }
-
         }, searchCount, prefix);
     }
 
     public void SerializeData(BinaryWriter writer)
     {
         writer.WriteVarInt(_entries.Count);
-        foreach (KeyValuePair<StorageKey,StorageChangeSetEntry> valuePair in _entries)
+        foreach (KeyValuePair<StorageKey, StorageChangeSetEntry> valuePair in _entries)
         {
             var keySerialized = valuePair.Key.Serialize();
             var valueSerialized = valuePair.Value.Serialize();
@@ -199,7 +200,8 @@ public class StorageChangeSetContext: StorageContext, ISerializable
             var lengthKey = reader.ReadVarInt();
             StorageKey key = Serialization.Unserialize<StorageKey>(reader.ReadBytes((int)lengthKey));
             var lengthValue = reader.ReadVarInt();
-            StorageChangeSetEntry entry = Serialization.Unserialize<StorageChangeSetEntry>(reader.ReadBytes((int)lengthValue));
+            StorageChangeSetEntry entry =
+                Serialization.Unserialize<StorageChangeSetEntry>(reader.ReadBytes((int)lengthValue));
             _entries.Add(key, entry);
         }
     }

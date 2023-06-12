@@ -4,18 +4,14 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
+using Phantasma.Core.Utils.Enums;
 
 namespace Phantasma.Core.Utils
 {
-    public enum RequestType
-    {
-        GET,
-        POST
-    }
-
     public static class RequestUtils
     {
-        public static T Request<T>(RequestType requestType, string url, out string stringResponse, int timeoutInSeconds = 0, int maxAttempts = 1, string postString = "")
+        public static T Request<T>(RequestType requestType, string url, out string stringResponse,
+            int timeoutInSeconds = 0, int maxAttempts = 1, string postString = "")
         {
             stringResponse = null;
 
@@ -38,14 +34,16 @@ namespace Phantasma.Core.Utils
                                 {
                                     stringResponse = content.ReadAsStringAsync(cts.Token).Result;
                                 }
+
                                 break;
                             case RequestType.POST:
-                                {
-                                    var content = new StringContent(postString, System.Text.Encoding.UTF8, "application/json");
-                                    var responseContent = httpClient.PostAsync(url, content, cts.Token).Result.Content;
-                                    stringResponse = responseContent.ReadAsStringAsync(cts.Token).Result;
-                                    break;
-                                }
+                            {
+                                var content = new StringContent(postString, System.Text.Encoding.UTF8,
+                                    "application/json");
+                                var responseContent = httpClient.PostAsync(url, content, cts.Token).Result.Content;
+                                stringResponse = responseContent.ReadAsStringAsync(cts.Token).Result;
+                                break;
+                            }
                             default:
                                 throw new Exception("Unknown RequestType");
                         }
@@ -89,7 +87,8 @@ namespace Phantasma.Core.Utils
             return default;
         }
 
-        public static async Task<T> RequestAsync<T>(RequestType requestType, string url, int timeoutInSeconds = 0, int maxAttempts = 1, string postString = "")
+        public static async Task<T> RequestAsync<T>(RequestType requestType, string url, int timeoutInSeconds = 0,
+            int maxAttempts = 1, string postString = "")
         {
             string stringResponse = null;
 
@@ -112,14 +111,17 @@ namespace Phantasma.Core.Utils
                                 {
                                     stringResponse = await content.ReadAsStringAsync(cts.Token);
                                 }
+
                                 break;
                             case RequestType.POST:
-                                {
-                                    using var content = new StringContent(postString, System.Text.Encoding.UTF8, "application/json");
-                                    using var responseContent = (await httpClient.PostAsync(url, content, cts.Token)).Content;
-                                    stringResponse = await responseContent.ReadAsStringAsync(cts.Token);
-                                    break;
-                                }
+                            {
+                                using var content = new StringContent(postString, System.Text.Encoding.UTF8,
+                                    "application/json");
+                                using var responseContent =
+                                    (await httpClient.PostAsync(url, content, cts.Token)).Content;
+                                stringResponse = await responseContent.ReadAsStringAsync(cts.Token);
+                                break;
+                            }
                             default:
                                 throw new Exception("Unknown RequestType");
                         }
@@ -170,8 +172,9 @@ namespace Phantasma.Core.Utils
             public string id { get; set; }
             public object[] @params { get; set; }
         }
-        
-        public static JsonDocument RPCRequest(string url, string method, out string stringResponse, int timeoutInSeconds = 0, int maxAttempts = 1, params object[] parameters)
+
+        public static JsonDocument RPCRequest(string url, string method, out string stringResponse,
+            int timeoutInSeconds = 0, int maxAttempts = 1, params object[] parameters)
         {
             var rpcRequest = new RpcRequest
             {
@@ -183,8 +186,8 @@ namespace Phantasma.Core.Utils
 
             var json = JsonSerializer.Serialize(rpcRequest);
 
-            return Request<JsonDocument>(RequestType.POST, url, out stringResponse, timeoutInSeconds, maxAttempts, json);
+            return Request<JsonDocument>(RequestType.POST, url, out stringResponse, timeoutInSeconds, maxAttempts,
+                json);
         }
-
     }
 }

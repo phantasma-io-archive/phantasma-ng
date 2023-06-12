@@ -1,5 +1,6 @@
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.TransactionData;
 
 namespace Phantasma.Core.Domain.Interfaces

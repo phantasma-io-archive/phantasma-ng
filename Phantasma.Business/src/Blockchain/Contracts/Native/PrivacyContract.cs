@@ -1,5 +1,6 @@
 ﻿using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {

@@ -13,6 +13,8 @@ using Phantasma.Core.Numerics;
 using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Node.Chains.Neo2;
 using Neo.Network.P2P.Payloads;
+using Phantasma.Core.Cryptography.ECDsa.Enums;
+using Phantasma.Core.Cryptography.Structs;
 
 namespace Phantasma.Core.Tests.Cryptography;
 

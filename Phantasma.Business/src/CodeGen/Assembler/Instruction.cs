@@ -3,7 +3,9 @@ using System.IO;
 using Phantasma.Business.VM;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Exceptions;
 using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 
 namespace Phantasma.Business.CodeGen.Assembler
 {

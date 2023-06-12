@@ -12,9 +12,16 @@ using Phantasma.Core.Numerics;
 
 using Xunit;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Business.Blockchain.Tokens.Structs;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Contract.Market;
+using Phantasma.Core.Domain.Contract.Market.Structs;
 using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 

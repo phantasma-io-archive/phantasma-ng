@@ -1,5 +1,7 @@
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Storage.Context;
 
 namespace Phantasma.Core.Domain.Interfaces;

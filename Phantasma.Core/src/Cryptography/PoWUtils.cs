@@ -1,3 +1,5 @@
+using Phantasma.Core.Cryptography.Structs;
+
 namespace Phantasma.Core.Cryptography
 {
     public static class PoWUtils

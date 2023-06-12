@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Core.Domain.Interfaces;
 

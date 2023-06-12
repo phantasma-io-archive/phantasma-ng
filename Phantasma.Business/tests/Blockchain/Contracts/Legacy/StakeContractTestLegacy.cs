@@ -6,14 +6,19 @@ using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Contract.Gas;
+using Phantasma.Core.Domain.Contract.Gas.Structs;
 using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
-
+using Phantasma.Core.Types.Structs;
 using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;

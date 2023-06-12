@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using Phantasma.Business.Blockchain.Archives.Sharding.Structs;
 
 namespace Phantasma.Business.Blockchain.Archives.Sharding
 {

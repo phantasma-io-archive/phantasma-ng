@@ -14,11 +14,19 @@ using Phantasma.Core.Domain;
 using Phantasma.Business.VM.Utils;
 using Transaction = Phantasma.Core.Domain.TransactionData.Transaction;
 using Phantasma.Business.VM;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Structs;
 using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
+using Phantasma.Core.Domain.VM.Structs;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Tests.VM.Legacy;
 

@@ -6,10 +6,13 @@ using System.Numerics;
 using System.Reflection;
 using System.Text;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Domain.VM

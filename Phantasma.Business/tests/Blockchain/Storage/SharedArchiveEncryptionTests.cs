@@ -2,6 +2,8 @@ using System;
 using System.Text;
 using Phantasma.Business.Blockchain.Archives;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Exceptions;
 

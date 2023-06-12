@@ -4,11 +4,16 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Exceptions;
 using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.Oracle;
+using Phantasma.Core.Domain.Oracle.Structs;
+using Phantasma.Core.Domain.Structs;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Domain

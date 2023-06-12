@@ -3,6 +3,8 @@ using System.Linq;
 using Neo;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Cryptography.ECDsa.Enums;
+using Phantasma.Core.Domain.Interfaces;
 using NeoSmartContract = Neo.SmartContract;
 using NeoSmartContractHelper = Neo.SmartContract.Helper;
 using NeoWallets = Neo.Wallets;

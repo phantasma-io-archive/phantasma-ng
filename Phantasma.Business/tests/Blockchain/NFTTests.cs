@@ -11,8 +11,13 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Business.Blockchain.Tokens.Structs;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
 using Phantasma.Core.Domain.TransactionData;
 
 namespace Phantasma.Business.Tests.Blockchain;

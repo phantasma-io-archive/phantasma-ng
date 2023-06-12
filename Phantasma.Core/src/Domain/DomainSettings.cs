@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
 using Phantasma.Core.Numerics;
 

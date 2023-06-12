@@ -1,4 +1,6 @@
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Storage.Context.Structs;
 
 namespace Phantasma.Business.Blockchain.Contracts;
 
@@ -46,6 +48,7 @@ public class SmartContractSheet
         {
             throw new Exception("Invalid contract address");
         }
+
         _prefix = MakePrefix(_contractAddress);
     }
 
@@ -64,6 +67,7 @@ public class SmartContractSheet
     }
 
     #region Has
+
     public bool Has(StorageContext storage, byte[] key)
     {
         return storage.Has(key);
@@ -88,9 +92,11 @@ public class SmartContractSheet
     {
         return storage.Has(GetNameKey());
     }
+
     #endregion
 
     #region Put
+
     public bool Put(StorageContext storage, byte[] key, byte[] value)
     {
         lock (storage)
@@ -121,17 +127,21 @@ public class SmartContractSheet
     {
         return Put(storage, GetNameKey(), value);
     }
+
     #endregion
 
     #region Add
+
     public void AddToList(StorageContext storage, Address address)
     {
         var contracts = GetContractList(storage);
         contracts.Add(address);
     }
+
     #endregion
 
     #region Delete
+
     public void Delete(StorageContext storage, byte[] key)
     {
         storage.Delete(key);
@@ -159,14 +169,13 @@ public class SmartContractSheet
 
     public void DeleteContract(StorageContext storage)
     {
-        storage.Visit((key, val) =>
-        {
-            storage.Delete(key);
-        }, storage.Count(), _prefix);
+        storage.Visit((key, val) => { storage.Delete(key); }, storage.Count(), _prefix);
     }
+
     #endregion
 
     #region Get
+
     public static byte[] GetContractListKey()
     {
         return Encoding.ASCII.GetBytes(".contracts.");
@@ -225,8 +234,9 @@ public class SmartContractSheet
             var bytes = storage.Get(key);
             return Address.FromBytes(bytes);
         }
+
         return Address.Null;
     }
+
     #endregion
 }
-

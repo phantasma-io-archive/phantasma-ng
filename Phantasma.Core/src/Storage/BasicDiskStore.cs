@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Phantasma.Core.Storage.Interfaces;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Storage;
@@ -56,7 +57,8 @@ public class BasicDiskStore : IKeyValueStoreAdapter
 
     private void UpdateToDisk()
     {
-        File.WriteAllLines(fileName, _cache.Select(x => Convert.ToBase64String((byte[])x.Key) + "," + Convert.ToBase64String((byte[])x.Value)));
+        File.WriteAllLines(fileName,
+            _cache.Select(x => Convert.ToBase64String((byte[])x.Key) + "," + Convert.ToBase64String((byte[])x.Value)));
     }
 
     public void SetValue(byte[] key, byte[] value)

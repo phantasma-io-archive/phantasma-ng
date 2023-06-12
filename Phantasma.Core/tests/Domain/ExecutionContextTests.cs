@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
 using Phantasma.Core.Domain.VM;
 using Xunit;
 

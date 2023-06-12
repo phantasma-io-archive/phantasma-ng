@@ -1,4 +1,5 @@
 using Phantasma.Core.Domain.Platform;
+using Phantasma.Core.Domain.Platform.Structs;
 
 namespace Phantasma.Core.Domain.Interfaces
 {

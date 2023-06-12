@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
 using Phantasma.Core.Domain.VM;
 
 namespace Phantasma.Business.Blockchain.VM;

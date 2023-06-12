@@ -1,6 +1,7 @@
 using System.Numerics;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Core.Domain.Oracle;
 

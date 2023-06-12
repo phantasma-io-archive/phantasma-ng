@@ -1,14 +1,17 @@
 using System;
 using System.Numerics;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Exceptions;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context.Interfaces;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Storage.Context;
 
 public static class CollectionUtils
-{ 
+{
     private static readonly byte[] count_prefix = "{count}".AsByteArray();
     public static readonly byte[] element_begin_prefix = new byte[] { (byte)'<' };
     public static readonly byte[] element_end_prefix = new byte[] { (byte)'>' };
@@ -69,7 +72,7 @@ public static class CollectionUtils
     }
 
     public static void Replace<T>(this StorageList list, BigInteger index, T element)
-    {           
+    {
         byte[] bytes;
         if (typeof(IStorageCollection).IsAssignableFrom(typeof(T)))
         {
@@ -157,7 +160,7 @@ public static class CollectionUtils
         }
 
         int total = 1 + (int)(maxIndex - minIndex);
-            
+
         var result = new T[total];
 
         int offset = 0;
@@ -166,7 +169,7 @@ public static class CollectionUtils
         {
             result[offset] = list.Get<T>(index);
             offset = offset + 1;
-            index++;                
+            index++;
         }
 
         return result;
@@ -200,6 +203,7 @@ public static class CollectionUtils
             {
                 return index;
             }
+
             index++;
         }
 
@@ -210,10 +214,11 @@ public static class CollectionUtils
     {
         var size = list.Count();
         var items = new T[(int)size];
-        for (int i=0; i<size; i++)
+        for (int i = 0; i < size; i++)
         {
             items[i] = list.Get<T>(i);
         }
+
         return items;
     }
 
@@ -223,5 +228,4 @@ public static class CollectionUtils
         BigInteger count = 0;
         list.Context.Put(CountKey(list.BaseKey), count);
     }
-
 }

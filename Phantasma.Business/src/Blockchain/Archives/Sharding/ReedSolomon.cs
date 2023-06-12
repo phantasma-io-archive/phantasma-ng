@@ -1,3 +1,4 @@
+using Phantasma.Business.Blockchain.Archives.Sharding.Structs;
 using Phantasma.Core;
 
 /**

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.TransactionData;

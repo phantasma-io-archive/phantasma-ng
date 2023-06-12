@@ -6,16 +6,23 @@ using System.Numerics;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
 using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Domain.Exceptions;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.Oracle;
+using Phantasma.Core.Domain.Oracle.Structs;
 using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Structs;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Serilog;
 
 namespace Phantasma.Business.Blockchain

@@ -19,14 +19,23 @@ using Phantasma.Core.Utils;
 using Xunit;
 using Shouldly;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Structs;
 using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Domain.Exceptions;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
 using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Triggers.Enums;
 using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
+using Phantasma.Core.Domain.VM.Structs;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 

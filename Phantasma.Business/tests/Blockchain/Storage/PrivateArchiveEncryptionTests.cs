@@ -4,6 +4,7 @@ using System.Text;
 using Neo.Wallets;
 using Phantasma.Business.Blockchain.Archives;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Enums;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Exceptions;
 

@@ -16,13 +16,20 @@ using Shouldly;
 using Xunit;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.VM;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Contract.Market;
+using Phantasma.Core.Domain.Contract.Market.Structs;
 using Phantasma.Core.Domain.Execution;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.Token.Structs;
 using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts;
 

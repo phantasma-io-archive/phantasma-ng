@@ -81,8 +81,10 @@ namespace Phantasma.Core.Utils
                 {
                     if (needle[k] != haystack[i + k]) break;
                 }
+
                 if (k == len) return i;
             }
+
             return -1;
         }
 
@@ -108,6 +110,5 @@ namespace Phantasma.Core.Utils
 
             return true;
         }
-
     }
 }

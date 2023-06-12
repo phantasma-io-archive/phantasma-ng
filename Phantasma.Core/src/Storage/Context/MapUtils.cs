@@ -6,12 +6,14 @@ using System.Text;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context.Interfaces;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Storage.Context;
 
 public static class MapUtils
-{ 
+{
 /*        public readonly StorageContext Context;
 
 
@@ -78,6 +80,7 @@ public static class MapUtils
                 var bytes = oldList.GetRaw(i);
                 newList.AddRaw(bytes);
             }
+
             oldList.Clear();
         }
         else
@@ -89,8 +92,8 @@ public static class MapUtils
                 return; // if they key does not exist, migration does nothing
             }
 
-            V bytes = map.Get<K,V>(sourceKey);
-            map.Set<K,V>(destKey, bytes);
+            V bytes = map.Get<K, V>(sourceKey);
+            map.Set<K, V>(destKey, bytes);
             map.Remove<K>(sourceKey);
         }
     }
@@ -109,6 +112,7 @@ public static class MapUtils
         {
             bytes = Serialization.Serialize(value);
         }
+
         map.Context.Put(ElementKey(map.BaseKey, key), bytes);
 
         if (!exists)
@@ -180,7 +184,7 @@ public static class MapUtils
         }
     }
 
-    public static void Visit<K,V>(this StorageMap map, Action<K,V> visitor)
+    public static void Visit<K, V>(this StorageMap map, Action<K, V> visitor)
     {
         var countKey = CountKey(map.BaseKey);
         var found = false;
@@ -207,14 +211,15 @@ public static class MapUtils
         }, (uint)map.Count(), map.BaseKey);
     }
 
-    public static V[] All<K,V>(this StorageMap map, K[] keys)
+    public static V[] All<K, V>(this StorageMap map, K[] keys)
     {
         var size = keys.Length;
         var items = new V[size];
         for (int i = 0; i < size; i++)
         {
-            items[i] = map.Get<K,V>(keys[i]);
+            items[i] = map.Get<K, V>(keys[i]);
         }
+
         return items;
     }
 
@@ -335,6 +340,7 @@ public static class MapUtils
                 countKeyRun = true;
                 found = true;
             }
+
             if (!countKeyRun)
             {
                 keys.Add(key);
@@ -343,7 +349,6 @@ public static class MapUtils
             {
                 countKeyRun = false;
             }
-
         }, count, map.BaseKey);
 
         Throw.If(keys.Count != count, $"map.clear failed to fetch all existing keys keys: {keys.Count} count: {count}");
@@ -355,5 +360,4 @@ public static class MapUtils
 
         map.Context.Put(CountKey(map.BaseKey), 0);
     }
-
 }

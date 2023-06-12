@@ -6,6 +6,7 @@ using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Security;
+using Phantasma.Core.Cryptography.ECDsa.Enums;
 
 namespace Phantasma.Core.Cryptography.ECDsa
 {

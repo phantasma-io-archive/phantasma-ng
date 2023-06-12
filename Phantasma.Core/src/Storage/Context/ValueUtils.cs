@@ -1,6 +1,8 @@
 using System;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Storage.Context.Interfaces;
+using Phantasma.Core.Storage.Context.Structs;
 
 namespace Phantasma.Core.Storage.Context;
 

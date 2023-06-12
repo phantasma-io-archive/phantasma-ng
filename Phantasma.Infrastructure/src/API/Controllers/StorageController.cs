@@ -3,6 +3,7 @@ using System.Drawing;
 using System.IO;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Utils;
 

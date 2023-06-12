@@ -11,11 +11,18 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Structs;
 using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
+using Phantasma.Core.Storage.Context.Interfaces;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Blockchain.Contracts
 {
@@ -167,6 +174,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         }
 
         #region METHOD TABLE
+
         /// <summary>
         /// Build the method table
         /// </summary>
@@ -174,7 +182,8 @@ namespace Phantasma.Business.Blockchain.Contracts
         {
             var type = GetType();
 
-            var srcMethods = type.GetMethods(BindingFlags.Public | BindingFlags.InvokeMethod | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            var srcMethods = type.GetMethods(BindingFlags.Public | BindingFlags.InvokeMethod | BindingFlags.Instance |
+                                             BindingFlags.DeclaredOnly);
             var methods = new List<ContractMethod>();
 
             foreach (var srcMethod in srcMethods)
@@ -281,6 +290,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                     var result = Array.CreateInstance(elementType, 0);
                     return result;
                 }
+
                 throw new Exception("Invalid cast for null VM object");
             }
 
@@ -335,6 +345,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                                 val = CastArgument(runtime, val, elementType);
                                 array.SetValue(val, i);
                             }
+
                             return array;
                         }
                         else if (arg == typeof(VMObject))
@@ -356,6 +367,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                                 val = CastArgument(runtime, val, elementType);
                                 array.SetValue(val, i);
                             }
+
                             return array;
                         }
                     }
@@ -373,6 +385,7 @@ namespace Phantasma.Business.Blockchain.Contracts
                             val = CastArgument(runtime, val, elementType);
                             array.SetValue(val, i);
                         }
+
                         return array;
                     }
                 }
@@ -422,7 +435,6 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             if (Runtime.ProtocolVersion > 8)
             {
-
                 if (expectedType == typeof(Timestamp))
                 {
                     if (receivedType == typeof(string))
@@ -471,6 +483,7 @@ namespace Phantasma.Business.Blockchain.Contracts
         #endregion
 
         private static Dictionary<Address, Type> _nativeContractMap = null;
+
         /// <summary>
         /// Register a Contract
         /// </summary>
@@ -548,6 +561,5 @@ namespace Phantasma.Business.Blockchain.Contracts
 
             return null;
         }
-
     }
 }

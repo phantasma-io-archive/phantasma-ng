@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Phantasma.Core.Domain.Contract.Structs;
 using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Domain.Contract;

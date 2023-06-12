@@ -1,6 +1,7 @@
 ﻿using System;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Storage.Interfaces;
 
 namespace Phantasma.Core.Storage
 {
@@ -41,8 +42,9 @@ namespace Phantasma.Core.Storage
             if (bytes == null)
             {
                 value = default(V);
-               return false;
+                return false;
             }
+
             value = Serialization.Unserialize<V>(bytes);
             return true;
         }
@@ -54,8 +56,8 @@ namespace Phantasma.Core.Storage
             if (bytes == null)
             {
                 Throw.If(bytes == null, "item not found in keystore");
-
             }
+
             return Serialization.Unserialize<V>(bytes);
         }
 

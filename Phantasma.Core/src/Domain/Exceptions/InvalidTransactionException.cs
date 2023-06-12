@@ -1,5 +1,6 @@
 using System;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 
 //TODO
 namespace Phantasma.Core.Domain.Exceptions

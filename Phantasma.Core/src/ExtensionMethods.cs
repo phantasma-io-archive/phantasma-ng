@@ -18,9 +18,15 @@ namespace Phantasma.Core
             return (!type.IsPrimitive && type.IsValueType && !type.IsEnum) || type.IsClass || type.IsInterface;
         }
 
-        public static byte[] AsByteArray(this string source) { return Encoding.UTF8.GetBytes(source); }
+        public static byte[] AsByteArray(this string source)
+        {
+            return Encoding.UTF8.GetBytes(source);
+        }
 
-        public static string AsString(this byte[] source) { return Encoding.UTF8.GetString(source); }
+        public static string AsString(this byte[] source)
+        {
+            return Encoding.UTF8.GetString(source);
+        }
 
         public static void ForEach<T>(this IEnumerable<T> collection, Action<T> action)
         {
@@ -126,7 +132,8 @@ namespace Phantasma.Core
         }
 
         // TODO: Change the equalityComparer to a KeySelector for the these extension methods:
-        public static void AddRangeDistinctBy<T>(this List<T> target, IEnumerable<T> src, Func<T, T, bool> equalityComparer)
+        public static void AddRangeDistinctBy<T>(this List<T> target, IEnumerable<T> src,
+            Func<T, T, bool> equalityComparer)
         {
             src.ForEach(item =>
             {
@@ -156,7 +163,8 @@ namespace Phantasma.Core
             }
         }
 
-        public static IEnumerable<T> ExceptBy<T, TKey>(this IEnumerable<T> src, IEnumerable<T> items, Func<T, TKey> keySelector)
+        public static IEnumerable<T> ExceptBy<T, TKey>(this IEnumerable<T> src, IEnumerable<T> items,
+            Func<T, TKey> keySelector)
         {
             using (var enumerator = src.GetEnumerator())
             {
@@ -220,6 +228,7 @@ namespace Phantasma.Core
                 mean += delta / n;
                 sum += delta * (val - mean);
             }
+
             if (1 < n)
                 stdDev = System.Math.Sqrt(sum / (n - 1));
 
@@ -243,7 +252,8 @@ namespace Phantasma.Core
 
         public static void Merge<K, V>(this IDictionary<K, V> target, IDictionary<K, V> source)
         {
-            source.ToList().ForEach(_ => {
+            source.ToList().ForEach(_ =>
+            {
                 if (!target.ContainsKey(_.Key))
                 {
                     target[_.Key] = _.Value;

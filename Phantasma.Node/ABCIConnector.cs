@@ -12,8 +12,10 @@ using Grpc.Core;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Contract.Validator.Structs;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Numerics;
@@ -25,7 +27,7 @@ using Tendermint.Extensions;
 using Tendermint.RPC;
 using Tendermint.Types;
 using Chain = Phantasma.Business.Blockchain.Chain;
-using Timestamp = Phantasma.Core.Types.Timestamp;
+using Timestamp = Phantasma.Core.Types.Structs.Timestamp;
 
 namespace Phantasma.Node;
 public class ABCIConnector : ABCIApplication.ABCIApplicationBase

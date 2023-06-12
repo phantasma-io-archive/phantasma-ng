@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Text.Json;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
+using Phantasma.Core.Utils.Enums;
 using Serilog;
 
 namespace Phantasma.Node.Oracles

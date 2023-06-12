@@ -3,6 +3,7 @@ using System;
 using System.Text;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.EdDSA;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Numerics;
 
 // Testing main Phantasma signature

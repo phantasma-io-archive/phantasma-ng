@@ -5,19 +5,27 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Contract.Exchange;
+using Phantasma.Core.Domain.Contract.Exchange.Enums;
+using Phantasma.Core.Domain.Contract.Exchange.Structs;
 using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Domain.Exceptions;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
 using Phantasma.Core.Domain.Validation;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Types;
-using static Phantasma.Core.Domain.Contract.Exchange.ExchangeOrderSide;
-using static Phantasma.Core.Domain.Contract.Exchange.ExchangeOrderType;
+using Phantasma.Core.Types.Structs;
+using static Phantasma.Core.Domain.Contract.Exchange.Enums.ExchangeOrderSide;
+using static Phantasma.Core.Domain.Contract.Exchange.Enums.ExchangeOrderType;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {

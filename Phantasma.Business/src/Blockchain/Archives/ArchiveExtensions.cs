@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using Phantasma.Core.Cryptography.Enums;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Interfaces;
 

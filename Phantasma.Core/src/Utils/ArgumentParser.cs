@@ -85,7 +85,11 @@ namespace Phantasma.Core.Utils
         {
             var temp = GetString(key, defaultVal.ToString());
             int result;
-            if (int.TryParse(temp, out result)) { return result; }
+            if (int.TryParse(temp, out result))
+            {
+                return result;
+            }
+
             return defaultVal;
         }
 
@@ -93,7 +97,11 @@ namespace Phantasma.Core.Utils
         {
             var temp = GetString(key, defaultVal.ToString());
             uint result;
-            if (uint.TryParse(temp, out result)) { return result; }
+            if (uint.TryParse(temp, out result))
+            {
+                return result;
+            }
+
             return defaultVal;
         }
 
@@ -101,7 +109,11 @@ namespace Phantasma.Core.Utils
         {
             var temp = GetString(key, defaultVal.ToString());
             bool result;
-            if (bool.TryParse(temp, out result)) { return result; }
+            if (bool.TryParse(temp, out result))
+            {
+                return result;
+            }
+
             return defaultVal;
         }
 
@@ -120,7 +132,11 @@ namespace Phantasma.Core.Utils
 
             var temp = GetString(key, defaultVal.ToString());
             T result;
-            if (Enum.TryParse<T>(temp, out result)) { return result; }
+            if (Enum.TryParse<T>(temp, out result))
+            {
+                return result;
+            }
+
             return defaultVal;
         }
 
@@ -138,6 +154,6 @@ namespace Phantasma.Core.Utils
         public bool HasValue(string key)
         {
             return entries.ContainsKey(key);
-        }		
+        }
     }
 }

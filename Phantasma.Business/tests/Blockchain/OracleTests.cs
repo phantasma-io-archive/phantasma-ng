@@ -6,11 +6,15 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Core.Domain;
 using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
 using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Node.Oracles;
 
 using Xunit;

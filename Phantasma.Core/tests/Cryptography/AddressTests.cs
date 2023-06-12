@@ -2,6 +2,7 @@
 using System;
 using System.Text;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Numerics;
 using Xunit;
 

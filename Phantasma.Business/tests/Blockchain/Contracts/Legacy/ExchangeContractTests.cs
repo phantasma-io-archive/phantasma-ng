@@ -14,12 +14,19 @@ using Phantasma.Core.Numerics;
 using Xunit;
 using Shouldly;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Contract.Exchange;
+using Phantasma.Core.Domain.Contract.Exchange.Enums;
+using Phantasma.Core.Domain.Contract.Exchange.Structs;
 using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 

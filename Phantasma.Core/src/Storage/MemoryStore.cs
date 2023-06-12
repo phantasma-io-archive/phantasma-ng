@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Phantasma.Core.Storage.Interfaces;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Storage;
@@ -50,7 +51,7 @@ public class MemoryStore : IKeyValueStoreAdapter
     public void Visit(Action<byte[], byte[]> visitor, ulong searchCount, byte[] prefix)
     {
         ulong count = 0;
-        foreach(var entry in _entries)
+        foreach (var entry in _entries)
         {
             var entryPrefix = entry.Key.Take(prefix.Length);
             if (count <= searchCount && entryPrefix.SequenceEqual(prefix))

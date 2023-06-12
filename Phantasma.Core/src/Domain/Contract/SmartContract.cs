@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Text;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Utils;
 
