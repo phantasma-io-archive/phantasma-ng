@@ -8,7 +8,7 @@
     <PackageProjectUrl>www.phantasma.io</PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <RepositoryUrl>github.com/phantasma-io/</RepositoryUrl>
-    <Version>1.0.7</Version>
+    <Version>1.0.8</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Nethereum.Web3" Version="4.14.0" />
