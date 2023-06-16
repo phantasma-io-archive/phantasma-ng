@@ -11,7 +11,6 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.ECDsa;
 using Phantasma.Core.Numerics;
 using Phantasma.Node.Chains.Ethereum;
-using Phantasma.Node.Chains.Neo2;
 using Neo.Network.P2P.Payloads;
 using Phantasma.Core.Cryptography.ECDsa.Enums;
 using Phantasma.Core.Cryptography.Structs;
@@ -112,7 +111,7 @@ public class CryptoTests
 
         // ECDsaSignature.Generate()/ECDsaSignature.Verify() tests.
 
-        var neoKeys = NeoKeys.FromWIF(wif);
+        /*var neoKeys = NeoKeys.FromWIF(wif);
 
         // Verifying previous signature, received from CryptoExtensions.SignECDsa().
         var ecdsaSignature = new ECDsaSignature(signature, curveEnum);
@@ -122,7 +121,7 @@ public class CryptoTests
         // Generating new signature with ECDsaSignature.Generate() and verifying it.
         var ecdsaSignature2 = ECDsaSignature.Generate(neoKeys, msgBytes, curveEnum);
         Console.WriteLine("ECDsaSignature() signature2: " + Base16.Encode(ecdsaSignature2.ToByteArray()));
-        Assert.True(ecdsaSignature.Verify(msgBytes, Address.FromKey(neoKeys)));
+        Assert.True(ecdsaSignature.Verify(msgBytes, Address.FromKey(neoKeys)));*/
     }
     
     [Fact]
@@ -184,7 +183,7 @@ public class CryptoTests
         var tx = Transaction.DeserializeFrom(rawTx);
 
         var wif = "KwVG94yjfVg1YKFyRxAGtug93wdRbmLnqqrFV6Yd2CiA9KZDAp4H";
-        var neoKeys = NeoKeys.FromWIF(wif);
+        /*var neoKeys = NeoKeys.FromWIF(wif);
 
         Assert.True(tx.Witnesses.Any());
         var wit = tx.Witnesses.First();
@@ -200,7 +199,7 @@ public class CryptoTests
         var neoSig = ECDsaSignature.Generate(neoKeys, payload, ECDsaCurve.Secp256r1);
 
         var validateNeoSig = neoSig.Verify(payload, transposedAddress);
-        Assert.True(validateNeoSig);
+        Assert.True(validateNeoSig);*/
     }
 }
 

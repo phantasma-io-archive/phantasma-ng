@@ -1,0 +1,68 @@
+﻿<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="Current">
+    <PropertyGroup>
+        <Copyright>2018 - 2023 Phantasma.io</Copyright>
+        <AssemblyTitle>Phantasma.Node</AssemblyTitle>
+        <Version>2.0-alpha1</Version>
+        <Authors>The Phantasma Team</Authors>
+        <TargetFramework>net6.0</TargetFramework>
+        <AssemblyName>phantasma-node</AssemblyName>
+        <OutputType>Exe</OutputType>
+        <RootNamespace>Phantasma.Node</RootNamespace>
+        <Company>Phantasma.io</Company>
+        <Description>Phantasma.Node</Description>
+        <Product>Phantasma.Node</Product>
+        <LangVersion>latestmajor</LangVersion>
+        <ImplicitUsings>disable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Remove="Publish\**" />
+        <EmbeddedResource Remove="Publish\**" />
+        <None Remove="Publish\**" />
+        <None Remove="testnet\bin\tendermint" />
+        <None Include="bin\Debug\net6.0\config_testnet_node0.json" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Foundatio" Version="10.4.0" />
+        <PackageReference Include="Foundatio.Extensions.Hosting" Version="10.4.0" />
+        <PackageReference Include="Foundatio.Redis" Version="10.4.0" />
+        <PackageReference Include="BouncyCastle" Version="1.8.9">
+            <NoWarn>NU1701</NoWarn>
+        </PackageReference>
+        <PackageReference Include="Grpc.Core" Version="2.42.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
+        <PackageReference Include="Nethereum.Accounts" Version="4.14.0" />
+        <PackageReference Include="Nethereum.Contracts" Version="4.14.0" />
+        <PackageReference Include="Nethereum.StandardNonFungibleTokenERC721" Version="4.14.0" />
+        <PackageReference Include="Nethereum.StandardTokenEIP20" Version="4.14.0" />
+        <PackageReference Include="Nethereum.Util" Version="4.14.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+        <PackageReference Include="ReadLine" Version="2.0.1" />
+        <PackageReference Include="Neo" Version="2.12.2" />
+        <PackageReference Include="RocksDbNative" Version="6.2.2" />
+        <PackageReference Include="Serilog.AspNetCore" Version="5.0.0" />
+        <PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
+        <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+        <PackageReference Include="StackExchange.Redis" Version="2.5.61" />
+        <PackageReference Include="StackExchange.Redis.Extensions.Core" Version="8.0.4" />
+        <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
+        <PackageReference Include="System.ServiceProcess.ServiceController" Version="6.0.0" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Phantasma.Infrastructure\src\Phantasma.Infrastructure.csproj" />
+        <ProjectReference Include="..\..\Phantasma.Business\src\Phantasma.Business.csproj" />
+        <ProjectReference Include="..\..\Phantasma.Core\src\Phantasma.Core.csproj" />
+        <ProjectReference Include="..\..\Phantasma.Tendermint\Phantasma.Tendermint.csproj" />
+        <ProjectReference Include="..\..\Phantasma.Tendermint.RPC\Phantasma.Tendermint.RPC.csproj" />
+    </ItemGroup>
+</Project>

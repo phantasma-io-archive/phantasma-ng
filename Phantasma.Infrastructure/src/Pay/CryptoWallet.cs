@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
 using Phantasma.Core.Cryptography;
+using Phantasma.Infrastructure.Pay.Structs;
 
 namespace Phantasma.Infrastructure.Pay
 {

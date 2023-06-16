@@ -43,8 +43,10 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
+using Phantasma.Infrastructure.API.Structs;
 using Serilog;
 using Tendermint.RPC;
+using TransactionResult = Phantasma.Infrastructure.API.Structs.TransactionResult;
 
 namespace Phantasma.Infrastructure.API;
 
