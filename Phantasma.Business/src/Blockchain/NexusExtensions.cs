@@ -9,10 +9,24 @@ using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.VM;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Contract.Validator.Enums;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Validation;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Blockchain;
 

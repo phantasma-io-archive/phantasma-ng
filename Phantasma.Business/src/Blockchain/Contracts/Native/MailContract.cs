@@ -1,7 +1,13 @@
-﻿using Phantasma.Business.Blockchain.Storage;
+﻿using Phantasma.Business.Blockchain.Archives;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {
@@ -19,6 +25,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
         }
 
+        /// <summary>
+        /// Push a message to a user's inbox.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="target"></param>
+        /// <param name="archiveHash"></param>
         public void PushMessage(Address from, Address target, Hash archiveHash)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -43,11 +55,21 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         }
 
         #region domains
+        /// <summary>
+        /// Returns if a domain exists.
+        /// </summary>
+        /// <param name="domainName"></param>
+        /// <returns></returns>
         public bool DomainExists(string domainName)
         {
             return _domainMap.ContainsKey(domainName);
         }
 
+        /// <summary>
+        /// Registers a new domain.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="domainName"></param>
         public void RegisterDomain(Address from, string domainName)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -62,6 +84,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.DomainCreate, from, domainName);
         }
 
+        /// <summary>
+        /// Unregisters a domain.
+        /// </summary>
+        /// <param name="domainName"></param>
         public void UnregisterDomain(string domainName)
         {
             Runtime.Expect(DomainExists(domainName), "domain does not exist");
@@ -75,6 +101,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.DomainDelete, from, domainName);
         }
 
+        /// <summary>
+        /// Migrate's a domain to a new owner.
+        /// </summary>
+        /// <param name="domainName"></param>
+        /// <param name="target"></param>
         public void MigrateDomain(string domainName, Address target)
         {
             Runtime.Expect(DomainExists(domainName), "domain does not exist");
@@ -97,6 +128,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.AddressMigration, from, target);
         }
 
+        /// <summary>
+        /// Returns the users associated with a domain.
+        /// </summary>
+        /// <param name="domainName"></param>
+        /// <returns></returns>
         public Address[] GetDomainUsers(string domainName)
         {
             Runtime.Expect(DomainExists(domainName), "domain does not exist");
@@ -105,6 +141,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return list.All<Address>();
         }
 
+        /// <summary>
+        /// Method used to join a domain.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="domainName"></param>
         public void JoinDomain(Address from, string domainName)
         {
             Runtime.Expect(DomainExists(domainName), "domain does not exist");
@@ -122,6 +163,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.AddressRegister, from, domainName);
         }
 
+        /// <summary>
+        /// Method used to leave a domain.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="domainName"></param>
         public void LeaveDomain(Address from, string domainName)
         {
             Runtime.Expect(DomainExists(domainName), "domain does not exist");
@@ -140,6 +186,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.AddressUnregister, from, domainName);
         }
 
+        /// <summary>
+        /// Method used to get the domain associated with an address.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
         public string GetUserDomain(Address target)
         {
             if (_userMap.ContainsKey(target))

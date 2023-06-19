@@ -6,6 +6,7 @@ using Nethereum.Hex.HexConvertors.Extensions;
 using Org.BouncyCastle.Crypto.Digests;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 
 //using Phantasma.Ethereum.Hex.HexConvertors.Extensions;
 

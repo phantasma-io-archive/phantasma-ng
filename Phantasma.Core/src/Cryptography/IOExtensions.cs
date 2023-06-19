@@ -2,6 +2,8 @@
 using System.IO;
 using Phantasma.Core.Cryptography.ECDsa;
 using Phantasma.Core.Cryptography.EdDSA;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Cryptography

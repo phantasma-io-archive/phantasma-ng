@@ -10,23 +10,30 @@ using System.Threading.Tasks;
 
 using Nethereum.Signer;
 using Nethereum.Contracts;
+using Nethereum.Model;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.StandardTokenEIP20.ContractDefinition;
 
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
+using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
+using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Node.Utils;
-
-using Serilog;
-
 using EthereumKey = Phantasma.Node.Chains.Ethereum.EthereumKey;
+using Log = Serilog.Log;
 using Transaction = Nethereum.RPC.Eth.DTOs.Transaction;
 
 namespace Phantasma.Node.Interop
@@ -302,7 +309,7 @@ namespace Phantasma.Node.Interop
         {
             foreach (var txHash in block.Transactions)
             {
-                var interopTx = OracleReader.ReadTransaction(EthereumWallet.EthereumPlatform, "ethethereum", txHash);
+                var interopTx = OracleReader.ReadTransaction(Timestamp.Now, EthereumWallet.EthereumPlatform, "ethethereum", txHash);
 
                 foreach (var interopTransfer in interopTx.Transfers)
                 {

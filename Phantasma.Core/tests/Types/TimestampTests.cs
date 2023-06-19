@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Core.Tests.Types;
 

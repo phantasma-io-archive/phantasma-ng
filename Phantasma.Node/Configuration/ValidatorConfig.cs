@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 
 namespace Phantasma.Node;
 

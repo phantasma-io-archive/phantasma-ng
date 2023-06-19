@@ -6,16 +6,42 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using Phantasma.Business.Blockchain;
+using Phantasma.Business.Blockchain.Archives;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Contracts.Native;
-using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.Blockchain.Tokens.Structs;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Market;
+using Phantasma.Core.Domain.Contract.Market.Structs;
+using Phantasma.Core.Domain.Contract.Relay;
+using Phantasma.Core.Domain.Contract.Relay.Structs;
+using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Contract.Validator.Structs;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Oracle;
+using Phantasma.Core.Domain.Oracle.Structs;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Structs;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.Token.Structs;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
 using Serilog;
 using Tendermint.RPC;
@@ -27,6 +53,7 @@ public static class NexusAPI
     public static Nexus Nexus { get; set; }
     public static ITokenSwapper TokenSwapper { get; set; }
     public static NodeRpcClient TRPC { get; set; }
+    private static PhantasmaKeys _keys;
 
     public static List<ValidatorSettings> Validators { get; set; }
 
@@ -50,6 +77,7 @@ public static class NexusAPI
                 {
                     return result;
                 }
+
                 result = result.Substring(0, 40);
                 break;
 
@@ -68,12 +96,11 @@ public static class NexusAPI
         {
             throw new Exception("Nexus not available locally");
         }
-        
-        
-        if (!Nexus.HasGenesis()) throw new APIException("Nexus genesis is not setuped.");
 
+
+        if (!Nexus.HasGenesis()) throw new APIException("Nexus genesis is not setuped.");
     }
-    
+
     public static void RequireTokenSwapper()
     {
         if (TokenSwapper == null)
@@ -88,14 +115,14 @@ public static class NexusAPI
 
         return Nexus;
     }
-    
+
     public static ITokenSwapper GetTokenSwapper()
     {
         RequireTokenSwapper();
 
         return TokenSwapper;
     }
-    
+
 
     public static TokenResult FillToken(string tokenSymbol, bool fillSeries, bool extended)
     {
@@ -133,7 +160,6 @@ public static class NexusAPI
                     {
                         Log.Error("Error while filling token series: " + e.Message);
                     }
-                   
                 }
             }
         }
@@ -161,7 +187,7 @@ public static class NexusAPI
 
         if (extended)
         {
-            for (int i=0; i<30; i++)
+            for (int i = 0; i < 30; i++)
             {
                 prices.Add(new TokenPriceResult()
                 {
@@ -181,7 +207,7 @@ public static class NexusAPI
             maxSupply = tokenInfo.MaxSupply.ToString(),
             burnedSupply = burnedSupply.ToString(),
             decimals = tokenInfo.Decimals,
-            flags = tokenInfo.Flags.ToString(),//.Split(',').Select(x => x.Trim()).ToArray(),
+            flags = tokenInfo.Flags.ToString(), //.Split(',').Select(x => x.Trim()).ToArray(),
             address = SmartContract.GetAddressFromContractName(tokenInfo.Symbol).Text,
             owner = tokenInfo.Owner.Text,
             script = tokenInfo.Script.Encode(),
@@ -210,11 +236,14 @@ public static class NexusAPI
                     {
                         if (symbol == DomainSettings.RewardTokenSymbol && method.name == TokenUtils.ImageURLMethodName)
                         {
-                            properties.Add(new TokenPropertyResult() { Key = "ImageURL", Value = "https://phantasma.io/img/crown.png" });
+                            properties.Add(new TokenPropertyResult()
+                                { Key = "ImageURL", Value = "https://phantasma.io/img/crown.png" });
                         }
-                        else if (symbol == DomainSettings.RewardTokenSymbol && method.name == TokenUtils.InfoURLMethodName)
+                        else if (symbol == DomainSettings.RewardTokenSymbol &&
+                                 method.name == TokenUtils.InfoURLMethodName)
                         {
-                            properties.Add(new TokenPropertyResult() { Key = "InfoURL", Value = "https://phantasma.io/crown/" + ID });
+                            properties.Add(new TokenPropertyResult()
+                                { Key = "InfoURL", Value = "https://phantasma.io/crown/" + ID });
                         }
                         else if (symbol == DomainSettings.RewardTokenSymbol && method.name == "getName")
                         {
@@ -222,27 +251,29 @@ public static class NexusAPI
                         }
                         else
                         {
-                            TokenUtils.FetchProperty(Nexus.RootStorage, chain, method.name, series, ID, (propName, propValue) =>
-                            {
-                                string temp;
-                                if (propValue.Type == VMType.Bytes)
+                            TokenUtils.FetchProperty(Nexus.RootStorage, chain, method.name, series, ID,
+                                (propName, propValue) =>
                                 {
-                                    temp = "0x" + Base16.Encode(propValue.AsByteArray());
-                                }
-                                else
-                                {
-                                    temp = propValue.AsString();
-                                }
+                                    string temp;
+                                    if (propValue.Type == VMType.Bytes)
+                                    {
+                                        temp = "0x" + Base16.Encode(propValue.AsByteArray());
+                                    }
+                                    else
+                                    {
+                                        temp = propValue.AsString();
+                                    }
 
-                                properties.Add(new TokenPropertyResult() { Key = propName, Value = temp });
-                            });
+                                    properties.Add(new TokenPropertyResult() { Key = propName, Value = temp });
+                                });
                         }
                     }
                 }
             }
         }
 
-        var infusion = info.Infusion.Select(x => new TokenPropertyResult() { Key = x.Symbol, Value = x.Value.ToString() }).ToArray();
+        var infusion = info.Infusion
+            .Select(x => new TokenPropertyResult() { Key = x.Symbol, Value = x.Value.ToString() }).ToArray();
 
         var result = new TokenDataResult()
         {
@@ -301,7 +332,9 @@ public static class NexusAPI
         {
             _methodTable = (Nexus.RootChain as Chain).GenerateMethodTable();
         }
-        TransactionExtensions.ExtractGasDetailsFromScript(tx.Script, out from, out target, out gasPrice, out gasLimit, _methodTable);
+
+        TransactionExtensions.ExtractGasDetailsFromScript(tx.Script, Nexus.GetProtocolVersion(Nexus.RootStorage),
+            out from, out target, out gasPrice, out gasLimit, _methodTable);
 
         var result = new TransactionResult
         {
@@ -320,7 +353,8 @@ public static class NexusAPI
             gasPrice = gasPrice.ToString(),
             gasLimit = gasLimit.ToString(),
             expiration = tx.Expiration.Value,
-            signatures = tx.Signatures.Select(x => new SignatureResult() { Kind = x.Kind.ToString(), Data = Base16.Encode(x.ToByteArray()) }).ToArray(),
+            signatures = tx.Signatures.Select(x => new SignatureResult()
+                { Kind = x.Kind.ToString(), Data = Base16.Encode(x.ToByteArray()) }).ToArray(),
         };
 
         if (block != null)
@@ -350,7 +384,8 @@ public static class NexusAPI
         }
 
         // TODO this is a hack, because of a transaction WEBHOOK bug that happend.
-        if (tx.Hash.ToString().Equals("4C55F0BD67F4C0BDB420627C46247B209B55827E2A115481C89F08864BC42883", StringComparison.InvariantCultureIgnoreCase))
+        if (tx.Hash.ToString().Equals("4C55F0BD67F4C0BDB420627C46247B209B55827E2A115481C89F08864BC42883",
+                StringComparison.InvariantCultureIgnoreCase))
         {
             var eventList = new List<EventResult>();
             var evts = block.GetEventsForTransaction(tx.Hash);
@@ -369,14 +404,18 @@ public static class NexusAPI
                 {
                     continue;
                 }
-                
+
                 eventList.Add(eventEntry);
             }
-            
+
             BigInteger amount = UnitConversion.ToBigInteger(3500, 8);
-            eventList.Add(FillEvent(new Event(EventKind.TokenSend, Address.FromText("P2K3pjd8RokaqxrDrYzE5Ff4p14rkmGjFadpULuJjDVBWkA"), "SOUL", Serialization.Serialize(new TokenEventData("SOUL", amount, "main")))));
-            eventList.Add(FillEvent(new Event(EventKind.TokenReceive, Address.FromText("P2KCU8od3QGLmwwWNPhjUKcN4En32nZFzZMz7Fyd3MB35xN"),  "SOUL", Serialization.Serialize(new TokenEventData("SOUL", amount, "main")))));
-            
+            eventList.Add(FillEvent(new Event(EventKind.TokenSend,
+                Address.FromText("P2K3pjd8RokaqxrDrYzE5Ff4p14rkmGjFadpULuJjDVBWkA"), "SOUL",
+                Serialization.Serialize(new TokenEventData("SOUL", amount, "main")))));
+            eventList.Add(FillEvent(new Event(EventKind.TokenReceive,
+                Address.FromText("P2KCU8od3QGLmwwWNPhjUKcN4En32nZFzZMz7Fyd3MB35xN"), "SOUL",
+                Serialization.Serialize(new TokenEventData("SOUL", amount, "main")))));
+
             result.state = ExecutionState.Halt.ToString();
             result.events = eventList.ToArray();
         }
@@ -436,6 +475,7 @@ public static class NexusAPI
                 txs.Add(txEntry);
             }
         }
+
         result.txs = txs.ToArray();
 
         // todo add other block info, eg: size, gas, txs
@@ -555,16 +595,17 @@ public static class NexusAPI
 
         var storage = new StorageResult();
 
-        storage.used = (uint)Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetUsedSpace), address).AsNumber();
+        storage.used = (uint)Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now,
+            "storage", nameof(StorageContract.GetUsedSpace), address).AsNumber();
 
-        var available = Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetAvailableSpace), address).AsNumber();
+        var available = Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage",
+            nameof(StorageContract.GetAvailableSpace), address).AsNumber();
 
         if (available < 0)
         {
             storage.available = 0;
         }
-        else
-        if (available > uint.MaxValue)
+        else if (available > uint.MaxValue)
         {
             storage.available = uint.MaxValue;
         }
@@ -575,10 +616,12 @@ public static class NexusAPI
 
         if (storage.used > 0)
         {
-            var files = Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage", nameof(StorageContract.GetFiles), address).ToArray<Hash>();
+            var files = Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootChain.Storage, Timestamp.Now, "storage",
+                nameof(StorageContract.GetFiles), address).ToArray<Hash>();
 
             Hash avatarHash = Hash.Null;
-            storage.archives = files.Select(x => {
+            storage.archives = files.Select(x =>
+            {
                 var result = FillArchive(Nexus.GetArchive(Nexus.RootStorage, x));
 
                 if (result.name == "avatar")
@@ -627,7 +670,8 @@ public static class NexusAPI
         if (stake > 0)
         {
             var time = Nexus.GetStakeTimestampOfAddress(Nexus.RootStorage, address, Timestamp.Now);
-            result.stakes = new StakeResult() { amount = stake.ToString(), time = time.Value, unclaimed = unclaimed.ToString() };
+            result.stakes = new StakeResult()
+                { amount = stake.ToString(), time = time.Value, unclaimed = unclaimed.ToString() };
         }
         else
         {
@@ -672,6 +716,7 @@ public static class NexusAPI
                             balanceEntry.ids = idList.Select(x => x.ToString()).ToArray();
                         }
                     }
+
                     balanceList.Add(balanceEntry);
                 }
             }
@@ -706,7 +751,6 @@ public static class NexusAPI
 
             retryCount++;
             Thread.Sleep(1000);
-
         } while (retryCount < 5);
 
         return null;
@@ -732,9 +776,40 @@ public static class NexusAPI
 
             retryCount++;
             Thread.Sleep(1000);
-
         } while (retryCount < 5);
 
         return null;
+    }
+
+    public static void SetKey(PhantasmaKeys key)
+    {
+        _keys = key;
+    }
+
+    internal static string SettleCrossChainSwap(Address address, string externalAddress, string platform, Hash hash)
+    {
+        string result = "";
+        try
+        {
+            ScriptBuilder sb = new ScriptBuilder();
+            var script = sb.AllowGas(_keys.Address, Address.Null, Transaction.DefaultGasLimit,
+                    Transaction.DefaultGasLimit)
+                .CallContract(NativeContractKind.Interop, nameof(InteropContract.SettleCrossChainTransaction),
+                    _keys.Address, address, externalAddress, platform, Nexus.RootChain.Name, hash)
+                .SpendGas(_keys.Address)
+                .EndScript();
+            Transaction tx = new Transaction(Nexus.Name, Nexus.RootChain.Name, script,
+                Timestamp.Now + TimeSpan.FromMinutes(5), "Cross Chain Swap");
+            tx.Sign(_keys);
+            var encodedScript = Base16.Encode(tx.ToByteArray(true));
+            var resultBroadcast = TRPC.BroadcastTxSync(encodedScript);
+            result = resultBroadcast.Hash;
+        }
+        catch (Exception e)
+        {
+            result = "Error settling cross chain swap: " + e.Message;
+        }
+
+        return result;
     }
 }

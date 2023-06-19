@@ -5,8 +5,12 @@ using System.Numerics;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Core.Domain.Contract.Market;
+using Phantasma.Core.Domain.Contract.Market.Structs;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {

@@ -3,6 +3,8 @@ using System.Linq;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Cryptography.ECDsa.Enums;
+using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Numerics;
 
 //using Phantasma.Ethereum.Hex.HexConvertors.Extensions;

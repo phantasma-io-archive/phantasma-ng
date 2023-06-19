@@ -9,10 +9,16 @@ using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.VM;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Shouldly;
 using Xunit;
-using ExecutionContext = Phantasma.Core.Domain.ExecutionContext;
+using ExecutionContext = Phantasma.Core.Domain.Execution.ExecutionContext;
 
 namespace Phantasma.Business.Tests.VM;
 

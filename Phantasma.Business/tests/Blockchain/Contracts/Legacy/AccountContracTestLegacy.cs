@@ -5,7 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using Phantasma.Business.Blockchain;
-using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Business.Blockchain.Archives;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Tests.Simulator;
@@ -19,6 +19,23 @@ using Phantasma.Core.Utils;
 using Xunit;
 using Shouldly;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Structs;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Triggers.Enums;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
+using Phantasma.Core.Domain.VM.Structs;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 
@@ -39,7 +56,6 @@ public class AccountContracTestLegacy
     BigInteger initialAmount;
     BigInteger initialFuel;
     BigInteger startBalance;
-    StakeReward reward;
 
     public AccountContracTestLegacy()
     {
@@ -55,7 +71,6 @@ public class AccountContracTestLegacy
         gas = 99999;
         initialAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
         initialFuel = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
-        reward = new StakeReward(user.Address, Timestamp.Now);
         InitializeSimulator();
 
         startBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol, user.Address);

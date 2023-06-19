@@ -2,6 +2,7 @@
 using System;
 using System.Text;
 using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Cryptography.ECDsa.Enums;
 using Phantasma.Core.Numerics;
 using Phantasma.Node.Chains.Neo2;
 

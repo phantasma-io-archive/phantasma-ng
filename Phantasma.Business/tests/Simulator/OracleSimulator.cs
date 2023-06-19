@@ -4,8 +4,14 @@ using System.Collections.Generic;
 using Phantasma.Core.Types;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
+using Phantasma.Core.Domain.Exceptions;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Infrastructure.Pay.Chains;
 
 namespace Phantasma.Business.Tests.Simulator;

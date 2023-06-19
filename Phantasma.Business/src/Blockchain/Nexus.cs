@@ -5,24 +5,57 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-
+using Phantasma.Business.Blockchain.Archives;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Contracts.Native;
-using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.Blockchain.Tokens.Structs;
 using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.VM.Utils;
 
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Governance;
+using Phantasma.Core.Domain.Contract.Governance.Enums;
+using Phantasma.Core.Domain.Contract.Governance.Structs;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
+using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Contract.Validator.Enums;
+using Phantasma.Core.Domain.Contract.Validator.Structs;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Oracle;
+using Phantasma.Core.Domain.Oracle.Enums;
+using Phantasma.Core.Domain.Oracle.Structs;
+using Phantasma.Core.Domain.Platform;
+using Phantasma.Core.Domain.Platform.Structs;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.Token.Structs;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Triggers.Enums;
+using Phantasma.Core.Domain.Validation;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
+using Phantasma.Core.Storage.Interfaces;
 using Phantasma.Core.Utils;
 
 using Serilog;
-using Timestamp = Phantasma.Core.Types.Timestamp;
+using Timestamp = Phantasma.Core.Types.Structs.Timestamp;
 
 namespace Phantasma.Business.Blockchain;
 
@@ -2707,7 +2740,7 @@ public class Nexus : INexus
         return tokenSwapToSwap.Swappers;
     }
     
-    private TokenSwapToSwap[] GetTokensSwapFromPlatform(string platform, StorageContext storage)
+    public TokenSwapToSwap[] GetTokensSwapFromPlatform(string platform, StorageContext storage)
     {
         var key = SmartContract.GetKeyForField(NativeContractKind.Interop, "_PlatformSwappers", true);
 
@@ -2721,7 +2754,7 @@ public class Nexus : INexus
         if (hash == Hash.Null)
             return null;
         
-        var tokens = GetTokens(storage);
+        var tokens = GetAvailableTokenSymbols(storage);
         if (platform == DomainSettings.PlatformName)
         {
             foreach (var token in tokens)

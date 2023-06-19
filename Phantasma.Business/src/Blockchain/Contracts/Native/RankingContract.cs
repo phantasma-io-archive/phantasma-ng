@@ -1,7 +1,16 @@
 ﻿using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.LeaderboardDetails;
+using Phantasma.Core.Domain.Contract.LeaderboardDetails.Structs;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Validation;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {
@@ -18,11 +27,22 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
         }
 
+        /// <summary>
+        /// Check's if a leaderboard exists.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public bool Exists(string name)
         {
             return _leaderboards.ContainsKey(name);
         }
-
+        
+        /// <summary>
+        /// Method used to create a leaderboard
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="name"></param>
+        /// <param name="size"></param>
         public void CreateLeaderboard(Address from, string name, BigInteger size)
         {
             Runtime.Expect(size >= 5, "size invalid");
@@ -47,6 +67,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.LeaderboardCreate, from, name);
         }
 
+        /// <summary>
+        /// Method used to reset a leaderboard
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="name"></param>
         public void ResetLeaderboard(Address from, string name)
         {
             Runtime.Expect(Exists(name), "invalid leaderboard");
@@ -63,12 +88,22 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.LeaderboardReset, from, name);
         }
 
+        /// <summary>
+        /// Returns Leaderboard from a given name.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public Leaderboard GetLeaderboard(string name)
         {
             Runtime.Expect(Exists(name), "invalid leaderboard");
             return _leaderboards.Get<string, Leaderboard>(name);
         }
 
+        /// <summary>
+        /// Returns the number of rows for a given name
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public LeaderboardRow[] GetRows(string name)
         {
             Runtime.Expect(Exists(name), "invalid leaderboard");
@@ -77,6 +112,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return rows.All<LeaderboardRow>();
         }
 
+        /// <summary>
+        /// Returns the score of an address in a leaderboard.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
         public BigInteger GetScoreByAddress(string name, Address target)
         {
             Runtime.Expect(Exists(name), "invalid leaderboard");
@@ -96,6 +137,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return 0;
         }
 
+        /// <summary>
+        /// Returns the score of a given leaderboard index.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="index"></param>
+        /// <returns></returns>
         public BigInteger GetScoreByIndex(string name, BigInteger index)
         {
             Runtime.Expect(Exists(name), "invalid leaderboard");
@@ -112,6 +159,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return entry.score;
         }
 
+        /// <summary>
+        /// Returns the address for a given leaderboard index.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="index"></param>
+        /// <returns></returns>
         public Address GetAddressByIndex(string name, BigInteger index)
         {
             Runtime.Expect(Exists(name), "invalid leaderboard");
@@ -128,6 +181,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return entry.address;
         }
 
+        /// <summary>
+        /// Returns the leaderboard size.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public BigInteger GetSize(string name)
         {
             Runtime.Expect(Exists(name), "invalid leaderboard");
@@ -136,6 +194,13 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return rows.Count();
         }
 
+        /// <summary>
+        /// Method used to insert a score in the leaderboard.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="target"></param>
+        /// <param name="name"></param>
+        /// <param name="score"></param>
         public void InsertScore(Address from, Address target, string name, BigInteger score)
         {
             Runtime.Expect(Exists(name), "invalid leaderboard");

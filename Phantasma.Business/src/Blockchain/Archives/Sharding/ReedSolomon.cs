@@ -1,3 +1,4 @@
+using Phantasma.Business.Blockchain.Archives.Sharding.Structs;
 using Phantasma.Core;
 
 /**
@@ -6,7 +7,7 @@ using Phantasma.Core;
  * https://www.backblaze.com/open-source-reed-solomon.html
  */
 
-namespace Phantasma.Business.Blockchain.Storage.Sharding
+namespace Phantasma.Business.Blockchain.Archives.Sharding
 {
     public class ReedSolomon
     {

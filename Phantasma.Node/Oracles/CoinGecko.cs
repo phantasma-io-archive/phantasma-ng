@@ -3,7 +3,9 @@ using System.Linq;
 using System.Text.Json;
 using Org.BouncyCastle.Asn1.Cms;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
+using Phantasma.Core.Utils.Enums;
 using Serilog;
 
 namespace Phantasma.Node.Oracles

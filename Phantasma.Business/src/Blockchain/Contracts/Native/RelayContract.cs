@@ -1,105 +1,20 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Numerics;
 using System.Text;
 using Phantasma.Core.Cryptography;
-using Phantasma.Core.Cryptography.EdDSA;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Relay;
+using Phantasma.Core.Domain.Contract.Relay.Structs;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
-using Phantasma.Core.Types;
-using Phantasma.Core.Utils;
+using Phantasma.Core.Storage.Context.Structs;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {
-    public struct RelayMessage : ISerializable
-    {
-        public string nexus;
-        public BigInteger index;
-        public Timestamp timestamp;
-        public Address sender;
-        public Address receiver;
-        public byte[] script;
-
-        public byte[] ToByteArray()
-        {
-            using (var stream = new MemoryStream())
-            {
-                using (var writer = new BinaryWriter(stream))
-                {
-                    SerializeData(writer);
-                }
-                return stream.ToArray();
-            }
-        }
-
-        public void SerializeData(BinaryWriter writer)
-        {
-            writer.WriteVarString(nexus);
-            writer.WriteBigInteger(index);
-            writer.Write(timestamp.Value);
-            writer.WriteAddress(sender);
-            writer.WriteAddress(receiver);
-            writer.WriteByteArray(script);
-        }
-
-        public void UnserializeData(BinaryReader reader)
-        {
-            nexus = reader.ReadVarString();
-            index = reader.ReadBigInteger();
-            timestamp = new Timestamp(reader.ReadUInt32());
-            sender = reader.ReadAddress();
-            receiver = reader.ReadAddress();
-            script = reader.ReadByteArray();
-        }
-    }
-
-    public struct RelayReceipt : ISerializable
-    {
-        public RelayMessage message;
-        public Signature signature;
-
-        public void SerializeData(BinaryWriter writer)
-        {
-            message.SerializeData(writer);
-            writer.WriteSignature(signature);
-        }
-
-        public void UnserializeData(BinaryReader reader)
-        {
-            message.UnserializeData(reader);
-            signature = reader.ReadSignature();
-        }
-
-        public static RelayReceipt FromBytes(byte[] bytes)
-        {
-            using (var stream = new MemoryStream(bytes))
-            {
-                using (var reader = new BinaryReader(stream))
-                {
-                    var receipt = new RelayReceipt();
-                    receipt.UnserializeData(reader);
-                    return receipt;
-                }
-            }
-        }
-
-        public static RelayReceipt FromMessage(RelayMessage msg, PhantasmaKeys keys)
-        {
-            if (msg.script == null || msg.script.SequenceEqual(new byte[0]))
-                throw new Exception("RelayMessage script cannot be empty or null");
-
-            var bytes = msg.ToByteArray();
-            var signature = Ed25519Signature.Generate(keys, bytes);
-            return new RelayReceipt()
-            {
-                message = msg,
-                signature = signature
-            };
-        }
-    }
-
     public sealed class RelayContract : NativeContract
     {
         public override NativeContractKind Kind => NativeContractKind.Relay;
@@ -118,11 +33,22 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
         }
 
+        /// <summary>
+        /// Create a new relay address for the given chain name
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="receiver"></param>
+        /// <returns></returns>
         private string MakeKey(Address sender, Address receiver)
         {
             return sender.Text + ">" + receiver.Text;
         }
 
+        /// <summary>
+        /// Returns the balance of the given address
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
         public BigInteger GetBalance(Address from)
         {
             if (_balances.ContainsKey(from))
@@ -132,6 +58,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return 0;
         }
 
+        /// <summary>
+        /// Get the index of the given address pair
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <returns></returns>
         public BigInteger GetIndex(Address from, Address to)
         {
             var key = MakeKey(from, to);
@@ -143,6 +75,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return 0;
         }
 
+        
+        /// <summary>
+        /// Get the topup address for the given address
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
         public Address GetTopUpAddress(Address from)
         {
             var bytes = Encoding.UTF8.GetBytes(from.Text + ".relay");
@@ -209,6 +147,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.ChannelClose, from, channelName);
         }*/
 
+        /// <summary>
+        /// Opens a new channel for the given address
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="publicKey"></param>
         public void OpenChannel(Address from, byte[] publicKey)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -219,12 +162,22 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.ChannelCreate, from, publicKey);
         }
 
+        /// <summary>
+        /// Returns the public key of the channel
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
         public byte[] GetKey(Address from)
         {
             Runtime.Expect(_keys.ContainsKey(from), "channel not open");
             return _keys.Get<Address, byte[]>(from);
         }
-
+        
+        /// <summary>
+        /// Topup the given channel with the given amount
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="count"></param>
         public void TopUpChannel(Address from, BigInteger count)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -245,6 +198,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.ChannelRefill, from, count);
         }
 
+        /// <summary>
+        /// Create a new relay message
+        /// </summary>
+        /// <param name="receipt"></param>
         public void SettleChannel(RelayReceipt receipt)
         {
             var channelIndex = GetIndex(receipt.message.sender, receipt.message.receiver);

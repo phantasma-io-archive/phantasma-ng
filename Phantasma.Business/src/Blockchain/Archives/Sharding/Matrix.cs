@@ -5,7 +5,7 @@ using Phantasma.Core;
 // A matrix over the 8-bit Galois field.
 // This class is not performance-critical, so the implementation is simple and straightforward
 
-namespace Phantasma.Business.Blockchain.Storage.Sharding
+namespace Phantasma.Business.Blockchain.Archives.Sharding
 {
     public class Matrix
     {

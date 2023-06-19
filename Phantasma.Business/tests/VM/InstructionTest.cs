@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Text;
 using Phantasma.Business.VM;
+using Phantasma.Business.VM.Structs;
 using Phantasma.Core;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Shouldly;
 using Xunit;
 

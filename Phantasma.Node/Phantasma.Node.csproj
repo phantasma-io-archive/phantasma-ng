@@ -38,11 +38,11 @@
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.1" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
-        <PackageReference Include="Nethereum.Accounts" Version="3.8.0" />
-        <PackageReference Include="Nethereum.Contracts" Version="3.8.0" />
-        <PackageReference Include="Nethereum.StandardNonFungibleTokenERC721" Version="3.8.0" />
-        <PackageReference Include="Nethereum.StandardTokenEIP20" Version="3.8.0" />
-        <PackageReference Include="Nethereum.Util" Version="3.8.0" />
+        <PackageReference Include="Nethereum.Accounts" Version="4.14.0" />
+        <PackageReference Include="Nethereum.Contracts" Version="4.14.0" />
+        <PackageReference Include="Nethereum.StandardNonFungibleTokenERC721" Version="4.14.0" />
+        <PackageReference Include="Nethereum.StandardTokenEIP20" Version="4.14.0" />
+        <PackageReference Include="Nethereum.Util" Version="4.14.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
         <PackageReference Include="ReadLine" Version="2.0.1" />
         <PackageReference Include="Neo" Version="2.12.2" />

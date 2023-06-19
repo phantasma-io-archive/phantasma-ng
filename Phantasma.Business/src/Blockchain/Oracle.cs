@@ -3,11 +3,27 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Oracle;
+using Phantasma.Core.Domain.Oracle.Structs;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Structs;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
+using Serilog;
 
 namespace Phantasma.Business.Blockchain
 {
@@ -122,7 +138,36 @@ namespace Phantasma.Business.Blockchain
                 {
                     var soulPriceBi = this.ReadPrice(time, DomainSettings.StakingTokenSymbol);
                     var soulPriceDec = UnitConversion.ToDecimal(soulPriceBi, DomainSettings.FiatTokenDecimals);
-                    val = UnitConversion.ToBigInteger(soulPriceDec / 5, DomainSettings.FiatTokenDecimals);
+                    var existsLPToken = Nexus.TokenExists(Nexus.RootStorage, DomainSettings.LiquidityTokenSymbol);
+                    BigInteger exchangeVersion = 0;
+                    try
+                    {
+                        exchangeVersion = Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootStorage, time, NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVersion)).AsNumber();
+                    }
+                    catch ( Exception e)
+                    {
+                        Log.Error("Error getting exchange version {Exception}", e);
+                    }
+
+                    if (existsLPToken && exchangeVersion == 1)
+                    {
+                        try
+                        {
+                            val = Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootStorage, time,
+                                NativeContractKind.Exchange, nameof(ExchangeContract.GetRate),
+                                DomainSettings.StakingTokenSymbol, DomainSettings.FuelTokenSymbol, 
+                                UnitConversion.ToBigInteger(1, DomainSettings.StakingTokenDecimals)).AsNumber();
+                        }
+                        catch (Exception e)
+                        {
+                            val = UnitConversion.ToBigInteger(soulPriceDec / 5, DomainSettings.FiatTokenDecimals);
+
+                        }
+                    }
+                    else
+                    {
+                        val = UnitConversion.ToBigInteger(soulPriceDec / 5, DomainSettings.FiatTokenDecimals);
+                    }
                 }
                 else
                 {
@@ -476,10 +521,10 @@ namespace Phantasma.Business.Blockchain
             return PullPlatformNFT(platformName, symbol, tokenID);
         }
 
-        public InteropTransaction ReadTransaction(string platform, string chain, Hash hash)
+        public InteropTransaction ReadTransaction(Timestamp time, string platform, string chain, Hash hash)
         {
             var url = DomainExtensions.GetOracleTransactionURL(platform, chain, hash);
-            var bytes = this.Read<InteropTransaction>(Timestamp.Now, url);
+            var bytes = this.Read<InteropTransaction>(time, url);
             return bytes;
         }
 

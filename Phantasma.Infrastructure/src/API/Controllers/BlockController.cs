@@ -2,6 +2,7 @@ using System.Linq;
 using System.Numerics;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Numerics;
 
 namespace Phantasma.Infrastructure.API.Controllers

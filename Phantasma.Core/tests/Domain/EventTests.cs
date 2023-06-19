@@ -3,8 +3,14 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Structs;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Domain;

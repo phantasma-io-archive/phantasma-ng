@@ -72,9 +72,11 @@ namespace Phantasma.Node
         public PhantasmaKeys NodeKeys { get { return _nodeKeys; } }
         public ABCIConnector ABCIConnector { get; private set; }
         public NodeConnector NodeConnector { get; private set; }
+        public static Node Instance { get; private set; }
 
         public Node()
         {
+            Instance = this;
             this.NodeConnector = new NodeConnector(Settings.Instance.Validators);
             this.ABCIConnector = new ABCIConnector(Settings.Instance.Node.SeedValidators, Settings.Instance.Validators, this.NodeConnector, Settings.Instance.Node.MinimumFee);
         }
@@ -152,34 +154,7 @@ namespace Phantasma.Node
                 LaunchTendermint(Settings.Instance.Node.TendermintPath);
             }
         }
-
-        public TokenSwapper StartTokenSwapper()
-        {
-            var platforms = Settings.Instance.Oracle.Swaps.Split(',');
-            var minimumFee = Settings.Instance.Node.MinimumFee;
-            var oracleSettings = Settings.Instance.Oracle;
-            var tokenSwapper = new TokenSwapper(this, _nodeKeys, _neoAPI, _ethAPI, minimumFee, platforms);
-            NexusAPI.TokenSwapper = tokenSwapper;
-
-            _tokenSwapperThread = new Thread(() =>
-            {
-                Log.Information("Running token swapping service...");
-                while (Running)
-                {
-                    Log.Debug("Update TokenSwapper now");
-                    Task.Delay(5000).Wait();
-                    if (_nodeReady)
-                    {
-                        tokenSwapper.Update();
-                    }
-                }
-            });
-
-            _tokenSwapperThread.Start();
-
-            return tokenSwapper;
-        }
-
+        
         private String prompt { get; set; } = "Node> ";
 
         private string PromptGenerator()
@@ -651,6 +626,7 @@ $@"  ""initial_height"": ""0"",
 
             NexusAPI.Validators = Settings.Instance.Validators;
             NexusAPI.ApiLog = Settings.Instance.Node.ApiLog;
+            NexusAPI.SetKey(_nodeKeys);
         }
 
         private static JsonSerializerOptions GetDefaultSerializerOptions()

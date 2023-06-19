@@ -5,7 +5,15 @@ using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Governance;
+using Phantasma.Core.Domain.Contract.Governance.Enums;
+using Phantasma.Core.Domain.Contract.Governance.Structs;
+using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Xunit;
@@ -25,7 +33,6 @@ public class GovernanceContractTests
     BigInteger initialAmount;
     BigInteger initialFuel;
     BigInteger startBalance;
-    StakeReward reward;
 
     public GovernanceContractTests()
     {
@@ -41,7 +48,6 @@ public class GovernanceContractTests
         gas = 99999;
         initialAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
         initialFuel = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
-        reward = new StakeReward(user.Address, Timestamp.Now);
         InitializeSimulator();
 
         startBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol, user.Address);

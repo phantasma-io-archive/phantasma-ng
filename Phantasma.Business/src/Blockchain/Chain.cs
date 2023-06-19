@@ -9,21 +9,45 @@ using System.Transactions;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.Blockchain.Tokens.Structs;
 using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
+using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Contract.Validator.Enums;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Tasks;
+using Phantasma.Core.Domain.Tasks.Enum;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Validation;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
 using Serilog;
 using Serilog.Core;
 using Tendermint.Abci;
 using Tendermint.Crypto;
-using Event = Phantasma.Core.Domain.Event;
-using Transaction = Phantasma.Core.Domain.Transaction;
+using Event = Phantasma.Core.Domain.Structs.Event;
+using Transaction = Phantasma.Core.Domain.TransactionData.Transaction;
 
 namespace Phantasma.Business.Blockchain
 {
@@ -312,7 +336,7 @@ namespace Phantasma.Business.Blockchain
                 {
                     try
                     {
-                        methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: true);
+                        methods = DisasmUtils.ExtractMethodCalls(tx.Script, protocolVersion, _methodTableForGasExtraction, detectAndUseJumps: true);
                     }
                     catch (Exception ex)
                     {
@@ -323,7 +347,7 @@ namespace Phantasma.Business.Blockchain
                 }
                 else
                 {
-                    methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: false);
+                    methods = DisasmUtils.ExtractMethodCalls(tx.Script, protocolVersion, _methodTableForGasExtraction, detectAndUseJumps: false);
                 }
                 
                 
@@ -426,7 +450,7 @@ namespace Phantasma.Business.Blockchain
 
         public Dictionary<string, int> GenerateMethodTable()
         {
-            var table = DisasmUtils.GetDefaultDisasmTable();
+            var table = DisasmUtils.GetDefaultDisasmTable(GetCurrentProtocolVersion());
 
             var contracts = GetContracts(this.Storage);
 

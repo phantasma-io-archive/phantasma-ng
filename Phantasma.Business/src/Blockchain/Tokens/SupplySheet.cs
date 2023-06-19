@@ -2,7 +2,9 @@ using System.Numerics;
 using System.Text;
 using Phantasma.Core;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.Blockchain.Tokens;

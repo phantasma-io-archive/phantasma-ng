@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.Blockchain;

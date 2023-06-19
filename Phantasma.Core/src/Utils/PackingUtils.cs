@@ -17,14 +17,14 @@
         public static ushort BE_To_UInt16(byte[] bs)
         {
             uint n = (uint)bs[0] << 8
-                | (uint)bs[1];
+                     | (uint)bs[1];
             return (ushort)n;
         }
 
         public static ushort BE_To_UInt16(byte[] bs, int off)
         {
             uint n = (uint)bs[off] << 8
-                | (uint)bs[off + 1];
+                     | (uint)bs[off + 1];
             return (ushort)n;
         }
 
@@ -70,17 +70,17 @@
         public static uint BE_To_UInt32(byte[] bs)
         {
             return (uint)bs[0] << 24
-                | (uint)bs[1] << 16
-                | (uint)bs[2] << 8
-                | (uint)bs[3];
+                   | (uint)bs[1] << 16
+                   | (uint)bs[2] << 8
+                   | (uint)bs[3];
         }
 
         public static uint BE_To_UInt32(byte[] bs, int off)
         {
             return (uint)bs[off] << 24
-                | (uint)bs[off + 1] << 16
-                | (uint)bs[off + 2] << 8
-                | (uint)bs[off + 3];
+                   | (uint)bs[off + 1] << 16
+                   | (uint)bs[off + 2] << 8
+                   | (uint)bs[off + 3];
         }
 
         public static void BE_To_UInt32(byte[] bs, int off, uint[] ns)
@@ -165,14 +165,14 @@
         public static ushort LE_To_UInt16(byte[] bs)
         {
             uint n = (uint)bs[0]
-                | (uint)bs[1] << 8;
+                     | (uint)bs[1] << 8;
             return (ushort)n;
         }
 
         public static ushort LE_To_UInt16(byte[] bs, int off)
         {
             uint n = (uint)bs[off]
-                | (uint)bs[off + 1] << 8;
+                     | (uint)bs[off + 1] << 8;
             return (ushort)n;
         }
 
@@ -218,17 +218,17 @@
         public static uint LE_To_UInt32(byte[] bs)
         {
             return (uint)bs[0]
-                | (uint)bs[1] << 8
-                | (uint)bs[2] << 16
-                | (uint)bs[3] << 24;
+                   | (uint)bs[1] << 8
+                   | (uint)bs[2] << 16
+                   | (uint)bs[3] << 24;
         }
 
         public static uint LE_To_UInt32(byte[] bs, int off)
         {
             return (uint)bs[off]
-                | (uint)bs[off + 1] << 8
-                | (uint)bs[off + 2] << 16
-                | (uint)bs[off + 3] << 24;
+                   | (uint)bs[off + 1] << 8
+                   | (uint)bs[off + 2] << 16
+                   | (uint)bs[off + 3] << 24;
         }
 
         public static void LE_To_UInt32(byte[] bs, int off, uint[] ns)
@@ -257,6 +257,7 @@
                 ns[i] = LE_To_UInt32(bs, off);
                 off += 4;
             }
+
             return ns;
         }
 

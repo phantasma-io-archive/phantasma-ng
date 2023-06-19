@@ -186,9 +186,9 @@ namespace Phantasma.Core
             if (!Enum.IsDefined(enumType, argumentValue))
             {
                 throw new ArgumentOutOfRangeException(
-                   argumentName,
-                   argumentValue,
-                   $"Cannot be a value outside the specified enum range.");
+                    argumentName,
+                    argumentValue,
+                    $"Cannot be a value outside the specified enum range.");
             }
         }
 

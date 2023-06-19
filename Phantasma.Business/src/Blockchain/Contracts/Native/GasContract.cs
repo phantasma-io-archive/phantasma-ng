@@ -4,29 +4,24 @@ using System.Numerics;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Gas;
+using Phantasma.Core.Domain.Contract.Gas.Structs;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Performance;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {
-    public struct GasLoanEntry
-    {
-        public Hash hash;
-        public Address borrower;
-        public Address lender;
-        public BigInteger amount;
-        public BigInteger interest;
-    }
-
-    public struct GasLender
-    {
-        public BigInteger balance;
-        public Address paymentAddress;
-    }
-
     public sealed class GasContract : NativeContract
     {
         public override NativeContractKind Kind => NativeContractKind.Gas;
@@ -57,7 +52,6 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var allowance = _allowanceMap.ContainsKey(from) ? _allowanceMap.Get<Address, BigInteger>(from) : 0;
             return allowance;
         }
-
 
         /// <summary>
         /// Method used the usage of Gas to do the transaction.

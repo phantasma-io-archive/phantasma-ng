@@ -11,6 +11,11 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.Pay;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Wallet;
 using Phantasma.Node.Chains.Ethereum;
 
 namespace Phantasma.Core.Tests.Domain;
@@ -99,9 +104,9 @@ public class WalletLinkTests
             callback(result, result ? null : "rejected");
         }
 
-        protected override void GetAccount(string platform, Action<Account, string> callback)
+        protected override void GetAccount(string platform, Action<AccountDTO, string> callback)
         {
-            callback(new Account(), null);
+            callback(new AccountDTO(), null);
         }
 
         protected override void InvokeScript(string chain, byte[] script, int id, Action<byte[], string> callback)
@@ -279,7 +284,7 @@ public class WalletLinkTests
         {
             // Get Token from node
             var token = node["token"].AsValue();
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Authorization() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.AuthorizationDTO() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
             Assert.Equal(1, id);
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.True(sucess);
@@ -289,7 +294,7 @@ public class WalletLinkTests
         {
             Assert.Equal(2, id);
             var token = node["token"].AsValue();
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Authorization() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 1 });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.AuthorizationDTO() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 1 });
             Assert.Equal(2, id);
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.True(sucess);
@@ -300,7 +305,7 @@ public class WalletLinkTests
         {
             Assert.Equal(3, id);
             var token = node["token"].AsValue();
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Authorization() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 1 });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.AuthorizationDTO() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 1 });
             Assert.Equal(3, id);
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.True(sucess);
@@ -344,7 +349,7 @@ public class WalletLinkTests
         {
             // Get Token from node
             token = node["token"].AsValue().ToString();
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Authorization() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.AuthorizationDTO() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
             Assert.Equal(1, id);
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.True(sucess);
@@ -375,7 +380,7 @@ public class WalletLinkTests
         link1.Execute($"2,getAccount/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(2, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Account());
+            var expexted = APIUtils.FromAPIResult(new WalletLink.AccountDTO());
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.True(sucess);
         }));
@@ -401,7 +406,7 @@ public class WalletLinkTests
             // Get Token from node
             token = node["token"].AsValue().ToString();
             
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Authorization() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.AuthorizationDTO() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
             Assert.Equal(1, id);
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.True(sucess);
@@ -411,7 +416,7 @@ public class WalletLinkTests
         link1.Execute($"2,signData/{base16}/{SignatureKind.Ed25519}/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(2, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Signature());
+            var expexted = APIUtils.FromAPIResult(new WalletLink.SignatureDTO());
             Assert.True(node.ToJsonString().Contains("signature"));
             Assert.True(sucess);
         }));
@@ -419,7 +424,7 @@ public class WalletLinkTests
         link1.Execute($"3,signData/oasdjaosd/{SignatureKind.Ed25519}/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(3, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Error() { message = $"signTx: Invalid input received" });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.ErrorDTO() { message = $"signTx: Invalid input received" });
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.False(sucess);
         }));
@@ -427,7 +432,7 @@ public class WalletLinkTests
         link1.Execute($"4,signData/oasdjaosd/{SignatureKind.Ed25519}/asdojsaodjs/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(4, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Error() { message = $"signTx: Invalid amount of arguments: 3" });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.ErrorDTO() { message = $"signTx: Invalid amount of arguments: 3" });
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.False(sucess);
         }));
@@ -453,7 +458,7 @@ public class WalletLinkTests
             // Get Token from node
             token = node["token"].AsValue().ToString();
             
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Authorization() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.AuthorizationDTO() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
             Assert.Equal(1, id);
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.True(sucess);
@@ -472,7 +477,7 @@ public class WalletLinkTests
         link1.Execute($"2,signTx/simnet/main/{myScript}/{payload}/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(2, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Signature());
+            var expexted = APIUtils.FromAPIResult(new WalletLink.SignatureDTO());
             Assert.True(node.ToJsonString().Contains("hash"));
             Assert.True(sucess);
         }));
@@ -480,7 +485,7 @@ public class WalletLinkTests
         link1.Execute($"3,signTx/test/main/{myScript}/{payload}/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(3, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Error() { message = $"signTx: Expected nexus simnet, instead got test" });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.ErrorDTO() { message = $"signTx: Expected nexus simnet, instead got test" });
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.False(sucess);
         }));
@@ -488,7 +493,7 @@ public class WalletLinkTests
         link1.Execute($"4,signTx/simnet/main/null/{payload}/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(4, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Error() { message = $"signTx: Invalid script data" });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.ErrorDTO() { message = $"signTx: Invalid script data" });
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.False(sucess);
         }));
@@ -496,7 +501,7 @@ public class WalletLinkTests
         link1.Execute($"5,signTx/simnet/main/{myScript}/{payload}/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(5, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Error() { message = $"not logged in" });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.ErrorDTO() { message = $"not logged in" });
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.False(sucess);
         }));
@@ -504,7 +509,7 @@ public class WalletLinkTests
         link1.Execute($"6,signTx/simnet/main/{myScript}/{payload}/ajksdnjka/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(6, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Error() { message = $"signTx: Invalid amount of arguments: 5" });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.ErrorDTO() { message = $"signTx: Invalid amount of arguments: 5" });
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.False(sucess);
         }));
@@ -530,7 +535,7 @@ public class WalletLinkTests
             // Get Token from node
             token = node["token"].AsValue().ToString();
             
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Authorization() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.AuthorizationDTO() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
             Assert.Equal(1, id);
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.True(sucess);
@@ -547,7 +552,7 @@ public class WalletLinkTests
         link1.Execute($"2,invokeScript/main/{myScript}/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(2, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Invocation());
+            var expexted = APIUtils.FromAPIResult(new WalletLink.InvocationDTO());
             Assert.True(node.ToJsonString().Contains("result"));
             Assert.True(sucess);
         }));
@@ -555,7 +560,7 @@ public class WalletLinkTests
         link1.Execute($"3,invokeScript/main/null/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(3, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Error() { message = $"signTx: Invalid script data" });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.ErrorDTO() { message = $"signTx: Invalid script data" });
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.False(sucess);
         }));
@@ -563,7 +568,7 @@ public class WalletLinkTests
         link1.Execute($"4,invokeScript/main/null/test/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(4, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Error() { message = $"invokeScript: Invalid amount of arguments: 3" });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.ErrorDTO() { message = $"invokeScript: Invalid amount of arguments: 3" });
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.False(sucess);
         }));
@@ -571,7 +576,7 @@ public class WalletLinkTests
         link1.Execute($"5,invokeScript/main/{myScript}/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(5, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Error() { message = $"not implemented" });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.ErrorDTO() { message = $"not implemented" });
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.False(sucess);
         }));
@@ -598,7 +603,7 @@ public class WalletLinkTests
             // Get Token from node
             token = node["token"].AsValue().ToString();
             
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Authorization() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.AuthorizationDTO() { wallet = "Ac1", nexus = nexus.Name, dapp = "testDapp", token = token.ToString(), version = 0 });
             Assert.Equal(1, id);
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.True(sucess);
@@ -615,7 +620,7 @@ public class WalletLinkTests
         link1.Execute($"2,writeArchive/{hash}/1/{base16}/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(2, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Signature());
+            var expexted = APIUtils.FromAPIResult(new WalletLink.SignatureDTO());
             Assert.True(node.ToJsonString().Contains("hash"));
             Assert.True(sucess);
         }));
@@ -623,7 +628,7 @@ public class WalletLinkTests
         link1.Execute($"3,writeArchive/{Hash.Null}/1/{base16}/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(3, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Error() { message = $"not logged in" });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.ErrorDTO() { message = $"not logged in" });
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.False(sucess);
         }));
@@ -631,7 +636,7 @@ public class WalletLinkTests
         link1.Execute($"4,writeArchive/{Hash.Null}/1/{base16}/asd/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(4, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Error() { message = $"writeArchive: Invalid amount of arguments: 4" });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.ErrorDTO() { message = $"writeArchive: Invalid amount of arguments: 4" });
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.False(sucess);
         }));
@@ -639,7 +644,7 @@ public class WalletLinkTests
         link1.Execute($"5,writeArchive/{Hash.Null}/1/null/testDapp/{token}", ((id, node, sucess) =>
         {
             Assert.Equal(5, id);
-            var expexted = APIUtils.FromAPIResult(new WalletLink.Error() { message = $"invokeScript: Invalid archive data" });
+            var expexted = APIUtils.FromAPIResult(new WalletLink.ErrorDTO() { message = $"invokeScript: Invalid archive data" });
             Assert.Equal(expexted.ToJsonString(), node.ToJsonString());
             Assert.False(sucess);
         }));
@@ -776,7 +781,7 @@ public class WalletLinkTests
     [Fact]
     public void TestErrorMessageProperty()
     {
-        var error = new WalletLink.Error();
+        var error = new WalletLink.ErrorDTO();
         error.message = "This is an error message";
         Assert.Equal("This is an error message", error.message);
     }
@@ -784,7 +789,7 @@ public class WalletLinkTests
     [Fact]
     public void TestAuthorizationProperties()
     {
-        var authorization = new WalletLink.Authorization
+        var authorization = new WalletLink.AuthorizationDTO
         {
             wallet = "MyWallet",
             nexus = "MyNexus",
@@ -803,7 +808,7 @@ public class WalletLinkTests
     [Fact]
     public void TestBalanceProperties()
     {
-        var balance = new WalletLink.Balance
+        var balance = new WalletLink.BalanceDTO
         {
             symbol = "USD",
             value = "100.00",
@@ -818,7 +823,7 @@ public class WalletLinkTests
     [Fact]
     public void TestFileProperties()
     {
-        var file = new WalletLink.File
+        var file = new WalletLink.FileDTO
         {
             name = "myfile.txt",
             size = 1024,
@@ -835,7 +840,7 @@ public class WalletLinkTests
     [Fact]
     public void TestAccountProperties()
     {
-        var account = new WalletLink.Account
+        var account = new WalletLink.AccountDTO
         {
             alias = "myalias",
             address = "myaddress",
@@ -843,9 +848,9 @@ public class WalletLinkTests
             avatar = "myavatar.png",
             platform = "MyPlatform",
             external = "myexternal",
-            balances = new[] { new WalletLink.Balance { symbol = "USD", value = "100.00", decimals = 2 } },
+            balances = new[] { new WalletLink.BalanceDTO { symbol = "USD", value = "100.00", decimals = 2 } },
             files = new[]
-                { new WalletLink.File { name = "myfile.txt", size = 1024, date = 1623432423, hash = "abc123" } }
+                { new WalletLink.FileDTO { name = "myfile.txt", size = 1024, date = 1623432423, hash = "abc123" } }
         };
 
         Assert.Equal("myalias", account.alias);
@@ -868,7 +873,7 @@ public class WalletLinkTests
     {
         var token = "saiduhasdasd";
         var version = 10;
-        var connection = new WalletLink.Connection(token, version);
+        var connection = new WalletLink.ConnectionDTO(token, version);
         
         Assert.Equal(token, connection.Token);
         Assert.Equal(version, connection.Version);
@@ -881,7 +886,7 @@ public class WalletLinkTests
         var expectedResult = "test result";
 
         // Act
-        var invocation = new WalletLink.Invocation() { result = expectedResult };
+        var invocation = new WalletLink.InvocationDTO() { result = expectedResult };
 
         // Assert
         Assert.Equal(expectedResult, invocation.result);
@@ -894,7 +899,7 @@ public class WalletLinkTests
         var expectedHash = "test hash";
 
         // Act
-        var transaction = new WalletLink.Transaction() { hash = expectedHash };
+        var transaction = new WalletLink.TransactionDTO() { hash = expectedHash };
 
         // Assert
         Assert.Equal(expectedHash, transaction.hash);
@@ -907,7 +912,7 @@ public class WalletLinkTests
         var expectedSignature = "test signature";
 
         // Act
-        var signature = new WalletLink.Signature() { signature = expectedSignature };
+        var signature = new WalletLink.SignatureDTO() { signature = expectedSignature };
 
         // Assert
         Assert.Equal(expectedSignature, signature.signature);
@@ -920,7 +925,7 @@ public class WalletLinkTests
         var expectedRandom = "test random value";
 
         // Act
-        var signature = new WalletLink.Signature() { random = expectedRandom };
+        var signature = new WalletLink.SignatureDTO() { random = expectedRandom };
 
         // Assert
         Assert.Equal(expectedRandom, signature.random);
