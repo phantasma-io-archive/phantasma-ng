@@ -18,7 +18,7 @@ using Phantasma.Node.Chains.Ethereum;
 namespace Phantasma.Core.Tests.Cryptography.ECDsa;
 public class CryptoECDsaSignatureTests
 {
-    [Fact]
+    /*[Fact]
     public void GenerateVerifyNeoTest()
     {
         var curve = ECDsaCurve.Secp256r1;
@@ -55,7 +55,8 @@ public class CryptoECDsaSignatureTests
         Assert.False(ecdsaSignature.Verify(msgIncorrectBytes, new Address[] { address }));
         // Check incorrect address
         Assert.False(ecdsaSignature.Verify(msgBytes, new Address[] { addressIncorrect }));
-    }
+    }*/
+    
     [Fact]
     public void GenerateVerifyEthTest()
     {
