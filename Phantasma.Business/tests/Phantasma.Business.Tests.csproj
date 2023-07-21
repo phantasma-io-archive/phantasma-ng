@@ -30,8 +30,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="../src\Phantasma.Business.csproj" />
-        <ProjectReference Include="..\..\Phantasma.Node\Phantasma.Node.csproj" />
+        <ProjectReference Include="../../Phantasma.Business/src\Phantasma.Business.csproj" />
+        <ProjectReference Include="..\..\Phantasma.Node\src\Phantasma.Node.csproj" />
         <ProjectReference Include="../../Phantasma.Core/src/Phantasma.Core.csproj" />
         <ProjectReference Include="../../Phantasma.Infrastructure/src/Phantasma.Infrastructure.csproj" />
         <ProjectReference Include="..\..\Phantasma.Node\src\Phantasma.Node.csproj" />
