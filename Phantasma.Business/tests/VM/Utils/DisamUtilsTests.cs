@@ -4,6 +4,7 @@ using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.VM;
 using Xunit;
 
 namespace Phantasma.Business.Tests.VM.Utils;

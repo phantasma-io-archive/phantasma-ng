@@ -6,6 +6,7 @@ using Nethereum.Hex.HexConvertors.Extensions;
 using Org.BouncyCastle.Crypto.Digests;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 
 //using Phantasma.Ethereum.Hex.HexConvertors.Extensions;
 
@@ -33,6 +34,19 @@ namespace Phantasma.Node.Chains.Ethereum
             }
 
             var symbol = nexus.GetPlatformTokenByHash(Hash.FromUnpaddedHex(assetID), "ethereum", nexus.RootStorage);
+
+            if (String.IsNullOrEmpty(symbol))
+            {
+                return null;
+            }
+
+            return symbol;
+        }
+
+        public static string FindSymbolFromHash(Nexus nexus, string contractAddress)
+        {
+            var hash = Hash.FromUnpaddedHex(contractAddress);
+            var symbol = nexus.GetPlatformTokenByHashInterop(hash, "ethereum", nexus.RootStorage);
 
             if (String.IsNullOrEmpty(symbol))
             {

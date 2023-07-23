@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using Phantasma.Core.Types;
+using Phantasma.Core.Utils.Enums;
 using Phantasma.Infrastructure.API;
 
 namespace Phantasma.Core.Tests.Utils;

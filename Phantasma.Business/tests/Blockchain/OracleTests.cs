@@ -6,8 +6,15 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Core.Domain;
 using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Node.Oracles;
 
 using Xunit;
@@ -26,7 +33,6 @@ public class OracleTests
     BigInteger initialAmount;
     BigInteger initialFuel;
     BigInteger startBalance;
-    StakeReward reward;
 
     public OracleTests()
     {
@@ -41,7 +47,6 @@ public class OracleTests
         gas = 99999;
         initialAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
         initialFuel = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
-        reward = new StakeReward(user.Address, Timestamp.Now);
         InitializeSimulator();
 
         startBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol, user.Address);
@@ -309,10 +314,10 @@ public class OracleTests
         foreach (var txHash in block.TransactionHashes)
         {
             var blkResult = block.GetResultForTransaction(txHash);
-            nexus.GetOracleReader().ReadTransaction("phantasma", "main", txHash);
-            nexus.GetOracleReader().ReadTransaction("phantasma", "main", txHash);
-            nexus.GetOracleReader().ReadTransaction("phantasma", "main", txHash);
-            nexus.GetOracleReader().ReadTransaction("phantasma", "main", txHash);
+            nexus.GetOracleReader().ReadTransaction(Timestamp.Now, "phantasma", "main", txHash);
+            nexus.GetOracleReader().ReadTransaction(Timestamp.Now, "phantasma", "main", txHash);
+            nexus.GetOracleReader().ReadTransaction(Timestamp.Now, "phantasma", "main", txHash);
+            nexus.GetOracleReader().ReadTransaction(Timestamp.Now, "phantasma", "main", txHash);
 
             var vmObj = VMObject.FromBytes(blkResult);
             Console.WriteLine("price: " + vmObj);

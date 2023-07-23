@@ -10,7 +10,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Infrastructure.API;
-using TransactionResult = Phantasma.Core.Domain.TransactionResult;
+using TransactionResult = Phantasma.Core.Domain.TransactionData.TransactionResult;
 
 namespace Phantasma.Business.Tests.Blockchain;
 

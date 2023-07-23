@@ -56,7 +56,7 @@ namespace Phantasma.Core.Utils
         }
     }
 
-    public class CacheDictionary<K, V> 
+    public class CacheDictionary<K, V>
     {
         private Dictionary<K, KeyValuePair<DateTime, V>> _items = new Dictionary<K, KeyValuePair<DateTime, V>>();
         private K[] _order;
@@ -102,7 +102,7 @@ namespace Phantasma.Core.Utils
             {
                 if (_items.ContainsKey(key))
                 {
-                    var result =_items[key];
+                    var result = _items[key];
                     var diff = DateTime.UtcNow - result.Key;
                     if (Infinite || diff < Duration)
                     {

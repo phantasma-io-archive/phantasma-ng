@@ -56,6 +56,7 @@ namespace Phantasma.Node
         private List<string> _seeds = new List<string>();
         private NeoAPI _neoAPI;
         private EthAPI _ethAPI;
+        private EthAPI _bscAPI;
         private string _cryptoCompareAPIKey = null;
         private Thread _tokenSwapperThread;
 
@@ -66,13 +67,16 @@ namespace Phantasma.Node
 
         public NeoAPI NeoAPI { get { return _neoAPI; } }
         public EthAPI EthAPI { get { return _ethAPI; } }
+        public EthAPI BscAPI { get { return _bscAPI; } }
         public string CryptoCompareAPIKey  { get { return _cryptoCompareAPIKey; } }
         public PhantasmaKeys NodeKeys { get { return _nodeKeys; } }
         public ABCIConnector ABCIConnector { get; private set; }
         public NodeConnector NodeConnector { get; private set; }
+        public static Node Instance { get; private set; }
 
         public Node()
         {
+            Instance = this;
             this.NodeConnector = new NodeConnector(Settings.Instance.Validators);
             this.ABCIConnector = new ABCIConnector(Settings.Instance.Node.SeedValidators, Settings.Instance.Validators, this.NodeConnector, Settings.Instance.Node.MinimumFee);
         }
@@ -131,7 +135,7 @@ namespace Phantasma.Node
             // NEW NEW NEW NEW NEW 
 
 
-            //SetupOracleApis();
+            SetupOracleApis();
 
             SetupNexusApi();
 
@@ -150,34 +154,7 @@ namespace Phantasma.Node
                 LaunchTendermint(Settings.Instance.Node.TendermintPath);
             }
         }
-
-        public TokenSwapper StartTokenSwapper()
-        {
-            var platforms = Settings.Instance.Oracle.Swaps.Split(',');
-            var minimumFee = Settings.Instance.Node.MinimumFee;
-            var oracleSettings = Settings.Instance.Oracle;
-            var tokenSwapper = new TokenSwapper(this, _nodeKeys, _neoAPI, _ethAPI, minimumFee, platforms);
-            NexusAPI.TokenSwapper = tokenSwapper;
-
-            _tokenSwapperThread = new Thread(() =>
-            {
-                Log.Information("Running token swapping service...");
-                while (Running)
-                {
-                    Log.Debug("Update TokenSwapper now");
-                    Task.Delay(5000).Wait();
-                    if (_nodeReady)
-                    {
-                        tokenSwapper.Update();
-                    }
-                }
-            });
-
-            _tokenSwapperThread.Start();
-
-            return tokenSwapper;
-        }
-
+        
         private String prompt { get; set; } = "Node> ";
 
         private string PromptGenerator()
@@ -194,12 +171,16 @@ namespace Phantasma.Node
             this._neoAPI = new RemoteRPCNode(neoScanURL, neoRpcList.ToArray());
             this._neoAPI.SetLogger((s) => Log.Information(s));*/
 
-            var ethRpcList = Settings.Instance.Oracle.EthRpcNodes;
-            var ethWIF = Settings.Instance.GetInteropWif(_nodeKeys, EthereumWallet.EthereumPlatform);
-            //TODO
-            var ethKeys = PhantasmaKeys.FromWIF(ethWIF);
+            var ethRpcList = Settings.Instance.Oracle.GetPlatformSettings(SwapPlatformChain.Eth).RpcNodes;
+            var bscRpcList = Settings.Instance.Oracle.GetPlatformSettings(SwapPlatformChain.BSC).RpcNodes;
+            //var ethWIF = Settings.Instance.GetInteropWif(_nodeKeys, EthereumWallet.EthereumPlatform);
+            //var ethKeys = PhantasmaKeys.FromWIF(ethWIF);
 
-            this._ethAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()));
+            //this._ethAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()), ethRpcList.ToList());
+            this._ethAPI = new EthAPI(null, ethRpcList.ToList());
+            //this._bscAPI = new EthAPI(new EthAccount(ethKeys.PrivateKey.ToHex()), bscRpcList.ToList());
+            this._bscAPI = new EthAPI(null, bscRpcList.ToList());
+            
             this._cryptoCompareAPIKey = Settings.Instance.Oracle.CryptoCompareAPIKey;
             if (!string.IsNullOrEmpty(this._cryptoCompareAPIKey))
             {
@@ -645,6 +626,7 @@ $@"  ""initial_height"": ""0"",
 
             NexusAPI.Validators = Settings.Instance.Validators;
             NexusAPI.ApiLog = Settings.Instance.Node.ApiLog;
+            NexusAPI.SetKey(_nodeKeys);
         }
 
         private static JsonSerializerOptions GetDefaultSerializerOptions()

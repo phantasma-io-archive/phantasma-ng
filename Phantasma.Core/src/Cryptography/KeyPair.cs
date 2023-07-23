@@ -1,20 +1,12 @@
 ﻿using System;
 using System.Linq;
 using Phantasma.Core.Cryptography.EdDSA;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Cryptography
 {
-    public interface IKeyPair
-    {
-        byte[] PrivateKey { get; }
-        byte[] PublicKey { get; }
-
-        // byte[] customSignFunction(byte[] message, byte[] prikey, byte[] pubkey)
-        // allows singning with custom crypto libs.
-        Signature Sign(byte[] msg, Func<byte[], byte[], byte[], byte[]> customSignFunction = null);
-    }
-
     public sealed class PhantasmaKeys : IKeyPair
     {
         public byte[] PrivateKey { get; private set; }

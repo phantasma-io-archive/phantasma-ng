@@ -1,5 +1,7 @@
 ﻿using Phantasma.Core;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Interfaces;
 
 namespace Phantasma.Business.Blockchain.Contracts
 {

@@ -2,6 +2,7 @@ using System.Linq;
 using System.Text;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.Hashing;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Numerics;
 
 using Shouldly;

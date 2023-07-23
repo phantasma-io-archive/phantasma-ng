@@ -1,7 +1,13 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {
@@ -19,6 +25,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         internal StorageMap _swapMap; // <Address, List<Hash>>
 #pragma warning restore 0649
 
+        [Obsolete("This method is not used any more",false)]
         public bool IsSettled(Hash hash)
         {
             return _settledTransactions.ContainsKey(hash);
@@ -32,6 +39,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         private void DoSettlement(IChain sourceChain, Address sourceAddress, Address targetAddress, string symbol, BigInteger value, byte[] data)
         {
             Runtime.Expect(Runtime.ProtocolVersion < 13, "this method is obsolete");
+            Runtime.Expect(false, "this method is obsolete");
             Runtime.Expect(value > 0, "value must be greater than zero");
             Runtime.Expect(targetAddress.IsUser, "target must not user address");
 
@@ -57,6 +65,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.SwapTokens(sourceChain.Name, sourceAddress, Runtime.Chain.Name, targetAddress, symbol, value);
         }
 
+        [Obsolete("This method is not used anymore.", false)]
         public void SettleTransaction(Address sourceChainAddress, Hash hash)
         {
             Runtime.Expect(false, "block.SettleTransaction is obsolete");

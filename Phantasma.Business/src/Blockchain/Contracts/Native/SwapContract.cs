@@ -1,7 +1,12 @@
 ﻿using System;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
 using Phantasma.Core.Numerics;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
@@ -10,6 +15,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
     {
         public override NativeContractKind Kind => NativeContractKind.Swap;
 
+        public const string SwapMakerFeePercentTag = "swap.fee.maker";
+        public const string SwapTakerFeePercentTag = "swap.fee.taker";
+
+        public static readonly BigInteger SwapMakerFeePercentDefault = 2;
+        public static readonly BigInteger SwapTakerFeePercentDefault = 5;
+        
         public SwapContract() : base()
         {
         }
@@ -40,12 +51,13 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return info.IsFungible() && info.Flags.HasFlag(TokenFlags.Transferable);
         }
 
-        public const string SwapMakerFeePercentTag = "swap.fee.maker";
-        public const string SwapTakerFeePercentTag = "swap.fee.taker";
-
-        public static readonly BigInteger SwapMakerFeePercentDefault = 2;
-        public static readonly BigInteger SwapTakerFeePercentDefault = 5;
-
+        /// <summary>
+        /// Returns the rate between two tokens
+        /// </summary>
+        /// <param name="fromSymbol"></param>
+        /// <param name="toSymbol"></param>
+        /// <param name="amount"></param>
+        /// <returns></returns>
         public BigInteger GetRate(string fromSymbol, string toSymbol, BigInteger amount)
         {
             var existsLP = Runtime.TokenExists(DomainSettings.LiquidityTokenSymbol);

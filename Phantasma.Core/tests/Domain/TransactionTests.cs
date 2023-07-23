@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Domain;

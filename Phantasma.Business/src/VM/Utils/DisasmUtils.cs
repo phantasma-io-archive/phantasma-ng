@@ -1,39 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.VM;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 
 namespace Phantasma.Business.VM.Utils
 {
-    public class DisasmMethodCall
-    {
-        public string ContractName;
-        public string MethodName;
-
-        public VMObject[] Arguments;
-
-        public override string ToString()
-        {
-            var sb = new StringBuilder();
-            sb.Append($"{ContractName}.{MethodName}(");
-            for (int i=0; i<Arguments.Length; i++)
-            {
-                if (i > 0)
-                {
-                    sb.Append(',');
-                }
-
-                var arg = Arguments[i];
-                sb.Append(arg.ToString());
-            }
-            sb.Append(")");
-            return sb.ToString();
-        }
-    }
-
     public static class DisasmUtils
     {
         private static VMObject[] PopArgs(string contract, string method, Stack<VMObject> stack, Dictionary<string, int> methodArgumentCountTable)
@@ -69,7 +48,7 @@ namespace Phantasma.Business.VM.Utils
         private readonly static Dictionary<string, int> _defaultDisasmTable = GetDefaultDisasmTable();
 
 
-        public static Dictionary<string, int> GetDefaultDisasmTable()
+        public static Dictionary<string, int> GetDefaultDisasmTable(uint ProtocolVersion = DomainSettings.LatestKnownProtocol)
         {
             if (_defaultDisasmTable != null)
             {
@@ -78,7 +57,7 @@ namespace Phantasma.Business.VM.Utils
 
             var table = new Dictionary<string, int>();
 
-            ExtCalls.IterateExtcalls((methodName, argCount, method) =>
+            ExtCalls.IterateExtcalls(ProtocolVersion, (methodName, argCount, method) =>
             {
                 table[methodName] = argCount;
             });
@@ -177,11 +156,11 @@ namespace Phantasma.Business.VM.Utils
             return ExtractContractNames(disassembler);
         }
 
-        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(Disassembler disassembler, Dictionary<string, int> methodArgumentCountTable = null, bool detectAndUseJumps = false)
+        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(Disassembler disassembler, uint ProtocolVersion, Dictionary<string, int> methodArgumentCountTable = null, bool detectAndUseJumps = false)
         {
             if (methodArgumentCountTable == null)
             {
-                methodArgumentCountTable = GetDefaultDisasmTable();
+                methodArgumentCountTable = GetDefaultDisasmTable(ProtocolVersion);
             }
 
             var instructions = disassembler.Instructions.ToArray();
@@ -294,10 +273,10 @@ namespace Phantasma.Business.VM.Utils
             return result;
         }
 
-        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(byte[] script, Dictionary<string, int> methodArgumentCountTable = null, bool detectAndUseJumps = false)
+        public static IEnumerable<DisasmMethodCall> ExtractMethodCalls(byte[] script, uint ProtocolVersion, Dictionary<string, int> methodArgumentCountTable = null, bool detectAndUseJumps = false)
         {
             var disassembler = new Disassembler(script);
-            return ExtractMethodCalls(disassembler, methodArgumentCountTable, detectAndUseJumps);
+            return ExtractMethodCalls(disassembler, ProtocolVersion, methodArgumentCountTable, detectAndUseJumps);
         }
     }
 }

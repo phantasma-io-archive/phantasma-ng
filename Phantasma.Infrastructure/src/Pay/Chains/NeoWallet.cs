@@ -4,6 +4,8 @@ using System.Linq;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Cryptography.ECDsa.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Utils;
 
@@ -78,7 +80,7 @@ namespace Phantasma.Infrastructure.Pay.Chains
             var pubKey = new byte[33];
             ByteArrayUtils.CopyBytes(scriptHash, 0, pubKey, 0, scriptHash.Length);
 
-            return Core.Cryptography.Address.FromInterop(NeoID, pubKey);
+            return Core.Cryptography.Structs.Address.FromInterop(NeoID, pubKey);
         }
 
         public static Address EncodeAddress(string addressText)

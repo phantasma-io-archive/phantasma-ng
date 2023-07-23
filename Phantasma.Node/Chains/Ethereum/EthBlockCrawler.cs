@@ -10,12 +10,15 @@ using Nethereum.StandardTokenEIP20.ContractDefinition;
 using Nethereum.Web3;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Node.Interop;
 using Serilog;
 using InteropTransfers = System.Collections.Generic.Dictionary<string,
-      System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<Phantasma.Core.Domain.InteropTransfer>>>;
+      System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<Phantasma.Core.Domain.Contract.Interop.Structs.InteropTransfer>>>;
 
 namespace Phantasma.Node.Chains.Ethereum
 {

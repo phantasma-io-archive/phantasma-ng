@@ -6,7 +6,13 @@ using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.VM;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Shouldly;
 using Xunit;
 
@@ -226,11 +232,11 @@ public class DisassemblerTest
         var script = scriptBuilder.EndScript();
 
         // here we should detect the method, since we're ignoring jumps
-        var methods1 = DisasmUtils.ExtractMethodCalls(script, detectAndUseJumps: false).ToArray();
+        var methods1 = DisasmUtils.ExtractMethodCalls(script, DomainSettings.LatestKnownProtocol, detectAndUseJumps: false).ToArray();
         Assert.Equal(1, methods1.Length);
 
         // here we should not detect the method, since we're taking jumps into account
-        var methods2 = DisasmUtils.ExtractMethodCalls(script, detectAndUseJumps: true).ToArray();
+        var methods2 = DisasmUtils.ExtractMethodCalls(script, DomainSettings.LatestKnownProtocol, detectAndUseJumps: true).ToArray();
         Assert.Equal(0, methods2.Length);
     }
 
@@ -253,7 +259,7 @@ public class DisassemblerTest
         Assert.Throws<ChainException>(() =>
         {
             // here we should not detect the method, since we're taking jumps into account
-            DisasmUtils.ExtractMethodCalls(script, detectAndUseJumps: true).ToArray();
+            DisasmUtils.ExtractMethodCalls(script, DomainSettings.LatestKnownProtocol, detectAndUseJumps: true).ToArray();
         });
     }
 

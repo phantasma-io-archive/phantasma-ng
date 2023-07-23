@@ -3,9 +3,17 @@ using System.Numerics;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Triggers.Enums;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Tests.VM;
 

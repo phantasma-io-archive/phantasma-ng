@@ -1,64 +1,12 @@
 using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Core.Domain.Contract;
 using Phantasma.Core.Numerics;
-using Phantasma.Core.Types;
 
 namespace Phantasma.Core.Domain
 {
-    public enum TriggerResult
-    {
-        Failure,
-        Missing,
-        Success,
-    }
-
-    // ContractTrigger is also used for account scripts
-    public enum ContractTrigger
-    {
-        OnMint, // address, symbol, amount
-        OnBurn, // address, symbol, amount
-        OnSend, // address, symbol, amount
-        OnReceive, // address, symbol, amount
-        OnWitness, // address
-        OnUpgrade, // address
-        OnMigrate, // from, to
-        OnKill, // address
-    }
-
-    public enum TokenTrigger
-    {
-        OnMint, // address, symbol, amount
-        OnBurn, // address, symbol, amount
-        OnSend, // address, symbol, amount
-        OnReceive, // address, symbol, amount
-        OnInfuse, // address, symbol, amount
-        OnUpgrade, // address
-        OnSeries, // address
-        OnWrite, // address, data
-        OnMigrate, // from, to
-        OnKill, // address
-    }
-
-    public enum OrganizationTrigger
-    {
-        OnAdd, // address
-        OnRemove, // address
-        OnUpgrade, // address
-    }
-
-    public struct StakeReward
-    {
-        public readonly Address staker;
-        public readonly Timestamp date;
-
-        public StakeReward(Address staker, Timestamp date)
-        {
-            this.staker = staker;
-            this.date = date;
-        }
-    }       
-
     public static class DomainSettings
     {
         public const int LatestKnownProtocol = 14;
@@ -142,6 +90,5 @@ namespace Phantasma.Core.Domain
         public const int ScriptMaxSize = short.MaxValue;
         public const int FieldMaxLength = 80;
         public const int FieldMinLength = 1;
-
     }
 }

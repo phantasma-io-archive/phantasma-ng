@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Structs;
 
 namespace Phantasma.Node;
 public class DeliverTxResult

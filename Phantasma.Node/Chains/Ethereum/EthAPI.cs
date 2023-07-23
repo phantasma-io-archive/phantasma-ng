@@ -9,6 +9,7 @@ using Nethereum.StandardTokenEIP20.ContractDefinition;
 using Nethereum.Web3;
 using Nethereum.Web3.Accounts;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Numerics;
 using Phantasma.Infrastructure.API;
 using Transaction = Nethereum.RPC.Eth.DTOs.Transaction;
@@ -60,11 +61,11 @@ namespace Phantasma.Node.Chains.Ethereum
 
         private static Random rnd = new Random();
 
-        public EthAPI(Account account)
+        public EthAPI(Account account, List<string> urls)
         {
             this._account = account;
 
-            this.urls = Settings.Instance.Oracle.EthRpcNodes;
+            this.urls = urls;
             if (this.urls.Count == 0)
             {
                 throw new ArgumentNullException("Need at least one RPC node");

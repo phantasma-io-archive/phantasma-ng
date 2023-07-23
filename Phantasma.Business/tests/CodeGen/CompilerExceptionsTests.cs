@@ -1,4 +1,5 @@
 using Phantasma.Business.CodeGen;
+using Phantasma.Core.Domain.Exceptions;
 
 namespace Phantasma.Business.Tests.CodeGen;
 

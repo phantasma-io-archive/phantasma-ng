@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Numerics;
+using Phantasma.Core.Storage.Context.Structs;
+using Phantasma.Core.Storage.Interfaces;
 
 namespace Phantasma.Core.Storage.Context
 {
@@ -39,10 +41,7 @@ namespace Phantasma.Core.Storage.Context
 
         public override void Visit(Action<byte[], byte[]> visitor, ulong searchCount = 0, byte[] prefix = null)
         {
-            Adapter.Visit((keyBytes, valBytes) =>
-            {
-                visitor(keyBytes, valBytes);
-            }, searchCount, prefix);
+            Adapter.Visit((keyBytes, valBytes) => { visitor(keyBytes, valBytes); }, searchCount, prefix);
         }
 
         public override uint Count()

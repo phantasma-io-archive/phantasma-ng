@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Diagnostics;
 using Neo.VM.Types;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Utils;
 using Xunit;
 

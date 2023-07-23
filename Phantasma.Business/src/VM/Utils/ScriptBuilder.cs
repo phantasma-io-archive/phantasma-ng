@@ -5,7 +5,11 @@ using System.Numerics;
 using System.Text;
 using Phantasma.Core;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.VM.Utils

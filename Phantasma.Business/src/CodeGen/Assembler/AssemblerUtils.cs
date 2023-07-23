@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Phantasma.Business.VM;
 using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Domain.VM.Structs;
 
 namespace Phantasma.Business.CodeGen.Assembler
 {

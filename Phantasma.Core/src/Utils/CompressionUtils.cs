@@ -64,5 +64,4 @@ namespace Phantasma.Core.Utils
             return result;
         }
     }
-
 }

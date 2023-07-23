@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Phantasma.Business.CodeGen;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.VM;
+using Phantasma.Core.Domain.VM.Structs;
 using Xunit;
 
 namespace Phantasma.Business.Tests.CodeGen.Assembler;

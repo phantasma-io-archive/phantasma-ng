@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Structs;
 using Phantasma.Infrastructure.API;
 
 namespace Phantasma.Node.Middleware;

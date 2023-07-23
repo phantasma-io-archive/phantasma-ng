@@ -7,10 +7,20 @@ using System.Threading.Tasks;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Platform;
+using Phantasma.Core.Domain.Platform.Structs;
+using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.API;
 using Phantasma.Infrastructure.API.Controllers;
@@ -634,7 +644,7 @@ namespace Phantasma.Node.Interop
 
         private Hash SettleSwapToExternal(Hash sourceHash, string destPlatform)
         {
-            var swap = OracleReader.ReadTransaction(DomainSettings.PlatformName, DomainSettings.RootChainName, sourceHash);
+            var swap = OracleReader.ReadTransaction(Timestamp.Now, DomainSettings.PlatformName, DomainSettings.RootChainName, sourceHash);
             var transfers = swap.Transfers.Where(x => x.destinationAddress.IsInterop).ToArray();
 
             // TODO not support yet

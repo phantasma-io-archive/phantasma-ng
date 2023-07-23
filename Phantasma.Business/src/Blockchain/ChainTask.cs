@@ -1,7 +1,11 @@
 ﻿using System.IO;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Tasks;
+using Phantasma.Core.Domain.Tasks.Enum;
 using Phantasma.Core.Utils;
 
 namespace Phantasma.Business.Blockchain

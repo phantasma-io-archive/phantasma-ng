@@ -11,9 +11,31 @@ using Phantasma.Business.VM;
 
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Tasks;
+using Phantasma.Core.Domain.Tasks.Enum;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.Token.Structs;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Triggers.Enums;
+using Phantasma.Core.Domain.Validation;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Blockchain.VM
 {
@@ -22,15 +44,15 @@ namespace Phantasma.Business.Blockchain.VM
     public static class ExtCalls
     {
         // naming scheme should be "namespace.methodName" for methods, and "type()" for constructors
-        internal static void RegisterWithRuntime(RuntimeVM vm)
+        internal static void RegisterWithRuntime(uint ProtocolVersion, RuntimeVM vm)
         {
-            IterateExtcalls((name, argCount, method) =>
+            IterateExtcalls(ProtocolVersion, (name, argCount, method) =>
             {
                 vm.RegisterMethod(name, argCount, method);
             });
         }
-
-        internal static void IterateExtcalls(Action<string, int, ExtcallDelegate> callback)
+        
+        internal static void IterateExtcalls(uint ProtocolVersion, Action<string, int, ExtcallDelegate> callback)
         {
             callback("Runtime.TransactionHash", 0, Runtime_TransactionHash); // --> done
             callback("Runtime.Time", 0, Runtime_Time);
@@ -46,7 +68,13 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.Log", 1, Runtime_Log);
             callback("Runtime.Notify", 3, Runtime_Notify);
             callback("Runtime.DeployContract", 4, Runtime_DeployContract);
-            callback("Runtime.UpgradeContract", 4, Runtime_UpgradeContract);
+            
+            // PATCH To a issue that happens when you try to upgrade a contract was discoved and path 18 april 2023
+            if (ProtocolVersion < 14)
+                callback("Runtime.UpgradeContract", 3, Runtime_UpgradeContract);
+            else
+                callback("Runtime.UpgradeContract", 4, Runtime_UpgradeContract);
+            
             callback("Runtime.KillContract", 2, Runtime_KillContract);
             callback("Runtime.GetBalance", 2, Runtime_GetBalance);
             callback("Runtime.TransferTokens", 4, Runtime_TransferTokens);

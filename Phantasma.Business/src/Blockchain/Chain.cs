@@ -9,21 +9,45 @@ using System.Transactions;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.Blockchain.Tokens.Structs;
 using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
+using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Contract.Validator.Enums;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Tasks;
+using Phantasma.Core.Domain.Tasks.Enum;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Validation;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
 using Serilog;
 using Serilog.Core;
 using Tendermint.Abci;
 using Tendermint.Crypto;
-using Event = Phantasma.Core.Domain.Event;
-using Transaction = Phantasma.Core.Domain.Transaction;
+using Event = Phantasma.Core.Domain.Structs.Event;
+using Transaction = Phantasma.Core.Domain.TransactionData.Transaction;
 
 namespace Phantasma.Business.Blockchain
 {
@@ -312,7 +336,7 @@ namespace Phantasma.Business.Blockchain
                 {
                     try
                     {
-                        methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: true);
+                        methods = DisasmUtils.ExtractMethodCalls(tx.Script, protocolVersion, _methodTableForGasExtraction, detectAndUseJumps: true);
                     }
                     catch (Exception ex)
                     {
@@ -323,7 +347,7 @@ namespace Phantasma.Business.Blockchain
                 }
                 else
                 {
-                    methods = DisasmUtils.ExtractMethodCalls(tx.Script, _methodTableForGasExtraction, detectAndUseJumps: false);
+                    methods = DisasmUtils.ExtractMethodCalls(tx.Script, protocolVersion, _methodTableForGasExtraction, detectAndUseJumps: false);
                 }
                 
                 
@@ -426,7 +450,7 @@ namespace Phantasma.Business.Blockchain
 
         public Dictionary<string, int> GenerateMethodTable()
         {
-            var table = DisasmUtils.GetDefaultDisasmTable();
+            var table = DisasmUtils.GetDefaultDisasmTable(GetCurrentProtocolVersion());
 
             var contracts = GetContracts(this.Storage);
 
@@ -1449,18 +1473,35 @@ namespace Phantasma.Business.Blockchain
         }
 
 #region SWAPS
+        /// <summary>
+        /// Get Swap list for an address
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="address"></param>
+        /// <returns></returns>
         private StorageList GetSwapListForAddress(StorageContext storage, Address address)
         {
             var key = ByteArrayUtils.ConcatBytes(Encoding.UTF8.GetBytes(".swapaddr"), address.ToByteArray());
             return new StorageList(key, storage);
         }
-
+        
+        /// <summary>
+        /// Get the swap map
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <returns></returns>
         private StorageMap GetSwapMap(StorageContext storage)
         {
             var key = Encoding.UTF8.GetBytes(".swapmap");
             return new StorageMap(key, storage);
         }
 
+        /// <summary>
+        /// Register a swap
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="from"></param>
+        /// <param name="swap"></param>
         public void RegisterSwap(StorageContext storage, Address from, ChainSwap swap)
         {
             var list = GetSwapListForAddress(storage, from);
@@ -1470,6 +1511,13 @@ namespace Phantasma.Business.Blockchain
             map.Set<Hash, ChainSwap>(swap.sourceHash, swap);
         }
 
+        /// <summary>
+        /// Get a swap
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="sourceHash"></param>
+        /// <returns></returns>
+        /// <exception cref="ChainException"></exception>
         public ChainSwap GetSwap(StorageContext storage, Hash sourceHash)
         {
             var map = GetSwapMap(storage);
@@ -1482,6 +1530,12 @@ namespace Phantasma.Business.Blockchain
             throw new ChainException("invalid chain swap hash: " + sourceHash);
         }
 
+        /// <summary>
+        /// Get Swap Hashs for address
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public Hash[] GetSwapHashesForAddress(StorageContext storage, Address address)
         {
             var list = GetSwapListForAddress(storage, address);

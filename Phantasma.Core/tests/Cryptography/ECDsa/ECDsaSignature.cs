@@ -4,6 +4,9 @@ using Phantasma.Core.Numerics;
 using System;
 using System.Text;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.ECDsa.Enums;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Node.Chains.Neo2;
 

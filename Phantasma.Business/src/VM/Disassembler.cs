@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using Phantasma.Business.VM.Structs;
 using Phantasma.Core;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 
 namespace Phantasma.Business.VM
 {

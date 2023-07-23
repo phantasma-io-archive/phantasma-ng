@@ -17,6 +17,15 @@ using Phantasma.Core.Utils;
 using Phantasma.Core.Cryptography.Hashing;
 using Phantasma.Business.Blockchain.Tokens;
 using System.Xml.Linq;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Structs;
+using Phantasma.Core.Domain.VM;
 
 namespace Phantasma.Business.Blockchain.VM
 {
@@ -352,7 +361,7 @@ namespace Phantasma.Business.Blockchain.VM
             string result = null;
             error = null;
 
-            ExtCalls.IterateExtcalls((methodName, argCount, extCall) =>
+            ExtCalls.IterateExtcalls(nexus.GetProtocolVersion(nexus.RootStorage), (methodName, argCount, extCall) =>
             {
                 if (result != null)
                 {

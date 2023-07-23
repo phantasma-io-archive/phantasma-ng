@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Phantasma.Core.Cryptography.Hashing;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Utils;
 using SHA256 = System.Security.Cryptography.SHA256;
