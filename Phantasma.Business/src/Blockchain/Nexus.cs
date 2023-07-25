@@ -2279,6 +2279,11 @@ public partial class Nexus : INexus
         return null;
     }
 
+    /// <summary>
+    /// Get Protocol Version from Storage
+    /// </summary>
+    /// <param name="storage"></param>
+    /// <returns></returns>
     public uint GetProtocolVersion(StorageContext storage)
     {
         if (!HasGenesis())
@@ -2288,5 +2293,46 @@ public partial class Nexus : INexus
 
         return (uint)this.GetGovernanceValue(storage, NexusProtocolVersionTag);
     }
+    
+    /// <summary>
+    /// Get Protocol Version from Storage
+    /// </summary>
+    /// <returns></returns>
+    public uint GetProtocolVersion()
+    {
+        return GetProtocolVersion(RootStorage);
+    }
 
+    /// <summary>
+    /// Get Protocol Version from block height
+    /// </summary>
+    /// <param name="blockHeight"></param>
+    /// <returns></returns>
+    public uint GetProtocolVersion(uint blockHeight)
+    {
+        if (blockHeight < 1)
+        {
+            return DomainSettings.Phantasma30Protocol;
+        }
+        
+        var blockHash = RootChain.GetBlockHashAtHeight(blockHeight);
+        var block = RootChain.GetBlockByHash(blockHash);
+        return block.Protocol;
+    }
+
+    /// <summary>
+    /// Get Protocol Version from block hash
+    /// </summary>
+    /// <param name="blockHash"></param>
+    /// <returns></returns>
+    public uint GetProtocolVersion(Hash blockHash)
+    {
+        if (blockHash == Hash.Null)
+        {
+            return DomainSettings.Phantasma30Protocol;
+        }
+        
+        var block = RootChain.GetBlockByHash(blockHash);
+        return block.Protocol;
+    }
 }

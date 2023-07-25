@@ -332,10 +332,10 @@ public static class NexusAPI
         BigInteger gasPrice, gasLimit;
         if (_methodTable == null)
         {
-            _methodTable = (Nexus.RootChain as Chain).GenerateMethodTable();
+            _methodTable = (Nexus.RootChain as Chain).GenerateMethodTable(block.Protocol);
         }
-
-        TransactionExtensions.ExtractGasDetailsFromScript(tx.Script, Nexus.GetProtocolVersion(Nexus.RootStorage),
+        
+        TransactionExtensions.ExtractGasDetailsFromScript(tx.Script, block.Protocol,
             out from, out target, out gasPrice, out gasLimit, _methodTable);
 
         var result = new TransactionResult
@@ -451,7 +451,7 @@ public static class NexusAPI
     {
         RequireNexus();
 
-        _methodTable = (Nexus.RootChain as Chain).GenerateMethodTable();
+        _methodTable = (Nexus.RootChain as Chain).GenerateMethodTable(block.Protocol);
 
         var result = new BlockResult
         {

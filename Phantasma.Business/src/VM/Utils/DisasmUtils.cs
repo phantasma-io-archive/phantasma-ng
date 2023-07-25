@@ -46,15 +46,18 @@ namespace Phantasma.Business.VM.Utils
         }
 
         private readonly static Dictionary<string, int> _defaultDisasmTable = GetDefaultDisasmTable();
-
+        private static Dictionary<uint, Dictionary<string, int>> _disasmTableVersions = new Dictionary<uint, Dictionary<string, int>>();
 
         public static Dictionary<string, int> GetDefaultDisasmTable(uint ProtocolVersion = DomainSettings.LatestKnownProtocol)
         {
-            if (_defaultDisasmTable != null)
+            if ( _disasmTableVersions == null)
             {
-                return _defaultDisasmTable;
+                _disasmTableVersions = new Dictionary<uint, Dictionary<string, int>>();
+            }else if (_disasmTableVersions.TryGetValue(ProtocolVersion, out var disasmTable))
+            {
+                return disasmTable;
             }
-
+            
             var table = new Dictionary<string, int>();
 
             ExtCalls.IterateExtcalls(ProtocolVersion, (methodName, argCount, method) =>
@@ -73,7 +76,8 @@ namespace Phantasma.Business.VM.Utils
                 var contract = NativeContract.GetNativeContractByKind(kind);
                 table.AddContractToTable(contract);
             }
-
+            
+            _disasmTableVersions.Add(ProtocolVersion, table);
             return table;
         }
 

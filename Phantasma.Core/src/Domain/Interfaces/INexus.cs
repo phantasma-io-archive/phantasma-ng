@@ -150,4 +150,7 @@ public interface INexus
     SmartContract GetTokenContract(StorageContext storage, string symbol);
     SmartContract GetTokenContract(StorageContext storage, Address contractAddress);
     uint GetProtocolVersion(StorageContext storage);
+    uint GetProtocolVersion();
+    uint GetProtocolVersion(uint blockHeight);
+    uint GetProtocolVersion(Hash blockHash);
 }
