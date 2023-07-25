@@ -1,4 +1,4 @@
-namespace Phantasma.Infrastructure.Pay;
+namespace Phantasma.Infrastructure.Pay.Structs;
 
 public struct WalletBalance
 {

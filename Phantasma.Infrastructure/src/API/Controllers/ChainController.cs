@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
+using Phantasma.Infrastructure.API.Structs;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {

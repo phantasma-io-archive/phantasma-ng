@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Numerics;
+using Phantasma.Infrastructure.API.Structs;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {

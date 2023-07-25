@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core.Domain;
+using Phantasma.Infrastructure.API.Structs;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {

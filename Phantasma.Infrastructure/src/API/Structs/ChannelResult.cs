@@ -1,4 +1,4 @@
-namespace Phantasma.Infrastructure.API;
+namespace Phantasma.Infrastructure.API.Structs;
 
 public class ChannelResult
 {
