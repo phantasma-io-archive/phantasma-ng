@@ -291,7 +291,7 @@ public partial class Nexus : INexus
             if (Runtime.CurrentContext.Name == "entry" && Runtime.IsPrimaryValidator(source) &&
                 Runtime.IsPrimaryValidator(destination))
             {
-                Runtime.ExpectWarning(currentSupply >= UnitConversion.ToBigInteger(100000000m, DomainSettings.FuelTokenDecimals), $"minting of {token.Symbol} can only happen if the amount is lower than 100M", source);
+                Runtime.ExpectWarning(currentSupply <= UnitConversion.ToBigInteger(100000000m, DomainSettings.FuelTokenDecimals), $"minting of {token.Symbol} can only happen if the amount is lower than 100M", source);
 
                 Runtime.ExpectWarning(totalSupply <= maxSupply,
                     $"minting of {token.Symbol} can only happen if the amount is lower than Expected", source);
