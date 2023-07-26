@@ -115,12 +115,21 @@ namespace Phantasma.Business.Blockchain
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
         }
 
+        /// <summary>
+        /// Get Current Protocol Version
+        /// </summary>
+        /// <returns></returns>
         private uint GetCurrentProtocolVersion()
         {
             var lastBlockHash = this.GetLastBlockHash();
             return GetCurrentProtocolVersion(lastBlockHash);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="lastBlockHash"></param>
+        /// <returns></returns>
         private uint GetCurrentProtocolVersion(Hash lastBlockHash)
         {
             uint protocol = DomainSettings.Phantasma30Protocol;
@@ -448,9 +457,10 @@ namespace Phantasma.Business.Blockchain
             _methodTableForGasExtraction = null;
         }
 
-        public Dictionary<string, int> GenerateMethodTable()
+        public Dictionary<string, int> GenerateMethodTable(uint? ProtocolVersion = null)
         {
-            var table = DisasmUtils.GetDefaultDisasmTable(GetCurrentProtocolVersion());
+            if ( ProtocolVersion == null ) ProtocolVersion = GetCurrentProtocolVersion();
+            var table = DisasmUtils.GetDefaultDisasmTable(ProtocolVersion.Value);
 
             var contracts = GetContracts(this.Storage);
 

@@ -416,6 +416,8 @@ tendermint
 Phantasma.Node/Properties/launchSettings.json
 DOCKER/Storage/
 Phantasma.Node/testnet/
+Phantasma.Node/src/testnet/
+
 
 testnet/temp/
 

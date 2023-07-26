@@ -7,6 +7,7 @@ using Phantasma.Core.Domain.Contract.Governance;
 using Phantasma.Core.Domain.Contract.Governance.Structs;
 using Phantasma.Core.Types;
 using Phantasma.Core.Types.Structs;
+using Phantasma.Infrastructure.API.Structs;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {

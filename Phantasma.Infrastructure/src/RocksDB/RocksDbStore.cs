@@ -13,6 +13,8 @@ namespace Phantasma.Infrastructure.RocksDB
 
         private static ConcurrentDictionary<string, RocksDbStore> _rdb =
             new ConcurrentDictionary<string, RocksDbStore>();
+        
+        public static int Count => _db.Count;
 
         private string fileName;
 
@@ -67,6 +69,18 @@ namespace Phantasma.Infrastructure.RocksDB
 
             return _db[name];
         }
+        
+        public static RocksDbStore GetInstance(string name)
+        {
+            if (!_rdb.ContainsKey(name))
+            {
+                if (string.IsNullOrEmpty(name)) throw new System.ArgumentException("Parameter cannot be null", "name");
+
+                _rdb.TryAdd(name, new RocksDbStore(name));
+            }
+
+            return _rdb[name];
+        }
 
         private void Shutdown()
         {
@@ -88,5 +102,7 @@ namespace Phantasma.Infrastructure.RocksDB
                 Log.Information("Databases shut down!");
             }
         }
+        
+        public void Close() => Shutdown();
     }
 }

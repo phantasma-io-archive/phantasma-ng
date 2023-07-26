@@ -4,6 +4,7 @@ using System.Text.Json;
 using Phantasma.Core.Types;
 using Phantasma.Core.Utils.Enums;
 using Phantasma.Infrastructure.API;
+using Phantasma.Infrastructure.API.Structs;
 
 namespace Phantasma.Core.Tests.Utils;
 

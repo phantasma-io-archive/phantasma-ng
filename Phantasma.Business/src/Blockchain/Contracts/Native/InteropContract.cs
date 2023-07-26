@@ -51,6 +51,26 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public InteropContract() : base()
         {
         }
+        
+        public StorageMap GetPlatformHashes()
+        {
+            return _platformHashes;
+        }
+        
+        public StorageList GetWithdraws()
+        {
+            return _withdraws;
+        }
+
+        public StorageMap GetSwapMap()
+        {
+            return _swapMap;
+        }
+        
+        public StorageMap GetHistory()
+        {
+            return _historyMap;
+        }
 
 
         // This contract call associates a new swap address to a specific platform. 
@@ -107,6 +127,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="swapper"></param>
         private void SetPlatformSwapper(string platform, string externalContractAddress, TokenSwapToSwap swapper)
         {
+            // TODO: Change this after it's fully implemented.
+            Runtime.Expect(false, "Not fully implemented yet.");
+            
             var swappersList = GetPlatformSwappers(platform);
             if (swappersList.Count() == 0)
             {
@@ -229,6 +252,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             string externalAddress, string mainSymbol, string fuelSymbol, int decimals, bool isSwapEnabled,
             BigInteger feePercentage)
         {
+            // TODO: Change this after it's fully implemented.
+            Runtime.Expect(false, "Not fully implemented yet.");
+            
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
             Runtime.Expect(from.IsUser, "must be user address");
             Runtime.Expect(localAddress.IsInterop, "swap target must be interop address");
@@ -295,6 +321,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             string externalAddress, string mainSymbol, string fuelSymbol, int decimals, bool isSwapEnabled,
             BigInteger feePercentage)
         {
+            // TODO: Change this after it's fully implemented.
+            Runtime.Expect(false, "Not fully implemented yet.");
+            
             Runtime.Expect(from.IsUser, "Needs to be a user address");
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
             Runtime.Expect(HasPlatformInfo(from, platform), "platform not registered");
@@ -346,6 +375,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public void RegisterTokenOnPlatform(Address from, string platform, string symbol, int decimals,
             string externalContractAddress, Address localContractAddress, Address localAddress, string externalAddress)
         {
+            // TODO: Change this after it's fully implemented.
+            Runtime.Expect(false, "Not fully implemented yet.");
+            
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
             Runtime.Expect(from.IsUser, "Needs to be a user address");
             Runtime.Expect(HasPlatformInfo(from, platform), "No platform registered for this address");
@@ -392,6 +424,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="symbol"></param>
         public void RemoveTokenFromPlatform(Address from, string platform, string symbol)
         {
+            // TODO: Change this after it's fully implemented.
+            Runtime.Expect(false, "Not fully implemented yet.");
+            
             Runtime.Expect(from.IsUser, "witness failed");
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
             Runtime.Expect(HasPlatformInfo(from, platform), "No platform registered for this address");
@@ -546,6 +581,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public void SendTokensToPlatform(Address from, string externalAddress, string fromPlatform, string toPlatform,
             string symbol, BigInteger amount)
         {
+            // TODO: Change this after it's fully implemented.
+            Runtime.Expect(false, "Not fully implemented yet.");
+            
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(from.IsUser, "must be user address");
             Runtime.Expect(fromPlatform != toPlatform, "platforms must be different");
@@ -705,6 +743,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="identifier"></param>
         public void AcceptCrossChainTransfer(Address from, string platform, string identifier)
         {
+            // TODO: Change this after it's fully implemented.
+            Runtime.Expect(false, "Not fully implemented yet.");
+            
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(HasPlatformInfo(from, platform), "No platform registered for this address");
 
@@ -748,6 +789,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="hash"></param>
         public void CompleteCrossChainTransfer(Address from, string platform, string identifier, Hash hash)
         {
+            // TODO: Change this after it's fully implemented.
+            Runtime.Expect(false, "Not fully implemented yet.");
+            
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(HasPlatformInfo(from, platform), "No platform registered for this address");
             Runtime.Expect(!hash.IsNull, "invalid hash");
@@ -813,6 +857,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="identifier"></param>
         public void CompleteInternalCrossChainTransfer(Address from, string platform, string identifier)
         {
+            // TODO: Change this after it's fully implemented.
+            Runtime.Expect(false, "Not fully implemented yet.");
+            
             Runtime.Expect(from.IsUser, "invalid user");
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(HasPlatformInfo(from, platform), "No platform registered for this address");
@@ -897,6 +944,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public void SettleCrossChainTransaction(Address caller, Address from, string externalAddress, string platform,
             string chain, Hash hash)
         {
+            // TODO: Change this after it's fully implemented.
+            Runtime.Expect(false, "Not fully implemented yet.");
+
             // From USER
             // Platform = ETH / BSC
             // Chain = ETH / BSC
@@ -1105,6 +1155,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public void RequestCrossChainSwap(Address caller, Address from, string externalAddress, string platform,
             string chain, string symbol, BigInteger amount)
         {
+            // TODO: Change this after it's fully implemented.
+            Runtime.Expect(false, "Not fully implemented yet.");
+            
             Runtime.Expect(amount > 0, "invalid amount");
             Runtime.Expect(Runtime.IsWitness(caller), "invalid witness");
             Runtime.Expect(Runtime.IsKnownValidator(caller), "invalid witness");
@@ -1145,6 +1198,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// </summary>
         public void BetOnCrossChainSwap(Address from, string identifier, string platform, BigInteger BetFee)
         {
+            // TODO: Change this after it's fully implemented.
+            Runtime.Expect(false, "Not fully implemented yet.");
+
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(from.IsUser, "must be user address");
             Runtime.Expect(BetFee >= 0, "invalid fee");
@@ -1519,7 +1575,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return Hash.Null;
         }
         
-        [ObsoleteAttribute("This method is obsolete.", true)]
+        [ObsoleteAttribute("This method is obsolete.", false)]
         public InteropTransferStatus GetStatus(string platformName, Hash hash)
         {
             var chainHashes = _platformHashes.Get<string, StorageMap>(platformName);

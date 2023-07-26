@@ -43,8 +43,10 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
+using Phantasma.Infrastructure.API.Structs;
 using Serilog;
 using Tendermint.RPC;
+using TransactionResult = Phantasma.Infrastructure.API.Structs.TransactionResult;
 
 namespace Phantasma.Infrastructure.API;
 
@@ -330,10 +332,10 @@ public static class NexusAPI
         BigInteger gasPrice, gasLimit;
         if (_methodTable == null)
         {
-            _methodTable = (Nexus.RootChain as Chain).GenerateMethodTable();
+            _methodTable = (Nexus.RootChain as Chain).GenerateMethodTable(block.Protocol);
         }
-
-        TransactionExtensions.ExtractGasDetailsFromScript(tx.Script, Nexus.GetProtocolVersion(Nexus.RootStorage),
+        
+        TransactionExtensions.ExtractGasDetailsFromScript(tx.Script, block.Protocol,
             out from, out target, out gasPrice, out gasLimit, _methodTable);
 
         var result = new TransactionResult
@@ -449,7 +451,7 @@ public static class NexusAPI
     {
         RequireNexus();
 
-        _methodTable = (Nexus.RootChain as Chain).GenerateMethodTable();
+        _methodTable = (Nexus.RootChain as Chain).GenerateMethodTable(block.Protocol);
 
         var result = new BlockResult
         {
