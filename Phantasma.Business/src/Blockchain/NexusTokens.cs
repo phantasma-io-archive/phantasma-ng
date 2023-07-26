@@ -293,8 +293,6 @@ public partial class Nexus : INexus
             {
                 Runtime.ExpectWarning(currentSupply <= UnitConversion.ToBigInteger(100000000m, DomainSettings.FuelTokenDecimals), $"minting of {token.Symbol} can only happen if the amount is lower than 100M", source);
 
-                Runtime.ExpectWarning(totalSupply <= maxSupply,
-                    $"minting of {token.Symbol} can only happen if the amount is lower than Expected", source);
                 Runtime.ExpectWarning(Runtime.IsWitness(token.Owner),
                     $"minting of {token.Symbol} can only happen if the owner of the contract does it.",
                     source);
