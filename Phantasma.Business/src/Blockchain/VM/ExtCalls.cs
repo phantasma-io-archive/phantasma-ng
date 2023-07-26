@@ -88,7 +88,7 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.InfuseToken", 5, Runtime_InfuseToken);
             callback("Runtime.ReadTokenROM", 2, Runtime_ReadTokenROM);
             callback("Runtime.ReadTokenRAM", 2, Runtime_ReadTokenRAM);
-            callback("Runtime.ReadToken", 2, Runtime_ReadToken);
+            callback("Runtime.ReadToken", 3, Runtime_ReadToken);
             callback("Runtime.WriteToken", 4, Runtime_WriteToken);
             callback("Runtime.ContractExists", 1, Runtime_ContractExists);
             callback("Runtime.TokenExists", 1, Runtime_TokenExists);
