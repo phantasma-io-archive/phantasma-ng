@@ -8,6 +8,7 @@ using Phantasma.Business.Blockchain.Tokens.Structs;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Infrastructure.API.Structs;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {

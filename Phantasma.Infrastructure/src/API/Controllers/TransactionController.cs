@@ -17,7 +17,9 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
 using Phantasma.Core.Types.Structs;
+using Phantasma.Infrastructure.API.Structs;
 using Serilog;
+using TransactionResult = Phantasma.Infrastructure.API.Structs.TransactionResult;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {

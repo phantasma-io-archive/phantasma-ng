@@ -1,4 +1,6 @@
-namespace Phantasma.Infrastructure.Pay;
+using Phantasma.Infrastructure.Pay.Enums;
+
+namespace Phantasma.Infrastructure.Pay.Structs;
 
 public struct CryptoCurrencyInfo
 {

@@ -8,6 +8,8 @@ using Phantasma.Core.Cryptography.ECDsa.Enums;
 using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Utils;
+using Phantasma.Infrastructure.Pay.Enums;
+using Phantasma.Infrastructure.Pay.Structs;
 
 namespace Phantasma.Infrastructure.Pay.Chains
 {

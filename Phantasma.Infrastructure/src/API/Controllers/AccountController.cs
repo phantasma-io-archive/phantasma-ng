@@ -7,6 +7,7 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Validation;
 using Phantasma.Core.Types;
 using Phantasma.Core.Types.Structs;
+using Phantasma.Infrastructure.API.Structs;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
