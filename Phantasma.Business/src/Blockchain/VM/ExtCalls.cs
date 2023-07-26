@@ -1363,9 +1363,9 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
-        private static TokenContent Runtime_ReadTokenInternal(RuntimeVM vm)
+        private static TokenContent PopTokenContent(this RuntimeVM vm, int minArgs = 2)
         {
-            vm.ExpectStackSize(2);
+            vm.ExpectStackSize(minArgs);
 
             var symbol = vm.PopString("symbol");
             var tokenID = vm.PopNumber("token ID");
@@ -1379,7 +1379,7 @@ namespace Phantasma.Business.Blockchain.VM
 
         private static ExecutionState Runtime_ReadToken(RuntimeVM vm)
         {
-            var content = Runtime_ReadTokenInternal(vm);
+            var content = vm.PopTokenContent(3);
 
             var fieldList = vm.PopString("fields").Split(',');
 
@@ -1390,23 +1390,35 @@ namespace Phantasma.Business.Blockchain.VM
             {
                 object obj;
 
-                switch (field)
-                {
-                    case "chain": obj = content.CurrentChain; break;
-                    case "owner": obj = content.CurrentOwner.Text; break;
-                    case "creator": obj = content.Creator.Text; break;
-                    case "ROM": obj = content.ROM; break;
-                    case "RAM": obj = content.RAM; break;
-                    case "tokenID": obj = content.TokenID; break;
-                    case "seriesID": obj = content.SeriesID; break;
-                    case "mintID": obj = content.MintID; break;
+                VMObject subResult;
 
-                    default:
-                        throw new VMException(vm, "unknown nft field: " + field);
+                if (field == "infusion")
+                {
+                    var infusedTokens = content.Infusion.ToArray();
+                    subResult = VMObject.FromArray(infusedTokens);
+                }
+                else
+                {
+                    switch (field)
+                    {
+                        case "chain": obj = content.CurrentChain; break;
+                        case "owner": obj = content.CurrentOwner.Text; break;
+                        case "creator": obj = content.Creator.Text; break;
+                        case "ROM": obj = content.ROM; break;
+                        case "RAM": obj = content.RAM; break;
+                        case "tokenID": obj = content.TokenID; break;
+                        case "seriesID": obj = content.SeriesID; break;
+                        case "mintID": obj = content.MintID; break;
+
+                        default:
+                            throw new VMException(vm, "unknown nft field: " + field);
+                    }
+
+                    subResult = VMObject.FromObject(obj);
                 }
 
                 var key = VMObject.FromObject(field);
-                fields[key] = VMObject.FromObject(obj);
+                fields[key] = subResult;
             }
 
             result.SetValue(fields);
@@ -1415,24 +1427,24 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_ReadTokenRAM(RuntimeVM Runtime)
+        private static ExecutionState Runtime_ReadTokenRAM(RuntimeVM vm)
         {
-            var content = Runtime_ReadTokenInternal(Runtime);
+            var content = vm.PopTokenContent(2);
 
             var result = new VMObject();
             result.SetValue(content.RAM, VMType.Bytes);
-            Runtime.Stack.Push(result);
+            vm.Stack.Push(result);
 
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_ReadTokenROM(RuntimeVM Runtime)
+        private static ExecutionState Runtime_ReadTokenROM(RuntimeVM vm)
         {
-            var content = Runtime_ReadTokenInternal(Runtime);
+            var content = vm.PopTokenContent(2);
 
             var result = new VMObject();
             result.SetValue(content.ROM, VMType.Bytes);
-            Runtime.Stack.Push(result);
+            vm.Stack.Push(result);
 
             return ExecutionState.Running;
         }

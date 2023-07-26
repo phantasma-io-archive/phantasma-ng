@@ -19,6 +19,9 @@ using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Token;
 using Phantasma.Core.Domain.Token.Enums;
 using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Types.Structs;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
@@ -601,9 +604,32 @@ public class NFTTests
         var nftInfusedAfter = nexus.ReadNFT(nexus.RootStorage, symbol, tokenID);
         Assert.True(nftInfusedAfter.Infusion.Length == 2, "nftInfused.Infusion.Length != 2");
 
+        var expectedAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
+
         Assert.True(nftInfusedAfter.Infusion[0].Symbol == DomainSettings.StakingTokenSymbol);
-        Assert.True(nftInfusedAfter.Infusion[0].Value == UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals));
+        Assert.True(nftInfusedAfter.Infusion[0].Value == expectedAmount);
         Assert.True(nftInfusedAfter.Infusion[1].Symbol == symbol2);
         Assert.True(nftInfusedAfter.Infusion[1].Value == tokenIDAfter);
+
+        // test if extcalls work return infusion list
+        var fieldKey = "infusion";
+        var script = new ScriptBuilder().CallInterop("Runtime.ReadToken", symbol, tokenID, fieldKey).EndScript();
+
+        var scriptResult = nexus.RootChain.InvokeScript(nexus.RootStorage, script, Timestamp.Now);
+        var infusionField = scriptResult.GetField(fieldKey);
+        var infusionArray = infusionField.ToArray<VMObject>();
+        Assert.True(infusionArray.Length == 2);
+
+        var firstElement = VMObject.CastTo(infusionArray[0], VMType.Struct);
+        var firstSymbol = firstElement.GetField("Symbol").AsString();
+        Assert.True(firstSymbol == DomainSettings.StakingTokenSymbol);
+        var firstAmount = firstElement.GetField("Value").AsNumber();
+        Assert.True(firstAmount == expectedAmount);
+
+        var secondElement = VMObject.CastTo(infusionArray[1], VMType.Struct);
+        var secondSymbol = secondElement.GetField("Symbol").AsString();
+        Assert.True(secondSymbol == symbol2);
+        var secondID = secondElement.GetField("Value").AsNumber();
+        Assert.True(secondID == tokenIDAfter);
     }
 }

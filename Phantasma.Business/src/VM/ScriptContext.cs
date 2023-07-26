@@ -1306,7 +1306,7 @@ namespace Phantasma.Business.VM
             var key = frame.Registers[keyReg];
             Throw.If(key.Type == VMType.None, "invalid key type");
 
-            var val = frame.Registers[src].GetKey(key);
+            var val = frame.Registers[src].GetField(key);
 
             frame.Registers[dst] = val;
         }
