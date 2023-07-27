@@ -68,13 +68,10 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.Log", 1, Runtime_Log);
             callback("Runtime.Notify", 3, Runtime_Notify);
             callback("Runtime.DeployContract", 4, Runtime_DeployContract);
-            
+
             // PATCH To a issue that happens when you try to upgrade a contract was discoved and path 18 april 2023
-            if (ProtocolVersion < 14)
-                callback("Runtime.UpgradeContract", 3, Runtime_UpgradeContract);
-            else
-                callback("Runtime.UpgradeContract", 4, Runtime_UpgradeContract);
-            
+            callback("Runtime.UpgradeContract", ProtocolVersion < 14 ? 3 : 4, Runtime_UpgradeContract);
+
             callback("Runtime.KillContract", 2, Runtime_KillContract);
             callback("Runtime.GetBalance", 2, Runtime_GetBalance);
             callback("Runtime.TransferTokens", 4, Runtime_TransferTokens);
@@ -86,9 +83,10 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.MintToken", 6, Runtime_MintToken);
             callback("Runtime.BurnToken", 3, Runtime_BurnToken);
             callback("Runtime.InfuseToken", 5, Runtime_InfuseToken);
+            callback("Runtime.ReadInfusions", 2, Runtime_ReadInfusions);
             callback("Runtime.ReadTokenROM", 2, Runtime_ReadTokenROM);
             callback("Runtime.ReadTokenRAM", 2, Runtime_ReadTokenRAM);
-            callback("Runtime.ReadToken", 3, Runtime_ReadToken);
+            callback("Runtime.ReadToken", ProtocolVersion < 15 ? 2: 3, Runtime_ReadToken);
             callback("Runtime.WriteToken", 4, Runtime_WriteToken);
             callback("Runtime.ContractExists", 1, Runtime_ContractExists);
             callback("Runtime.TokenExists", 1, Runtime_TokenExists);
@@ -1422,6 +1420,18 @@ namespace Phantasma.Business.Blockchain.VM
             }
 
             result.SetValue(fields);
+            vm.Stack.Push(result);
+
+            return ExecutionState.Running;
+        }
+
+        private static ExecutionState Runtime_ReadInfusions(RuntimeVM vm)
+        {
+            var content = vm.PopTokenContent(2);
+
+            var infusedTokens = content.Infusion.ToArray();
+            var result = VMObject.FromArray(infusedTokens);
+
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
