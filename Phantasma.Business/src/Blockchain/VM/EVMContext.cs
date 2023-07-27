@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
@@ -461,7 +461,23 @@ namespace Phantasma.Business.Blockchain.VM
             var address = "0x" + Base16.Encode(hash.Skip(12).ToArray());
 
             Console.WriteLine($"{name}={address}");
-            return address; 
+            return address;
+        }
+
+        public static string ConvertPhantasmaAddressToHexAddress(Address address)
+        {
+            byte[] keyBytes = address.ToByteArray().Skip(1).ToArray();
+
+            var ecCurve = Org.BouncyCastle.Asn1.Sec.SecNamedCurves.GetByName("secp256k1");
+            var dom = new Org.BouncyCastle.Crypto.Parameters.ECDomainParameters(ecCurve.Curve, ecCurve.G, ecCurve.N, ecCurve.H);
+
+            var q = ecCurve.Curve.DecodePoint(keyBytes);
+            var publicParams = new Org.BouncyCastle.Crypto.Parameters.ECPublicKeyParameters(q, dom);
+            var pubKey = publicParams.Q.GetEncoded(false);
+
+            var hash = SHA3Keccak.CalculateHash(pubKey);
+            var result = "0x" + Base16.Encode(hash.Skip(12).ToArray());
+            return result;
         }
 
         public static readonly string ExtCallsAddress = ConvertPhantasmaNameToHexAddress(".EXTCALLS");

@@ -525,6 +525,12 @@ namespace Phantasma.Core.Domain.VM
 
         private static object ConvertObjectInternal(object fieldValue, Type fieldType)
         {
+            if (fieldType == typeof(VMObject))
+            {
+                // edge-case, happens when calling ToArray<VMObject>()
+                return VMObject.FromObject(fieldValue);
+            }
+            else
             if (fieldType.IsStructOrClass() && fieldValue is byte[])
             {
                 var bytes = (byte[])fieldValue;
@@ -850,7 +856,14 @@ namespace Phantasma.Core.Domain.VM
             result.Copy(obj);
         }
 
-        public VMObject GetKey(VMObject key)
+        public VMObject GetField(object key)
+        {
+            var keyObj = VMObject.FromObject(key);
+            return GetField(keyObj);
+        }
+
+        // returns a sub-object based on a key, this can be used to read field from vm structs, and also to read elements from vm maps and vm arrays
+        public VMObject GetField(VMObject key)
         {
             if (this.Type != VMType.Struct)
             {
@@ -1145,6 +1158,12 @@ namespace Phantasma.Core.Domain.VM
 
         public static VMObject FromObject(object obj)
         {
+            if (obj == null)
+            {
+                // returns the vm object equivalent of null
+                return new VMObject();
+            }
+
             var objType = obj.GetType();
             var type = GetVMType(objType);
             Throw.If(type == VMType.None, "not a valid object");
