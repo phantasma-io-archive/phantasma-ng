@@ -1083,7 +1083,7 @@ namespace Phantasma.Business.Blockchain.VM
 
             var info = vm.GetToken(symbol);
 
-            if (info != null && info.IsFungible())
+            if (info != null && !info.IsFungible())
             {
                 var ownerships = vm.GetOwnerships(symbol, source);
                 var result = VMObject.FromArray(ownerships);

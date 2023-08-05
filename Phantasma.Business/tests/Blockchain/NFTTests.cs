@@ -75,7 +75,7 @@ public class NFTTests
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
     }
-    
+
     [Fact]
     public void NftMint()
     {
@@ -111,6 +111,16 @@ public class NFTTests
         // obtain tokenID
         ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
         Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+
+        {
+            // test extcalls Runtime.GetOwnerships
+            var script = new ScriptBuilder().CallInterop("Runtime.GetOwnerships", testUser.Address, symbol).EndScript();
+
+            var scriptResult = nexus.RootChain.InvokeScript(nexus.RootStorage, script, Timestamp.Now);
+
+            var infusionArray = scriptResult.ToArray<BigInteger>();
+            Assert.True(infusionArray.Length == ownedTokenList.Count());
+        }
 
         // verify nft presence on the user post-mint
         ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
