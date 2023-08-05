@@ -16,25 +16,19 @@ using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
 using Phantasma.Core.Domain.Contract.Enums;
-using Phantasma.Core.Domain.Events;
 using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Domain.Exceptions;
-using Phantasma.Core.Domain.Execution;
 using Phantasma.Core.Domain.Execution.Enums;
 using Phantasma.Core.Domain.Serializer;
-using Phantasma.Core.Domain.Tasks;
 using Phantasma.Core.Domain.Tasks.Enum;
-using Phantasma.Core.Domain.Token;
 using Phantasma.Core.Domain.Token.Enums;
 using Phantasma.Core.Domain.Token.Structs;
-using Phantasma.Core.Domain.Triggers;
 using Phantasma.Core.Domain.Triggers.Enums;
 using Phantasma.Core.Domain.Validation;
 using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Storage.Context.Structs;
-using Phantasma.Core.Types;
 using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Blockchain.VM
@@ -74,6 +68,7 @@ namespace Phantasma.Business.Blockchain.VM
 
             callback("Runtime.KillContract", 2, Runtime_KillContract);
             callback("Runtime.GetBalance", 2, Runtime_GetBalance);
+            callback("Runtime.GetOwnerships", 2, Runtime_GetOwnerships);
             callback("Runtime.TransferTokens", 4, Runtime_TransferTokens);
             callback("Runtime.TransferBalance", 3, Runtime_TransferBalance);
             callback("Runtime.MintTokens", 4, Runtime_MintTokens);
@@ -1069,13 +1064,37 @@ namespace Phantasma.Business.Blockchain.VM
             var source = vm.PopAddress();
             var symbol = vm.PopString("symbol");
 
-            var balance = vm.GetBalance(symbol, source);
-
             var result = new VMObject();
+
+            var balance = vm.GetBalance(symbol, source);
             result.SetValue(balance);
+
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
+        }
+
+        private static ExecutionState Runtime_GetOwnerships(RuntimeVM vm)
+        {
+            vm.ExpectStackSize(2);
+
+            var source = vm.PopAddress();
+            var symbol = vm.PopString("symbol");
+
+            var info = vm.GetToken(symbol);
+
+            if (info != null && info.IsFungible())
+            {
+                var ownerships = vm.GetOwnerships(symbol, source);
+                var result = VMObject.FromArray(ownerships);
+                vm.Stack.Push(result);
+
+                return ExecutionState.Running;
+            }
+            else
+            {
+                throw new VMException(vm, "Cannot obtain ownerships for token: " + symbol);
+            }
         }
 
         private static ExecutionState Runtime_TransferTokens(RuntimeVM vm)
