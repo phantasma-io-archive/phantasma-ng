@@ -68,13 +68,10 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.Log", 1, Runtime_Log);
             callback("Runtime.Notify", 3, Runtime_Notify);
             callback("Runtime.DeployContract", 4, Runtime_DeployContract);
-            
+
             // PATCH To a issue that happens when you try to upgrade a contract was discoved and path 18 april 2023
-            if (ProtocolVersion < 14)
-                callback("Runtime.UpgradeContract", 3, Runtime_UpgradeContract);
-            else
-                callback("Runtime.UpgradeContract", 4, Runtime_UpgradeContract);
-            
+            callback("Runtime.UpgradeContract", ProtocolVersion < 14 ? 3 : 4, Runtime_UpgradeContract);
+
             callback("Runtime.KillContract", 2, Runtime_KillContract);
             callback("Runtime.GetBalance", 2, Runtime_GetBalance);
             callback("Runtime.TransferTokens", 4, Runtime_TransferTokens);
@@ -86,9 +83,10 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.MintToken", 6, Runtime_MintToken);
             callback("Runtime.BurnToken", 3, Runtime_BurnToken);
             callback("Runtime.InfuseToken", 5, Runtime_InfuseToken);
+            callback("Runtime.ReadInfusions", 2, Runtime_ReadInfusions);
             callback("Runtime.ReadTokenROM", 2, Runtime_ReadTokenROM);
             callback("Runtime.ReadTokenRAM", 2, Runtime_ReadTokenRAM);
-            callback("Runtime.ReadToken", 2, Runtime_ReadToken);
+            callback("Runtime.ReadToken", ProtocolVersion < 15 ? 2: 3, Runtime_ReadToken);
             callback("Runtime.WriteToken", 4, Runtime_WriteToken);
             callback("Runtime.ContractExists", 1, Runtime_ContractExists);
             callback("Runtime.TokenExists", 1, Runtime_TokenExists);
@@ -1363,9 +1361,9 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
-        private static TokenContent Runtime_ReadTokenInternal(RuntimeVM vm)
+        private static TokenContent PopTokenContent(this RuntimeVM vm, int minArgs = 2)
         {
-            vm.ExpectStackSize(2);
+            vm.ExpectStackSize(minArgs);
 
             var symbol = vm.PopString("symbol");
             var tokenID = vm.PopNumber("token ID");
@@ -1379,7 +1377,7 @@ namespace Phantasma.Business.Blockchain.VM
 
         private static ExecutionState Runtime_ReadToken(RuntimeVM vm)
         {
-            var content = Runtime_ReadTokenInternal(vm);
+            var content = vm.PopTokenContent(3);
 
             var fieldList = vm.PopString("fields").Split(',');
 
@@ -1390,23 +1388,35 @@ namespace Phantasma.Business.Blockchain.VM
             {
                 object obj;
 
-                switch (field)
-                {
-                    case "chain": obj = content.CurrentChain; break;
-                    case "owner": obj = content.CurrentOwner.Text; break;
-                    case "creator": obj = content.Creator.Text; break;
-                    case "ROM": obj = content.ROM; break;
-                    case "RAM": obj = content.RAM; break;
-                    case "tokenID": obj = content.TokenID; break;
-                    case "seriesID": obj = content.SeriesID; break;
-                    case "mintID": obj = content.MintID; break;
+                VMObject subResult;
 
-                    default:
-                        throw new VMException(vm, "unknown nft field: " + field);
+                if (field == "infusion")
+                {
+                    var infusedTokens = content.Infusion.ToArray();
+                    subResult = VMObject.FromArray(infusedTokens);
+                }
+                else
+                {
+                    switch (field)
+                    {
+                        case "chain": obj = content.CurrentChain; break;
+                        case "owner": obj = content.CurrentOwner.Text; break;
+                        case "creator": obj = content.Creator.Text; break;
+                        case "ROM": obj = content.ROM; break;
+                        case "RAM": obj = content.RAM; break;
+                        case "tokenID": obj = content.TokenID; break;
+                        case "seriesID": obj = content.SeriesID; break;
+                        case "mintID": obj = content.MintID; break;
+
+                        default:
+                            throw new VMException(vm, "unknown nft field: " + field);
+                    }
+
+                    subResult = VMObject.FromObject(obj);
                 }
 
                 var key = VMObject.FromObject(field);
-                fields[key] = VMObject.FromObject(obj);
+                fields[key] = subResult;
             }
 
             result.SetValue(fields);
@@ -1415,24 +1425,36 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_ReadTokenRAM(RuntimeVM Runtime)
+        private static ExecutionState Runtime_ReadInfusions(RuntimeVM vm)
         {
-            var content = Runtime_ReadTokenInternal(Runtime);
+            var content = vm.PopTokenContent(2);
 
-            var result = new VMObject();
-            result.SetValue(content.RAM, VMType.Bytes);
-            Runtime.Stack.Push(result);
+            var infusedTokens = content.Infusion.ToArray();
+            var result = VMObject.FromArray(infusedTokens);
+
+            vm.Stack.Push(result);
 
             return ExecutionState.Running;
         }
 
-        private static ExecutionState Runtime_ReadTokenROM(RuntimeVM Runtime)
+        private static ExecutionState Runtime_ReadTokenRAM(RuntimeVM vm)
         {
-            var content = Runtime_ReadTokenInternal(Runtime);
+            var content = vm.PopTokenContent(2);
+
+            var result = new VMObject();
+            result.SetValue(content.RAM, VMType.Bytes);
+            vm.Stack.Push(result);
+
+            return ExecutionState.Running;
+        }
+
+        private static ExecutionState Runtime_ReadTokenROM(RuntimeVM vm)
+        {
+            var content = vm.PopTokenContent(2);
 
             var result = new VMObject();
             result.SetValue(content.ROM, VMType.Bytes);
-            Runtime.Stack.Push(result);
+            vm.Stack.Push(result);
 
             return ExecutionState.Running;
         }
