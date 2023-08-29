@@ -24,6 +24,8 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using DomainSettings = Phantasma.Core.Domain.DomainSettings;
 
+//#define ALLOWANCE_OPERATIONS = true
+
 namespace Phantasma.Business.Blockchain;
 
 public partial class Nexus : INexus
@@ -531,6 +533,8 @@ public partial class Nexus : INexus
         Runtime.Expect(amount > 0, "invalid amount");
 
         var allowed = Runtime.IsWitness(source);
+        
+        //Runtime.Expect(true, "TODO");
 
         Runtime.CheckFilterAmountThreshold(token, source, amount, "Burn Tokens");
 
@@ -898,5 +902,79 @@ public partial class Nexus : INexus
         }
     }
 
+    public void MigrateTokenOwner(StorageContext storage, Address oldOwner, Address newOwner)
+    {
+        var symbols = GetAvailableTokenSymbols(storage);
+        foreach (var symbol in symbols)
+        {
+            var token = (TokenInfo) GetTokenInfo(storage, symbol);
+            if (token.Owner == oldOwner)
+            {
+                token.Owner = newOwner;
+                EditToken(storage, symbol, token);
+            }
+        }
+    }
+
+    public IToken GetTokenInfo(StorageContext storage, Address contractAddress)
+    {
+        var symbols = GetAvailableTokenSymbols(storage);
+        foreach (var symbol in symbols)
+        {
+            var tokenAddress = TokenUtils.GetContractAddress(symbol);
+
+            if (tokenAddress == contractAddress)
+            {
+                var token = GetTokenInfo(storage, symbol);
+                return token;
+            }
+        }
+
+        return null;
+    }
+    
+    public void UpgradeTokenContract(StorageContext storage, string symbol, byte[] script, ContractInterface abi)
+    {
+        var key = GetTokenInfoKey(symbol);
+        if (!storage.Has(key))
+        {
+            throw new ChainException($"Cannot upgrade non-existing token contract: {symbol}");
+        }
+
+        if (IsDangerousSymbol(symbol))
+        {
+            throw new ChainException($"Forbidden to upgrade token contract: {symbol}");
+        }
+
+        var bytes = storage.Get(key);
+        var info = Serialization.Unserialize<TokenInfo>(bytes);
+
+        info = new TokenInfo(info.Symbol, info.Name, info.Owner, info.MaxSupply, info.Decimals, info.Flags, script, abi);
+        bytes = Serialization.Serialize(info);
+        storage.Put(key, bytes);
+    }
+
+    public SmartContract GetTokenContract(StorageContext storage, string symbol)
+    {
+        if (TokenExists(storage, symbol))
+        {
+            var token = GetTokenInfo(storage, symbol);
+
+            return new CustomContract(symbol, token.Script, token.ABI);
+        }
+
+        return null;
+    }
+
+    public SmartContract GetTokenContract(StorageContext storage, Address contractAddress)
+    {
+        var token = GetTokenInfo(storage, contractAddress);
+        if (token != null)
+        {
+            return new CustomContract(token.Symbol, token.Script, token.ABI);
+        }
+
+        return null;
+    }
     #endregion
 }

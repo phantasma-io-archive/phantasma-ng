@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-
+using Nethereum.ABI.Model;
 using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.VM;
-
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.Enums;
@@ -16,25 +15,19 @@ using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
 using Phantasma.Core.Domain.Contract.Enums;
-using Phantasma.Core.Domain.Events;
 using Phantasma.Core.Domain.Events.Structs;
 using Phantasma.Core.Domain.Exceptions;
-using Phantasma.Core.Domain.Execution;
 using Phantasma.Core.Domain.Execution.Enums;
 using Phantasma.Core.Domain.Serializer;
-using Phantasma.Core.Domain.Tasks;
 using Phantasma.Core.Domain.Tasks.Enum;
-using Phantasma.Core.Domain.Token;
 using Phantasma.Core.Domain.Token.Enums;
 using Phantasma.Core.Domain.Token.Structs;
-using Phantasma.Core.Domain.Triggers;
 using Phantasma.Core.Domain.Triggers.Enums;
 using Phantasma.Core.Domain.Validation;
 using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Storage.Context.Structs;
-using Phantasma.Core.Types;
 using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Blockchain.VM
@@ -552,7 +545,7 @@ namespace Phantasma.Business.Blockchain.VM
         /// <returns></returns>
         private static ExecutionState Data_Set(RuntimeVM vm)
         {
-            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
+            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), "Not allowed from this context");
 
             vm.ExpectStackSize(2);
 
@@ -596,7 +589,7 @@ namespace Phantasma.Business.Blockchain.VM
         /// <returns></returns>
         private static ExecutionState Data_Delete(RuntimeVM vm)
         {
-            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
+            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), "Not allowed from this context");
 
             vm.ExpectStackSize(1);
 
@@ -707,7 +700,7 @@ namespace Phantasma.Business.Blockchain.VM
 
         private static ExecutionState Map_Set(RuntimeVM vm)
         {
-            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
+            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), "Not allowed from this context");
 
             vm.ExpectStackSize(3);
 
@@ -742,7 +735,7 @@ namespace Phantasma.Business.Blockchain.VM
         private static ExecutionState Map_Remove(RuntimeVM vm)
         {
             var contextName = vm.CurrentContext.Name;
-            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+            vm.Expect(contextName != VirtualMachine.EntryContextName, "Not allowed from entry context");
 
             vm.ExpectStackSize(2);
 
@@ -772,7 +765,7 @@ namespace Phantasma.Business.Blockchain.VM
 
         private static ExecutionState Map_Clear(RuntimeVM vm)
         {
-            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
+            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), "Not allowed from this context");
 
             vm.ExpectStackSize(1);
 
@@ -798,7 +791,7 @@ namespace Phantasma.Business.Blockchain.VM
         private static ExecutionState Map_Keys(RuntimeVM vm)
         {
             var contextName = vm.CurrentContext.Name;
-            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+            vm.Expect(contextName != VirtualMachine.EntryContextName, "Not allowed from entry context");
 
             vm.ExpectStackSize(2);
 
@@ -826,7 +819,7 @@ namespace Phantasma.Business.Blockchain.VM
         private static ExecutionState Map_Values(RuntimeVM vm)
         {
             var contextName = vm.CurrentContext.Name;
-            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+            vm.Expect(contextName != VirtualMachine.EntryContextName, "Not allowed from entry context");
 
             vm.ExpectStackSize(2);
 
@@ -919,7 +912,7 @@ namespace Phantasma.Business.Blockchain.VM
 
         private static ExecutionState List_Add(RuntimeVM vm)
         {
-            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
+            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), "Not allowed from this context");
 
             vm.ExpectStackSize(2);
 
@@ -949,7 +942,7 @@ namespace Phantasma.Business.Blockchain.VM
 
         private static ExecutionState List_Replace(RuntimeVM vm)
         {
-            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
+            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), "Not allowed from this context");
 
             vm.ExpectStackSize(3);
 
@@ -982,7 +975,7 @@ namespace Phantasma.Business.Blockchain.VM
 
         private static ExecutionState List_RemoveAt(RuntimeVM vm)
         {
-            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
+            vm.Expect(!vm.IsEntryContext(vm.CurrentContext), "Not allowed from this context");
 
             vm.ExpectStackSize(2);
 
@@ -1013,7 +1006,7 @@ namespace Phantasma.Business.Blockchain.VM
         private static ExecutionState List_Clear(RuntimeVM vm)
         {
             var contextName = vm.CurrentContext.Name;
-            vm.Expect(contextName != VirtualMachine.EntryContextName, $"Not allowed from entry context");
+            vm.Expect(contextName != VirtualMachine.EntryContextName, "Not allowed from entry context");
 
             vm.ExpectStackSize(1);
 
@@ -1162,7 +1155,7 @@ namespace Phantasma.Business.Blockchain.VM
                     {
                         throw new VMException(vm, $"Minting token {symbol} not allowed from this context");
                     }
-                    else
+
                     if (vm.ProtocolVersion < 14)
                     {
                         vm.ExpectWarning(vm.IsPrimaryValidator(source), "only primary validator can mint system tokens", source);
@@ -1427,7 +1420,7 @@ namespace Phantasma.Business.Blockchain.VM
 
         private static ExecutionState Runtime_ReadInfusions(RuntimeVM vm)
         {
-            var content = vm.PopTokenContent(2);
+            var content = vm.PopTokenContent();
 
             var infusedTokens = content.Infusion.ToArray();
             var result = VMObject.FromArray(infusedTokens);
@@ -1439,7 +1432,7 @@ namespace Phantasma.Business.Blockchain.VM
 
         private static ExecutionState Runtime_ReadTokenRAM(RuntimeVM vm)
         {
-            var content = vm.PopTokenContent(2);
+            var content = vm.PopTokenContent();
 
             var result = new VMObject();
             result.SetValue(content.RAM, VMType.Bytes);
@@ -1450,7 +1443,7 @@ namespace Phantasma.Business.Blockchain.VM
 
         private static ExecutionState Runtime_ReadTokenROM(RuntimeVM vm)
         {
-            var content = vm.PopTokenContent(2);
+            var content = vm.PopTokenContent();
 
             var result = new VMObject();
             result.SetValue(content.ROM, VMType.Bytes);
@@ -1707,10 +1700,8 @@ namespace Phantasma.Business.Blockchain.VM
                 {
                     throw new VMException(vm, "use createToken instead for this kind of contract");
                 }
-                else
-                {
-                    vm.Expect(ValidationUtils.IsValidIdentifier(contractName), "invalid contract name");
-                }
+
+                vm.Expect(ValidationUtils.IsValidIdentifier(contractName), "invalid contract name");
 
                 var isReserved = ValidationUtils.IsReservedIdentifier(contractName);
 
@@ -1893,8 +1884,7 @@ namespace Phantasma.Business.Blockchain.VM
 
             vm.ValidateTriggerGuard($"{contractName}.{triggerName}");
             
-            var triggerResult = vm.InvokeTrigger(false, customContract.Script, contract.Name, contract.ABI, triggerName,
-                new object[] { from });
+            var triggerResult = vm.InvokeTrigger(false, customContract.Script, contract.Name, contract.ABI, triggerName, from);
             if (contractName == DomainSettings.LiquidityTokenSymbol)
             {
                 vm.ExpectWarning(triggerResult == TriggerResult.Success || triggerResult == TriggerResult.Missing, triggerName + " trigger failed", from);
@@ -1908,10 +1898,8 @@ namespace Phantasma.Business.Blockchain.VM
             {
                 throw new ChainException("Cannot kill token contract (missing implementation?)");
             }
-            else
-            {
-                vm.Chain.KillContract(vm.Storage, contractName);
-            }
+
+            vm.Chain.KillContract(vm.Storage, contractName);
 
             vm.Notify(EventKind.ContractKill, from, contractName);
 
@@ -1937,7 +1925,7 @@ namespace Phantasma.Business.Blockchain.VM
 
             var abiBytes = vm.PopBytes("abi bytes");
             abi = ContractInterface.FromBytes(abiBytes);
-
+            
             vm.Expect(abi.HasTokenTrigger(TokenTrigger.OnMint), $"Token contract needs to implement {TokenTrigger.OnMint}");
 
             var rootChain = (Chain)vm.GetRootChain(); // this cast is not the best, but works for now...
