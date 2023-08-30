@@ -27,7 +27,7 @@ namespace Phantasma.Infrastructure.API.Controllers
 
                 // Set the default properties here
                 rpcResponse.jsonrpc = "2.0";
-                
+
                 // Convert the RpcRequest's id to an int and set it to the RpcResponse's id
                 if (int.TryParse(req.id, out int requestId))
                 {
@@ -37,9 +37,14 @@ namespace Phantasma.Infrastructure.API.Controllers
                 {
                     Log.Warning($"Invalid ID format in RpcRequest: {req.id}. Defaulting RpcResponse ID to 1.");
                     rpcResponse.id = 1;
-                };
+                }
 
                 return rpcResponse;
+            }
+            catch (TargetInvocationException tie) when (tie.InnerException is APIException apiException)
+            {
+                Log.Error($"API - RPC Call error due to invoked method -> {apiException.Message}");
+                throw new APIException($"RPC call exception for {req}: {apiException.Message}.");;
             }
             catch (APIException apiException)
             {
