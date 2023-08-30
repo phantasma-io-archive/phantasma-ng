@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Infrastructure.API.Controllers.Structs;
 using Serilog;
 
@@ -150,6 +152,43 @@ namespace Phantasma.Infrastructure.API.Controllers
                 { typeof(ulong), e => e.GetUInt64() },
                 { typeof(decimal), e => e.GetDecimal() },
                 { typeof(bool), e => e.GetBoolean() },
+                { typeof(byte[]), e => Convert.FromBase64String(e.GetString())},
+                { 
+                    typeof(BigInteger), e =>
+                    {
+                        var value = e.GetString();
+                        if(!BigInteger.TryParse(value, out var result))
+                        {
+                            throw new Exception($"Invalid BigInteger {value}");
+                        }
+
+                        return result;
+                    }
+                },
+                {
+                    typeof(Address), e =>
+                    {
+                        var address = e.GetString();
+                        if(!Address.IsValidAddress(address))
+                        {
+                            throw new Exception($"Invalid address {address}");
+                        }
+
+                        return Address.FromText(address);
+                    }
+                },
+                {
+                    typeof(Hash), e =>
+                    {
+                        var hash = e.GetString();
+                        if(!Hash.TryParse(hash, out var result))
+                        {
+                            throw new Exception($"Invalid hash {hash}");
+                        }
+
+                        return result;
+                    }
+                }
             };
 
             if(!converters.TryGetValue(targetType, out var converter))
