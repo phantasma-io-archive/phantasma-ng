@@ -433,3 +433,4 @@ testnet/temp/
 .vscode/
 
 Phantasma.Core/tests/MyTests.cs
+NodeExample/tendermint/tendermint
