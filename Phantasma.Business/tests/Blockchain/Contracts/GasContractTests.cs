@@ -48,7 +48,6 @@ public class GasContractTests
         gas = 99999;
         initialAmount = UnitConversion.ToBigInteger(50000, DomainSettings.StakingTokenDecimals);
         initialFuel = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
-        reward = new StakeReward(user.Address, Timestamp.Now);
         InitializeSimulator();
 
         startBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol, user.Address);
@@ -56,7 +55,7 @@ public class GasContractTests
         
     protected void InitializeSimulator()
     {
-        simulator = new NexusSimulator(owner);
+        simulator = new NexusSimulator(new []{owner}, 16);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
         SetInitialBalance(user.Address);
@@ -137,6 +136,71 @@ public class GasContractTests
 
         var myValue = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, "SOUL", user.Address);
         Assert.NotEqual(0, myValue);
+    }
+
+    [Fact]
+    public void TestInflation()
+    {
+        // Phantom Force Organization
+        var phantomOrg = simulator.Nexus.GetOrganizationByName(simulator.Nexus.RootStorage, DomainSettings.PhantomForceOrganizationName);
+        var phantomForceBalanceBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, "SOUL", phantomOrg.Address);
+        
+        // Initial Supply - 171462300000000
+        var tokenSupplySOUL = simulator.Nexus.RootChain.GetTokenSupply(simulator.Nexus.RootStorage, "SOUL");
+        Assert.Equal(171462300000000, tokenSupplySOUL);
+        var InflationPerYear = 133;
+        
+        var currentSupply = tokenSupplySOUL;
+
+        var minExpectedSupply = UnitConversion.ToBigInteger(100000000, DomainSettings.StakingTokenDecimals);
+        if (currentSupply < minExpectedSupply)
+        {
+            currentSupply = minExpectedSupply;
+        }
+
+        var inflationBefore = currentSupply * 75 / 10000; 
+        
+        var inflationForEcosystem = inflationBefore * 33 / 100;
+        var inflationForPhantomForce = inflationBefore * 33 / 100;
+        var inflationForBP = inflationBefore * 33 / 100;
+        var refill = inflationBefore * 1 / 100;
+        
+        var leftovers = inflationBefore - inflationForEcosystem - inflationForPhantomForce - inflationForBP - refill;
+        
+        // Skip time
+        simulator.TimeSkipDays(90);
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        
+        // Apply Inflation
+        /*simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Gas, nameof(GasContract.ApplyInflation), owner.Address)
+                .SpendGas(owner.Address)
+                .EndScript());
+        simulator.EndBlock();*/
+        simulator.TimeSkipHours(1);
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        
+        var tokenSupplySOULAfter = simulator.Nexus.RootChain.GetTokenSupply(simulator.Nexus.RootStorage, "SOUL");
+        Assert.NotEqual(tokenSupplySOUL, tokenSupplySOULAfter);
+        
+        var inflationAmountAfter = tokenSupplySOULAfter;
+        Assert.Equal(inflationBefore + tokenSupplySOUL, inflationAmountAfter);
+        
+        
+        // Check BP's 
+        // Check Phantom Force DAO
+        var phantomForceBalanceAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, "SOUL", phantomOrg.Address);
+        Assert.Equal(inflationBefore+ phantomForceBalanceBefore, phantomForceBalanceAfter);
+        
+        simulator.TimeSkipDays(90);
+        simulator.TimeSkipHours(1);
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        
+        var totalSupplyAfterTwice = simulator.Nexus.RootChain.GetTokenSupply(simulator.Nexus.RootStorage, "SOUL");
+        Assert.Equal(inflationBefore + tokenSupplySOULAfter, totalSupplyAfterTwice);
     }
 
     private void BasicTransactionCall()

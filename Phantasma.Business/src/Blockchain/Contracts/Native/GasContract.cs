@@ -38,6 +38,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         internal bool _inflationReady;
         internal bool _fixedInflation;
 
+        internal Address _ecosystemAddress;
+        internal Address _leftoversAddress;
+        
+        private readonly int InflationMultiplier = 75;
+        private readonly int InflationDivider = 10000;
         private readonly int InflationPerYear = 133;
         private readonly int V1_TokensToCosmicSwapPercentage = 50;
         private readonly int V1_SMInflationPercentage = 10;
@@ -47,8 +52,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         private readonly int V2_SMInflationPercentage = 20;
         private readonly int V2_PhantasmaForcePercentage = 33;
         private readonly int V2_BPPercentage = 33;
-        private readonly int V2_TokensToCosmicSwapPercentage = 1;
-
+        private readonly int V2_LeftOversPercent = 1;
+        
         /// <summary>
         /// Method to check if an address has allowed gas
         /// </summary>
@@ -140,6 +145,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
             else
             {
+                // NOTE: this approximate inflation of 3% per year (0.75% per season)
+                inflationAmount = currentSupply * InflationMultiplier / InflationDivider;
                 ApplyInflationV2(from, ref inflationAmount, ref mintedAmount);
             }
             
@@ -300,39 +307,52 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="mintedAmount"></param>
         private void ApplyInflationV2(Address from, ref BigInteger inflationAmount, ref BigInteger mintedAmount)
         {
-            Runtime.Expect(V2_EcosystemPercentage + V2_PhantasmaForcePercentage + V2_BPPercentage < 100, "invalid inflation percentages");
+            Runtime.Expect(V2_EcosystemPercentage + V2_PhantasmaForcePercentage + V2_BPPercentage + V2_LeftOversPercent < 101, "invalid inflation percentages");
             
-            var ecosystemInflationAmount = inflationAmount / V2_EcosystemPercentage;
+            var ecosystemInflationAmount = inflationAmount *  V2_EcosystemPercentage / 100;
             Runtime.Expect(ecosystemInflationAmount > 0, "invalid ecosystem inflation amount");
 
-            var masterInflationAmount = ecosystemInflationAmount*  V2_SMInflationPercentage / 100;
+            var masterInflationAmount = ecosystemInflationAmount *  V2_SMInflationPercentage / 100;
             Runtime.Expect(masterInflationAmount > 0, "invalid master inflation amount");
+            Runtime.Expect(masterInflationAmount < ecosystemInflationAmount, "invalid master inflation amount");
 
             var ecosystemLeftover = ecosystemInflationAmount - masterInflationAmount;
             Runtime.Expect(ecosystemLeftover > 0, "invalid ecosystem leftovers inflation amount");
 
-            var phantomForceInflationAmount = inflationAmount / V2_PhantasmaForcePercentage;
+            var phantomForceInflationAmount = inflationAmount * V2_PhantasmaForcePercentage / 100;
             Runtime.Expect(phantomForceInflationAmount > 0, "invalid phantom force inflation amount");
 
-            var refillAmount = inflationAmount / V2_TokensToCosmicSwapPercentage;
-            Runtime.Expect(refillAmount > 0, "invalid refill amount");
+            var leftoversPercentAmount = inflationAmount  * V2_LeftOversPercent / 100;
+            Runtime.Expect(leftoversPercentAmount > 0, "invalid leftovers amount");
 
-            var bpInflationAmount = inflationAmount / V2_BPPercentage; //  inflationAmount - masterInflationAmount - phantomForceInflationAmount - refillAmount
+            var bpInflationAmount = inflationAmount * V2_BPPercentage / 100;
             Runtime.Expect(bpInflationAmount > 0, "invalid bp inflation amount");
 
-            var leftoverAmount = inflationAmount - ecosystemInflationAmount - phantomForceInflationAmount - refillAmount - bpInflationAmount;
+            var leftoverAmount = inflationAmount - ecosystemInflationAmount - phantomForceInflationAmount - leftoversPercentAmount - bpInflationAmount;
             
             Runtime.Expect(inflationAmount == 
-                           ( masterInflationAmount + phantomForceInflationAmount + bpInflationAmount + refillAmount + ecosystemInflationAmount), 
+                           (ecosystemInflationAmount + phantomForceInflationAmount + bpInflationAmount + leftoversPercentAmount + leftoverAmount), 
                 "invalid inflation amount");
 
             HandleMastersOrganization(ref masterInflationAmount);
             
-            RefillCosmicSwapPool(ref refillAmount);
+            HandleEcosystemLeftovers(ref ecosystemLeftover);
+            
+            var allLeftoversAmount = leftoverAmount + leftoversPercentAmount;
+            HandleLeftoversAmounts(ref allLeftoversAmount);
 
             HandlePhantomForce(ref phantomForceInflationAmount);
             
             HandleBPOrganization(ref bpInflationAmount);
+        }
+
+        /// <summary>
+        /// Ecosystem Leftovers
+        /// </summary>
+        /// <param name="ecosystemLeftover"></param>
+        private void HandleEcosystemLeftovers(ref BigInteger ecosystemLeftover)
+        {
+            Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, _ecosystemAddress, ecosystemLeftover);
         }
 
         /// <summary>
@@ -349,26 +369,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             {
                 var masterDate = Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetMasterDate), addr).AsTimestamp();
                 // This is to check if the user is a master for more than 3 months (90 days)
-                if (Runtime.ProtocolVersion >= 14)
+                if (masterDate <= _lastInflationDate)
                 {
-                    if (masterDate <= _lastInflationDate)
-                    {
-                        rewardList.Add(addr);
-                    }
-                }
-                else if (Runtime.ProtocolVersion == 12)
-                {
-                    if (masterDate <= _nextInflationDate)
-                    {
-                        rewardList.Add(addr);
-                    }
-                }
-                else
-                {
-                    if (masterDate <= _lastInflationDate)
-                    {
-                        rewardList.Add(addr);
-                    }
+                    rewardList.Add(addr);
                 }
             }
 
@@ -377,7 +380,14 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 return;
             }
 
-            var rewardAmount = inflationAmount;
+            // Mint Token and Stake for the Crown Contract. (Increase Storage)
+            BigInteger stakeAmount = UnitConversion.ToBigInteger(2, DomainSettings.StakingTokenDecimals);
+            var crownAddress = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
+            Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, crownAddress, stakeAmount);
+            Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Stake), crownAddress, stakeAmount);
+            
+            // Calculate the Rewards
+            var rewardAmount = inflationAmount - stakeAmount;
 
             var rewardStake = rewardAmount / rewardList.Count;
             rewardAmount = rewardList.Count * rewardStake; // eliminate leftovers
@@ -387,24 +397,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             _rewardAccum -= rewardList.Count * rewardFuel;
             Runtime.Expect(_rewardAccum >= 0, "invalid reward leftover");
 
-            BigInteger stakeAmount = UnitConversion.ToBigInteger(2, DomainSettings.StakingTokenDecimals);
-
             // Mint Tokens for the rewards
             Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, Address, rewardAmount);
-
-            // Mint Token and Stake for the Crown Contract. (Increase Storage)
-            var crownAddress = TokenUtils.GetContractAddress(DomainSettings.RewardTokenSymbol);
-            Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, crownAddress, stakeAmount);
-            Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.Stake), crownAddress, stakeAmount);
-
+            
             foreach (var addr in rewardList)
             {
-                var reward = new StakeReward(addr, Runtime.Time);
-                if (Runtime.ProtocolVersion >= 12)
-                {
-                    reward = new StakeReward(addr, _nextInflationDate.Value);
-                }
-
+                var reward = new StakeReward(addr, _nextInflationDate.Value);
                 var rom = reward.Serialize();
 
                 var tokenID = Runtime.MintToken(DomainSettings.RewardTokenSymbol, Address, Address, rom, new byte[0], 0);
@@ -418,14 +416,13 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         }
         
         /// <summary>
-        /// Handle the Cosmic Swap Pool Refill
+        /// Handle the leftovers Amounts
         /// </summary>
-        /// <param name="refillAmount"></param>
-        private void RefillCosmicSwapPool(ref BigInteger refillAmount)
+        /// <param name="leftoversAmount"></param>
+        private void HandleLeftoversAmounts(ref BigInteger leftoversAmount)
         {
             // NOTE this is to refill the cosmic swap pool
-            var cosmicAddress = GetAddressForNative(NativeContractKind.Swap);
-            Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, cosmicAddress, refillAmount);
+            Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, _leftoversAddress, leftoversAmount);
         }
         
         /// <summary>
@@ -468,7 +465,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 bpInflationAmount -= bpReward * bpSize; // eliminate leftovers
                 
                 // Transfer the leftovers to the BP Organization
-                Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, bpOrg.Address, bpInflationAmount);
+                if ( bpInflationAmount > 0 )
+                    Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, bpOrg.Address, bpInflationAmount);
             }
         }
 
@@ -677,7 +675,67 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 Runtime.TransferTokens(DomainSettings.FuelTokenSymbol, Address, validatorAddress, validatorPayment);
             }
         }
+        
+        /// <summary>
+        /// Set the Ecosystem Address
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="ecosystemAddress"></param>
+        public void SetEcosystemAddress(Address from, Address ecosystemAddress)
+        {
+            Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(Runtime.IsKnownValidator(from), "invalid validator");
+            //Runtime.Expect(ecosystemAddress.IsSystem, "invalid address");
+            
+            var org = Runtime.GetOrganization(DomainSettings.ValidatorsOrganizationName);
+            var orgMembers = org.GetMembers();
+            
+            Runtime.Expect(org != null, "no validators org");
+            Runtime.Expect(org.IsMember(from), "not a validator");
+            Runtime.Expect(Runtime.Transaction.Signatures.Length == orgMembers.Length, "must be signed by all org members");
+            
+            var msg = Runtime.Transaction.ToByteArray(false);
+            foreach (var signature in Runtime.Transaction.Signatures)
+            {
+                Runtime.Expect(signature.Verify(msg, orgMembers), "invalid signature");
+            }
 
+            Runtime.Expect(Runtime.Transaction.IsSignedBy(orgMembers), "Invalid Signatures.");
+            
+            _ecosystemAddress = ecosystemAddress;
+        }
+
+        /// <summary>
+        /// Set Leftovers Address
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="leftoversAddress"></param>
+        public void SetLeftoversAddress(Address from, Address leftoversAddress)
+        {
+            Runtime.Expect(Runtime.IsRootChain(), "must be root chain");
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(Runtime.IsKnownValidator(from), "invalid validator");
+            //Runtime.Expect(leftoversAddress.IsSystem, "invalid address");
+            
+            var org = Runtime.GetOrganization(DomainSettings.ValidatorsOrganizationName);
+            var orgMembers = org.GetMembers();
+            
+            Runtime.Expect(org != null, "no validators org");
+            Runtime.Expect(org.IsMember(from), "not a validator");
+            Runtime.Expect(Runtime.Transaction.Signatures.Length == orgMembers.Length, "must be signed by all org members");
+            
+            var msg = Runtime.Transaction.ToByteArray(false);
+            foreach (var signature in Runtime.Transaction.Signatures)
+            {
+                Runtime.Expect(signature.Verify(msg, orgMembers), "invalid signature");
+            }
+
+            Runtime.Expect(Runtime.Transaction.IsSignedBy(orgMembers), "Invalid Signatures.");
+            
+            _leftoversAddress = leftoversAddress;
+        }
+        
         /// <summary>
         /// Method used to return the last inflation date.
         /// </summary>
