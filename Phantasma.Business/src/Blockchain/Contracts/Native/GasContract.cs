@@ -344,6 +344,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             HandlePhantomForce(ref phantomForceInflationAmount);
             
             HandleBPOrganization(ref bpInflationAmount);
+
+            mintedAmount = inflationAmount;
         }
 
         /// <summary>
@@ -352,6 +354,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="ecosystemLeftover"></param>
         private void HandleEcosystemLeftovers(ref BigInteger ecosystemLeftover)
         {
+            if ( _ecosystemAddress.Text == Address.NullText )
+            {
+                _ecosystemAddress = Runtime.GetOrganization(DomainSettings.PhantomForceOrganizationName).Address;
+            }
             Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, _ecosystemAddress, ecosystemLeftover);
         }
 
@@ -421,7 +427,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="leftoversAmount"></param>
         private void HandleLeftoversAmounts(ref BigInteger leftoversAmount)
         {
-            // NOTE this is to refill the cosmic swap pool
+            if ( _leftoversAddress.Text == Address.NullText )
+            {
+                _leftoversAddress = Runtime.GetOrganization(DomainSettings.PhantomForceOrganizationName).Address;
+            }
+            
             Runtime.MintTokens(DomainSettings.StakingTokenSymbol, Address, _leftoversAddress, leftoversAmount);
         }
         
@@ -694,14 +704,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(org != null, "no validators org");
             Runtime.Expect(org.IsMember(from), "not a validator");
             Runtime.Expect(Runtime.Transaction.Signatures.Length == orgMembers.Length, "must be signed by all org members");
-            
-            var msg = Runtime.Transaction.ToByteArray(false);
-            foreach (var signature in Runtime.Transaction.Signatures)
-            {
-                Runtime.Expect(signature.Verify(msg, orgMembers), "invalid signature");
-            }
-
-            Runtime.Expect(Runtime.Transaction.IsSignedBy(orgMembers), "Invalid Signatures.");
+            Runtime.Expect(Runtime.Transaction.IsSignedByEveryone(orgMembers), "Invalid Signatures. Must be signed by all org members");
             
             _ecosystemAddress = ecosystemAddress;
         }
@@ -724,14 +727,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(org != null, "no validators org");
             Runtime.Expect(org.IsMember(from), "not a validator");
             Runtime.Expect(Runtime.Transaction.Signatures.Length == orgMembers.Length, "must be signed by all org members");
-            
-            var msg = Runtime.Transaction.ToByteArray(false);
-            foreach (var signature in Runtime.Transaction.Signatures)
-            {
-                Runtime.Expect(signature.Verify(msg, orgMembers), "invalid signature");
-            }
-
-            Runtime.Expect(Runtime.Transaction.IsSignedBy(orgMembers), "Invalid Signatures.");
+            Runtime.Expect(Runtime.Transaction.IsSignedByEveryone(orgMembers), "Invalid Signatures. Must be signed by all org members");
             
             _leftoversAddress = leftoversAddress;
         }

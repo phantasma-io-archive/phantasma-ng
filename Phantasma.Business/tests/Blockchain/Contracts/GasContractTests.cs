@@ -22,8 +22,8 @@ namespace Phantasma.Business.Tests.Blockchain.Contracts;
 [Collection(nameof(SystemTestCollectionDefinition))]
 public class GasContractTests
 {
-    Address sysAddress;
     PhantasmaKeys user;
+    PhantasmaKeys user2;
     PhantasmaKeys owner;
     Nexus nexus;
     NexusSimulator simulator;
@@ -41,8 +41,8 @@ public class GasContractTests
 
     private void Initialize()
     {
-        sysAddress = SmartContract.GetAddressForNative(NativeContractKind.Friends);
         user = PhantasmaKeys.Generate();
+        user2 = PhantasmaKeys.Generate();
         owner = PhantasmaKeys.Generate();
         amountRequested = 100000000;
         gas = 99999;
@@ -144,7 +144,8 @@ public class GasContractTests
         // Phantom Force Organization
         var phantomOrg = simulator.Nexus.GetOrganizationByName(simulator.Nexus.RootStorage, DomainSettings.PhantomForceOrganizationName);
         var phantomForceBalanceBefore = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, "SOUL", phantomOrg.Address);
-        
+        var phantomForceBalanceStackedBefore = simulator.Nexus.GetStakeFromAddress(simulator.Nexus.RootStorage,
+            phantomOrg.Address, simulator.CurrentTime); 
         // Initial Supply - 171462300000000
         var tokenSupplySOUL = simulator.Nexus.RootChain.GetTokenSupply(simulator.Nexus.RootStorage, "SOUL");
         Assert.Equal(171462300000000, tokenSupplySOUL);
@@ -161,11 +162,13 @@ public class GasContractTests
         var inflationBefore = currentSupply * 75 / 10000; 
         
         var inflationForEcosystem = inflationBefore * 33 / 100;
+        var masterInflation = inflationForEcosystem* 20 / 100;
+        var ecosystemLeftovers = inflationForEcosystem - masterInflation;
         var inflationForPhantomForce = inflationBefore * 33 / 100;
         var inflationForBP = inflationBefore * 33 / 100;
-        var refill = inflationBefore * 1 / 100;
+        var percentInflationLeftovers = inflationBefore * 1 / 100;
         
-        var leftovers = inflationBefore - inflationForEcosystem - inflationForPhantomForce - inflationForBP - refill;
+        var leftovers = inflationBefore - inflationForEcosystem - inflationForPhantomForce - inflationForBP - percentInflationLeftovers;
         
         // Skip time
         simulator.TimeSkipDays(90);
@@ -193,7 +196,11 @@ public class GasContractTests
         // Check BP's 
         // Check Phantom Force DAO
         var phantomForceBalanceAfter = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, "SOUL", phantomOrg.Address);
-        Assert.Equal(inflationBefore+ phantomForceBalanceBefore, phantomForceBalanceAfter);
+        var phantomForceBalanceStackedAfter = simulator.Nexus.GetStakeFromAddress(simulator.Nexus.RootStorage,
+            phantomOrg.Address, simulator.CurrentTime); 
+        Assert.Equal( phantomForceBalanceBefore + ecosystemLeftovers + leftovers + percentInflationLeftovers, phantomForceBalanceAfter);
+        Assert.Equal( phantomForceBalanceStackedBefore + inflationForPhantomForce , phantomForceBalanceStackedAfter);
+        
         
         simulator.TimeSkipDays(90);
         simulator.TimeSkipHours(1);
@@ -201,6 +208,47 @@ public class GasContractTests
         
         var totalSupplyAfterTwice = simulator.Nexus.RootChain.GetTokenSupply(simulator.Nexus.RootStorage, "SOUL");
         Assert.Equal(inflationBefore + tokenSupplySOULAfter, totalSupplyAfterTwice);
+    }
+
+    [Fact]
+    public void TestSetEcosystemAndLeftoversAddress()
+    {
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Gas, nameof(GasContract.SetEcosystemAddress), owner.Address, user.Address)
+                .SpendGas(owner.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Gas, nameof(GasContract.SetLeftoversAddress), owner.Address, user2.Address)
+                .SpendGas(owner.Address)
+                .EndScript());
+        simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        
+        var user1BalancesBeforeInflation = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, "SOUL", user.Address);
+        var user2BalancesBeforeInflation = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, "SOUL", user2.Address);
+        
+        // Skip time
+        simulator.TimeSkipDays(90);
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        
+        // Apply Inflation
+        simulator.TimeSkipHours(1);
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        
+        var user1BalancesAfterInflation = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, "SOUL", user.Address);
+        var user2BalancesAfterInflation = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, "SOUL", user2.Address);
+        
+        Assert.NotEqual(user1BalancesBeforeInflation, user1BalancesAfterInflation);
+        Assert.NotEqual(user2BalancesBeforeInflation, user2BalancesAfterInflation);
     }
 
     private void BasicTransactionCall()
