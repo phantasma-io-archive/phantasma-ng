@@ -119,13 +119,13 @@ public class OracleSettings
                 throw new Exception($"Config is missing interop for platform '{platformName}'");
             }
 
-            var fuel = node.GetString("fuel");
+            /*var fuel = node.GetString("fuel");
             if (string.IsNullOrEmpty(fuel))
             {
                 throw new Exception($"Config is missing fuel for platform '{platformName}'");
             }
 
-            platform.Fuel = fuel;
+            platform.Fuel = fuel;*/
 
             var tokens = node.GetSection("tokens");
             if (tokens == null)

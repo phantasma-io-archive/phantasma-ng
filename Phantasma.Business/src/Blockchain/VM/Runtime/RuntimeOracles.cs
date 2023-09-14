@@ -8,9 +8,6 @@ namespace Phantasma.Business.Blockchain.VM;
 
 public partial class RuntimeVM : GasMachine, IRuntime
 {
-    
-    #region ORACLES
-
     // returns value in FIAT token
     public BigInteger GetTokenPrice(string symbol)
     {
@@ -38,7 +35,4 @@ public partial class RuntimeVM : GasMachine, IRuntime
         ExpectUrlLength(URL, nameof(URL));
         return Oracle.Read<byte[]>(Time, URL);
     }
-    #endregion
-
-    
 }

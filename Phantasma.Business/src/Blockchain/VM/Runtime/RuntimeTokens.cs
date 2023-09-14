@@ -21,12 +21,27 @@ namespace Phantasma.Business.Blockchain.VM;
 
 public partial class RuntimeVM : GasMachine, IRuntime
 {
-    
+    /// <summary>
+    /// Check if a token is a system token
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <returns></returns>
     public bool IsSystemToken(string symbol)
     {
         return Nexus.IsSystemToken(symbol);
     }
     
+    /// <summary>
+    /// Create a new token
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="symbol"></param>
+    /// <param name="name"></param>
+    /// <param name="maxSupply"></param>
+    /// <param name="decimals"></param>
+    /// <param name="flags"></param>
+    /// <param name="script"></param>
+    /// <param name="abi"></param>
     public void CreateToken(Address owner, string symbol, string name, BigInteger maxSupply, int decimals,
         TokenFlags flags, byte[] script, ContractInterface abi)
     {
@@ -120,6 +135,12 @@ public partial class RuntimeVM : GasMachine, IRuntime
         this.Notify(EventKind.TokenCreate, owner, symbol);
     }
 
+    /// <summary>
+    /// Get Balance of a specific token for a specific address
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <param name="address"></param>
+    /// <returns></returns>
     public BigInteger GetBalance(string symbol, Address address)
     {
         ExpectNameLength(symbol, nameof(symbol));
@@ -129,6 +150,12 @@ public partial class RuntimeVM : GasMachine, IRuntime
         return Chain.GetTokenBalance(Storage, token, address);
     }
 
+    /// <summary>
+    /// Get NFT ID for a specific address and token symbol
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <param name="address"></param>
+    /// <returns></returns>
     public BigInteger[] GetOwnerships(string symbol, Address address)
     {
         ExpectNameLength(symbol, nameof(symbol));
@@ -137,6 +164,11 @@ public partial class RuntimeVM : GasMachine, IRuntime
         return Chain.GetOwnedTokens(Storage, symbol, address);
     }
 
+    /// <summary>
+    /// Get Token Supply for a specific token symbol
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <returns></returns>
     public BigInteger GetTokenSupply(string symbol)
     {
         ExpectNameLength(symbol, nameof(symbol));
@@ -144,12 +176,23 @@ public partial class RuntimeVM : GasMachine, IRuntime
         return Chain.GetTokenSupply(Storage, symbol);
     }
 
+    /// <summary>
+    /// Check if a specific token exists
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <returns></returns>
     public bool TokenExists(string symbol)
     {
         ExpectNameLength(symbol, nameof(symbol));
         return Nexus.TokenExists(RootStorage, symbol);
     }
 
+    /// <summary>
+    /// Check if a specific NFT exists
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <param name="tokenID"></param>
+    /// <returns></returns>
     public bool NFTExists(string symbol, BigInteger tokenID)
     {
         ExpectNameLength(symbol, nameof(symbol));
@@ -157,6 +200,12 @@ public partial class RuntimeVM : GasMachine, IRuntime
         return Nexus.HasNFT(RootStorage, symbol, tokenID);
     }
 
+    /// <summary>
+    /// Check if a specific Token exists on a specific platform
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <param name="platform"></param>
+    /// <returns></returns>
     public bool TokenExists(string symbol, string platform)
     {
         ExpectNameLength(symbol, nameof(symbol));
@@ -542,6 +591,13 @@ public partial class RuntimeVM : GasMachine, IRuntime
         }
     }
 
+    /// <summary>
+    /// Write Token, this method is used to write data to a NFT
+    /// </summary>
+    /// <param name="from"></param>
+    /// <param name="tokenSymbol"></param>
+    /// <param name="tokenID"></param>
+    /// <param name="ram"></param>
     public void WriteToken(Address from, string tokenSymbol, BigInteger tokenID, byte[] ram)
     {
         ExpectAddressSize(from, nameof(from));
@@ -559,17 +615,33 @@ public partial class RuntimeVM : GasMachine, IRuntime
             nft.SeriesID, nft.Timestamp, nft.Infusion, true);
     }
 
+    /// <summary>
+    /// Read Token, this method is used to read data from a NFT
+    /// </summary>
+    /// <param name="tokenSymbol"></param>
+    /// <param name="tokenID"></param>
+    /// <returns></returns>
     public TokenContent ReadToken(string tokenSymbol, BigInteger tokenID)
     {
         ExpectNameLength(tokenSymbol, nameof(tokenSymbol));
         return Nexus.ReadNFT(this, tokenSymbol, tokenID);
     }
 
+    /// <summary>
+    /// Return all the Tokens available on Phantasma
+    /// </summary>
+    /// <returns></returns>
     public string[] GetTokens()
     {
         return Nexus.GetAvailableTokenSymbols(RootStorage);
     }
 
+    /// <summary>
+    /// Get Token Platform Hash, this method is used to get the Hash of a Token on a specific platform
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <param name="platform"></param>
+    /// <returns></returns>
     public Hash GetTokenPlatformHash(string symbol, IPlatform platform)
     {
         ExpectNameLength(symbol, nameof(symbol));
@@ -583,6 +655,11 @@ public partial class RuntimeVM : GasMachine, IRuntime
         return Nexus.GetTokenPlatformHash(symbol, platform.Name, RootStorage);
     }
 
+    /// <summary>
+    /// Get Token
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <returns></returns>
     public IToken GetToken(string symbol)
     {
         ExpectNameLength(symbol, nameof(symbol));
