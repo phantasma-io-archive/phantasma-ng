@@ -1923,10 +1923,6 @@ namespace Phantasma.Business.Blockchain.VM
             vm.ExpectStackSize(3);
 
             owner = vm.PopAddress();
-            if (vm.ProtocolVersion >= 16)
-            {
-                vm.Expect(vm.IsWitness(owner), "invalid witness");
-            }
 
             var script = vm.PopBytes("script");
 
