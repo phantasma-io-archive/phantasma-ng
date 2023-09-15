@@ -272,6 +272,12 @@ public class ConcensusContractTests
         Assert.Equal(endTime, consensusPoll.endTime);
         Assert.Equal(1, consensusPoll.totalVotes);
         
+        // Get the Stacking power
+        var votePower = simulator.InvokeContract(NativeContractKind.Stake, nameof(StakeContract.GetAddressVotingPower), user.Address).AsNumber();
+        
+        Assert.Equal(consensusPoll.entries[0].votes, votePower * 75 / 100);
+        Assert.Equal(consensusPoll.entries[1].votes, votePower * 25 / 100);
+        
         // Change the vote
         MultiVote(user, subject, new PollVote[] { new PollVote
         {
@@ -282,6 +288,12 @@ public class ConcensusContractTests
             index = 1,
             percentage = 50,
         } });
+        
+        // Re-check the vote
+        consensusPoll = simulator.InvokeContract(NativeContractKind.Consensus, nameof(ConsensusContract.GetConsensusPoll), subject).AsStruct<ConsensusPoll>();
+
+        Assert.Equal(consensusPoll.entries[0].votes, votePower * 50 / 100);
+        Assert.Equal(consensusPoll.entries[1].votes, votePower * 50 / 100);
     }
 
     [Fact]
