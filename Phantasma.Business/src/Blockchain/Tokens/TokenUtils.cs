@@ -24,6 +24,7 @@ using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Domain.VM.Structs;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Blockchain.Tokens
 {
@@ -232,6 +233,11 @@ namespace Phantasma.Business.Blockchain.Tokens
             if (result == ExecutionState.Halt)
             {
                 return vm.Stack.Pop();
+            }
+
+            if (result == ExecutionState.Fault)
+            {
+                return new VMObject().SetValue("unknown");
             }
 
             throw new Exception("Script execution failed for: " + method.name);
