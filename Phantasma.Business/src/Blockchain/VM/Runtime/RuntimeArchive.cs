@@ -12,6 +12,16 @@ namespace Phantasma.Business.Blockchain.VM;
 
 public partial class RuntimeVM : GasMachine, IRuntime
 {
+    /// <summary>
+    /// Create a new archive
+    /// </summary>
+    /// <param name="merkleTree"></param>
+    /// <param name="owner"></param>
+    /// <param name="name"></param>
+    /// <param name="size"></param>
+    /// <param name="time"></param>
+    /// <param name="encryption"></param>
+    /// <returns></returns>
     public IArchive CreateArchive(MerkleTree merkleTree, Address owner, string name, BigInteger size,
         Timestamp time, IArchiveEncryption encryption)
     {
@@ -27,6 +37,13 @@ public partial class RuntimeVM : GasMachine, IRuntime
         return archive;
     }
 
+    /// <summary>
+    /// Write data to an archive
+    /// </summary>
+    /// <param name="archive"></param>
+    /// <param name="blockIndex"></param>
+    /// <param name="data"></param>
+    /// <returns></returns>
     public bool WriteArchive(IArchive archive, int blockIndex, byte[] data)
     {
         //TODO: archive validation
@@ -47,18 +64,33 @@ public partial class RuntimeVM : GasMachine, IRuntime
         return true;
     }
     
+    /// <summary>
+    /// Checks if an archive exists
+    /// </summary>
+    /// <param name="hash"></param>
+    /// <returns></returns>
     public bool ArchiveExists(Hash hash)
     {
         ExpectHashSize(hash, nameof(hash));
         return Nexus.ArchiveExists(RootStorage, hash);
     }
 
+    /// <summary>
+    /// Gets an archive
+    /// </summary>
+    /// <param name="hash"></param>
+    /// <returns></returns>
     public IArchive GetArchive(Hash hash)
     {
         ExpectHashSize(hash, nameof(hash));
         return Nexus.GetArchive(RootStorage, hash);
     }
 
+    /// <summary>
+    /// Delete an archive
+    /// </summary>
+    /// <param name="hash"></param>
+    /// <returns></returns>
     public bool DeleteArchive(Hash hash)
     {
         ExpectHashSize(hash, nameof(hash));
@@ -72,6 +104,12 @@ public partial class RuntimeVM : GasMachine, IRuntime
         return Nexus.DeleteArchive(RootStorage, archive);
     }
 
+    /// <summary>
+    /// Add an owner to an archive
+    /// </summary>
+    /// <param name="hash"></param>
+    /// <param name="address"></param>
+    /// <returns></returns>
     public bool AddOwnerToArchive(Hash hash, Address address)
     {
         ExpectHashSize(hash, nameof(hash));
@@ -90,6 +128,12 @@ public partial class RuntimeVM : GasMachine, IRuntime
         return true;
     }
 
+    /// <summary>
+    /// Remove an owner from an archive
+    /// </summary>
+    /// <param name="hash"></param>
+    /// <param name="address"></param>
+    /// <returns></returns>
     public bool RemoveOwnerFromArchive(Hash hash, Address address)
     {
         ExpectHashSize(hash, nameof(hash));

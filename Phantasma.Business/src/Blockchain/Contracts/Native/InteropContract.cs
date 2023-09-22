@@ -52,27 +52,6 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
         }
         
-        public StorageMap GetPlatformHashes()
-        {
-            return _platformHashes;
-        }
-        
-        public StorageList GetWithdraws()
-        {
-            return _withdraws;
-        }
-
-        public StorageMap GetSwapMap()
-        {
-            return _swapMap;
-        }
-        
-        public StorageMap GetHistory()
-        {
-            return _historyMap;
-        }
-
-
         // This contract call associates a new swap address to a specific platform. 
         // Existing swap addresses will still be considered valid for receiving funds
         // However nodes should start sending assets from this new address when doing swaps going from Phantasma to this platform
