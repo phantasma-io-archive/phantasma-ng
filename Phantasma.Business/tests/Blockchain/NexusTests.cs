@@ -47,7 +47,7 @@ public class NexusTests : IDisposable
                         Path.DirectorySeparatorChar;
         Directory.CreateDirectory(PartitionPath);
 
-        Nexus = new Nexus("unittest", name => new MemoryStore());
+        Nexus = Business.Blockchain.Nexus.Initialize<Chain>("unittest", name => new MemoryStore());
         var maxSupply = 10000000;
 
         var flags = TokenFlags.Burnable | TokenFlags.Divisible | TokenFlags.Fungible | TokenFlags.Mintable |

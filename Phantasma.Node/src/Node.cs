@@ -16,6 +16,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage;
+using Phantasma.Core.Storage.Interfaces;
 using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.API;
 using Phantasma.Infrastructure.Pay.Chains;
@@ -223,21 +224,25 @@ namespace Phantasma.Node
             var oraclePath = Settings.Instance.Node.OraclePath;
             var nexusName = Settings.Instance.Node.NexusName;
 
+            Func<string, IKeyValueStoreAdapter> adapter;
+
             switch (Settings.Instance.Node.StorageBackend)
             {
                 case StorageBackendType.CSV:
                     Log.Information("Setting CSV nexus...");
-                    NexusAPI.Nexus = new Nexus(nexusName, (name) => new BasicDiskStore(storagePath + name + ".csv"));
+                    adapter = (name) => new BasicDiskStore(storagePath + name + ".csv");
                     break;
 
                 case StorageBackendType.RocksDB:
                     Log.Information("Setting RocksDB nexus...");
-                    NexusAPI.Nexus = new Nexus(nexusName, (name) => new DBPartition(storagePath + name));
+                    adapter = (name) => new DBPartition(storagePath + name);
                     break;
+
                 default:
                     throw new Exception("Backend has to be set to either \"db\" or \"file\"");
             }
 
+            NexusAPI.Nexus = Nexus.Initialize<TendermintChain>(nexusName, adapter);
             NexusAPI.TRPC = new NodeRpcClient(_tendermint_RPC_URL);
 
             Log.Information("Nexus is set");
