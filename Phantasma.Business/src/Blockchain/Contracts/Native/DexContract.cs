@@ -33,7 +33,6 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         internal BigInteger _DEXversion;
         public BigInteger GetDexVerion() => GetDexVersion();
 
-
         /// <summary>
         /// Returns the current DEX version
         /// </summary>

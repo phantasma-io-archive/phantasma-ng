@@ -118,6 +118,12 @@ namespace Phantasma.Infrastructure.API.Controllers
             {
                 throw new APIException("invalid number");
             }
+            
+            if (parsedHeight <= 0)
+            {
+                throw new APIException("invalid number");
+            }
+            
             var blockHash = chain.GetBlockHashAtHeight(parsedHeight);
             var block = chain.GetBlockByHash(blockHash);
 
@@ -157,6 +163,12 @@ namespace Phantasma.Infrastructure.API.Controllers
             {
                 throw new APIException("invalid number");
             }
+            
+            if (parsedHeight <= 0)
+            {
+                throw new APIException("invalid number");
+            }
+            
             var blockHash = chain.GetBlockHashAtHeight(parsedHeight);
             var block = chain.GetBlockByHash(blockHash);
 

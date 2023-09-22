@@ -10,26 +10,47 @@ namespace Phantasma.Business.Blockchain.VM;
 
 public partial class RuntimeVM : GasMachine, IRuntime
 {
+    /// <summary>
+    /// Checks if chain exists
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public bool ChainExists(string name)
     {
         ExpectNameLength(name, nameof(name));
         return Nexus.ChainExists(RootStorage, name);
     }
 
+    /// <summary>
+    /// Get the index of a chain
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public int GetIndexOfChain(string name)
     {
         ExpectNameLength(name, nameof(name));
         return Nexus.GetIndexOfChain(name);
     }
 
+    /// <summary>
+    /// Get the chain parent
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public IChain GetChainParent(string name)
     {
         ExpectNameLength(name, nameof(name));
         var parentName = Nexus.GetParentChainByName(name);
         return GetChainByName(parentName);
     }
-
-
+    
+    /// <summary>
+    /// Create a new chain
+    /// </summary>
+    /// <param name="creator"></param>
+    /// <param name="organization"></param>
+    /// <param name="name"></param>
+    /// <param name="parentChain"></param>
     public void CreateChain(Address creator, string organization, string name, string parentChain)
     {
         ExpectAddressSize(creator, nameof(creator));
@@ -61,6 +82,11 @@ public partial class RuntimeVM : GasMachine, IRuntime
         this.Notify(EventKind.ChainCreate, creator, name);
     }
 
+    /// <summary>
+    /// Is Address of Parent Chain
+    /// </summary>
+    /// <param name="address"></param>
+    /// <returns></returns>
     public bool IsAddressOfParentChain(Address address)
     {
         if (IsRootChain())
@@ -74,6 +100,11 @@ public partial class RuntimeVM : GasMachine, IRuntime
         return target.Name == parentName;
     }
 
+    /// <summary>
+    /// Is Address of Child Chain
+    /// </summary>
+    /// <param name="address"></param>
+    /// <returns></returns>
     public bool IsAddressOfChildChain(Address address)
     {
         ExpectAddressSize(address, nameof(address));
@@ -81,6 +112,11 @@ public partial class RuntimeVM : GasMachine, IRuntime
         return Chain.Name == parentName;
     }
 
+    /// <summary>
+    /// Is Name of Parent Chain
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public bool IsNameOfParentChain(string name)
     {
         if (IsRootChain())
@@ -93,6 +129,11 @@ public partial class RuntimeVM : GasMachine, IRuntime
         return name == parentName;
     }
 
+    /// <summary>
+    /// Is Name of Child Chain
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public bool IsNameOfChildChain(string name)
     {
         ExpectNameLength(name, nameof(name));
@@ -100,28 +141,50 @@ public partial class RuntimeVM : GasMachine, IRuntime
         return Chain.Name == parentName;
     }
 
+    /// <summary>
+    /// Get Chain by Address
+    /// </summary>
+    /// <param name="address"></param>
+    /// <returns></returns>
     public IChain GetChainByAddress(Address address)
     {
         ExpectAddressSize(address, nameof(address));
         return Nexus.GetChainByAddress(address);
     }
 
+    /// <summary>
+    /// Get Chain by name
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public IChain GetChainByName(string name)
     {
         ExpectNameLength(name, nameof(name));
         return Nexus.GetChainByName(name);
     }
 
+    /// <summary>
+    /// Get all the chains
+    /// </summary>
+    /// <returns></returns>
     public string[] GetChains()
     {
         return Nexus.GetChains(RootStorage);
     }
 
+    /// <summary>
+    /// Get the root chain
+    /// </summary>
+    /// <returns></returns>
     public IChain GetRootChain()
     {
         return GetChainByName(DomainSettings.RootChainName);
     }
 
+    /// <summary>
+    /// Check if chain is root chain
+    /// </summary>
+    /// <returns></returns>
     public bool IsRootChain()
     {
         var rootChain = GetRootChain();

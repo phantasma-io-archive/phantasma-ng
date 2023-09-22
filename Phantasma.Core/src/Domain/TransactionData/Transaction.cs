@@ -259,18 +259,27 @@ namespace Phantasma.Core.Domain.TransactionData
             return sig;
         }
 
+        /// <summary>
+        /// Check if this transaction was signed by the given address
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public bool IsSignedBy(Address address)
         {
             return IsSignedBy(new Address[] { address });
         }
 
+        /// <summary>
+        /// Check if this transaction was signed by any of the given addresses
+        /// </summary>
+        /// <param name="addresses"></param>
+        /// <returns></returns>
         public bool IsSignedBy(IEnumerable<Address> addresses)
         {
             if (!HasSignatures)
             {
                 return false;
             }
-
             var msg = this.ToByteArray(false);
 
             foreach (var signature in this.Signatures)
@@ -282,6 +291,57 @@ namespace Phantasma.Core.Domain.TransactionData
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Checks if this transaction was signed by all of the addresses
+        /// </summary>
+        /// <param name="addresses"></param>
+        /// <returns></returns>
+        public bool IsSignedByEveryone(IEnumerable<Address> addresses)
+        {
+            if (!HasSignatures)
+            {
+                return false;
+            }
+            
+            if (this.Signatures.Length != addresses.Count())
+            {
+                return false;
+            }
+            
+            var validSignatures = 0;
+            Signature lastSignature = null;
+            var signatures = this.Signatures.ToList();
+            var numberOfSignaturesNeeded = addresses.Count();
+            var msg = this.ToByteArray(false);
+
+            foreach (var address in addresses)
+            {
+                lastSignature = null;
+                foreach (var signature in signatures)
+                {
+                    if (signature.Verify(msg, addresses))
+                    {
+                        validSignatures++;
+                        lastSignature = signature;
+                        break;
+                    }
+                }
+                
+                if (lastSignature != null)
+                {
+                    signatures.Remove(lastSignature);
+                }
+            }
+            
+
+            if (validSignatures != numberOfSignaturesNeeded)
+            {
+                return false;
+            }    
+            
+            return true;
         }
 
         private void UpdateHash()

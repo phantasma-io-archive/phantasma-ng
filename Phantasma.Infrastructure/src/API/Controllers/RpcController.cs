@@ -1,133 +1,207 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Infrastructure.API.Controllers.Structs;
 using Serilog;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
     public class RpcController : BaseRpcControllerV1
     {
-        public class RpcRequest
-        {
-            public string jsonrpc { get; set; }
-            public string method { get; set; }
-            public string id { get; set; }
-            public object[] @params { get; set; }
-
-            public override string ToString()
-            {
-                return $"RPC request '{method}' with {@params.Length} params";
-            }
-        }
-
-        public class RpcResponse
-        {
-            public string jsonrpc { get; set; } = "2.0";
-            public object result { get; set; }
-            public int id { get; set; } = 1;
-        }
+        private static Dictionary<string, MethodInfo> methodCache = new Dictionary<string, MethodInfo>(StringComparer.OrdinalIgnoreCase);
 
         [APIInfo(typeof(object), "Returns query result.", false, 300)]
         [HttpPost("rpc")]
         public RpcResponse Rpc(RpcRequest req)
         {
-            RpcResponse rpcResponse = null;
-
             try
             {
-                // TODO implement something faster and more elegant
                 NexusAPI.RequireNexus();
+                var rpcResponse = GetControllerResponse(req);
 
-                var controllers = Assembly.GetExecutingAssembly().GetTypes()
-                    .Where(type => typeof(BaseControllerV1).IsAssignableFrom(type));
+                // Set the default properties here
+                rpcResponse.jsonrpc = "2.0";
 
-                foreach (var controller in controllers)
+                // Convert the RpcRequest's id to an int and set it to the RpcResponse's id
+                if (int.TryParse(req.id, out int requestId))
                 {
-                    var methodInfo = controller.GetMethods(BindingFlags.Public | BindingFlags.Instance);
-                    foreach (var method in methodInfo)
-                    {
-                        if(method.Name.ToLower().Equals(req.method.ToLower()))
-                        {
-                            var methodParameters = method.GetParameters();
-
-                            var processedParams = new List<object>();
-                            var i = 0;
-                            foreach (var param in req.@params)
-                            {
-                                if(param is JsonElement)
-                                {
-                                    if(methodParameters[i].ParameterType == typeof(string))
-                                    {
-                                        processedParams.Add(((JsonElement)param).GetString());
-                                    }
-                                    else if (methodParameters[i].ParameterType == typeof(Int32))
-                                    {
-                                        processedParams.Add(((JsonElement)param).GetInt32());
-                                    }
-                                    else if (methodParameters[i].ParameterType == typeof(UInt32))
-                                    {
-                                        processedParams.Add(((JsonElement)param).GetUInt32());
-                                    }
-                                    else if (methodParameters[i].ParameterType == typeof(Int64))
-                                    {
-                                        processedParams.Add(((JsonElement)param).GetInt64());
-                                    }
-                                    else if (methodParameters[i].ParameterType == typeof(UInt64))
-                                    {
-                                        processedParams.Add(((JsonElement)param).GetUInt64());
-                                    }
-                                    else if (methodParameters[i].ParameterType == typeof(Decimal))
-                                    {
-                                        processedParams.Add(((JsonElement)param).GetDecimal());
-                                    }
-                                    else if (methodParameters[i].ParameterType == typeof(bool))
-                                    {
-                                        processedParams.Add(((JsonElement)param).GetBoolean());
-                                    }
-                                    else
-                                    {
-                                        throw new Exception($"Unsupported parameter type {methodParameters[i].ParameterType}");
-                                    }
-                                }
-                                else
-                                {
-                                    processedParams.Add(param);
-                                }
-                                i++;
-                            }
-
-                            var instance = controller.GetConstructors().First().Invoke(null);
-                            
-                            for(int j = processedParams.Count; j < methodParameters.Length; j++)
-                            {
-                                // We should add method's optional params as Type.Missing
-                                // for reflection call to work
-                                processedParams.Add(Type.Missing);
-                            }
-
-                            rpcResponse = new RpcResponse();
-                            rpcResponse.result = method.Invoke(instance, processedParams.ToArray());
-                            break;
-                        }
-                    }
+                    rpcResponse.id = requestId;
                 }
+                else
+                {
+                    Log.Warning($"Invalid ID format in RpcRequest: {req.id}. Defaulting RpcResponse ID to 1.");
+                    rpcResponse.id = 1;
+                }
+
+                return rpcResponse;
+            }
+            catch (TargetInvocationException tie) when (tie.InnerException is APIException apiException)
+            {
+                Log.Error($"API - RPC Call error due to invoked method -> {apiException.Message}");
+                throw new APIException($"RPC call exception for {req}: {apiException.Message}.");;
             }
             catch (APIException apiException)
             {
                 Log.Error($"API - RPC Call error -> {apiException.Message}");
-                throw;
+                // Depending on how your API handles errors, you may want to return a structured error response instead of throwing.
+                //throw new APIException($"An error occurred while processing the request. {apiException.Message}");
+                throw apiException;
             }
             catch (Exception e)
             {
                 Log.Error($"RPC Call error -> {e.StackTrace}");
-                throw new APIException($"RPC call exception for {req}: {e.Message}");
+                // General exceptions should have a more generic error message returned to the client.
+                throw new APIException($"RPC call exception for {req}: {e.Message}.");
+            }
+        }
+        
+        /// <summary>
+        /// Get the response from the controller method
+        /// </summary>
+        /// <param name="req"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        private RpcResponse GetControllerResponse(RpcRequest req)
+        {
+            InitializeMethodCache();
+            
+            if(!methodCache.TryGetValue(req.method, out var targetMethod))
+            {
+                throw new Exception($"Method {req.method} not found.");
+            }
+            
+            var processedParams = ProcessParameters(req.@params, targetMethod.GetParameters());
+            
+            var controllerInstance = Activator.CreateInstance(targetMethod.DeclaringType);
+            
+            var result = targetMethod.Invoke(controllerInstance, processedParams.ToArray());
+            
+            return new RpcResponse { result = result };
+        }
+
+        /// <summary>
+        /// Initialize the method cache
+        /// </summary>
+        private void InitializeMethodCache()
+        {
+            if(methodCache.Any())
+            {
+                return; // Already initialized
             }
 
-            return rpcResponse;
+            var controllers = Assembly.GetExecutingAssembly().GetTypes()
+                            .Where(type => typeof(BaseControllerV1).IsAssignableFrom(type));
+            
+            foreach(var controller in controllers)
+            {
+                foreach(var method in controller.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    methodCache[method.Name] = method;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Process the parameters
+        /// </summary>
+        /// <param name="requestParams"></param>
+        /// <param name="methodParameters"></param>
+        /// <returns></returns>
+        private List<object> ProcessParameters(object[] requestParams, ParameterInfo[] methodParameters)
+        {
+            var processedParams = new List<object>();
+
+            for(int i = 0; i < requestParams.Length; i++)
+            {
+                var param = requestParams[i];
+
+                if(param is JsonElement element)
+                {
+                    processedParams.Add(ConvertJsonElement(element, methodParameters[i].ParameterType));
+                }
+                else
+                {
+                    processedParams.Add(param);
+                }
+            }
+
+            for(int j = processedParams.Count; j < methodParameters.Length; j++)
+            {
+                processedParams.Add(Type.Missing);
+            }
+
+            return processedParams;
+        }
+
+        /// <summary>
+        /// Convert the JsonElement to the target type
+        /// </summary>
+        /// <param name="element"></param>
+        /// <param name="targetType"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        private object ConvertJsonElement(JsonElement element, Type targetType)
+        {
+            var converters = new Dictionary<Type, Func<JsonElement, object>>
+            {
+                { typeof(string), e => e.GetString() },
+                { typeof(int), e => e.GetInt32() },
+                { typeof(uint), e => e.GetUInt32() },
+                { typeof(long), e => e.GetInt64() },
+                { typeof(ulong), e => e.GetUInt64() },
+                { typeof(decimal), e => e.GetDecimal() },
+                { typeof(bool), e => e.GetBoolean() },
+                { typeof(byte[]), e => Convert.FromBase64String(e.GetString())},
+                { 
+                    typeof(BigInteger), e =>
+                    {
+                        var value = e.GetString();
+                        if(!BigInteger.TryParse(value, out var result))
+                        {
+                            throw new Exception($"Invalid BigInteger {value}");
+                        }
+
+                        return result;
+                    }
+                },
+                {
+                    typeof(Address), e =>
+                    {
+                        var address = e.GetString();
+                        if(!Address.IsValidAddress(address))
+                        {
+                            throw new Exception($"Invalid address {address}");
+                        }
+
+                        return Address.FromText(address);
+                    }
+                },
+                {
+                    typeof(Hash), e =>
+                    {
+                        var hash = e.GetString();
+                        if(!Hash.TryParse(hash, out var result))
+                        {
+                            throw new Exception($"Invalid hash {hash}");
+                        }
+
+                        return result;
+                    }
+                }
+            };
+
+            if(!converters.TryGetValue(targetType, out var converter))
+            {
+                throw new Exception($"Unsupported parameter type {targetType}");
+            }
+
+            return converter(element);
         }
     }
 }

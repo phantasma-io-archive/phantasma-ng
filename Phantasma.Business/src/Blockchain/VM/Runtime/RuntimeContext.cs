@@ -14,6 +14,11 @@ namespace Phantasma.Business.Blockchain.VM;
 
 public partial class RuntimeVM: GasMachine, IRuntime
 {
+    /// <summary>
+    /// Find the context by name
+    /// </summary>
+    /// <param name="contextName"></param>
+    /// <returns></returns>
     public override ExecutionContext FindContext(string contextName)
     {
         if (contextName.StartsWith(EVMContext.ContextName))
@@ -25,6 +30,11 @@ public partial class RuntimeVM: GasMachine, IRuntime
         return base.FindContext(contextName);
     }
 
+    /// <summary>
+    /// Check if is the entry context
+    /// </summary>
+    /// <param name="context"></param>
+    /// <returns></returns>
     public bool IsEntryContext(ExecutionContext context)
     {
         Core.Throw.IfNull(context, nameof(context));
@@ -44,6 +54,11 @@ public partial class RuntimeVM: GasMachine, IRuntime
         return IsCurrentContext(context);
     }*/
 
+    /// <summary>
+    /// Is the given context the current context?
+    /// </summary>
+    /// <param name="context"></param>
+    /// <returns></returns>
     public bool IsCurrentContext(ExecutionContext context)
     {
         Core.Throw.IfNull(context, nameof(context));
@@ -51,152 +66,177 @@ public partial class RuntimeVM: GasMachine, IRuntime
         return CurrentContext.Address == context.Address;
     }
     
+    /// <summary>
+    /// Execute the current context
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    /// <exception cref="VMException"></exception>
     public override ExecutionState Execute()
+    {
+        ExecutionState result = ExecutionState.Fault;
+        try
         {
-            ExecutionState result = ExecutionState.Fault;
-            try
+            result = base.Execute();
+        }
+        catch (Exception ex)
+        {
+            if (DelayPayment)
             {
-                result = base.Execute();
-            }
-            catch (Exception ex)
-            {
-                if (DelayPayment)
-                {
-                    throw ex;
-                }
-
-                var usedGasUntilError = UsedGas;
-                ExceptionMessage = ex.Message;
-                IsError = true;
-
-                Logger.Error($"Transaction {Transaction?.Hash} failed with {ex.Message}, gas used: {UsedGas}");
-
-                if (!this.IsReadOnlyMode())
-                {
-                    this.Notify(EventKind.ExecutionFailure, CurrentContext.Address, ExceptionMessage);
-
-                    if (!EnforceGasSpending())
-                    {
-                        throw ex; // should never happen
-                    }
-
-                    UsedGas = usedGasUntilError;
-                }
+                throw ex;
             }
 
-            if (this.IsReadOnlyMode())
+            var usedGasUntilError = UsedGas;
+            ExceptionMessage = ex.Message;
+            IsError = true;
+
+            Logger.Error($"Transaction {Transaction?.Hash} failed with {ex.Message}, gas used: {UsedGas}");
+
+            if (!this.IsReadOnlyMode())
             {
-                if (changeSet.Count() != _baseChangeSetCount)
-                {
-                    throw new VMException(this, "VM changeset modified in read-only mode");
-                }
-            }
-            else if (!IsError && PaidGas < UsedGas && !DelayPayment && Nexus.HasGenesis())
-            {
+                this.Notify(EventKind.ExecutionFailure, CurrentContext.Address, ExceptionMessage);
+
                 if (!EnforceGasSpending())
                 {
-                    throw new VMException(this, "Could not enforce spendGas"); // should never happen
+                    throw ex; // should never happen
                 }
-            }
 
-            return result;
+                UsedGas = usedGasUntilError;
+            }
         }
 
-
-        public override ExecutionContext LoadContext(string contextName)
+        if (this.IsReadOnlyMode())
         {
-            ExpectNameLength(contextName, nameof(contextName));
-
-            if (contextName.Contains("#"))
+            if (changeSet.Count() != _baseChangeSetCount)
             {
-                var split = contextName.Split('#');
-                if (split.Length != 2)
-                {
-                    return null;
-                }
-
-                var symbol = split[0];
-                BigInteger seriesID;
-
-                if (!BigInteger.TryParse(split[1], out seriesID))
-                {
-                    return null;
-                }
-
-                var series = Nexus.GetTokenSeries(RootStorage, symbol, seriesID);
-                if (series == null)
-                {
-                    throw new VMException(this, $"Could not find {symbol} series #{seriesID}");
-                }
-
-                var contract = new CustomContract(contextName, series.Script, series.ABI);
-                var context = new ChainExecutionContext(contract);
-                return context;
+                throw new VMException(this, "VM changeset modified in read-only mode");
             }
-            else
+        }
+        else if (!IsError && PaidGas < UsedGas && !DelayPayment && Nexus.HasGenesis())
+        {
+            if (!EnforceGasSpending())
             {
-                var contract = Chain.GetContractByName(Storage, contextName);
-                if (contract != null)
-                {
-                    return Chain.GetContractContext(changeSet, contract);
-                }
+                throw new VMException(this, "Could not enforce spendGas"); // should never happen
+            }
+        }
 
+        return result;
+    }
+
+
+    /// <summary>
+    /// Load the context by name
+    /// </summary>
+    /// <param name="contextName"></param>
+    /// <returns></returns>
+    /// <exception cref="VMException"></exception>
+    public override ExecutionContext LoadContext(string contextName)
+    {
+        ExpectNameLength(contextName, nameof(contextName));
+
+        if (contextName.Contains("#"))
+        {
+            var split = contextName.Split('#');
+            if (split.Length != 2)
+            {
                 return null;
             }
-        }
 
-        private void PushArgsIntoStack(object[] args)
+            var symbol = split[0];
+            BigInteger seriesID;
+
+            if (!BigInteger.TryParse(split[1], out seriesID))
+            {
+                return null;
+            }
+
+            var series = Nexus.GetTokenSeries(RootStorage, symbol, seriesID);
+            if (series == null)
+            {
+                throw new VMException(this, $"Could not find {symbol} series #{seriesID}");
+            }
+
+            var contract = new CustomContract(contextName, series.Script, series.ABI);
+            var context = new ChainExecutionContext(contract);
+            return context;
+        }
+        else
         {
-            for (int i = args.Length - 1; i >= 0; i--)
+            var contract = Chain.GetContractByName(Storage, contextName);
+            if (contract != null)
             {
-                var obj = VMObject.FromObject(args[i]);
-                Stack.Push(obj);
+                return Chain.GetContractContext(changeSet, contract);
             }
-        }
 
-        public VMObject CallContext(string contextName, uint jumpOffset, string methodName, params object[] args)
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Push the arguments into the stack
+    /// </summary>
+    /// <param name="args"></param>
+    private void PushArgsIntoStack(object[] args)
+    {
+        for (int i = args.Length - 1; i >= 0; i--)
         {
-            ExpectNameLength(contextName, nameof(contextName));
-            ExpectNameLength(methodName, nameof(methodName));
-            ExpectArgsLength(args, nameof(args));
-
-            var tempContext = PreviousContext;
-            PreviousContext = CurrentContext;
-
-            var context = LoadContext(contextName);
-            Expect(context != null, "could not call context: " + contextName);
-
-            PushArgsIntoStack(args);
-
-            Stack.Push(VMObject.FromObject(methodName));
-
-            SetCurrentContext(context);
-
-            PushFrame(context, jumpOffset, DefaultRegisterCount);
-
-            ActiveAddresses.Push(context.Address);
-
-            var temp = context.Execute(CurrentFrame, Stack);
-            Expect(temp == ExecutionState.Halt, "expected call success");
-
-            PopFrame();
-
-            var temp2 = ActiveAddresses.Pop();
-            if (temp2 != context.Address)
-            {
-                throw new VMException(this, "runtimeVM implementation bug detected: address stack");
-            }
-
-            PreviousContext = tempContext;
-
-            if (Stack.Count > 0)
-            {
-                var result = Stack.Pop();
-                return result;
-            }
-            else
-            {
-                return new VMObject();
-            }
+            var obj = VMObject.FromObject(args[i]);
+            Stack.Push(obj);
         }
+    }
+
+    /// <summary>
+    /// Call the context
+    /// </summary>
+    /// <param name="contextName"></param>
+    /// <param name="jumpOffset"></param>
+    /// <param name="methodName"></param>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    /// <exception cref="VMException"></exception>
+    public VMObject CallContext(string contextName, uint jumpOffset, string methodName, params object[] args)
+    {
+        ExpectNameLength(contextName, nameof(contextName));
+        ExpectNameLength(methodName, nameof(methodName));
+        ExpectArgsLength(args, nameof(args));
+
+        var tempContext = PreviousContext;
+        PreviousContext = CurrentContext;
+
+        var context = LoadContext(contextName);
+        Expect(context != null, "could not call context: " + contextName);
+
+        PushArgsIntoStack(args);
+
+        Stack.Push(VMObject.FromObject(methodName));
+
+        SetCurrentContext(context);
+
+        PushFrame(context, jumpOffset, DefaultRegisterCount);
+
+        ActiveAddresses.Push(context.Address);
+
+        var temp = context.Execute(CurrentFrame, Stack);
+        Expect(temp == ExecutionState.Halt, "expected call success");
+
+        PopFrame();
+
+        var temp2 = ActiveAddresses.Pop();
+        if (temp2 != context.Address)
+        {
+            throw new VMException(this, "runtimeVM implementation bug detected: address stack");
+        }
+
+        PreviousContext = tempContext;
+
+        if (Stack.Count > 0)
+        {
+            var result = Stack.Pop();
+            return result;
+        }
+        else
+        {
+            return new VMObject();
+        }
+    }
 }
