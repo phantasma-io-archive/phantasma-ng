@@ -47,7 +47,7 @@ public partial class Nexus
             return false;
         }
 
-        var chain = new Chain(this, name);
+        var chain = _instantiateChain(this, name);
 
         // add to persistent list of chains
         var chainList = this.GetSystemList(ChainTag, storage);
@@ -93,7 +93,7 @@ public partial class Nexus
         return storage.Has(key);
     }
 
-    private Dictionary<string, Chain> _chainCache = new Dictionary<string, Chain>();
+    private Dictionary<string, IChain> _chainCache = new Dictionary<string, IChain>();
 
     public string GetParentChainByAddress(Address address)
     {
@@ -198,7 +198,7 @@ public partial class Nexus
 
         if (ChainExists(RootStorage, name))
         {
-            var chain = new Chain(this, name);
+            var chain = _instantiateChain(this, name);
             _chainCache[name] = chain;
             return chain;
         }

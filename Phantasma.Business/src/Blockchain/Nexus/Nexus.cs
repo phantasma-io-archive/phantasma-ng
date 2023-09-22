@@ -116,12 +116,31 @@ public partial class Nexus : INexus
     private IOracleReader _oracleReader = null;
     private List<IOracleObserver> _observers = new List<IOracleObserver>();
 
+    private Func<Nexus, string, IChain> _instantiateChain;
+
+    public static Nexus Initialize<T>(string name, Func<string, IKeyValueStoreAdapter> adapterFactory = null) where T : IChain
+    {
+        Func<Nexus, string, IChain> chainActivator = (nexus, chainName) =>
+        {
+            var chain = (T)Activator.CreateInstance(typeof(T), nexus, chainName);
+            return chain;
+        };
+
+        var nexus = new Nexus(name, chainActivator, adapterFactory);
+
+        return nexus;
+    }
+
     /// <summary>
     /// The constructor bootstraps the main chain and all core side chains.
     /// </summary>
-    public Nexus(string name, Func<string, IKeyValueStoreAdapter> adapterFactory = null)
+    private Nexus(string name, Func<Nexus, string, IChain> chainActivator, Func<string, IKeyValueStoreAdapter> adapterFactory = null)
     {
+        Throw.IfNull(name, nameof(name));
+        Throw.IfNull(chainActivator, nameof(chainActivator));
+
         _adapterFactory = adapterFactory;
+        _instantiateChain = chainActivator;
 
         var storage = new KeyStoreStorage(GetChainStorage(DomainSettings.RootChainName));
         RootStorage = storage;
