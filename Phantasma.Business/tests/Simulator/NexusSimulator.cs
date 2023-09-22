@@ -113,7 +113,7 @@ public class NexusSimulator
 
         if (nexus == null)
         {
-            nexus = new Nexus("simnet");
+            nexus = Nexus.Initialize<Chain>("simnet");
             nexus.SetOracleReader(new OracleSimulator(nexus));
         }
 

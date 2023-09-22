@@ -300,7 +300,7 @@ public class OrganizationTests : IDisposable
         }
         Directory.CreateDirectory(this.PartitionPath);
 
-        this.Nexus = new Nexus("unittest", (name) => new MemoryStore());
+        this.Nexus = Business.Blockchain.Nexus.Initialize<Chain>("unittest", (name) => new MemoryStore());
 
         var storage = (StorageContext)new MemoryStorageContext();
         this.Context = new StorageChangeSetContext(storage);
