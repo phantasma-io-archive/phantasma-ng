@@ -26,6 +26,7 @@ namespace Phantasma.Node.Configuration
         public PerformanceMetricsSettings PerformanceMetrics { get; }
 
         public string _configFile;
+        public const string DefaultConfigFile = "config.json";
 
         public static Settings Instance { get; private set; }
 
@@ -44,22 +45,6 @@ namespace Phantasma.Node.Configuration
 
             Serilog.Log.Logger = logConfig.CreateLogger();
 
-            var defaultConfigFile = "config.json";
-
-            this._configFile = defaultConfigFile;
-
-            if (!File.Exists(_configFile))
-            {
-                Serilog.Log.Error($"Expected configuration file to exist: {this._configFile}");
-
-                if (this._configFile == defaultConfigFile)
-                {
-                    Serilog.Log.Warning($"Copy either config_mainnet.json or config_testnet.json and rename it to {this._configFile}");
-                }
-
-                Environment.Exit(-1);
-            }
-
             try
             {
                 this.Node = new NodeSettings(args, section.GetSection("Node"));
@@ -77,6 +62,11 @@ namespace Phantasma.Node.Configuration
                 Serilog.Log.Error(e, $"There were issues loading settings from {this._configFile}, aborting...");
                 Environment.Exit(-1);
             }
+        }
+
+        private static string GetDefaultConfigFile()
+        {
+            return CliArgumets.Default.GetString("--config", "config.json");
         }
 
         private static List<ValidatorSettings> SetupValidatorsList(IConfigurationSection section)

@@ -4,7 +4,7 @@
 VERSION=0.34.21
 TESTNET_ROOT='./DOCKER/testnet'
 PUBLISH_ROOT='./Phantasma.Node/src/bin/Debug/net6.0/linux-arm64/publish/'
-NODE_PROJ='Phantasma.Node/src/hantasma.Node.csproj'
+NODE_PROJ='Phantasma.Node/src/Phantasma.Node.csproj'
 LAST_COMMIT=`git rev-parse --short HEAD`
 
 wget --no-check-certificate --content-disposition https://github.com/tendermint/tendermint/releases/download/v"$VERSION"/tendermint_"$VERSION"_linux_arm64.tar.gz 

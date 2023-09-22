@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
@@ -13,8 +14,8 @@ namespace Phantasma.Node;
 
 public class Program
 {
-    public static IConfiguration Configuration { get; } = new ConfigurationBuilder()
-        .AddJsonFile("config.json", true, true)
+    public static IConfiguration Configuration { get; private set; } = new ConfigurationBuilder()
+        .AddJsonFile(Settings.DefaultConfigFile, true, true)
         .AddEnvironmentVariables()
         .Build();
 
@@ -30,6 +31,9 @@ public class Program
 
         try
         {
+            // Load config File
+            LoadConfigFile(args);
+            
             var culture = new CultureInfo("en-US");
             Thread.CurrentThread.CurrentCulture = culture;
             CultureInfo.DefaultThreadCurrentCulture = culture;
@@ -71,5 +75,46 @@ public class Program
             ) => configuration.ReadFrom.Configuration(Configuration.GetSection("ApplicationConfiguration")), true)
             .ConfigureWebHostDefaults(webBuilder => webBuilder.UseConfiguration(Configuration).UseStartup<Startup>()
             .UseUrls(new string[] { url}));
+    }
+    
+    private static string GetDefaultConfigFile(string[] args)
+    {
+        if (args.Length < 1)
+        {
+            return Settings.DefaultConfigFile;
+        }
+
+        foreach (var arg in args)
+        {
+            Log.Information(arg);
+            if (arg.StartsWith("--config="))
+            {
+                return arg.Split("=")[1];
+            }
+        }
+
+        return Settings.DefaultConfigFile;
+    }
+
+    private static void LoadConfigFile(string[] args)
+    {
+        var configFile = GetDefaultConfigFile(args);
+        
+        if (!File.Exists(configFile))
+        {
+            Log.Error($"Expected configuration file to exist: {configFile}");
+
+            if (configFile == Settings.DefaultConfigFile)
+            {
+                Log.Warning($"Copy either config_mainnet.json or config_testnet.json and rename it to {configFile}");
+            }
+
+            Environment.Exit(-1);
+        }
+        
+        Configuration = new ConfigurationBuilder()
+            .AddJsonFile(configFile, true, true)
+            .AddEnvironmentVariables()
+            .Build();
     }
 }
