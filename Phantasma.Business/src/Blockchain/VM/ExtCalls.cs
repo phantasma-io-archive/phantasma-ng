@@ -1678,14 +1678,16 @@ namespace Phantasma.Business.Blockchain.VM
             vm.ExpectStackSize(4);
 
             var from = vm.PopAddress();
-            vm.Expect(from.IsUser, "address must be user");
-
-            if (vm.HasGenesis)
+            if (vm.ProtocolVersion < 16)
             {
-                //Runtime.Expect(org != DomainSettings.ValidatorsOrganizationName, "cannot deploy contract via this organization");
-                vm.Expect(vm.IsStakeMaster(from), "needs to be master");
+                vm.Expect(from.IsUser, "address must be user");
+                if (vm.HasGenesis)
+                {
+                    //Runtime.Expect(org != DomainSettings.ValidatorsOrganizationName, "cannot deploy contract via this organization");
+                    vm.Expect(vm.IsStakeMaster(from), "needs to be master");
+                }
             }
-
+            
             vm.Expect(vm.IsWitness(from), "invalid witness");
 
             var contractName = vm.PopString("contractName");
@@ -1779,9 +1781,12 @@ namespace Phantasma.Business.Blockchain.VM
             vm.ExpectStackSize(4);
 
             var from = vm.PopAddress();
-            vm.Expect(from.IsUser, "address must be user");
 
-            vm.Expect(vm.IsStakeMaster(from), "needs to be master");
+            if (vm.ProtocolVersion < 16)
+            {
+                vm.Expect(from.IsUser, "address must be user");
+                vm.Expect(vm.IsStakeMaster(from), "needs to be master");
+            }
 
             vm.ExpectWarning(vm.IsWitness(from), "invalid witness", from);
 
