@@ -308,7 +308,7 @@ public class RuntimeTests
         this.PartitionPath = Path.Combine(Path.GetTempPath(), "PhantasmaUnitTest", $"{Guid.NewGuid():N}") + Path.DirectorySeparatorChar;
         Directory.CreateDirectory(this.PartitionPath);
 
-        this.Nexus = new Nexus("unittest", (name) => new MemoryStore());
+        this.Nexus = Business.Blockchain.Nexus.Initialize<Chain>("unittest", (name) => new MemoryStore());
         var maxSupply = 10000000;
 
         var ftFlags = TokenFlags.Burnable | TokenFlags.Divisible | TokenFlags.Fungible | TokenFlags.Mintable | TokenFlags.Stakable | TokenFlags.Transferable;

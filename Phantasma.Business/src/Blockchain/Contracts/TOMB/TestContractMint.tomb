@@ -1,0 +1,68 @@
+
+contract mysecondcont {
+    import Runtime;
+    import Stake;
+    public doSomething() : number
+    {
+        Stake.stake(@S3dP2jjf1jUG9nethZBWbnu9a6dFqB7KveTWU7znis6jpDy, 1000000000);
+        return 0;
+    }
+}
+
+token TEST {
+
+    global owner : address;
+    
+    property name: string = "test";
+    constructor(_owner: address){
+        owner = _owner;
+    }
+    
+    import Runtime;
+    import Stake;
+    public doSomething() : number
+    {
+        Stake.stake(@S3dP2jjf1jUG9nethZBWbnu9a6dFqB7KveTWU7znis6jpDy, 1000000000);
+        return 0;
+    }
+}
+
+
+
+contract mintcontract {
+	import Runtime;
+	import Time;
+	import NFT;
+	import Call;
+	import Address;
+	import Token;
+	import Stake;
+	import Module;
+	import Number;
+	
+	global id: number;
+	global owner: address;
+	global contractName : string;
+	
+
+	constructor(contractOwner:address)	{
+		owner = contractOwner;
+		id = 0;
+		contractName = "aaaa";
+	}
+	
+	public mintMyContract(from:address):number {
+	    Runtime.expect(Runtime.isWitness(owner), "witness failed");
+	    id += 1;
+	    Runtime.deployContract($THIS_ADDRESS, mysecondcont);
+	    return id;
+	}
+	
+	public mintMyToken(from: address, tokenName: string) {
+	    local maxSupply:number = 100;
+        local decimals:number = 1;
+        local flags:TokenFlags = TokenFlags.None;
+        tokenName = "TEST";
+        Token.create($THIS_ADDRESS, tokenName,  "Test Token", maxSupply, decimals, flags, Module.getScript(TEST),  Module.getABI(TEST));
+	}
+}

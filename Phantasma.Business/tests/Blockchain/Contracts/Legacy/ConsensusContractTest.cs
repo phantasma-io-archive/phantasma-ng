@@ -30,7 +30,7 @@ namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 public class ConsensusContractTest
 {
     static PhantasmaKeys owner = PhantasmaKeys.Generate();
-    static Nexus nexus = new Nexus("testnet");
+    static Nexus nexus = Nexus.Initialize<Chain>("testnet");
     static NexusSimulator simulator;
     
     private static PhantasmaKeys[] validatorKeyPairs = {owner, PhantasmaKeys.Generate(), PhantasmaKeys.Generate(), PhantasmaKeys.Generate(), PhantasmaKeys.Generate()};

@@ -2359,7 +2359,7 @@ public class AssemblerTestsLegacy
         var owner = PhantasmaKeys.Generate();
         var script = AssemblerUtils.BuildScript(scriptString);
 
-        var nexus = new Nexus("asmnet");
+        var nexus = Nexus.Initialize<Chain>("asmnet");
         nexus.CreateGenesisTransaction(Timestamp.Now, owner);
         var tx = new Transaction(nexus.Name, nexus.RootChain.Name, script, 0);
 
@@ -2391,7 +2391,7 @@ public class AssemblerTestsLegacy
         var script = AssemblerUtils.BuildScript(scriptString);
 
         var keys = PhantasmaKeys.Generate();
-        var nexus = new Nexus("asmnet");
+        var nexus = Business.Blockchain.Nexus.Initialize<Chain>("asmnet");
         nexus.CreateGenesisTransaction(Timestamp.Now, owner);
         tx = new Transaction(nexus.Name, nexus.RootChain.Name, script, 0);
 

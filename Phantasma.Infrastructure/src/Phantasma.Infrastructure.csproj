@@ -9,6 +9,7 @@
     <PackageProjectUrl>https://github.com/phantasma-io/phantasma-ng</PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/phantasma-io/phantasma-ng</RepositoryUrl>
+    <Version>1.1.0</Version>
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\..\logo.png">

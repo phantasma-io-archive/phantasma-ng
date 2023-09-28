@@ -67,6 +67,7 @@ namespace Phantasma.Business.Blockchain.VM
 
             callback("Runtime.KillContract", 2, Runtime_KillContract);
             callback("Runtime.GetBalance", 2, Runtime_GetBalance);
+            callback("Runtime.GetOwnerships", 2, Runtime_GetOwnerships);
             callback("Runtime.TransferTokens", 4, Runtime_TransferTokens);
             callback("Runtime.TransferBalance", 3, Runtime_TransferBalance);
             callback("Runtime.MintTokens", 4, Runtime_MintTokens);
@@ -1062,13 +1063,37 @@ namespace Phantasma.Business.Blockchain.VM
             var source = vm.PopAddress();
             var symbol = vm.PopString("symbol");
 
-            var balance = vm.GetBalance(symbol, source);
-
             var result = new VMObject();
+
+            var balance = vm.GetBalance(symbol, source);
             result.SetValue(balance);
+
             vm.Stack.Push(result);
 
             return ExecutionState.Running;
+        }
+
+        private static ExecutionState Runtime_GetOwnerships(RuntimeVM vm)
+        {
+            vm.ExpectStackSize(2);
+
+            var source = vm.PopAddress();
+            var symbol = vm.PopString("symbol");
+
+            var info = vm.GetToken(symbol);
+
+            if (info != null && !info.IsFungible())
+            {
+                var ownerships = vm.GetOwnerships(symbol, source);
+                var result = VMObject.FromArray(ownerships);
+                vm.Stack.Push(result);
+
+                return ExecutionState.Running;
+            }
+            else
+            {
+                throw new VMException(vm, "Cannot obtain ownerships for token: " + symbol);
+            }
         }
 
         private static ExecutionState Runtime_TransferTokens(RuntimeVM vm)
@@ -1653,14 +1678,16 @@ namespace Phantasma.Business.Blockchain.VM
             vm.ExpectStackSize(4);
 
             var from = vm.PopAddress();
-            vm.Expect(from.IsUser, "address must be user");
-
-            if (vm.HasGenesis)
+            if (vm.ProtocolVersion < 16)
             {
-                //Runtime.Expect(org != DomainSettings.ValidatorsOrganizationName, "cannot deploy contract via this organization");
-                vm.Expect(vm.IsStakeMaster(from), "needs to be master");
+                vm.Expect(from.IsUser, "address must be user");
+                if (vm.HasGenesis)
+                {
+                    //Runtime.Expect(org != DomainSettings.ValidatorsOrganizationName, "cannot deploy contract via this organization");
+                    vm.Expect(vm.IsStakeMaster(from), "needs to be master");
+                }
             }
-
+            
             vm.Expect(vm.IsWitness(from), "invalid witness");
 
             var contractName = vm.PopString("contractName");
@@ -1754,9 +1781,12 @@ namespace Phantasma.Business.Blockchain.VM
             vm.ExpectStackSize(4);
 
             var from = vm.PopAddress();
-            vm.Expect(from.IsUser, "address must be user");
 
-            vm.Expect(vm.IsStakeMaster(from), "needs to be master");
+            if (vm.ProtocolVersion < 16)
+            {
+                vm.Expect(from.IsUser, "address must be user");
+                vm.Expect(vm.IsStakeMaster(from), "needs to be master");
+            }
 
             vm.ExpectWarning(vm.IsWitness(from), "invalid witness", from);
 

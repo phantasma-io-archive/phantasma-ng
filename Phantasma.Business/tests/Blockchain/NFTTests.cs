@@ -22,6 +22,7 @@ using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Domain.VM.Enums;
+using Phantasma.Core.Domain.Token.Structs;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
@@ -75,7 +76,7 @@ public class NFTTests
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
     }
-    
+
     [Fact]
     public void NftMint()
     {
@@ -111,6 +112,16 @@ public class NFTTests
         // obtain tokenID
         ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
         Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+
+        {
+            // test extcalls Runtime.GetOwnerships
+            var script = new ScriptBuilder().CallInterop("Runtime.GetOwnerships", testUser.Address, symbol).EndScript();
+
+            var scriptResult = nexus.RootChain.InvokeScript(nexus.RootStorage, script, Timestamp.Now);
+
+            var infusionArray = scriptResult.ToArray<BigInteger>();
+            Assert.True(infusionArray.Length == ownedTokenList.Count());
+        }
 
         // verify nft presence on the user post-mint
         ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
@@ -621,17 +632,13 @@ public class NFTTests
             var infusionArray = infusionField.ToArray<VMObject>();
             Assert.True(infusionArray.Length == 2);
 
-            var firstElement = VMObject.CastTo(infusionArray[0], VMType.Struct);
-            var firstSymbol = firstElement.GetField("Symbol").AsString();
-            Assert.True(firstSymbol == DomainSettings.StakingTokenSymbol);
-            var firstAmount = firstElement.GetField("Value").AsNumber();
-            Assert.True(firstAmount == expectedAmount);
+            var firstElement = (TokenInfusion)infusionArray[0].ToObject();
+            Assert.True(firstElement.Symbol == DomainSettings.StakingTokenSymbol);
+            Assert.True(firstElement.Value == expectedAmount);
 
-            var secondElement = VMObject.CastTo(infusionArray[1], VMType.Struct);
-            var secondSymbol = secondElement.GetField("Symbol").AsString();
-            Assert.True(secondSymbol == symbol2);
-            var secondID = secondElement.GetField("Value").AsNumber();
-            Assert.True(secondID == tokenIDAfter);
+            var secondElement = (TokenInfusion)infusionArray[1].ToObject();
+            Assert.True(secondElement.Symbol == symbol2);
+            Assert.True(secondElement.Value == tokenIDAfter);
         }
 
         {
@@ -642,17 +649,13 @@ public class NFTTests
             var infusionArray = scriptResult.ToArray<VMObject>();
             Assert.True(infusionArray.Length == 2);
 
-            var firstElement = VMObject.CastTo(infusionArray[0], VMType.Struct);
-            var firstSymbol = firstElement.GetField("Symbol").AsString();
-            Assert.True(firstSymbol == DomainSettings.StakingTokenSymbol);
-            var firstAmount = firstElement.GetField("Value").AsNumber();
-            Assert.True(firstAmount == expectedAmount);
+            var firstElement = (TokenInfusion)infusionArray[0].ToObject();
+            Assert.True(firstElement.Symbol == DomainSettings.StakingTokenSymbol);
+            Assert.True(firstElement.Value == expectedAmount);
 
-            var secondElement = VMObject.CastTo(infusionArray[1], VMType.Struct);
-            var secondSymbol = secondElement.GetField("Symbol").AsString();
-            Assert.True(secondSymbol == symbol2);
-            var secondID = secondElement.GetField("Value").AsNumber();
-            Assert.True(secondID == tokenIDAfter);
+            var secondElement = (TokenInfusion)infusionArray[1].ToObject();
+            Assert.True(secondElement.Symbol == symbol2);
+            Assert.True(secondElement.Value == tokenIDAfter);
         }
     }
 }
