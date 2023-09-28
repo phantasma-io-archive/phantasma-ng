@@ -1,8 +1,8 @@
 #!/bin/bash
 
 TESTNET_ROOT='./DOCKER/testnet'
-PUBLISH_ROOT='./Phantasma.Node/bin/Debug/net6.0/linux-x64/publish/'
-NODE_PROJ='Phantasma.Node/Phantasma.Node.csproj'
+PUBLISH_ROOT='./Phantasma.Node/src/bin/Debug/net6.0/linux-x64/publish/'
+NODE_PROJ='Phantasma.Node/src/Phantasma.Node.csproj'
 
 dotnet publish "$NODE_PROJ" --sc -r linux-x64
 
