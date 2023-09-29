@@ -283,9 +283,9 @@ public partial class Nexus : INexus
             Runtime.ExpectWarning(Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName(),
                 $"minting of {token.Symbol} can only happen via claiming", source);
         }
-        else if (Runtime.ProtocolVersion <= 15)
+        else if (Runtime.ProtocolVersion == 16)
         {
-            // Add logic to mint 52M tokens to an address
+            // Mint tokens that were on other chains ETH/BSC/NEO and migrate them to Phantasma.
             var currentSupply = Runtime.GetTokenSupply(token.Symbol);
             var totalSupply = currentSupply + amount;
             var maxSupply = Runtime.GetTokenSupply(token.Symbol);
