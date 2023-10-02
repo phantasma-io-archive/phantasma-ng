@@ -1414,7 +1414,8 @@ namespace Phantasma.Business.VM
             Expect(dst < frame.Registers.Length, "invalid dst register");
 
             var bytes = frame.Registers[src].AsByteArray();
-            frame.Registers[dst] = VMObject.FromBytes(bytes);
+            var val = VMObject.FromBytes(bytes);
+            frame.Registers[dst] = val;
             
         }
 

@@ -52,9 +52,12 @@ public partial class RuntimeVM : GasMachine, IRuntime
 
         Expect(IsRootChain(), "must be root chain");
 
-        Expect(owner.IsUser, "owner address must be user address");
-
-        Expect(IsStakeMaster(owner), "needs to be master");
+        if (Nexus.GetProtocolVersion() < 16)
+        {
+            Expect(owner.IsUser, "owner address must be user address");
+            Expect(IsStakeMaster(owner), "needs to be master");
+        }
+        
         Expect(IsWitness(owner), "invalid witness");
 
         var pow = Transaction.Hash.GetDifficulty();

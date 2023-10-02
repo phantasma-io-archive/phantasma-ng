@@ -8,7 +8,7 @@
     <PackageProjectUrl>www.phantasma.io</PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/phantasma-io</RepositoryUrl>
-    <Version>1.0.8</Version>
+    <Version>1.1.0</Version>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
