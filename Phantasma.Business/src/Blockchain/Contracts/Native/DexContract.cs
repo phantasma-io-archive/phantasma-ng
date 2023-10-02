@@ -76,6 +76,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="amount"></param>
         public void DepositTokens(Address from, string symbol, BigInteger amount)
         {
+            if (Runtime.ProtocolVersion >= 16)
+            {
+                Runtime.Expect(false, "This method is not available in this version of the DEX");
+            }
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(from.IsUser, "address must be user address");
 
@@ -97,6 +101,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="amount"></param>
         public void SwapTokens(Address from, string fromSymbol, string toSymbol, BigInteger amount)
         {
+            if (Runtime.ProtocolVersion >= 16)
+            {
+                Runtime.Expect(false, "This method is not available in this version of the DEX");
+            }
             Runtime.Expect(_DEXversion >= 1, "call migrateV3 first");
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(amount > 0, $"invalid amount, need to be higher than 0 | {amount}");
@@ -410,6 +418,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// </summary>
         public void MigrateToV3()
         {
+            if (Runtime.ProtocolVersion >= 16)
+            {
+                Runtime.Expect(false, "This method is not available in this version of the DEX");
+            }
+            
             Runtime.Expect(_DEXversion == 0, "Migration failed, wrong version");
 
             var existsLP = Runtime.TokenExists(DomainSettings.LiquidityTokenSymbol);
@@ -1312,6 +1325,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="amount1">Amount for Symbol1</param>
         public void CreatePool(Address from, string symbol0, BigInteger amount0, string symbol1, BigInteger amount1)
         {
+            if (Runtime.ProtocolVersion >= 16)
+            {
+                Runtime.Expect(false, "This method is not available in this version of the DEX");
+            }
+            
             ValidatePoolCreation(from, symbol0, amount0, symbol1, amount1);
 
             var token0Info = Runtime.GetToken(symbol0);
@@ -1451,6 +1469,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="amount1">Amount for Symbol1</param>
         public void AddLiquidity(Address from, string symbol0, BigInteger amount0, string symbol1, BigInteger amount1)
         {
+            if (Runtime.ProtocolVersion >= 16)
+            {
+                Runtime.Expect(false, "This method is not available in this version of the DEX");
+            }
+            
             ValidateInputs(from, symbol0, amount0, symbol1, amount1);
 
             var token0Info = Runtime.GetToken(symbol0);
@@ -1638,6 +1661,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="amount1">Amount for Symbol1</param>
         public void AddLiquidityV1(Address from, string symbol0, BigInteger amount0, string symbol1, BigInteger amount1)
         {
+            if (Runtime.ProtocolVersion >= 16)
+            {
+                Runtime.Expect(false, "This method is not available in this version of the DEX");
+            }
+            
             // Check input
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
             Runtime.Expect(amount0 >= 0, "invalid amount 0");
@@ -1787,6 +1815,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="amount1">Amount for Symbol1</param>
         public void RemoveLiquidity(Address from, string symbol0, BigInteger amount0, string symbol1, BigInteger amount1)
         {
+            if (Runtime.ProtocolVersion >= 16)
+            {
+                Runtime.Expect(false, "This method is not available in this version of the DEX");
+            }
+            
             ValidateInputs(from,  symbol0,  amount0,  symbol1,  amount1);
 
             // Check if user has LP Token
@@ -2208,6 +2241,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="symbol1"></param>
         public void ClaimFees(Address from, string symbol0, string symbol1)
         {
+            if (Runtime.ProtocolVersion >= 16)
+            {
+                Runtime.Expect(false, "This method is not available in this version of the DEX");
+            }
+            
             if ( Runtime.ProtocolVersion >= 14) Runtime.Expect(_DEXversion >= 1, " This method is not available in this version of the DEX");
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
@@ -2429,6 +2467,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
         public void BurnNFT(Address from, BigInteger nftID)
         {
+            if (Runtime.ProtocolVersion >= 16)
+            {
+                Runtime.Expect(false, "This method is not available in this version of the DEX");
+            }
+            
             if ( Runtime.ProtocolVersion >= 14) Runtime.Expect(_DEXversion >= 1, " This method is not available in this version of the DEX");
 
             if (!Runtime.NFTExists(DomainSettings.LiquidityTokenSymbol, nftID))
