@@ -1,5 +1,6 @@
 #--platform=linux/x86_64
-FROM debian:stable-slim
+#FROM debian:stable-slim
+FROM  mcr.microsoft.com/dotnet/aspnet:6.0 as runtime
 WORKDIR /app
 
 # Copy everything

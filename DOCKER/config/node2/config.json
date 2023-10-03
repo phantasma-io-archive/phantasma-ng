@@ -4,7 +4,7 @@
       "max.gas": 10000,
       "web.logs": false,
       "tendermint.path": "/app/bin/tendermint",
-      "tendermint.home": "/app/node/config",
+      "tendermint.home": "/app/node/tendermint",
       "tendermint.rpc.port": "26257",
       "tendermint.rpc.host": "http://127.0.0.1",
       "tendermint.proxy.host": "127.0.0.1",

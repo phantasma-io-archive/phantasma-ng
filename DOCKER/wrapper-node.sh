@@ -1,36 +1,23 @@
 #!/bin/bash
 # reset all nodes 
 TROOT=/app/node
-DIR="/app/node/data/"
+DIR="/app/node/tendermint/data/"
 
-mkdir -p /app/node/data/
-cp -r /app/build/* /app/node/data/
+mkdir -p /app/node/phantasma-node/
+cp -r /app/build/* /app/node/phantasma-node/
 
-mkdir -p /app/node/config/
-cp -r /app/node/config/config.json /app/node/config.json
-cp -r /app/node/config/config.json /app/node/data/config.json
+mkdir -p /app/node/tendermint/
+cp -r /app/node/tendermint/config.json /app/node/phantasma-node/config.json
 
 if [ -d "$DIR" ]; then
   # Take action if $DIR exists. #
   echo "Tendermint run..."
 else
-  TMHOME=/app/node/config /app/bin/tendermint unsafe-reset-all
+  TMHOME=/app/node/tendermint /app/bin/tendermint unsafe-reset-all
 fi
 
-# Clear old screens
-#screen -ls |  grep 'node' | grep '(Detached)' | awk '{print $1}' | xargs -I % -t screen -X -S % quit
-#screen -wipe
-#pkill -f "tendermint"
+cd /app/node/phantasma-node/
+#dotnet phantasma-node.dll
 
-# Move config files
-#cp /app/node/config/config_node.json /app/node/publish/config.json
-
-# start all tendermint sessions
-#screen -S node -dm bash -c 'cd /app/node/data/; ./phantasma-node; exec sh'
-
-#screen -rd node0p
-#/bin/bash
-#tail -f /dev/null
-
-cd /app/node/data/
-dotnet phantasma-node.dll
+# Keep it going.
+tail -f /dev/null
