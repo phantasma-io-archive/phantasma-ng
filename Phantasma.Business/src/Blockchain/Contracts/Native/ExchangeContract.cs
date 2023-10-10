@@ -122,11 +122,6 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 Runtime.Expect(false, "exchange not supported on this protocol version");
                 return;
             }
-
-            if (Runtime.ProtocolVersion >= 16)
-            {
-                Runtime.Expect(false, "This method is not available in this version of the DEX");
-            }
             
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
@@ -161,11 +156,6 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             {
                 Runtime.Expect(false, "exchange not supported on this protocol version");
                 return;
-            }
-
-            if (Runtime.ProtocolVersion >= 16)
-            {
-                Runtime.Expect(false, "This method is not available in this version of the DEX");
             }
             
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
