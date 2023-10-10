@@ -1,0 +1,91 @@
+version: '3'
+services:
+  node:
+    image: phantasma-node:latest-amd64
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: ./DOCKER/Dockerfilenode
+    environment:
+      - NODE_ID=0
+    ports:
+      - "7077:7077"
+      - "26056-26057:26056-26057"
+    entrypoint: /bin/bash -c "mkdir -p /app/node/config/ && cp -rf /app/config/node0/* /app/node/config/ && cp -r /app/node/config/config.json /app/node/config.json && /app/wrapper.sh"
+    command:
+      - /bin/bash
+      - -c
+      - |
+        mkdir -p /app/node/config/
+        cp -rf /app/config/node0 /app/node/config/
+        cp -r /app/node/config/config.json /app/node/
+        /app/wrapper.sh
+  node1:
+      image: phantasma-node:latest-amd64
+      platform: linux/amd64
+      build:
+        context: .
+        dockerfile: ./DOCKER/Dockerfilenode
+      environment:
+        - NODE_ID=1
+      ports:
+        - "7078:7078"
+        - "26156-26157:26156-26157"
+      entrypoint: /bin/bash -c "mkdir -p /app/node/config/ && cp -rf /app/config/node1/* /app/node/config/ && cp -r /app/node/config/config.json /app/node/config.json && /app/wrapper.sh"
+      command:
+        - /bin/bash
+        - -c
+        - |
+          mkdir -p /app/node/config/
+          cp -rf /app/config/node1 /app/node/config/
+          cp -r /app/node/config/config.json /app/node/
+          /app/wrapper.sh
+  node2:
+    image: phantasma-node:latest-amd64
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: ./DOCKER/Dockerfilenode
+    environment:
+      - NODE_ID=2
+    ports:
+      - "7079:7079"
+      - "26256-26257:26256-26257"
+    entrypoint: /bin/bash -c "mkdir -p /app/node/config/ && cp -rf /app/config/node2/* /app/node/config/ && cp -r /app/node/config/config.json /app/node/config.json && /app/wrapper.sh"
+    command:
+      - /bin/bash
+      - -c
+      - |
+        mkdir -p /app/node/config/
+        cp -rf /app/config/node2 /app/node/config/
+        cp -r /app/node/config/config.json /app/node/
+        /app/wrapper.sh
+    
+  node3:
+    image: phantasma-node:latest-amd64
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: ./DOCKER/Dockerfilenode
+    environment:
+      - NODE_ID=3
+    ports:
+      - "7080:7080"
+      - "26356-26357:26356-26357"
+    entrypoint: /bin/bash -c "mkdir -p /app/node/config/ && cp -rf /app/config/node3/* /app/node/config/ && cp -r /app/node/config/config.json /app/node/config.json && /app/wrapper.sh"
+    command:
+      - /bin/bash
+      - -c
+      - |
+        mkdir -p /app/node/config/
+        cp -rf /app/config/node3 /app/node/config/
+        cp -r /app/node/config/config.json /app/node/
+        /app/wrapper.sh
+
+networks:
+  phantasma-nodes:
+    driver: bridge
+    
+volumes:
+  node_data:
+  node_config:

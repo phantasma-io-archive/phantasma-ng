@@ -265,6 +265,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 return;
             }
 
+            if (Runtime.ProtocolVersion >= 15)
+            {
+                Runtime.Expect(false, "exchange not supported on this protocol version");
+                return;
+            }
+            
             //Runtime.Expect(Runtime.GasTarget == provider, "invalid gas target");
             //Runtime.Expect(Runtime.GasTarget == this.Address, "invalid gas target");
 
@@ -563,6 +569,16 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
          TODO: implement code for trail stops and a method to allow a 3rd party to update the trail stop, without revealing user or order info
          */
 
+        /// <summary>
+        /// Calculate Escrow Amount
+        /// </summary>
+        /// <param name="orderSize"></param>
+        /// <param name="orderPrice"></param>
+        /// <param name="baseToken"></param>
+        /// <param name="quoteToken"></param>
+        /// <param name="side"></param>
+        /// <returns></returns>
+        /// <exception cref="ContractException"></exception>
         public BigInteger CalculateEscrowAmount(BigInteger orderSize, BigInteger orderPrice, IToken baseToken,
             IToken quoteToken, ExchangeOrderSide side)
         {
@@ -608,6 +624,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return order;
         }
 
+        /// <summary>
+        /// Get Order Leftover
+        /// </summary>
+        /// <param name="uid"></param>
+        /// <returns></returns>
         public BigInteger GetOrderLeftoverEscrow(BigInteger uid)
         {
             Runtime.Expect(_escrows.ContainsKey(uid), "order not found");
@@ -615,16 +636,37 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return _escrows.Get<BigInteger, BigInteger>(uid);
         }
 
+        /// <summary>
+        /// Get Orderbooks
+        /// </summary>
+        /// <param name="baseSymbol"></param>
+        /// <param name="quoteSymbol"></param>
+        /// <returns></returns>
         public ExchangeOrder[] GetOrderBooks(string baseSymbol, string quoteSymbol)
         {
             return GetOrderBook(baseSymbol, quoteSymbol, false);
         }
 
+        /// <summary>
+        /// Get Orderbook
+        /// </summary>
+        /// <param name="baseSymbol"></param>
+        /// <param name="quoteSymbol"></param>
+        /// <param name="side"></param>
+        /// <returns></returns>
         public ExchangeOrder[] GetOrderBook(string baseSymbol, string quoteSymbol, ExchangeOrderSide side)
         {
             return GetOrderBook(baseSymbol, quoteSymbol, true, side);
         }
 
+        /// <summary>
+        /// GetOrderBook 
+        /// </summary>
+        /// <param name="baseSymbol"></param>
+        /// <param name="quoteSymbol"></param>
+        /// <param name="oneSideFlag"></param>
+        /// <param name="side"></param>
+        /// <returns></returns>
         private ExchangeOrder[] GetOrderBook(string baseSymbol, string quoteSymbol, bool oneSideFlag,
             ExchangeOrderSide side = Buy)
         {
