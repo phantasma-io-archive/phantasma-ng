@@ -434,3 +434,5 @@ testnet/temp/
 
 Phantasma.Core/tests/MyTests.cs
 NodeExample/tendermint/tendermint
+DOCKER/_Storage/*
+DOCKER/Storage/

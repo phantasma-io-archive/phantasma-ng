@@ -142,7 +142,7 @@ public partial class Nexus
             {
                 series.SetROM(rom);
             }
-
+            
             rom = new byte[0];
         }
         else

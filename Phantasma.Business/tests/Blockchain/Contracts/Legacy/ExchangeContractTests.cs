@@ -66,7 +66,7 @@ public class ExchangeContractTests
         var qtyQuote = core.simulator.InvokeContract(NativeContractKind.Exchange, nameof(ExchangeContract.GetMinimumQuantity), buyer.quoteToken.Decimals).AsNumber();
 
         buyer.OpenLimitOrder(baseSymbol, quoteSymbol, qtyBase, qtyQuote, ExchangeOrderSide.Buy);
-        Assert.True(core.simulator.LastBlockWasSuccessful());
+        Assert.True(core.simulator.LastBlockWasSuccessful(), core.simulator.FailedTxReason);
 
         seller.OpenLimitOrder(baseSymbol, quoteSymbol, qtyBase, qtyQuote, ExchangeOrderSide.Sell);
         Assert.True(core.simulator.LastBlockWasSuccessful());
@@ -265,9 +265,9 @@ public class ExchangeContractTests
         var orderSize = UnitConversion.ToBigInteger(0.123m, GetDecimals(baseSymbol));
 
         buyer.OpenLimitOrder(baseSymbol, quoteSymbol, orderSize, orderPrices, ExchangeOrderSide.Buy, IoC: true);
-        Assert.True(core.simulator.LastBlockWasSuccessful(), "Shouldn't have filled any part of the order");
+        Assert.True(core.simulator.LastBlockWasSuccessful(), "Shouldn't have filled any part of the order" + core.simulator.FailedTxReason);
         seller.OpenLimitOrder(baseSymbol, quoteSymbol, orderSize, orderPrices, ExchangeOrderSide.Sell, IoC: true);
-        Assert.True(core.simulator.LastBlockWasSuccessful(), "Shouldn't have filled any part of the order");
+        Assert.True(core.simulator.LastBlockWasSuccessful(), "Shouldn't have filled any part of the order" +core.simulator.FailedTxReason);
     }
 
     [Fact(Skip = "Ignore Exchange tests")]
@@ -2352,7 +2352,7 @@ public class ExchangeContractTests
             var owner1 = PhantasmaKeys.Generate();
             var owner2 = PhantasmaKeys.Generate();
             var owner3 = PhantasmaKeys.Generate();
-            simulator = new NexusSimulator(new []{owner, owner1, owner2, owner3});
+            simulator = new NexusSimulator(new []{owner, owner1, owner2, owner3}, 14);
             nexus = simulator.Nexus;
             simulator.GetFundsInTheFuture(owner, 10);
             Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
