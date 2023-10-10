@@ -367,7 +367,7 @@ public partial class Nexus : INexus
         // Generate extra KCAL in simnet only
         if (Name == DomainSettings.NexusSimnet)
         {
-            sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(10000000, DomainSettings.StakingTokenDecimals));
+            //sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(10000000, DomainSettings.StakingTokenDecimals));
             sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(10000000, DomainSettings.FuelTokenDecimals));
         }
 

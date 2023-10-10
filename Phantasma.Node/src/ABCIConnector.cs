@@ -417,7 +417,7 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         Block lastBlock = null;
         Log.Information($"ABCI Connector - Info");
 
-        uint version = DomainSettings.LatestKnownProtocol;
+        uint version = DomainSettings.Phantasma30Protocol;
 
         try 
         {

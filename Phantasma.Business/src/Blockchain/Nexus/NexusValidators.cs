@@ -174,9 +174,9 @@ public partial class Nexus
         return validatorEntryVmObject.AsStruct<ValidatorEntry>();*/
        
         var valueMapKey =  NativeContract.GetKeyForField(NativeContractKind.Validator, "_validators", true);
-        var validators = new StorageMap(valueMapKey, storage);
+        var validators = new StorageList(valueMapKey, storage);
 
-        foreach (var validator in validators.AllValues<ValidatorEntry>())
+        foreach (var validator in validators.All<ValidatorEntry>())
         {
             if (validator.address.TendermintAddress == tAddress)
             {
