@@ -117,6 +117,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public void CreateExchange(Address from, string id, string name, BigInteger totalFee,
             BigInteger feePercentForExchange, BigInteger feePercentForPool)
         {
+            if (Runtime.ProtocolVersion >= 15)
+            {
+                Runtime.Expect(false, "exchange not supported on this protocol version");
+                return;
+            }
+
             if (Runtime.ProtocolVersion >= 16)
             {
                 Runtime.Expect(false, "This method is not available in this version of the DEX");
@@ -151,6 +157,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public void EditExchange(Address from, string id, string name, BigInteger totalFee,
             BigInteger feePercentForExchange, BigInteger feePercentForPool)
         {
+            if (Runtime.ProtocolVersion >= 15)
+            {
+                Runtime.Expect(false, "exchange not supported on this protocol version");
+                return;
+            }
+
             if (Runtime.ProtocolVersion >= 16)
             {
                 Runtime.Expect(false, "This method is not available in this version of the DEX");
