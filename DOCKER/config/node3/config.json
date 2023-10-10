@@ -6,8 +6,8 @@
       "tendermint.path": "/app/bin/tendermint",
       "tendermint.home": "/app/node/tendermint",
       "tendermint.rpc.port": "26357",
-      "tendermint.rpc.host": "http://127.0.0.1",
-      "tendermint.proxy.host": "127.0.0.1",
+      "tendermint.rpc.host": "http://0.0.0.0",
+      "tendermint.proxy.host": "0.0.0.0",
       "tendermint.proxy.port": "26358",
       "tendermint.key": "MJOu+vhS1Z3wttneYCSb64ijevipO7qI4Y2BrkVmTx7+2KuPsb6UeaJn8v3gNWhcPAGELtuo+/jOhVLtGVq7wQ==",
       "tendermint.chainid": "chain-Q6CmDc",
@@ -52,28 +52,28 @@
         "validator.address": "P2K9zmyFDNGN6n6hHiTUAz6jqn29s5G1SWLiXwCVQcpHcQb",
         "validator.tendermint.address": "0c8203a0e63d7c025a4be9e4391b42fb65d344ab",
         "validator.name": "node0",
-        "validator.api.host": "127.0.0.1",
+        "validator.api.host": "0.0.0.0",
         "validator.api.port": 7077
       },
       {
         "validator.address": "P2K65RZhfxZhQcXKGgSPZL6c6hkygXipNxdeuW5FU531Bqc",
         "validator.tendermint.address": "e602bda8f1bc8b916af4d312ce2b5c610074f423",
         "validator.name": "node1",
-        "validator.api.host": "127.0.0.1",
+        "validator.api.host": "0.0.0.0",
         "validator.api.port": 7078
       },
       {
         "validator.address": "P2KAcEJk2UPvTP5rStzeeSJCboE9yEdA2meNVT7UNiKbdH3",
         "validator.tendermint.address": "ea9eb814c23bc75d53324f9b650ff2b71720a0c3",
         "validator.name": "node2",
-        "validator.api.host": "127.0.0.1",
+        "validator.api.host": "0.0.0.0",
         "validator.api.port": 7079
       },
       {
         "validator.address": "P2KLvu4UWXFz4r86PsCrtPdJSgkqCSWTZHjDgqdXXJ6Se1v",
         "validator.tendermint.address": "5aa2fce0959bc52e743b5653f5010b9f7eafcdb1",
         "validator.name": "node3",
-        "validator.api.host": "127.0.0.1",
+        "validator.api.host": "0.0.0.0",
         "validator.api.port": 7080
       }
     ],
