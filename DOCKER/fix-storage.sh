@@ -29,10 +29,10 @@ rm -rf testnet/node1/config/write-file-atomic*
 rm -rf testnet/node2/config/write-file-atomic*
 rm -rf testnet/node3/config/write-file-atomic*
 
-#cp -R ./Storage testnet/node0/publish
-#cp -R ./Storage testnet/node1/publish
-#cp -R ./Storage testnet/node2/publish
-#cp -R ./Storage testnet/node3/publish
+cp -R ./Storage testnet/node0/publish
+cp -R ./Storage testnet/node1/publish
+cp -R ./Storage testnet/node2/publish
+cp -R ./Storage testnet/node3/publish
 
 chmod -R 777 testnet/node0/publish/Storage
 chmod -R 777 testnet/node1/publish/Storage

@@ -1,0 +1,27 @@
+version: '3'
+services:
+  node:
+    image: phantasma-node:latest
+    build:
+      context: .
+      dockerfile: ./DOCKER/Dockerfilenode
+    volumes:
+      - ${LOCATION}/Phantasma.Node/src/bin/Debug/net6.0/linux-arm64/publish:/app/node/data
+      - ./DOCKER/Config/node${NODE_ID}:/app/node/config
+    environment:
+      - NODE_ID=${NODE_ID}
+    ports:
+      - "7077-7081"
+      - "26056-26057"
+      - "26156-26157"
+      - "26256-26257"
+      - "26356-26357"
+    command: /bin/bash -c "/app/wrapper.sh"
+
+networks:
+  phantasma-nodes:
+    driver: bridge
+    
+volumes:
+  node_data:
+  node_config:
