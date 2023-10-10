@@ -76,7 +76,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
             
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
-            Runtime.Expect(Runtime.IsKnownValidator(from), "invalid validator");
+            if ( Runtime.HasGenesis )
+                Runtime.Expect(Runtime.IsKnownValidator(from), "invalid validator");
             _currentEnergyRatioDivisor = DefaultEnergyRatioDivisor; // used as 1/500, will initially generate 0.002 per staked token
         }
 

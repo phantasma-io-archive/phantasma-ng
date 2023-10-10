@@ -25,7 +25,7 @@ cp $TROOT/node2/config_node2.json $TROOT/node2/publish/config.json
 cp $TROOT/node3/config_node3.json $TROOT/node3/publish/config.json
 
 # start all tendermint sessions
-screen -S node0p -dm bash -c 'cd /app/testnet/node0/publish/; dotnet phantasma-node.dll; exec sh'
+#screen -S node0p -dm bash -c 'cd /app/testnet/node0/publish/; dotnet phantasma-node.dll; exec sh'
 screen -S node1p -dm bash -c 'cd /app/testnet/node1/publish/; dotnet phantasma-node.dll; exec sh'
 screen -S node2p -dm bash -c 'cd /app/testnet/node2/publish/; dotnet phantasma-node.dll; exec sh'
 screen -S node3p -dm bash -c 'cd /app/testnet/node3/publish/; dotnet phantasma-node.dll; exec sh'

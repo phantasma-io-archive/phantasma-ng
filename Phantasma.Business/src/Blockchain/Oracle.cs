@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core;
 using Phantasma.Core.Cryptography;
@@ -21,6 +22,8 @@ using Phantasma.Core.Domain.Oracle.Structs;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Domain.Structs;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Types;
 using Phantasma.Core.Types.Structs;
 using Serilog;
@@ -142,7 +145,10 @@ namespace Phantasma.Business.Blockchain
                     BigInteger exchangeVersion = 0;
                     try
                     {
-                        exchangeVersion = Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootStorage, time, NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVersion)).AsNumber();
+                        var keyForField = NativeContract.GetKeyForField(NativeContractKind.Exchange, "_DEXversion", true);
+                        var storageValue = new StorageValue(keyForField, Nexus.RootStorage);
+                        exchangeVersion = storageValue.Get<BigInteger>();
+                        //exchangeVersion = Nexus.RootChain.InvokeContractAtTimestamp(Nexus.RootStorage, time, NativeContractKind.Exchange, nameof(ExchangeContract.GetDexVersion)).AsNumber();
                     }
                     catch ( Exception e)
                     {
