@@ -293,27 +293,33 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         Log.Information($"ABCI Connector - Commit");
 
         var chain = _nexus.RootChain as Chain;
+        var attempts = 2;
         
         // Is signed by me and I am the proposer
-        if ( chain.CurrentBlock != null)
-            Log.Information("Block {Height} is signed by {Address}", chain.Height, chain.CurrentBlock.Validator);
-        
-        if (chain.CurrentBlock.Validator == chain.ValidatorAddress)
+        if (chain.CurrentBlock != null)
         {
-            Log.Information("Block {Height} Is Being Validated by me.");
-            chain.Commit();
+            Log.Information("Block {Height} is signed by {Address}", chain.Height, chain.CurrentBlock.Validator);
+            if (chain.CurrentBlock.Validator == chain.ValidatorAddress)
+            {
+                Log.Information("Block {Height} Is Being Validated by me.");
+                chain.Commit();
+            }
+            else
+            {
+                while (chain.CurrentBlock != null && attempts-- > 0)
+                {
+                    AttemptRequestBlock(chain);
+                
+                    Thread.Sleep(_delayRequests);
+                }
+                //var data = chain.Commit();
+            }
         }
         else
         {
-            var attempts = 2;
-            while (chain.CurrentBlock != null && attempts-- > 0)
-            {
-                AttemptRequestBlock(chain);
-                
-                Thread.Sleep(_delayRequests);
-            }
-            //var data = chain.Commit();
+            Log.Error("Block {Height} Is Null.", chain.Height);
         }
+        
         var response = new ResponseCommit();
         
         //response.Data = ByteString.CopyFrom(data); // this would change the app hash, we don't want that
