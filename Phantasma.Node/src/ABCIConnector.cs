@@ -293,8 +293,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
         Log.Information($"ABCI Connector - Commit");
 
         var chain = _nexus.RootChain as Chain;
+        
         // Is signed by me and I am the proposer
-        Log.Information("Block {Height} is signed by {Address}", chain.Height, chain.CurrentBlock.Validator);
+        if ( chain.CurrentBlock != null)
+            Log.Information("Block {Height} is signed by {Address}", chain.Height, chain.CurrentBlock.Validator);
+        
         if (chain.CurrentBlock.Validator == chain.ValidatorAddress)
         {
             Log.Information("Block {Height} Is Being Validated by me.");

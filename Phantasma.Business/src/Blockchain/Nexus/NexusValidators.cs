@@ -8,8 +8,10 @@ using Phantasma.Core.Domain.Contract;
 using Phantasma.Core.Domain.Contract.Enums;
 using Phantasma.Core.Domain.Contract.Validator.Enums;
 using Phantasma.Core.Domain.Contract.Validator.Structs;
+using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Domain.Validation;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Blockchain;
@@ -84,6 +86,7 @@ public partial class Nexus
     // this returns true for both active and waiting
     public bool IsKnownValidator(Address address, Timestamp timestamp)
     {
+        if (!HasGenesis()) return true;
         var result = GetValidatorType(address, timestamp);
         return result != ValidatorType.Invalid && result != ValidatorType.Proposed;
     }
@@ -165,15 +168,15 @@ public partial class Nexus
         var lastBlockHash = this.RootChain.GetLastBlockHash();
         var lastBlock = this.RootChain.GetBlockByHash(lastBlockHash);
         // TODO use builtin methods instead of doing this directly
-        var validatorEntryVmObject = RootChain.InvokeContractAtTimestamp(storage, lastBlock.Timestamp,
+        /*var validatorEntryVmObject = RootChain.InvokeContractAtTimestamp(storage, lastBlock.Timestamp,
             NativeContractKind.Validator,
             nameof(ValidatorContract.GetCurrentValidator), tAddress);
-        return validatorEntryVmObject.AsStruct<ValidatorEntry>();
-        /*
-        var valueMapKey = Encoding.UTF8.GetBytes($".{validatorContractName}._validators");
-        var validators = new StorageMap(valueMapKey, storage);
+        return validatorEntryVmObject.AsStruct<ValidatorEntry>();*/
+       
+        var valueMapKey =  NativeContract.GetKeyForField(NativeContractKind.Validator, "_validators", true);
+        var validators = new StorageList(valueMapKey, storage);
 
-        foreach (var validator in validators.AllValues<ValidatorEntry>())
+        foreach (var validator in validators.All<ValidatorEntry>())
         {
             if (validator.address.TendermintAddress == tAddress)
             {
@@ -186,7 +189,7 @@ public partial class Nexus
             address = Address.Null,
             type = ValidatorType.Invalid,
             election = new Timestamp(0)
-        };*/
+        };
     }
 
     #endregion

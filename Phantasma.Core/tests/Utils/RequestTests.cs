@@ -73,7 +73,7 @@ public class RequestTests
     public void TestRequestGetBlockByHeight()
     {
         var postParms = "";
-        var urlRequest = "http://testnet.phantasma.io:5101/api/v1/GetBlockByHeight?chainInput=main&height=1";
+        var urlRequest = "https://testnet.phantasma.io/api/v1/GetBlockByHeight?chainInput=main&height=1";
         var request = RequestUtils.Request<JsonDocument>(RequestType.GET, urlRequest, out string myResponse);
 
         var block = new BlockResult();
@@ -89,7 +89,7 @@ public class RequestTests
     public void TestRequestAsync()
     {
         var postParms = "";
-        var urlRequest = "http://testnet.phantasma.io:5101/api/v1/GetBlockByHeight?chainInput=main&height=1";
+        var urlRequest = "https://testnet.phantasma.io/api/v1/GetBlockByHeight?chainInput=main&height=1";
         var request = RequestUtils.RequestAsync<JsonDocument>(RequestType.GET, urlRequest);
 
         var block = new BlockResult();

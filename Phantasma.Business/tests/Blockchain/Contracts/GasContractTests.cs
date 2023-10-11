@@ -148,7 +148,7 @@ public class GasContractTests
             phantomOrg.Address, simulator.CurrentTime); 
         // Initial Supply - 171462300000000
         var tokenSupplySOUL = simulator.Nexus.RootChain.GetTokenSupply(simulator.Nexus.RootStorage, "SOUL");
-        Assert.Equal(171462300000000, tokenSupplySOUL);
+        Assert.Equal(1171462300000000, tokenSupplySOUL);
         var InflationPerYear = 133;
         
         var currentSupply = tokenSupplySOUL;

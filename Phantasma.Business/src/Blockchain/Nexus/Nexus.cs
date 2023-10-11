@@ -367,7 +367,8 @@ public partial class Nexus : INexus
         // Generate extra KCAL in simnet only
         if (Name == DomainSettings.NexusSimnet)
         {
-            sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(1000000, DomainSettings.FuelTokenDecimals));
+            sb.MintTokens(DomainSettings.StakingTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(10000000, DomainSettings.StakingTokenDecimals));
+            sb.MintTokens(DomainSettings.FuelTokenSymbol, owner.Address, owner.Address, UnitConversion.ToBigInteger(10000000, DomainSettings.FuelTokenDecimals));
         }
 
         sb.CallContract(NativeContractKind.Validator, nameof(ValidatorContract.SetValidator), owner.Address, new BigInteger(0), ValidatorType.Primary);
@@ -415,7 +416,7 @@ public partial class Nexus : INexus
             CreateToken(storage, DomainSettings.FuelTokenSymbol, DomainSettings.FuelTokenName, owner, 0, DomainSettings.FuelTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Burnable | TokenFlags.Fuel, tokenScript, abi);
             CreateToken(storage, DomainSettings.RewardTokenSymbol, DomainSettings.RewardTokenName, owner, 0, 0, TokenFlags.Transferable | TokenFlags.Burnable, tokenScript, abi);
             CreateToken(storage, DomainSettings.FiatTokenSymbol, DomainSettings.FiatTokenName, owner, 0, DomainSettings.FiatTokenDecimals, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Divisible | TokenFlags.Fiat, tokenScript, abi);
-            var lpABI = ContractInterface.FromBytes(Base16.Decode(NEW_LP_CONTRACT_ABI));
+            //var lpABI = ContractInterface.FromBytes(Base16.Decode(NEW_LP_CONTRACT_ABI));
             //CreateToken(storage, "LP", "Phantasma Liquidity Provider", owner, 0, 0, TokenFlags.Transferable | TokenFlags.Mintable | TokenFlags.Swappable | TokenFlags.Burnable, Base16.Decode(NEW_LP_CONTRACT_PVM), lpABI );
 
             CreateToken(storage, "NEO", "NEO", owner, UnitConversion.ToBigInteger(100000000, 0), 0, TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite, tokenScript, abi);

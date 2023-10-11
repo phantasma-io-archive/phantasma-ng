@@ -27,8 +27,7 @@ public class FilterTests
     public void SimpleFilter()
     {
         var owner = PhantasmaKeys.Generate();
-
-        var simulator = new NexusSimulator(owner);
+        var simulator = new NexusSimulator(new [] {owner}, 9);
         var nexus = simulator.Nexus;
 
         var testUser = PhantasmaKeys.Generate();
@@ -57,7 +56,7 @@ public class FilterTests
         simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol,
             transferAmount);
         simulator.EndBlock();
-        Assert.False(simulator.LastBlockWasSuccessful());
+        Assert.False(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var hashes = simulator.Nexus.RootChain.GetTransactionHashesForAddress(testUser.Address);
         Assert.True(hashes.Length == 1);
@@ -80,7 +79,7 @@ public class FilterTests
     {
         var owner = PhantasmaKeys.Generate();
 
-        var simulator = new NexusSimulator(owner);
+        var simulator = new NexusSimulator(new [] {owner}, 9);
         var nexus = simulator.Nexus;
 
         var testUser = PhantasmaKeys.Generate();
@@ -113,7 +112,7 @@ public class FilterTests
         simulator.GenerateTransfer(sender, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol,
             transferAmount);
         simulator.EndBlock();
-        Assert.False(simulator.LastBlockWasSuccessful());
+        Assert.False(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var hashes = simulator.Nexus.RootChain.GetTransactionHashesForAddress(testUser.Address);
         Assert.True(hashes.Length == 1);
@@ -136,7 +135,7 @@ public class FilterTests
         simulator.GenerateTransfer(sender, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol,
             smallAmount);
         simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
         
         finalBalance =
             simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, owner.Address);
@@ -149,7 +148,7 @@ public class FilterTests
     {
         var owner = PhantasmaKeys.Generate();
 
-        var simulator = new NexusSimulator(owner);
+        var simulator = new NexusSimulator(new [] {owner}, 9);
         var nexus = simulator.Nexus;
 
         var testUser = PhantasmaKeys.Generate();
@@ -184,7 +183,7 @@ public class FilterTests
         simulator.GenerateTransfer(sender, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol,
             transferAmount);
         simulator.EndBlock();
-        Assert.False(simulator.LastBlockWasSuccessful());
+        Assert.False(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var hashes = simulator.Nexus.RootChain.GetTransactionHashesForAddress(testUser.Address);
         Assert.True(hashes.Length == 1);
@@ -225,7 +224,7 @@ public class FilterTests
     {
         var owner = PhantasmaKeys.Generate();
 
-        var simulator = new NexusSimulator(owner);
+        var simulator = new NexusSimulator(new [] {owner}, 9);
         var nexus = simulator.Nexus;
 
         var testUser = PhantasmaKeys.Generate();
@@ -265,22 +264,22 @@ public class FilterTests
             Assert.True(transferAmount > 0);
 
             simulator.BeginBlock();
-            simulator.GenerateTransfer(owner, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol,
+            simulator.GenerateTransfer(sender, testUser.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol,
                 transferAmount);
             simulator.EndBlock();
 
             if (i == totalSplits - 1) // only last is expected to fail
             {
-                Assert.False(simulator.LastBlockWasSuccessful());
+                Assert.False(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
             }
             else
             {
-                Assert.True(simulator.LastBlockWasSuccessful());
+                Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
             }
         }
 
         var hashes = simulator.Nexus.RootChain.GetTransactionHashesForAddress(testUser.Address);
-        Assert.True(hashes.Length == totalSplits);
+        Assert.Equal(hashes.Length, totalSplits );
 
         BigInteger expectedBalance = split * (totalSplits - 1); // last one is supposed to fail
         expectedBalance *= UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
@@ -289,7 +288,7 @@ public class FilterTests
             simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
         var finalBalance =
             simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
-        Assert.True(finalBalance == expectedBalance);
+        Assert.Equal(finalBalance, expectedBalance);
         
         if (nexus.GetProtocolVersion(nexus.RootStorage) <= 9)
         {
