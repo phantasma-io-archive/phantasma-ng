@@ -27,8 +27,7 @@ public class FilterTests
     public void SimpleFilter()
     {
         var owner = PhantasmaKeys.Generate();
-
-        var simulator = new NexusSimulator(owner);
+        var simulator = new NexusSimulator(new [] {owner}, 9);
         var nexus = simulator.Nexus;
 
         var testUser = PhantasmaKeys.Generate();
@@ -80,7 +79,7 @@ public class FilterTests
     {
         var owner = PhantasmaKeys.Generate();
 
-        var simulator = new NexusSimulator(owner);
+        var simulator = new NexusSimulator(new [] {owner}, 9);
         var nexus = simulator.Nexus;
 
         var testUser = PhantasmaKeys.Generate();
@@ -149,7 +148,7 @@ public class FilterTests
     {
         var owner = PhantasmaKeys.Generate();
 
-        var simulator = new NexusSimulator(owner);
+        var simulator = new NexusSimulator(new [] {owner}, 9);
         var nexus = simulator.Nexus;
 
         var testUser = PhantasmaKeys.Generate();
@@ -225,7 +224,7 @@ public class FilterTests
     {
         var owner = PhantasmaKeys.Generate();
 
-        var simulator = new NexusSimulator(owner);
+        var simulator = new NexusSimulator(new [] {owner}, 9);
         var nexus = simulator.Nexus;
 
         var testUser = PhantasmaKeys.Generate();
@@ -279,8 +278,8 @@ public class FilterTests
             }
         }
 
-        var hashes = simulator.Nexus.RootChain.GetTransactionHashesForAddress(sender.Address);
-        Assert.Equal(hashes.Length, totalSplits);
+        var hashes = simulator.Nexus.RootChain.GetTransactionHashesForAddress(testUser.Address);
+        Assert.Equal(hashes.Length, totalSplits );
 
         BigInteger expectedBalance = split * (totalSplits - 1); // last one is supposed to fail
         expectedBalance *= UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals);
@@ -288,13 +287,13 @@ public class FilterTests
         var stakeToken =
             simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
         var finalBalance =
-            simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, sender.Address);
-        Assert.True(finalBalance == expectedBalance);
+            simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
+        Assert.Equal(finalBalance, expectedBalance);
         
         if (nexus.GetProtocolVersion(nexus.RootStorage) <= 9)
         {
             Assert.True(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
-            Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, sender.Address));
+            Assert.False(Filter.IsRedFilteredAddress(nexus.RootStorage, testUser.Address));
         }
         
     }
