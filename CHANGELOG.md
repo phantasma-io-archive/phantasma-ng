@@ -1,7 +1,7 @@
 # Phantasma Blockchain Changelog
 All notable changes to this project will be documented in this file.
 
-## Version 17 - 12 October, 2023
+## Version 17 - 13 October, 2023
 ### Added
 
 ### Changed
