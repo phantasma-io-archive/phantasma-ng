@@ -57,7 +57,7 @@ public class ExtCallsTests
         
     protected void InitializeSimulator()
     {
-        simulator = new NexusSimulator(new []{owner}, 16);
+        simulator = new NexusSimulator(new []{owner}, 17);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
         SetInitialBalance(user.Address);
