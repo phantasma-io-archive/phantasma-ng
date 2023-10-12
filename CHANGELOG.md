@@ -1,6 +1,34 @@
 # Phantasma Blockchain Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 17 - 12 October, 2023
+### Added
+
+### Changed
+
+### Fixed
+
+## Version 16 - 12 October, 2023
+### Added
+- Added `docker-compose.yml` file to run the Phantasma Blockchain in a Docker container.
+- Added `docker-entrypoint.sh` file to run the Phantasma Blockchain in a Docker container.
+- Added `DockerfileTestnetDebug` file to help debug the Phantasma Blockchain in a Docker container.
+- Added `DockerfileTestnetNodeBuilder` file to run the Phantasma Blockchain in a Docker container.
+- Added `DockerfileNodeWin` file to build the Phantasma Blockchain.
+- Added `wrapper-testnet-debug.sh` file to help debug the Phantasma Blockchain in a Docker container.
+- Added a way to provide the `config.json` file as a parameter on startup.
+
+### Changed
+- Bumped version to 16.
+- Upgrade to Simnet to increase the amount of SOUL and KCAL the user receives (Development only).
+- Updated `Readme.md` file to include instructions on how to debug the Phantasma Blockchain.
+- Updated `ABCIConnector.cs` file to check the CurrentBlock is null.
+
+### Fixed
+- Bug fixes to the ConsensusContract.
+- Changed `Oracle.cs` to access directly the storage.
+- Fixed `NexusValidator.cs` to get the validators from the storage.
+
 ## Version 15 - March 30, 2023
 ### Added
 
