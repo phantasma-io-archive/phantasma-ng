@@ -416,6 +416,8 @@ tendermint
 Phantasma.Node/Properties/launchSettings.json
 DOCKER/Storage/
 Phantasma.Node/testnet/
+Phantasma.Node/src/testnet/
+
 
 testnet/temp/
 
@@ -431,3 +433,6 @@ testnet/temp/
 .vscode/
 
 Phantasma.Core/tests/MyTests.cs
+NodeExample/tendermint/tendermint
+DOCKER/_Storage/*
+DOCKER/Storage/

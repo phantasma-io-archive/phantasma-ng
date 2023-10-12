@@ -8,7 +8,7 @@
     <PackageProjectUrl>www.phantasma.io</PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/phantasma-io</RepositoryUrl>
-    <Version>1.0.7</Version>
+    <Version>1.1.1</Version>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -26,5 +26,8 @@
     <PackageReference Include="BouncyCastle.NetCore" Version="1.8.10" />
     <PackageReference Include="K4os.Compression.LZ4" Version="1.2.6" />
     <PackageReference Include="Serilog" Version="2.11.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Domain\Enums" />
   </ItemGroup>
 </Project>

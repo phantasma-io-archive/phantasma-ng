@@ -1,5 +1,6 @@
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Phantasma.Infrastructure.API.Structs;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {

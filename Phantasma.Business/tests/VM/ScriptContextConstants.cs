@@ -3,9 +3,17 @@ using System.Numerics;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Triggers.Enums;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Tests.VM;
 
@@ -234,11 +242,11 @@ internal class ScriptContextConstants
             "alias r7, $triggerWitness",
             "alias r8, $currentAddress",
             "alias r9, $sourceAddress",
-            $@"load $triggerSend, ""{AccountTrigger.OnSend}""",
-            $@"load $triggerReceive, ""{AccountTrigger.OnReceive}""",
-            $@"load $triggerBurn, ""{AccountTrigger.OnBurn}""",
-            $@"load $triggerMint, ""{AccountTrigger.OnMint}""",
-            $@"load $triggerWitness, ""{AccountTrigger.OnWitness}""",
+            $@"load $triggerSend, ""{ContractTrigger.OnSend}""",
+            $@"load $triggerReceive, ""{ContractTrigger.OnReceive}""",
+            $@"load $triggerBurn, ""{ContractTrigger.OnBurn}""",
+            $@"load $triggerMint, ""{ContractTrigger.OnMint}""",
+            $@"load $triggerWitness, ""{ContractTrigger.OnWitness}""",
             "push r1",
             "push r2",
             "push r3",

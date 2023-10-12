@@ -3,7 +3,11 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract.Governance;
+using Phantasma.Core.Domain.Contract.Governance.Structs;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
+using Phantasma.Infrastructure.API.Structs;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -17,7 +21,7 @@ namespace Phantasma.Infrastructure.API.Controllers
 
             var tokenList = new List<TokenResult>();
 
-            var symbols = nexus.GetTokens(nexus.RootStorage);
+            var symbols = nexus.GetAvailableTokenSymbols(nexus.RootStorage);
             foreach (var token in symbols)
             {
                 var entry = NexusAPI.FillToken(token, false, extended);

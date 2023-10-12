@@ -1,0 +1,14 @@
+#--platform=linux/x86_64
+FROM  mcr.microsoft.com/dotnet/aspnet:6.0 as runtime
+WORKDIR /app
+
+# Copy everything
+COPY DOCKER/wrapper-testnet-debug.sh /app/wrapper-testnet-debug.sh 
+COPY DOCKER/bin /app/bin
+
+RUN apt-get update; apt-get install -y libc6-dev libsnappy-dev libicu-dev screen bash vim net-tools ca-certificates openssl libssl-dev librocksdb-dev nano
+
+EXPOSE 7078 7079 7080 26156 26256 26356 26157 26257 26357
+
+RUN chmod +x /app/wrapper-testnet-debug.sh
+ENTRYPOINT ["/app/wrapper-testnet-debug.sh"]

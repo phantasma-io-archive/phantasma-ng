@@ -1,22 +1,16 @@
 ﻿using System.Threading;
+using Phantasma.Core.Utils.Enums;
 
 namespace Phantasma.Core.Utils
 {
     public abstract class Runnable
     {
-        public enum State
-        {
-            Stopped,
-            Running,
-            Stopping
-        }
-
         private State _state = State.Stopped;
 
         public State CurrentState => _state;
 
         public bool Running => CurrentState == State.Running;
-        
+
         protected abstract bool Run();
 
         public void StartInThread(ThreadPriority priority = ThreadPriority.Normal)
@@ -64,6 +58,7 @@ namespace Phantasma.Core.Utils
                     break;
                 }
             }
+
             OnStop();
         }
 
@@ -85,8 +80,12 @@ namespace Phantasma.Core.Utils
             }
         }
 
-        protected virtual void OnStart() { }
-        protected virtual void OnStop() { }
+        protected virtual void OnStart()
+        {
+        }
 
+        protected virtual void OnStop()
+        {
+        }
     }
 }

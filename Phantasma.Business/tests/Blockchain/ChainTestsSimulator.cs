@@ -2,7 +2,18 @@ using System.Numerics;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Stake;
+using Phantasma.Core.Domain.Contract.Structs;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Tasks;
+using Phantasma.Core.Domain.Tasks.Enum;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Numerics;
 using Xunit;
 
@@ -22,7 +33,6 @@ public class ChainTestsSimulator
     BigInteger initialAmount;
     BigInteger initialFuel;
     BigInteger startBalance;
-    StakeReward reward;
     IChain chain;
 
     public ChainTestsSimulator()

@@ -7,14 +7,32 @@ using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Structs;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Triggers.Enums;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
+using Phantasma.Core.Domain.VM.Structs;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Blockchain.Tokens
 {
     public static class TokenUtils
-    {
+    {        
+        public static readonly string ImageURLMethodName = "getImageURL";
+        public static readonly string InfoURLMethodName = "getInfoURL";
+
         public static Address GetContractAddress(this IToken token)
         {
             return GetContractAddress(token.Symbol);
@@ -215,6 +233,11 @@ namespace Phantasma.Business.Blockchain.Tokens
             if (result == ExecutionState.Halt)
             {
                 return vm.Stack.Pop();
+            }
+
+            if (result == ExecutionState.Fault)
+            {
+                return new VMObject().SetValue("unknown");
             }
 
             throw new Exception("Script execution failed for: " + method.name);

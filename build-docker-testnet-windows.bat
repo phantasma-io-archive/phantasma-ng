@@ -2,8 +2,8 @@
 
 SET VERSION=0.34.21
 SET TESTNET_ROOT=%CD%\DOCKER\testnet
-SET PUBLISH_ROOT=%CD%\Phantasma.Node\bin\Debug\net6.0\linux-x64\publish\
-SET NODE_PROJ=Phantasma.Node\Phantasma.Node.csproj
+SET PUBLISH_ROOT=%CD%\Phantasma.Node\src\bin\Debug\net6.0\linux-x64\publish\
+SET NODE_PROJ=Phantasma.Node\src\Phantasma.Node.csproj
 SET LAST_COMMIT=git rev-parse --short HEAD
 for /f %%x in ('git rev-parse --short HEAD') do set LAST_COMMIT=%%x
 curl "-LJO" "https:/\github.com\tendermint\tendermint\releases\download\v"%VERSION%"\tendermint_"%VERSION%"_linux_amd64.tar.gz" "-s" "-o" "tendermint_"%VERSION%"_linux_amd64.tar.gz"

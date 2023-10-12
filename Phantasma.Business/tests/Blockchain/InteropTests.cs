@@ -9,9 +9,24 @@ using Phantasma.Business.Blockchain.Contracts;
 using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.VM;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.Token.Structs;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Infrastructure.RocksDB;
 using Shouldly;
 using Xunit;
@@ -898,7 +913,7 @@ public class InteropTests : IDisposable
                     It.IsAny<string>())
                 ).Returns(token);
 
-        nexusMoq.Setup(n => n.GetTokens(
+        nexusMoq.Setup(n => n.GetAvailableTokenSymbols(
             It.IsAny<StorageContext>())
             ).Returns(new string[] {token.Symbol});
 

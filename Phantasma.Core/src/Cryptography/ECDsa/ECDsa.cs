@@ -6,15 +6,10 @@ using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Security;
+using Phantasma.Core.Cryptography.ECDsa.Enums;
 
 namespace Phantasma.Core.Cryptography.ECDsa
 {
-    public enum ECDsaCurve
-    {
-        Secp256r1,
-        Secp256k1,
-    }
-
     public static class ECDsa
     {
         public static byte[] GetPublicKey(byte[] privateKey, bool compressed, ECDsaCurve curve)

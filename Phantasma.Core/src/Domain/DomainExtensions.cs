@@ -2,6 +2,22 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Interop;
+using Phantasma.Core.Domain.Contract.Interop.Structs;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Structs;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Triggers.Enums;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Numerics;
 
 namespace Phantasma.Core.Domain
@@ -152,6 +168,15 @@ namespace Phantasma.Core.Domain
             return tx;
         }
 
+        public static InteropTransactionData ReadCrossChainTransactionFromOracle(this IRuntime runtime, string platform, string chain,
+            Hash hash)
+        {
+            var url = GetOracleTransactionURL(platform, chain, hash);
+            var bytes = runtime.ReadOracle(url);
+            var tx = Serialization.Unserialize<InteropTransactionData>(bytes);
+            return tx;
+        }
+        
         public static InteropNFT ReadNFTFromOracle(this IRuntime runtime, string platform, string symbol, BigInteger tokenID)
         {
             var url = GetOracleNFTURL(platform, symbol, tokenID);

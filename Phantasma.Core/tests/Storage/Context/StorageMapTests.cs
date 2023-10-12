@@ -1,5 +1,6 @@
 using System.Text;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Xunit;
 
 namespace Phantasma.Core.Tests.Storage.Context;

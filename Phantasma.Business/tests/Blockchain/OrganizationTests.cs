@@ -5,11 +5,20 @@ using System.Numerics;
 using Moq;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Structs;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Triggers.Enums;
 using Phantasma.Core.Storage;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Infrastructure.RocksDB;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 using Shouldly;
 using Xunit;
 
@@ -291,7 +300,7 @@ public class OrganizationTests : IDisposable
         }
         Directory.CreateDirectory(this.PartitionPath);
 
-        this.Nexus = new Nexus("unittest", (name) => new MemoryStore());
+        this.Nexus = Business.Blockchain.Nexus.Initialize<Chain>("unittest", (name) => new MemoryStore());
 
         var storage = (StorageContext)new MemoryStorageContext();
         this.Context = new StorageChangeSetContext(storage);

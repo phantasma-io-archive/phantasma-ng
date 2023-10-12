@@ -3,10 +3,10 @@
 #VERSION=0.35.6
 VERSION=0.34.21
 TESTNET_ROOT='./DOCKER/testnet'
-PUBLISH_ROOT='./Phantasma.Node/bin/Debug/net6.0/linux-arm64/publish/'
-NODE_PROJ='Phantasma.Node/Phantasma.Node.csproj'
+PUBLISH_ROOT='./Phantasma.Node/src/bin/Debug/net6.0/linux-arm64/publish/'
+NODE_PROJ='Phantasma.Node/src/Phantasma.Node.csproj'
 LAST_COMMIT=`git rev-parse --short HEAD`
-
+#https://github.com/tendermint/tendermint/releases/download/v0.34.21/tendermint_0.34.21_macos_arm64.tar.gz
 wget --no-check-certificate --content-disposition https://github.com/tendermint/tendermint/releases/download/v"$VERSION"/tendermint_"$VERSION"_linux_arm64.tar.gz 
 
 mkdir -p DOCKER/bin

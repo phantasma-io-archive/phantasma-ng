@@ -5,13 +5,28 @@ using System.Linq;
 using System.Numerics;
 using Moq;
 using Phantasma.Business.Blockchain;
-using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Business.Blockchain.Archives;
 using Phantasma.Business.Blockchain.Tokens;
+using Phantasma.Business.Blockchain.Tokens.Structs;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Structs;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.Token.Structs;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Triggers.Enums;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Storage;
 using Phantasma.Core.Types;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Infrastructure.RocksDB;
 using Shouldly;
 using Xunit;
@@ -32,7 +47,7 @@ public class NexusTests : IDisposable
                         Path.DirectorySeparatorChar;
         Directory.CreateDirectory(PartitionPath);
 
-        Nexus = new Nexus("unittest", name => new MemoryStore());
+        Nexus = Business.Blockchain.Nexus.Initialize<Chain>("unittest", name => new MemoryStore());
         var maxSupply = 10000000;
 
         var flags = TokenFlags.Burnable | TokenFlags.Divisible | TokenFlags.Fungible | TokenFlags.Mintable |

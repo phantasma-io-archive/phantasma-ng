@@ -12,8 +12,21 @@ using Phantasma.Business.Tests.Simulator;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Domain;
 using Phantasma.Business.VM.Utils;
-using Transaction = Phantasma.Core.Domain.Transaction;
+using Transaction = Phantasma.Core.Domain.TransactionData.Transaction;
 using Phantasma.Business.VM;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Structs;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
+using Phantasma.Core.Domain.VM.Structs;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Tests.VM.Legacy;
 
@@ -2333,7 +2346,7 @@ public class AssemblerTestsLegacy
         var table = DisasmUtils.GetDefaultDisasmTable();
         table[methodName] = 0; // this method has no args
 
-        var calls = DisasmUtils.ExtractMethodCalls(script, table);
+        var calls = DisasmUtils.ExtractMethodCalls(script, DomainSettings.LatestKnownProtocol, table);
 
         Assert.True(calls.Count() == 1);
         Assert.True(calls.First().MethodName == methodName);
@@ -2346,7 +2359,7 @@ public class AssemblerTestsLegacy
         var owner = PhantasmaKeys.Generate();
         var script = AssemblerUtils.BuildScript(scriptString);
 
-        var nexus = new Nexus("asmnet");
+        var nexus = Nexus.Initialize<Chain>("asmnet");
         nexus.CreateGenesisTransaction(Timestamp.Now, owner);
         var tx = new Transaction(nexus.Name, nexus.RootChain.Name, script, 0);
 
@@ -2378,7 +2391,7 @@ public class AssemblerTestsLegacy
         var script = AssemblerUtils.BuildScript(scriptString);
 
         var keys = PhantasmaKeys.Generate();
-        var nexus = new Nexus("asmnet");
+        var nexus = Business.Blockchain.Nexus.Initialize<Chain>("asmnet");
         nexus.CreateGenesisTransaction(Timestamp.Now, owner);
         tx = new Transaction(nexus.Name, nexus.RootChain.Name, script, 0);
 

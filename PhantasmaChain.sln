@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Infrastructure", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Tendermint", "Phantasma.Tendermint\Phantasma.Tendermint.csproj", "{39B56E68-E12A-418D-B7B1-3ECC011BAD1C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Node", "Phantasma.Node\Phantasma.Node.csproj", "{D25C9B91-42E8-42AD-932D-CA3CEEB2BE93}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Node", "Phantasma.Node\src\Phantasma.Node.csproj", "{D25C9B91-42E8-42AD-932D-CA3CEEB2BE93}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Phantasma.Tendermint.RPC", "Phantasma.Tendermint.RPC\Phantasma.Tendermint.RPC.csproj", "{D4A25ABA-2945-4671-B250-D92965E5A2E8}"
 EndProject
@@ -30,6 +30,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Phantasma.Infrastructure.Tests", "Phantasma.Infrastructure\tests\Phantasma.Infrastructure.Tests.csproj", "{B7EDC58E-DC4F-4927-BC01-3AACEEF3AD54}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Phantasma.Node.Tests", "Phantasma.Node\tests\Phantasma.Node.Tests.csproj", "{D8B6FC9C-CB3C-421C-8EF1-9303E90D39E0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -137,6 +141,30 @@ Global
 		{14165ECB-87D0-4746-A9D8-88E775FF1160}.Release|x64.Build.0 = Release|Any CPU
 		{14165ECB-87D0-4746-A9D8-88E775FF1160}.Release|x86.ActiveCfg = Release|Any CPU
 		{14165ECB-87D0-4746-A9D8-88E775FF1160}.Release|x86.Build.0 = Release|Any CPU
+		{B7EDC58E-DC4F-4927-BC01-3AACEEF3AD54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7EDC58E-DC4F-4927-BC01-3AACEEF3AD54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7EDC58E-DC4F-4927-BC01-3AACEEF3AD54}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B7EDC58E-DC4F-4927-BC01-3AACEEF3AD54}.Debug|x64.Build.0 = Debug|Any CPU
+		{B7EDC58E-DC4F-4927-BC01-3AACEEF3AD54}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B7EDC58E-DC4F-4927-BC01-3AACEEF3AD54}.Debug|x86.Build.0 = Debug|Any CPU
+		{B7EDC58E-DC4F-4927-BC01-3AACEEF3AD54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7EDC58E-DC4F-4927-BC01-3AACEEF3AD54}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7EDC58E-DC4F-4927-BC01-3AACEEF3AD54}.Release|x64.ActiveCfg = Release|Any CPU
+		{B7EDC58E-DC4F-4927-BC01-3AACEEF3AD54}.Release|x64.Build.0 = Release|Any CPU
+		{B7EDC58E-DC4F-4927-BC01-3AACEEF3AD54}.Release|x86.ActiveCfg = Release|Any CPU
+		{B7EDC58E-DC4F-4927-BC01-3AACEEF3AD54}.Release|x86.Build.0 = Release|Any CPU
+		{D8B6FC9C-CB3C-421C-8EF1-9303E90D39E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8B6FC9C-CB3C-421C-8EF1-9303E90D39E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8B6FC9C-CB3C-421C-8EF1-9303E90D39E0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D8B6FC9C-CB3C-421C-8EF1-9303E90D39E0}.Debug|x64.Build.0 = Debug|Any CPU
+		{D8B6FC9C-CB3C-421C-8EF1-9303E90D39E0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D8B6FC9C-CB3C-421C-8EF1-9303E90D39E0}.Debug|x86.Build.0 = Debug|Any CPU
+		{D8B6FC9C-CB3C-421C-8EF1-9303E90D39E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8B6FC9C-CB3C-421C-8EF1-9303E90D39E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D8B6FC9C-CB3C-421C-8EF1-9303E90D39E0}.Release|x64.ActiveCfg = Release|Any CPU
+		{D8B6FC9C-CB3C-421C-8EF1-9303E90D39E0}.Release|x64.Build.0 = Release|Any CPU
+		{D8B6FC9C-CB3C-421C-8EF1-9303E90D39E0}.Release|x86.ActiveCfg = Release|Any CPU
+		{D8B6FC9C-CB3C-421C-8EF1-9303E90D39E0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

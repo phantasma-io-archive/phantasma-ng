@@ -3,6 +3,7 @@ using System.IO;
 using System.Numerics;
 using Phantasma.Business.Blockchain;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.TransactionData;
 using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;

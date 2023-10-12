@@ -3,8 +3,8 @@
 #VERSION=0.35.6
 VERSION=0.34.21
 TESTNET_ROOT='./DOCKER/testnet'
-PUBLISH_ROOT='./Phantasma.Node/bin/Debug/net6.0/linux-arm64/publish/'
-NODE_PROJ='Phantasma.Node/Phantasma.Node.csproj'
+PUBLISH_ROOT='./Phantasma.Node/src/bin/Debug/net6.0/linux-arm64/publish/'
+NODE_PROJ='Phantasma.Node/src/Phantasma.Node.csproj'
 LAST_COMMIT=`git rev-parse --short HEAD`
 
 wget --no-check-certificate --content-disposition https://github.com/tendermint/tendermint/releases/download/v"$VERSION"/tendermint_"$VERSION"_linux_arm64.tar.gz 
@@ -34,9 +34,9 @@ cp -R "$TESTNET_ROOT"/node3/config_node3.json "$TESTNET_ROOT"/node3/publish/conf
 
 docker build --platform=linux/arm64 -t phantasma-devnet -f DOCKER/Dockerfile .
 
-rm -rf "$TESTNET_ROOT"/node0/publish
-rm -rf "$TESTNET_ROOT"/node1/publish
-rm -rf "$TESTNET_ROOT"/node2/publish
-rm -rf "$TESTNET_ROOT"/node3/publish
+#rm -rf "$TESTNET_ROOT"/node0/publish
+#rm -rf "$TESTNET_ROOT"/node1/publish
+#rm -rf "$TESTNET_ROOT"/node2/publish
+#rm -rf "$TESTNET_ROOT"/node3/publish
 
 docker tag phantasma-devnet:latest phantasmachain/phantasma-devnet:$LAST_COMMIT

@@ -1,15 +1,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Phantasma.Business.Blockchain.Archives;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Tests.Blockchain.Storage;
 
 using Xunit;
-
-using Phantasma.Business.Blockchain.Storage;
 
 public class ArchiveExtensionsTest
 {

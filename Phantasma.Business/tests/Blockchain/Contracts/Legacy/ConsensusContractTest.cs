@@ -6,10 +6,22 @@ using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Consensus;
+using Phantasma.Core.Domain.Contract.Consensus.Enums;
+using Phantasma.Core.Domain.Contract.Consensus.Structs;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Contract.Validator.Enums;
+using Phantasma.Core.Domain.Contract.Validator.Structs;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Validation;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
-
+using Phantasma.Core.Types.Structs;
 using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
@@ -18,7 +30,7 @@ namespace Phantasma.Business.Tests.Blockchain.Contracts.Legacy;
 public class ConsensusContractTest
 {
     static PhantasmaKeys owner = PhantasmaKeys.Generate();
-    static Nexus nexus = new Nexus("testnet");
+    static Nexus nexus = Nexus.Initialize<Chain>("testnet");
     static NexusSimulator simulator;
     
     private static PhantasmaKeys[] validatorKeyPairs = {owner, PhantasmaKeys.Generate(), PhantasmaKeys.Generate(), PhantasmaKeys.Generate(), PhantasmaKeys.Generate()};

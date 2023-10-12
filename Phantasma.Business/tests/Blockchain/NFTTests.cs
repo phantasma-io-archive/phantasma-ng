@@ -11,6 +11,18 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Business.Blockchain.Tokens.Structs;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Types.Structs;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
+using Phantasma.Core.Domain.Token.Structs;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
@@ -26,7 +38,6 @@ public class NFTTests
     BigInteger initialAmount;
     BigInteger initialFuel;
     BigInteger startBalance;
-    StakeReward reward;
     BigInteger currentSupply;
 
     public NFTTests()
@@ -42,7 +53,6 @@ public class NFTTests
         gas = 99999;
         initialAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
         initialFuel = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
-        reward = new StakeReward(user.Address, Timestamp.Now);
         InitializeSimulator();
 
         startBalance = nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol, user.Address);
@@ -66,7 +76,7 @@ public class NFTTests
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
     }
-    
+
     [Fact]
     public void NftMint()
     {
@@ -102,6 +112,16 @@ public class NFTTests
         // obtain tokenID
         ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
         Assert.True(ownedTokenList.Count() == 1, "How does the sender not have one now?");
+
+        {
+            // test extcalls Runtime.GetOwnerships
+            var script = new ScriptBuilder().CallInterop("Runtime.GetOwnerships", testUser.Address, symbol).EndScript();
+
+            var scriptResult = nexus.RootChain.InvokeScript(nexus.RootStorage, script, Timestamp.Now);
+
+            var infusionArray = scriptResult.ToArray<BigInteger>();
+            Assert.True(infusionArray.Length == ownedTokenList.Count());
+        }
 
         // verify nft presence on the user post-mint
         ownedTokenList = ownerships.Get(chain.Storage, testUser.Address);
@@ -595,9 +615,47 @@ public class NFTTests
         var nftInfusedAfter = nexus.ReadNFT(nexus.RootStorage, symbol, tokenID);
         Assert.True(nftInfusedAfter.Infusion.Length == 2, "nftInfused.Infusion.Length != 2");
 
+        var expectedAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
+
         Assert.True(nftInfusedAfter.Infusion[0].Symbol == DomainSettings.StakingTokenSymbol);
-        Assert.True(nftInfusedAfter.Infusion[0].Value == UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals));
+        Assert.True(nftInfusedAfter.Infusion[0].Value == expectedAmount);
         Assert.True(nftInfusedAfter.Infusion[1].Symbol == symbol2);
         Assert.True(nftInfusedAfter.Infusion[1].Value == tokenIDAfter);
+
+        {
+            // test if extcalls ReadToken return infusion list
+            var fieldKey = "infusion";
+            var script = new ScriptBuilder().CallInterop("Runtime.ReadToken", symbol, tokenID, fieldKey).EndScript();
+
+            var scriptResult = nexus.RootChain.InvokeScript(nexus.RootStorage, script, Timestamp.Now);
+            var infusionField = scriptResult.GetField(fieldKey);
+            var infusionArray = infusionField.ToArray<VMObject>();
+            Assert.True(infusionArray.Length == 2);
+
+            var firstElement = (TokenInfusion)infusionArray[0].ToObject();
+            Assert.True(firstElement.Symbol == DomainSettings.StakingTokenSymbol);
+            Assert.True(firstElement.Value == expectedAmount);
+
+            var secondElement = (TokenInfusion)infusionArray[1].ToObject();
+            Assert.True(secondElement.Symbol == symbol2);
+            Assert.True(secondElement.Value == tokenIDAfter);
+        }
+
+        {
+            // test if extcalls ReadInfusions return infusion list
+            var script = new ScriptBuilder().CallInterop("Runtime.ReadInfusions", symbol, tokenID).EndScript();
+
+            var scriptResult = nexus.RootChain.InvokeScript(nexus.RootStorage, script, Timestamp.Now);
+            var infusionArray = scriptResult.ToArray<VMObject>();
+            Assert.True(infusionArray.Length == 2);
+
+            var firstElement = (TokenInfusion)infusionArray[0].ToObject();
+            Assert.True(firstElement.Symbol == DomainSettings.StakingTokenSymbol);
+            Assert.True(firstElement.Value == expectedAmount);
+
+            var secondElement = (TokenInfusion)infusionArray[1].ToObject();
+            Assert.True(secondElement.Symbol == symbol2);
+            Assert.True(secondElement.Value == tokenIDAfter);
+        }
     }
 }

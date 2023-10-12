@@ -8,9 +8,22 @@ using Phantasma.Business.Blockchain;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Consensus;
+using Phantasma.Core.Domain.Contract.Consensus.Enums;
+using Phantasma.Core.Domain.Contract.Consensus.Structs;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Tests.Blockchain.Contracts;
 
@@ -34,6 +47,8 @@ public class ConcensusContractTests
     BigInteger initialAmount;
     BigInteger initialFuel;
     BigInteger startBalance;
+
+    private const string testSubject = "test_subject";
 
     public ConcensusContractTests()
     {
@@ -60,7 +75,7 @@ public class ConcensusContractTests
     
     protected void InitializeSimulator()
     {
-        simulator = new NexusSimulator(new []{owner, owner2, owner3, owner4});
+        simulator = new NexusSimulator(new []{owner, owner2, owner3, owner4}, DomainSettings.LatestKnownProtocol);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
         SetInitialBalance(user.Address);
@@ -74,12 +89,13 @@ public class ConcensusContractTests
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.StakingTokenSymbol, initialAmount);
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
         
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.FuelTokenSymbol, initialFuel);
         simulator.GenerateTransfer(owner, address, nexus.RootChain, DomainSettings.StakingTokenSymbol, 100000000000);
         simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
     }
     
     [Fact]
@@ -103,8 +119,8 @@ public class ConcensusContractTests
         var subject = "subject_test";
         var organization = DomainSettings.ValidatorsOrganizationName;
         var mode = ConsensusMode.Majority;
-        var startTime = (Timestamp)(Timestamp.Now.Value + 100);
-        var endTime = (Timestamp) (startTime.Value + 100000);
+        Timestamp startTime = ((Timestamp)simulator.CurrentTime).Value + 100;
+        Timestamp endTime = startTime.Value + 100000;
         // Choices PollChoice
         var choices = new PollChoice[]
         {
@@ -115,30 +131,16 @@ public class ConcensusContractTests
         var serializedChoices = choices.Serialize();
         var votesPerUser = 1;
         
-        // Init Pool
-        simulator.BeginBlock();
-        simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
-            ScriptUtils.BeginScript()
-                .AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
-                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.InitPoll), user.Address,subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser)
-                .SpendGas(user.Address)
-                .EndScript());
-        simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        // FAIL: Init Pool (Not on the organization)
+        InitPoll(user, subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser, true);
         
-        // Try to Init Again to check the Fetch pool
-        simulator.BeginBlock();
-        simulator.GenerateCustomTransaction(user, ProofOfWork.None, () =>
-            ScriptUtils.BeginScript()
-                .AllowGas(user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
-                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.InitPoll), user.Address,subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser)
-                .SpendGas(user.Address)
-                .EndScript());
-        simulator.EndBlock();
-        Assert.False(simulator.LastBlockWasSuccessful());
+        // Init Pool (On the organization)
+        InitPoll(owner, subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser);
+        
+        // FAIL: Try to Init Again to check the Fetch pool
+        InitPoll(user, subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser, true);
 
         simulator.TimeSkipHours(1);
-        
         Thread.Sleep(1000);
         
         var getConsensus = simulator.InvokeContract(NativeContractKind.Consensus, nameof(ConsensusContract.GetConsensusPoll), subject).AsStruct<ConsensusPoll>();
@@ -149,31 +151,16 @@ public class ConcensusContractTests
         Assert.Equal(endTime, getConsensus.endTime);
         
         // Let's vote with owner
-        simulator.BeginBlock();
-        simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-            ScriptUtils.BeginScript()
-                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
-                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.SingleVote), owner.Address, subject, 0)
-                .SpendGas(owner.Address)
-                .EndScript());
-        simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        SingleVote(owner, subject, 0);
 
-        Assert.Throws<ChainException>(() => simulator.InvokeContract(NativeContractKind.Consensus,
+        Assert.Throws<ChainException>(() =>
+            simulator.InvokeContract(NativeContractKind.Consensus,
             nameof(ConsensusContract.HasConsensus), subject, choices[0].value));
         
         simulator.TimeSkipDays(2);
 
         // Check consensus it needs to be a transaction so it can alter the state of the chain
-        simulator.BeginBlock();
-        simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-            ScriptUtils.BeginScript()
-                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
-                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.HasConsensus), subject, choices[0].value)
-                .SpendGas(owner.Address)
-                .EndScript());
-        simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        HasConsensus(owner, subject, choices[0].value);
         
         var hasConsensus = simulator.InvokeContract(NativeContractKind.Consensus,
             nameof(ConsensusContract.HasConsensus), subject, choices[0].value).AsBool();
@@ -188,6 +175,166 @@ public class ConcensusContractTests
         Assert.Equal(mode, allConsensus[0].mode);
         Assert.Equal(startTime, allConsensus[0].startTime);
         Assert.Equal(endTime, allConsensus[0].endTime);
+    }
+
+    [Fact]
+    public void TestUpdatingVote()
+    {
+        var subject = "subject_test";
+        var organization = DomainSettings.StakersOrganizationName;
+        var mode = ConsensusMode.Popularity;
+        Timestamp startTime = ((Timestamp)simulator.CurrentTime).Value + 100;
+        Timestamp endTime = startTime.Value + 100000;
+        // Choices PollChoice
+        var choices = new PollChoice[]
+        {
+            new PollChoice(Encoding.UTF8.GetBytes("choice1")),
+            new PollChoice(Encoding.UTF8.GetBytes("choice2")),
+            new PollChoice(Encoding.UTF8.GetBytes("choice3")),
+        };
+        
+        var serializedChoices = choices.Serialize();
+        var votesPerUser = 2;
+
+        Stake(user, UnitConversion.ToBigInteger(1001,DomainSettings.StakingTokenDecimals));
+
+        simulator.TimeSkipDays(30);
+        
+        startTime = ((Timestamp)simulator.CurrentTime).Value + 100;
+        endTime = startTime.Value + 100000;
+        
+        // Init Pool
+        InitPoll(user, subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser);
+
+        simulator.TimeSkipHours(1);
+        
+        // FAIL: Let's vote with owner
+        MultiVote(user, subject, new PollVote[] { new PollVote
+        {
+            index = 0,
+            percentage = 1000,
+        }, new PollVote
+        {
+            index = 1,
+            percentage = 1000,
+        } }, true);
+        
+        // FAIL: Not 100% SUM
+        MultiVote(user, subject, new PollVote[] { new PollVote
+        {
+            index = 0,
+            percentage = 10,
+        }, new PollVote
+        {
+            index = 0,
+            percentage = 10,
+        } }, true);
+        
+        // FAIL: 100% SUM But twice the votes in the same.
+        MultiVote(user, subject, new PollVote[] { new PollVote
+        {
+            index = 0,
+            percentage = 90,
+        }, new PollVote
+        {
+            index = 0,
+            percentage = 10,
+        } }, true);
+        
+        // FAIL: 100% and 0 in another
+        MultiVote(user, subject, new PollVote[] { new PollVote
+        {
+            index = 0,
+            percentage = 100,
+        }, new PollVote
+        {
+            index = 1,
+            percentage = 0,
+        } }, true);
+        
+        // Success - Vote
+        MultiVote(user, subject, new PollVote[] { new PollVote
+        {
+            index = 0,
+            percentage = 75,
+        }, new PollVote
+        {
+            index = 1,
+            percentage = 25,
+        } });
+        
+        // Check the vote
+        var consensusPoll = simulator.InvokeContract(NativeContractKind.Consensus, nameof(ConsensusContract.GetConsensusPoll), subject).AsStruct<ConsensusPoll>();
+        
+        Assert.Equal(subject, consensusPoll.subject);
+        Assert.Equal(organization, consensusPoll.organization);
+        Assert.Equal(mode, consensusPoll.mode);
+        Assert.Equal(startTime, consensusPoll.startTime);
+        Assert.Equal(endTime, consensusPoll.endTime);
+        Assert.Equal(1, consensusPoll.totalVotes);
+        
+        // Get the Stacking power
+        var votePower = simulator.InvokeContract(NativeContractKind.Stake, nameof(StakeContract.GetAddressVotingPower), user.Address).AsNumber();
+        
+        Assert.Equal(consensusPoll.entries[0].votes, votePower * 75 / 100);
+        Assert.Equal(consensusPoll.entries[1].votes, votePower * 25 / 100);
+        
+        // Change the vote
+        MultiVote(user, subject, new PollVote[] { new PollVote
+        {
+            index = 0,
+            percentage = 50,
+        }, new PollVote
+        {
+            index = 1,
+            percentage = 50,
+        } });
+        
+        // Re-check the vote
+        consensusPoll = simulator.InvokeContract(NativeContractKind.Consensus, nameof(ConsensusContract.GetConsensusPoll), subject).AsStruct<ConsensusPoll>();
+
+        Assert.Equal(consensusPoll.entries[0].votes, votePower * 50 / 100);
+        Assert.Equal(consensusPoll.entries[1].votes, votePower * 50 / 100);
+    }
+
+    [Fact]
+    public void TestRemovingVote()
+    {
+        // Init a Poll
+        var subject = "subject_test";
+        var organization = DomainSettings.ValidatorsOrganizationName;
+        var mode = ConsensusMode.Majority;
+        Timestamp startTime = ((Timestamp)simulator.CurrentTime).Value + 100;
+        Timestamp endTime = startTime.Value + 100000;
+        // Choices PollChoice
+        var choices = new PollChoice[]
+        {
+            new PollChoice(Encoding.UTF8.GetBytes("choice1")),
+            new PollChoice(Encoding.UTF8.GetBytes("choice2")),
+            new PollChoice(Encoding.UTF8.GetBytes("choice3")),
+        };
+        var serializedChoices = choices.Serialize();
+        var votesPerUser = 1;
+        
+        // Choices PollChoice
+        
+        // Init Pool
+        InitPoll(owner, subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser);
+        
+        // Vote before the poll starts
+        SingleVote(owner, subject, 0, true);
+        
+        // wait 1 hour
+        simulator.TimeSkipHours(1);
+        
+        // Let's vote with owner
+        SingleVote(owner, subject, 0);
+        
+        // FAIL: Let's remove the vote
+        RemoveVote(owner, "notTheSubject", true);
+        
+        // Let's remove the vote
+        RemoveVote(owner, subject);
     }
     
     [Fact]
@@ -343,5 +490,201 @@ public class ConcensusContractTests
         txResult = block.GetResultForTransaction(tx.Hash);
         Assert.Null(txResult);
     }
+
+    /// <summary>
+    /// Init a Poll
+    /// </summary>
+    /// <param name="_user"></param>
+    /// <param name="subject"></param>
+    /// <param name="organization"></param>
+    /// <param name="mode"></param>
+    /// <param name="startTime"></param>
+    /// <param name="endTime"></param>
+    /// <param name="serializedChoices"></param>
+    /// <param name="votesPerUser"></param>
+    /// <param name="shouldFail"></param>
+    private void InitPoll(PhantasmaKeys _user, string subject, string organization, ConsensusMode mode, Timestamp startTime, Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser, bool shouldFail = false)
+    {
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(_user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(_user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.InitPoll), _user.Address,subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser)
+                .SpendGas(_user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        
+        if ( shouldFail )
+        {
+            Assert.False(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        }
+        else
+        {
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        }
+    }
+
+    /// <summary>
+    /// Single Vote
+    /// </summary>
+    /// <param name="_user"></param>
+    /// <param name="subject"></param>
+    /// <param name="index"></param>
+    /// <param name="shouldFail"></param>
+    private void SingleVote(PhantasmaKeys _user, string subject, int index, bool shouldFail = false)
+    {
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(_user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(_user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.SingleVote), _user.Address, subject, index)
+                .SpendGas(_user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        if (shouldFail)
+        {
+            Assert.False(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        }
+        else
+        {
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        }
+    }
+
+    /// <summary>
+    /// Multi Vote
+    /// </summary>
+    /// <param name="_user"></param>
+    /// <param name="subject"></param>
+    /// <param name="index"></param>
+    /// <param name="shouldFail"></param>
+    private void MultiVote(PhantasmaKeys _user, string subject, PollVote[] votes, bool shouldFail = false)
+    {
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(_user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(_user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.MultiVote), _user.Address, subject, votes)
+                .SpendGas(_user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        
+        if (shouldFail)
+        {
+            Assert.False(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        }
+        else
+        {
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        }
+    }
+
+    /// <summary>
+    /// Remove vote from poll
+    /// </summary>
+    /// <param name="_user"></param>
+    /// <param name="subject"></param>
+    /// <param name="shouldFail"></param>
+    private void RemoveVote(PhantasmaKeys _user, string subject, bool shouldFail = false)
+    {
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(_user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(_user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.RemoveVotes), _user.Address, subject)
+                .SpendGas(_user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        
+        if (shouldFail)
+        {
+            Assert.False(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        }
+        else
+        {
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        }
+    }
+
+    /// <summary>
+    /// Get the rank for that value.
+    /// </summary>
+    /// <param name="_user"></param>
+    /// <param name="subject"></param>
+    /// <param name="value"></param>
+    /// <param name="shouldFail"></param>
+    private void GetRank(PhantasmaKeys _user, string subject, byte[] value, bool shouldFail = false)
+    {
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(_user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(_user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.GetRank), _user.Address, subject, value)
+                .SpendGas(_user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        
+        if (shouldFail)
+        {
+            Assert.False(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        }
+        else
+        {
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        }
+    }
     
+    /// <summary>
+    /// Has Consensus
+    /// </summary>
+    /// <param name="_user"></param>
+    /// <param name="subject"></param>
+    /// <param name="value"></param>
+    /// <param name="shouldFail"></param>
+    private void HasConsensus(PhantasmaKeys _user, string subject, byte[] value, bool shouldFail = false)
+    {
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(_user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(_user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Consensus, nameof(ConsensusContract.HasConsensus), subject, value)
+                .SpendGas(_user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        if ( shouldFail )
+        {
+            Assert.False(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        }
+        else
+        {
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        }
+    }
+
+    /// <summary>
+    /// Stake
+    /// </summary>
+    /// <param name="_user"></param>
+    /// <param name="amount"></param>
+    /// <param name="shouldFail"></param>
+    private void Stake(PhantasmaKeys _user, BigInteger amount, bool shouldFail = false)
+    {
+        simulator.BeginBlock();
+        simulator.GenerateCustomTransaction(_user, ProofOfWork.None, () =>
+            ScriptUtils.BeginScript()
+                .AllowGas(_user.Address, Address.Null, simulator.MinimumFee, simulator.MinimumGasLimit)
+                .CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), _user.Address, amount)
+                .SpendGas(_user.Address)
+                .EndScript());
+        simulator.EndBlock();
+        
+        if ( shouldFail )
+        {
+            Assert.False(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        }
+        else
+        {
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        }
+    }
 }

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core.Domain;
+using Phantasma.Infrastructure.API.Structs;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -16,7 +17,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             var nexus = NexusAPI.GetNexus();
 
             var platforms = nexus.GetPlatforms(nexus.RootStorage);
-            var symbols = nexus.GetTokens(nexus.RootStorage);
+            var symbols = nexus.GetAvailableTokenSymbols(nexus.RootStorage);
 
             foreach (var platform in platforms)
             {
@@ -55,7 +56,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             //TODO reverse array for now, only the last item is valid for now.
             entry.chain = DomainExtensions.GetChainAddress(info).Text;
             entry.fuel = info.Symbol;
-            entry.tokens = nexus.GetTokens(nexus.RootStorage).Where(x => nexus.HasTokenPlatformHash(x, platform, nexus.RootStorage)).ToArray();
+            entry.tokens = nexus.GetAvailableTokenSymbols(nexus.RootStorage).Where(x => nexus.HasTokenPlatformHash(x, platform, nexus.RootStorage)).ToArray();
             return entry;
         }
         

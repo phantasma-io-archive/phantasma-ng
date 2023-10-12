@@ -19,6 +19,28 @@ using Phantasma.Business.VM;
 using Phantasma.Infrastructure.Pay.Chains;
 using Phantasma.Business.Blockchain.Contracts.Native;
 using Phantasma.Business.Blockchain.VM;
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Structs;
+using Phantasma.Core.Domain.Contract.Validator;
+using Phantasma.Core.Domain.Contract.Validator.Enums;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Triggers.Enums;
+using Phantasma.Core.Domain.Validation;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
+using Phantasma.Core.Domain.VM.Structs;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Tests.Blockchain;
 
@@ -120,7 +142,7 @@ public class ChainTests
         var owner = PhantasmaKeys.Generate();
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
-        
+
         simulator.GetFundsInTheFuture(owner);
         Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
@@ -190,7 +212,7 @@ public class ChainTests
 
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
-        
+
         simulator.GetFundsInTheFuture(owner);
 
         var symbol = "BLA";
@@ -239,18 +261,18 @@ public class ChainTests
             var anotherTestUser = PhantasmaKeys.Generate();
 
             var simulator = new NexusSimulator(
-                new []{firstOwner, testUser});
+                new[] { firstOwner, testUser });
             var nexus = simulator.Nexus;
-            
+
             var crownBalanceFirstOwner = nexus.RootChain.GetTokenBalance(nexus.RootStorage, DomainSettings.RewardTokenSymbol, firstOwner.Address);
             Assert.Equal(0, crownBalanceFirstOwner);
-            
+
             simulator.GetFundsInTheFuture(firstOwner, 20);
             Assert.True(simulator.LastBlockWasSuccessful());
-            
+
             var crownBalanceFirstOwnerAfter = nexus.RootChain.GetTokenBalance(nexus.RootStorage, DomainSettings.RewardTokenSymbol, firstOwner.Address);
             Assert.NotEqual(crownBalanceFirstOwner, crownBalanceFirstOwnerAfter);
-            
+
 
             var fuelAmount = UnitConversion.ToBigInteger(10, DomainSettings.FuelTokenDecimals);
             var transferAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
@@ -265,7 +287,7 @@ public class ChainTests
             Assert.True(oldToken.Owner == firstOwner.Address);
 
             simulator.SetValidator(testUser);
-            
+
             simulator.BeginBlock();
             simulator.GenerateCustomTransaction(firstOwner, ProofOfWork.None, () =>
                 ScriptUtils.BeginScript().
@@ -298,7 +320,7 @@ public class ChainTests
             Assert.Equal(21, crownBalance);
 
             var thirdOwner = PhantasmaKeys.Generate();
-            
+
             simulator.SetValidator(testUser);
 
 
@@ -473,7 +495,7 @@ public class ChainTests
     [Fact]
     public void QuoteConversions()
     {
-        
+
         var owner = PhantasmaKeys.Generate();
 
         var simulator = new NexusSimulator(owner);
@@ -1233,8 +1255,8 @@ public class ChainTests
         string message = "customEvent";
         var addressStr = Base16.Encode(testUser.Address.ToByteArray());
 
-        var onMintTrigger = AccountTrigger.OnMint.ToString();
-        var onWitnessTrigger = AccountTrigger.OnWitness.ToString();
+        var onMintTrigger = ContractTrigger.OnMint.ToString();
+        var onWitnessTrigger = ContractTrigger.OnWitness.ToString();
 
         scriptString = new string[]
         {
@@ -1277,10 +1299,10 @@ public class ChainTests
         Dictionary<string, int> labels;
         var script = AssemblerUtils.BuildScript(scriptString, "test", out debugInfo, out labels);
 
-        var triggerList = new[] { AccountTrigger.OnWitness, AccountTrigger.OnMint };
+        var triggerList = new[] { ContractTrigger.OnWitness, ContractTrigger.OnMint };
 
         // here we fetch the jump offsets for each trigger
-        var triggerMap = new Dictionary<AccountTrigger, int>();
+        var triggerMap = new Dictionary<ContractTrigger, int>();
         foreach (var trigger in triggerList)
         {
             var triggerName = trigger.ToString();
@@ -1310,7 +1332,7 @@ public class ChainTests
 
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
-        
+
         simulator.GetFundsInTheFuture(owner, 10);
         Assert.True(simulator.LastBlockWasSuccessful());
 
@@ -1454,4 +1476,5 @@ public class ChainTests
             Assert.True(inflation);
         });
     }
+
 }

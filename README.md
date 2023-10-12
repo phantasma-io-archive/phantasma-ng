@@ -100,6 +100,36 @@ If you need to develop on Linux or macOS, just install the [.NET Core SDK](https
 
 For more information about how to build dApps for Phantasma, please read the [documentation](http://phantasma.io/development).
 
+## Debuging
+
+To effectively debug `Phantasma.Node`, follow the steps outlined below:
+
+1. **Tendermint Executable**:
+    - To debug `Phantasma.Node`, it's essential to have the `tendermint` executable.
+    - Download it from this URL: [Tendermint v0.34.21 Release](https://github.com/tendermint/tendermint/releases/tag/v0.34.21).
+    - Place the downloaded executable inside the path: `/path/to/phantasma-ng/Phantasma.Node/src/bin/Debug/net6.0/tendermintFile`.
+
+2. **Configuration Settings**:
+    - In the `config.json` file, ensure that you specify the path to the folder mentioned above and the `tendermint` executable.
+    - You can find an example configuration in the `Phantasma.Node/src` directory.
+
+3. **Reset the Blockchain**:
+    - Delete the `Storage` folder.
+    - Remove the `Storage` folder located at `/path/to/phantasma-ng/Phantasma.Node/src/bin/Debug/net6.0/`.
+    - Remove the `data` folder found inside `/path/to/phantasma-ng/Phantasma.Node/src/bin/Debug/net6.0/tendermintFile`.
+    - Navigate to the `DOCKER` folder using a terminal and execute the script: `./fix-storage.sh`. This will reset the blockchain.
+    - An easy way to do the deployment and reset in on step is to run this command: `cd DOCKER && ./fix-storage.sh || cd .. && ./testnet-startup.sh`.
+4. **Edit Necessary Files for Protocol Version**:
+    - In `Phantasma.Business/src/Blockchain/Nexus/Nexus.cs`:
+        - Update the value of `DomainSettings.Phantasma30Protocol` to `DomainSettings.LatestKnownProtocol` at lines 937, 961, and 978.
+    - In `Phantasma.Node/src/ABCIConnector.cs`:
+        - Update the value on line 420 from `uint version = DomainSettings.Phantasma30Protocol;` to `uint version = DomainSettings.LatestKnownProtocol;`.
+
+5. **Run Node in Editor**:
+    - If you intend to run the node in an editor like Rider or Visual Studio for debugging purposes:
+        - Edit the `DOCKER/wrapper-testnet.sh` file.
+        - Comment out line 28.
+
 ## Contributing
 
 You can contribute to Phantasma with [issues](https://github.com/Phantasma-io/PhantasmaChain/issues) and [PRs](https://github.com/Phantasma-io/PhantasmaChain/pulls). Simply filing issues for problems you encounter is a great way to contribute. Contributing implementations is greatly appreciated.

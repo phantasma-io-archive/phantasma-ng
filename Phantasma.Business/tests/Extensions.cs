@@ -1,6 +1,10 @@
 using Moq;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Triggers.Enums;
 
 namespace Phantasma.Business.Tests;
 
@@ -14,10 +18,10 @@ public static class MockExtension
                     It.IsAny<TokenTrigger>(),
                     It.IsAny<object[]>())).Returns(resultToken);
 
-        mock.Setup(r => r.InvokeTriggerOnAccount(
+        mock.Setup(r => r.InvokeTriggerOnContract(
                     It.IsAny<bool>(),
                     It.IsAny<Address>(),
-                    It.IsAny<AccountTrigger>(),
+                    It.IsAny<ContractTrigger>(),
                     It.IsAny<object[]>())).Returns(resultAccount);
 
         return mock;

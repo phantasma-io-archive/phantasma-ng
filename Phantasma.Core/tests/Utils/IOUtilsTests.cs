@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
+using Phantasma.Core.Domain.Interfaces;
 using Phantasma.Core.Storage;
 using Phantasma.Core.Utils;
 
@@ -125,7 +126,7 @@ public class IOUtilsTests
         Assert.Equal( 0x05, result[4]);
     }
     
-    public class TestStruct : Core.Domain.ISerializable
+    public class TestStruct : ISerializable
     {
         public int a;
         public string b;

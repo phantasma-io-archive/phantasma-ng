@@ -4,26 +4,13 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using Phantasma.Business.VM;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 
 namespace Phantasma.Business.Blockchain.VM
 {
-    internal class DummyExecutionContext : ExecutionContext
-    {
-        public override string Name => _name;
-
-        private string _name;
-
-        public DummyExecutionContext(string name)
-        {
-            _name = name;
-        }
-
-        public override ExecutionState Execute(ExecutionFrame frame, Stack<VMObject> stack)
-        {
-            return ExecutionState.Halt;
-        }
-    }
-
     public class GasMachine : VirtualMachine
     {
         public GasMachine(byte[] script, uint offset, string contextName = null) : base(script, offset, contextName)
@@ -174,6 +161,7 @@ namespace Phantasma.Business.Blockchain.VM
                     return 10;
 
                 case Opcode.SWITCH:
+                case Opcode.EVM:
                     return 100;
 
                 case Opcode.NOP:

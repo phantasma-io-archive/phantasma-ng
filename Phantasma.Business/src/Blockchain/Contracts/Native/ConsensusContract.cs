@@ -1,207 +1,39 @@
-﻿using System.IO;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using Org.BouncyCastle.Asn1.X509;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.ECDsa;
 using Phantasma.Core.Cryptography.EdDSA;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Consensus;
+using Phantasma.Core.Domain.Contract.Consensus.Enums;
+using Phantasma.Core.Domain.Contract.Consensus.Structs;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Serializer;
+using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Types;
-using Phantasma.Core.Utils;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {
-    public enum ConsensusMode
-    {
-        Unanimity,
-        Majority,
-        Popularity,
-        Ranking,
-    }
-
-    public enum PollState
-    {
-        Inactive,
-        Active,
-        Consensus,
-        Failure,
-        Finished
-    }
-
-    public struct PollChoice : ISerializable
-    {
-        public byte[] value;
-
-        public PollChoice(byte[] value)
-        {
-            this.value = value;
-        }
-
-        public void SerializeData(BinaryWriter writer)
-        {
-            writer.WriteByteArray(value);
-        }
-
-        public void UnserializeData(BinaryReader reader)
-        {
-            value = reader.ReadByteArray();
-        }
-    }
-
-    public struct PollValue : ISerializable
-    {
-        public byte[] value;
-        public BigInteger ranking;
-        public BigInteger votes;
-
-        public PollValue(byte[] value, BigInteger ranking, BigInteger votes)
-        {
-            this.value = value;
-            this.ranking = ranking;
-            this.votes = votes;
-        }
-
-        public void SerializeData(BinaryWriter writer)
-        {
-            writer.WriteByteArray(value);
-            writer.WriteBigInteger(ranking);
-            writer.WriteBigInteger(votes);
-        }
-
-        public void UnserializeData(BinaryReader reader)
-        {
-            value = reader.ReadByteArray();
-            ranking = reader.ReadBigInteger();
-            votes = reader.ReadBigInteger();
-        }
-    }
-
-    public struct PollVote : ISerializable
-    {
-        public BigInteger index;
-        public BigInteger percentage;
-
-        public PollVote(BigInteger index, BigInteger percentage)
-        {
-            this.index = index;
-            this.percentage = percentage;
-        }
-
-        public void SerializeData(BinaryWriter writer)
-        {
-            writer.WriteBigInteger(index);
-            writer.WriteBigInteger(percentage);
-        }
-
-        public void UnserializeData(BinaryReader reader)
-        {
-            index = reader.ReadBigInteger();
-            percentage = reader.ReadBigInteger();
-        }
-    }
-
-    public struct ConsensusPoll : ISerializable
-    {
-        public string subject;
-        public string organization;
-        public ConsensusMode mode;
-        public PollState state;
-        public PollValue[] entries;
-        public BigInteger round;
-        public Timestamp startTime;
-        public Timestamp endTime;
-        public BigInteger choicesPerUser;
-        public BigInteger totalVotes;
-        public Timestamp consensusTime;
-
-        public ConsensusPoll(string subject, string organization, ConsensusMode mode, PollState state, PollValue[] entries, BigInteger round, Timestamp startTime, Timestamp endTime, BigInteger choicesPerUser, BigInteger totalVotes, Timestamp consensusTime)
-        {
-            this.subject = subject;
-            this.organization = organization;
-            this.mode = mode;
-            this.state = state;
-            this.entries = entries;
-            this.round = round;
-            this.startTime = startTime;
-            this.endTime = endTime;
-            this.choicesPerUser = choicesPerUser;
-            this.totalVotes = totalVotes;
-            this.consensusTime = consensusTime;
-        }
-
-        public void SerializeData(BinaryWriter writer)
-        {
-            writer.WriteVarString(subject);
-            writer.WriteVarString(organization);
-            writer.Write((byte)mode);
-            writer.Write((byte)state);
-            writer.Write(entries.Length);
-            foreach (var entry in entries)
-            {
-                entry.SerializeData(writer);
-            }
-            writer.WriteBigInteger(round);
-            writer.WriteTimestamp(startTime);
-            writer.WriteTimestamp(endTime);
-            writer.WriteBigInteger(choicesPerUser);
-            writer.WriteBigInteger(totalVotes);
-            writer.WriteTimestamp(consensusTime);
-        }
-
-        public void UnserializeData(BinaryReader reader)
-        {
-            subject = reader.ReadVarString();
-            organization = reader.ReadVarString();
-            mode = (ConsensusMode)reader.ReadByte();
-            state = (PollState)reader.ReadByte();
-            var count = reader.ReadInt32();
-            entries = new PollValue[count];
-            for (int i = 0; i < count; i++)
-            {
-                entries[i].UnserializeData(reader);
-            }
-            round = reader.ReadBigInteger();
-            startTime = reader.ReadTimestamp();
-            endTime = reader.ReadTimestamp();
-            choicesPerUser = reader.ReadBigInteger();
-            totalVotes = reader.ReadBigInteger();
-            consensusTime = reader.ReadTimestamp();
-        }
-    }
-
-    public struct PollPresence : ISerializable
-    {
-        public string subject;
-        public BigInteger round;
-
-        public PollPresence(string subject, BigInteger round)
-        {
-            this.subject = subject;
-            this.round = round;
-        }
-
-        public void SerializeData(BinaryWriter writer)
-        {
-            writer.WriteVarString(subject);
-            writer.WriteBigInteger(round);
-        }
-
-        public void UnserializeData(BinaryReader reader)
-        {
-            subject = reader.ReadVarString();
-            round = reader.ReadBigInteger();
-        }
-    }
-
     public sealed class ConsensusContract : NativeContract
     {
         public override NativeContractKind Kind => NativeContractKind.Consensus;
 
 #pragma warning disable 0649
         internal StorageMap _pollMap; //<string, Poll> 
-        internal StorageList _pollList;
-        internal StorageMap _presences; // address, List<PollPresence>
+        internal StorageList _pollList; // (Deprecated - Can't remove)
+        internal StorageMap _presences; // address, List<PollPresence> (Deprecated)
+        internal StorageMap _pollVotesPerAddress; // address, map<string, List<PollPresenceVotes>>
         internal StorageMap _transactionMap; // string, Transaction
         internal StorageMap _transactionMapRules; // string, List<Address>
         internal StorageMap _transactionMapSigned; // string, Transaction
@@ -229,11 +61,26 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="target"></param>
         public void Migrate(Address from, Address target)
         {
-            Runtime.Expect(Runtime.PreviousContext.Name == NativeContractKind.Account.GetContractName(), "invalid context");
+            Runtime.Expect(Runtime.PreviousContext.Name == NativeContractKind.Account.GetContractName(),
+                "invalid context");
 
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
             _presences.Migrate<Address, StorageList>(from, target);
+        }
+
+
+        /// <summary>
+        /// Fetch Poll To Support the old version
+        /// </summary>
+        /// <param name="subject"></param>
+        /// <returns></returns>
+        private ConsensusPoll FetchPoll(string subject)
+        {
+            if (Runtime.ProtocolVersion < 17)
+                return FetchPollV1(subject);
+            else
+                return FetchPollV2(subject);
         }
 
         /// <summary>
@@ -241,7 +88,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// </summary>
         /// <param name="subject"></param>
         /// <returns></returns>
-        private ConsensusPoll FetchPoll(string subject)
+        private ConsensusPoll FetchPollV1(string subject)
         {
             var poll = _pollMap.Get<string, ConsensusPoll>(subject);
 
@@ -253,12 +100,14 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 {
                     poll.state = PollState.Inactive;
                 }
-                else if (Runtime.Time >= poll.startTime && Runtime.Time < poll.endTime && poll.state == PollState.Inactive)
+                else if (Runtime.Time >= poll.startTime && Runtime.Time < poll.endTime &&
+                         poll.state == PollState.Inactive)
                 {
                     poll.state = PollState.Active;
                     _pollList.Add(subject);
                 }
-                else if ((Runtime.Time >= poll.endTime || poll.totalVotes >= MaxVotesPerPoll) && poll.state == PollState.Active)
+                else if ((Runtime.Time >= poll.endTime || poll.totalVotes >= MaxVotesPerPoll) &&
+                         poll.state == PollState.Active)
                 {
                     // its time to count votes...
                     BigInteger totalVotes = 0;
@@ -288,6 +137,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                                 break;
                             }
                         }
+
                         Runtime.Expect(index >= 0, "missing entry in poll rankings");
 
                         poll.entries[i].ranking = index;
@@ -320,17 +170,117 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 {
                     if (Runtime.ProtocolVersion >= 8)
                     {
-                        if (Runtime.Time >= poll.endTime.Value + DefaultConsensusTime && poll.state == PollState.Consensus)
+                        if (Runtime.Time >= poll.endTime.Value + DefaultConsensusTime &&
+                            poll.state == PollState.Consensus)
                         {
                             poll.state = PollState.Finished;
                             _pollMap.Set(subject, poll);
                         }
                     }
                 }
-
             }
 
             return poll;
+        }
+
+        /// <summary>
+        /// Fetch Poll V2 
+        /// </summary>
+        /// <param name="subject"></param>
+        /// <returns></returns>
+        private ConsensusPoll FetchPollV2(string subject)
+        {
+            var poll = _pollMap.Get<string, ConsensusPoll>(subject);
+
+            var MaxVotesPerPoll = Runtime.GetGovernanceValue(PollVoteLimitTag);
+
+            if (Runtime.Time < poll.startTime && poll.state != PollState.Inactive)
+            {
+                poll.state = PollState.Inactive;
+            }
+            else if (Runtime.Time >= poll.startTime && Runtime.Time < poll.endTime && poll.state == PollState.Inactive)
+            {
+                poll.state = PollState.Active;
+                _pollList.Add(subject);
+            }
+            else if ((Runtime.Time >= poll.endTime || poll.totalVotes >= MaxVotesPerPoll) &&
+                     poll.state == PollState.Active)
+            {
+                // its time to count votes...
+                poll.state = GetConsensusPollResult(poll);
+                _pollMap.Set(subject, poll);
+
+                Runtime.Notify(EventKind.PollClosed, Address, subject);
+            }
+            else if (Runtime.Time >= poll.endTime.Value + poll.consensusTime.Value && poll.state == PollState.Consensus)
+            {
+                poll.state = PollState.Finished;
+                _pollMap.Set(subject, poll);
+
+                Runtime.Notify(EventKind.PollClosed, Address, subject);
+            }
+
+            return poll;
+        }
+
+        /// <summary>
+        /// Get the consensus poll result
+        /// </summary>
+        /// <param name="poll"></param>
+        private PollState GetConsensusPollResult(ConsensusPoll poll)
+        {
+            BigInteger totalVotes = 0;
+            for (int i = 0; i < poll.entries.Length; i++)
+            {
+                var entry = poll.entries[i];
+                totalVotes += entry.votes;
+            }
+
+            if (totalVotes == 0)
+            {
+                return PollState.Failure;
+            }
+
+            var rankings = poll.entries.OrderByDescending(x => x.votes).ToArray();
+
+            var winner = rankings[0];
+
+            bool hasTies = rankings.Length > 1 && rankings[1].votes == winner.votes;
+
+            for (int i = 0; i < poll.entries.Length; i++)
+            {
+                var val = poll.entries[i].value;
+                int index = -1;
+                for (int j = 0; j < rankings.Length; j++)
+                {
+                    if (rankings[j].value == val)
+                    {
+                        index = j;
+                        break;
+                    }
+                }
+
+                Runtime.Expect(index >= 0, "missing entry in poll rankings");
+
+                poll.entries[i].ranking = index;
+            }
+
+            BigInteger percentage = winner.votes * 100 / totalVotes;
+
+            if (poll.mode == ConsensusMode.Unanimity && percentage < 100)
+            {
+                return PollState.Failure;
+            }
+            else if (poll.mode == ConsensusMode.Majority && percentage < 51)
+            {
+                return PollState.Failure;
+            }
+            else if (poll.mode == ConsensusMode.Popularity && hasTies)
+            {
+                return PollState.Failure;
+            }
+
+            return PollState.Consensus;
         }
 
         /// <summary>
@@ -345,11 +295,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="serializedChoices"></param>
         /// <param name="votesPerUser"></param>
         /// <param name="consensusTime"></param>
-        public void InitPollV2(Address from, string subject, string organization, ConsensusMode mode, Timestamp startTime, Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser, Timestamp consensusTime)
+        public void InitPollV2(Address from, string subject, string organization, ConsensusMode mode,
+            Timestamp startTime, Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser,
+            Timestamp consensusTime)
         {
             Runtime.Expect(Runtime.OrganizationExists(organization), "invalid organization");
 
-            // TODO support for passing structs as args
             var choices = Serialization.Unserialize<PollChoice[]>(serializedChoices);
 
             if (subject.ToLower().StartsWith(SystemPoll))
@@ -358,7 +309,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
                 if (subject.ToLower().StartsWith(SystemPoll + "stake."))
                 {
-                    Runtime.Expect(organization == DomainSettings.MastersOrganizationName, "must require votes from masters");
+                    Runtime.Expect(organization == DomainSettings.MastersOrganizationName,
+                        "must require votes from masters");
                 }
 
                 Runtime.Expect(mode == ConsensusMode.Majority, "must use majority mode for system governance");
@@ -366,7 +318,15 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             Runtime.Expect(Runtime.IsRootChain(), "not root chain");
 
-            if ( Runtime.ProtocolVersion <= 13 )
+            // You should be a member of DAO to create a poll
+            if (Runtime.ProtocolVersion >= 17)
+            {
+                var org = Runtime.GetOrganization(organization);
+                Runtime.Expect(org.IsMember(from), "must be member of organization: " + organization);
+            }
+
+
+            if (Runtime.ProtocolVersion <= 13)
             {
                 Runtime.Expect(organization == DomainSettings.ValidatorsOrganizationName, "community polls not yet");
             }
@@ -394,11 +354,14 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                 poll = FetchPoll(subject);
                 if (Runtime.ProtocolVersion <= 8)
                 {
-                    Runtime.Expect(poll.state == PollState.Consensus || poll.state == PollState.Failure, "poll already in progress");
+                    Runtime.Expect(poll.state == PollState.Consensus || poll.state == PollState.Failure,
+                        "poll already in progress");
                 }
                 else
                 {
-                    Runtime.Expect(poll.state == PollState.Consensus || poll.state == PollState.Failure || poll.state == PollState.Finished, "poll already in progress");
+                    Runtime.Expect(
+                        poll.state == PollState.Consensus || poll.state == PollState.Failure ||
+                        poll.state == PollState.Finished, "poll already in progress");
                 }
 
                 poll.round += 1;
@@ -428,9 +391,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             {
                 for (int i = 0; i < choices.Length; i++)
                 {
-                    Runtime.Expect(choices[i].value.Length == Address.LengthInBytes, "election choices must be public addresses");
+                    Runtime.Expect(choices[i].value.Length == Address.LengthInBytes,
+                        "election choices must be public addresses");
                     var address = Address.FromBytes(choices[i].value);
-                    Runtime.Expect(Runtime.IsKnownValidator(address), "election choice must be active or waiting validator");
+                    Runtime.Expect(Runtime.IsKnownValidator(address),
+                        "election choice must be active or waiting validator");
                 }
             }
 
@@ -464,7 +429,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         public void InitPoll(Address from, string subject, string organization, ConsensusMode mode, Timestamp startTime,
             Timestamp endTime, byte[] serializedChoices, BigInteger votesPerUser)
         {
-            InitPollV2(from, subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser, DefaultConsensusTime);
+            InitPollV2(from, subject, organization, mode, startTime, endTime, serializedChoices, votesPerUser,
+                DefaultConsensusTime);
         }
 
         /// <summary>
@@ -479,12 +445,26 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         }
 
         /// <summary>
-        /// Vote for multiple choices
+        /// Vote for multiple choices.
         /// </summary>
         /// <param name="from"></param>
         /// <param name="subject"></param>
         /// <param name="choices"></param>
         public void MultiVote(Address from, string subject, PollVote[] choices)
+        {
+            if (Runtime.ProtocolVersion < 17)
+                MultiVoteV1(from, subject, choices);
+            else
+                MultiVoteV2(from, subject, choices);
+        }
+
+        /// <summary>
+        /// Vote for multiple choices
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="subject"></param>
+        /// <param name="choices"></param>
+        private void MultiVoteV1(Address from, string subject, PollVote[] choices)
         {
             Runtime.Expect(_pollMap.ContainsKey(subject), "invalid poll subject");
 
@@ -502,31 +482,19 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
             var presences = _presences.Get<Address, StorageList>(from);
-            var count = presences.Count();
-            int index = -1;
+            var index = -1;
             BigInteger round = 0;
 
-            for (int i = 0; i < count; i++)
-            {
-                var presence = presences.Get<PollPresence>(i);
-                if (presence.subject == subject)
-                {
-                    index = -1;
-                    round = presence.round;
-                    break;
-                }
-            }
-
-            if (index >= 0)
-            {
-                Runtime.Expect(round < poll.round, "already voted");
-            }
+            HasAlreadyVotedDepracted(poll, subject, presences);
 
             BigInteger votingPower;
 
-            if (poll.organization == DomainSettings.StakersOrganizationName || poll.organization == DomainSettings.MastersOrganizationName)
+            if (poll.organization == DomainSettings.StakersOrganizationName ||
+                poll.organization == DomainSettings.MastersOrganizationName)
             {
-                votingPower = Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetAddressVotingPower), from).AsNumber();
+                votingPower = Runtime
+                    .CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetAddressVotingPower), from)
+                    .AsNumber();
             }
             else
             {
@@ -567,6 +535,264 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         }
 
         /// <summary>
+        /// Vote for multiple choices (New version with the consensus time)
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="subject"></param>
+        /// <param name="choices"></param>
+        private void MultiVoteV2(Address from, string subject, PollVote[] choices)
+        {
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+
+            Runtime.Expect(_pollMap.ContainsKey(subject), "invalid poll subject");
+
+            Runtime.Expect(choices.Length > 0, "invalid number of choices");
+
+            var poll = FetchPoll(subject);
+            Runtime.Expect(poll.state == PollState.Active, "poll not active");
+
+            var organization = Runtime.GetOrganization(poll.organization);
+            Runtime.Expect(organization.IsMember(from), "must be member of organization: " + poll.organization);
+
+            Runtime.Expect(choices.Length <= poll.choicesPerUser, "too many choices");
+
+            var presencesMap = _pollVotesPerAddress.Get<Address, StorageMap>(from);
+            var presences = presencesMap.Get<string, StorageList>(subject);
+
+            BigInteger votingPower;
+            if (poll.organization == DomainSettings.StakersOrganizationName ||
+                poll.organization == DomainSettings.MastersOrganizationName)
+            {
+                votingPower = Runtime
+                    .CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetAddressVotingPower), from)
+                    .AsNumber();
+            }
+            else
+            {
+                votingPower = 100;
+            }
+
+            Runtime.Expect(votingPower > 0, "not enough voting power");
+
+            bool hasAlreadyVoted = HasAlreadyVoted(poll, subject, presences);
+
+            if (hasAlreadyVoted)
+                UpdateVotes(from, poll, subject, ref presences, ref presencesMap, choices, votingPower);
+            else
+                AddNewVotes(from, poll, subject, ref presences, ref presencesMap, choices, votingPower);
+
+            Runtime.Notify(EventKind.PollVote, from, subject);
+        }
+
+        /// <summary>
+        /// Add the address votes in a poll
+        /// </summary>
+        /// <param name="poll"></param>
+        /// <param name="subject"></param>
+        /// <param name="presences"></param>
+        /// <param name="index"></param>
+        /// <param name="round"></param>
+        private void AddNewVotes(Address from, ConsensusPoll poll, string subject, ref StorageList presences,
+            ref StorageMap presencesMap, PollVote[] choices, BigInteger votingPower)
+        {
+            PollVotesValue[] votesValues = new PollVotesValue[choices.Length];
+
+            BigInteger choicePercentageAccumulation = 0;
+            Dictionary<BigInteger, bool> choiceIndexMap = new Dictionary<BigInteger, bool>();
+            for (int i = 0; i < choices.Length; i++)
+            {
+                Runtime.Expect(choices[i].percentage > 0 && choices[i].percentage < 101,
+                    "choice percentage needs to be between 1 and 100");
+                choicePercentageAccumulation += choices[i].percentage;
+
+                Runtime.Expect(choices[i].index >= 0 && choices[i].index < poll.entries.Length,
+                    "choice index is invalid");
+
+                Runtime.Expect(!choiceIndexMap.ContainsKey(choices[i].index), "Can't have the same choice index");
+                choiceIndexMap.Add(choices[i].index, true);
+
+                var votes = votingPower * choices[i].percentage / 100;
+                Runtime.Expect(votes > 0, "choice percentage is too low");
+                votesValues[i] = new PollVotesValue()
+                {
+                    Choice = choices[i],
+                    NumberOfVotes = votes
+                };
+
+                var targetIndex = (int)choices[i].index;
+                poll.entries[targetIndex].votes += votes;
+            }
+
+            Runtime.Expect(choicePercentageAccumulation == 100, "choice percentage is too low or too high");
+
+            PollPresenceVotes presenceVotes = new PollPresenceVotes(subject, poll.round, votesValues);
+
+            // Update Poll Number of Votes
+            poll.totalVotes += 1;
+            _pollMap.Set(subject, poll);
+
+            // Update Address presences
+            presences.Add(presenceVotes);
+            presencesMap.Set(subject, presences);
+            _pollVotesPerAddress.Set<Address, StorageMap>(from, presencesMap);
+        }
+
+        /// <summary>
+        /// Update the Address votes in a poll
+        /// </summary>
+        /// <param name="poll"></param>
+        /// <param name="subject"></param>
+        /// <param name="presences"></param>
+        private void UpdateVotes(Address from, ConsensusPoll poll, string subject, ref StorageList presences,
+            ref StorageMap presencesMap, PollVote[] choices, BigInteger votingPower)
+        {
+            // First get the presence
+            BigInteger lastPosition = presences.Count() - 1;
+            PollPresenceVotes presenceVotes = presences.Get<PollPresenceVotes>(lastPosition);
+
+            if (presenceVotes.round != poll.round)
+            {
+                return;
+            }
+
+            // Remove the user votes from the poll
+            for (int i = 0; i < presenceVotes.votes.Length; i++)
+            {
+                var targetIndex = (int)presenceVotes.votes[i].Choice.index;
+                poll.entries[targetIndex].votes -= presenceVotes.votes[i].NumberOfVotes;
+            }
+
+            // Add new ones
+            BigInteger choicePercentageAccumulation = 0;
+            Dictionary<BigInteger, bool> choiceIndexMap = new Dictionary<BigInteger, bool>();
+
+            for (int i = 0; i < choices.Length; i++)
+            {
+                Runtime.Expect(choices[i].percentage > 0 && choices[i].percentage < 101,
+                    "choice percentage needs to be between 1 and 100");
+                
+                Runtime.Expect(choices[i].index >= 0 && choices[i].index < poll.entries.Length,
+                    "choice index is invalid");
+                
+                Runtime.Expect(!choiceIndexMap.ContainsKey(choices[i].index), "Can't have the same choice index");
+                choiceIndexMap.Add(choices[i].index, true);
+                
+                var votes = votingPower * choices[i].percentage / 100;
+                choicePercentageAccumulation += choices[i].percentage;
+                Runtime.Expect(votes > 0, "choice percentage is too low");
+                presenceVotes.votes[i] = new PollVotesValue()
+                {
+                    Choice = choices[i],
+                    NumberOfVotes = votes
+                };
+
+                var targetIndex = (int)choices[i].index;
+                poll.entries[targetIndex].votes += votes;
+            }
+            
+            Runtime.Expect(choicePercentageAccumulation == 100,
+                $"choice percentage is too low or too high, it needs add up to 100, your value {choicePercentageAccumulation}");
+
+            // Update Poll Entries
+            _pollMap.Set(subject, poll);
+
+            // Update Address presences
+            presences.Replace(lastPosition, presenceVotes);
+            presencesMap.Set(subject, presences);
+            _pollVotesPerAddress.Set<Address, StorageMap>(from, presencesMap);
+        }
+
+        /// <summary>
+        /// Remove votes from the address in a poll
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="subject"></param>
+        public void RemoveVotes(Address from, string subject)
+        {
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(_pollMap.ContainsKey(subject), "invalid poll subject");
+
+            var poll = FetchPoll(subject);
+            Runtime.Expect(poll.state == PollState.Active, "poll not active");
+
+            var organization = Runtime.GetOrganization(poll.organization);
+            Runtime.Expect(organization.IsMember(from), "must be member of organization: " + poll.organization);
+
+            Runtime.Expect(_pollVotesPerAddress.ContainsKey<Address>(from), "the address is not in the poll");
+            var presencesMap = _pollVotesPerAddress.Get<Address, StorageMap>(from);
+
+            Runtime.Expect(presencesMap.ContainsKey<string>(subject), "the address is not in the poll");
+            var presences = presencesMap.Get<string, StorageList>(subject);
+
+            BigInteger lastPosition = presences.Count() - 1;
+            PollPresenceVotes presenceVotes = presences.Get<PollPresenceVotes>(lastPosition);
+
+            Runtime.Expect(presenceVotes.round == poll.round, "Address didn't vote on the last round.");
+
+            // Remove the user votes from the poll
+            for (int i = 0; i < presenceVotes.votes.Length; i++)
+            {
+                var targetIndex = (int)presenceVotes.votes[i].Choice.index;
+                poll.entries[targetIndex].votes -= presenceVotes.votes[i].NumberOfVotes;
+            }
+
+            // Update Poll Number of Votes
+            poll.totalVotes -= 1;
+            _pollMap.Set(subject, poll);
+
+            // Update Address presences
+            presences.RemoveAt(lastPosition);
+            presencesMap.Set(subject, presences);
+        }
+
+        /// <summary>
+        /// Depracted method to check if an address has already voted in a poll
+        /// </summary>
+        /// <param name="poll"></param>
+        /// <param name="subject"></param>
+        /// <param name="presences"></param>
+        private void HasAlreadyVotedDepracted(ConsensusPoll poll, string subject, StorageList presences)
+        {
+            var count = presences.Count();
+            int index = -1;
+            BigInteger round = 0;
+
+            for (int i = 0; i < count; i++)
+            {
+                var presence = presences.Get<PollPresence>(i);
+                if (presence.subject == subject)
+                {
+                    index = -1;
+                    round = presence.round;
+                    break;
+                }
+            }
+
+            if (index >= 0)
+            {
+                Runtime.Expect(round < poll.round, "already voted");
+            }
+        }
+
+        /// <summary>
+        /// Return If the Address has already voted in a poll
+        /// </summary>
+        /// <param name="poll"></param>
+        /// <param name="subject"></param>
+        /// <param name="presences"></param>
+        /// <returns></returns>
+        private bool HasAlreadyVoted(ConsensusPoll poll, string subject, StorageList presences)
+        {
+            BigInteger count = presences.Count();
+            if (count <= 0)
+            {
+                return false;
+            }
+
+            return presences.Get<PollPresenceVotes>(count - 1).round == poll.round;
+        }
+
+        /// <summary>
         /// Check if a value has consensus in a poll
         /// </summary>
         /// <param name="subject"></param>
@@ -593,7 +819,6 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                         return false;
                     }
                 }
-
             }
 
             var rank = GetRank(subject, value);
@@ -634,7 +859,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
             return _pollMap.Get<string, ConsensusPoll>(subject);
         }
-        
+
         /// <summary>
         /// Get all ConsensusPolls
         /// </summary>
@@ -645,6 +870,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         }
 
         #region Multisignature Transactions
+
         /// <summary>
         /// Gets the multisignature transaction.
         /// </summary>
@@ -657,6 +883,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             {
                 Runtime.Expect(Runtime.IsWitness(from), "not a valid witness");
             }
+
             Runtime.Expect(_transactionMap.ContainsKey(subject), "transaction doesn't exist");
             Runtime.Expect(_transactionMapRules.ContainsKey(subject), "transaction doesn't exist");
             var transaction = _transactionMapSigned.Get<string, Transaction>(subject);
@@ -769,6 +996,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             //Runtime.Chain.Nexus.
             //Runtime.Chain.AddBlock();
         }*/
+
         #endregion
     }
 }

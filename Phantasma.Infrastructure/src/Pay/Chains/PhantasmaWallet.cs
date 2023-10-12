@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
+using Phantasma.Infrastructure.Pay.Enums;
+using Phantasma.Infrastructure.Pay.Structs;
 
 namespace Phantasma.Infrastructure.Pay.Chains
 {

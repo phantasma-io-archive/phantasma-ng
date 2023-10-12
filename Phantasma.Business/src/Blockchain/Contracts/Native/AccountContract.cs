@@ -3,9 +3,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Structs;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Triggers.Enums;
+using Phantasma.Core.Domain.Validation;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {
@@ -26,6 +39,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
         }
 
+        /// <summary>
+        /// Method used to Register a name for a given address.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="name"></param>
         public void RegisterName(Address target, string name)
         {
             Runtime.Expect(target.IsUser, "must be user address");
@@ -66,6 +84,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.AddressRegister, target, name);
         }
 
+        /// <summary>
+        /// Method used to unregisters a name for a given address.
+        /// </summary>
+        /// <param name="target"></param>
         public void UnregisterName(Address target)
         {
             Runtime.Expect(target.IsUser, "must be user address");
@@ -82,6 +104,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Notify(EventKind.AddressUnregister, target, name);
         }
 
+        /// <summary>
+        /// Method used to Register a script for a given address.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="script"></param>
+        /// <param name="abiBytes"></param>
         public void RegisterScript(Address target, byte[] script, byte[] abiBytes)
         {
             Runtime.Expect(target.IsUser, "must be user address");
@@ -99,7 +127,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var abi = ContractInterface.FromBytes(abiBytes);
             Runtime.Expect(abi.MethodCount > 0, "unexpected empty contract abi");
 
-            var witnessTriggerName = nameof(AccountTrigger.OnWitness);
+            var witnessTriggerName = nameof(ContractTrigger.OnWitness);
             if (abi.HasMethod(witnessTriggerName))
             {
                 var contextName = target.Text;
@@ -124,6 +152,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             // TODO? Runtime.Notify(EventKind.AddressRegister, target, script);
         }
 
+        /// <summary>
+        /// Checks if a address has a script
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public bool HasScript(Address address)
         {
             if (address.IsUser)
@@ -134,6 +167,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return false;
         }
 
+        /// <summary>
+        /// Method used to retrive an address name.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
         public string LookUpAddress(Address target)
         {
             if (_addressMap.ContainsKey(target))
@@ -144,6 +182,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return ValidationUtils.ANONYMOUS_NAME;
         }
 
+        /// <summary>
+        /// Returns a script for a given address.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
         public byte[] LookUpScript(Address target)
         {
             if (_scriptMap.ContainsKey(target))
@@ -154,6 +197,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return Array.Empty<byte>();
         }
 
+        /// <summary>
+        /// Returns the ABI for a given address.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
         public byte[] LookUpABI(Address target)
         {
             if (_abiMap.ContainsKey(target))
@@ -164,6 +212,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return Array.Empty<byte>();
         }
 
+        /// <summary>
+        /// Returns the Address for a given name.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public Address LookUpName(string name)
         {
             if (name == ValidationUtils.ANONYMOUS_NAME || name == ValidationUtils.NULL_NAME)
@@ -179,7 +232,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return Address.Null;
         }
 
-
+        /// <summary>
+        /// Migrate from on address to another.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="target"></param>
+        /// <exception cref="ChainException"></exception>
         public void Migrate(Address from, Address target)
         {
             Runtime.Expect(target != from, "addresses must be different");
@@ -311,16 +369,25 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             Runtime.MigrateToken(from, target);
         }
-
-
-        public static ContractMethod GetTriggerForABI(AccountTrigger trigger)
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="trigger"></param>
+        /// <returns></returns>
+        public static ContractMethod GetTriggerForABI(ContractTrigger trigger)
         {
             return GetTriggersForABI(new[] { trigger }).First();
         }
 
-        public static IEnumerable<ContractMethod> GetTriggersForABI(IEnumerable<AccountTrigger> triggers)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="triggers"></param>
+        /// <returns></returns>
+        public static IEnumerable<ContractMethod> GetTriggersForABI(IEnumerable<ContractTrigger> triggers)
         {
-            var entries = new Dictionary<AccountTrigger, int>();
+            var entries = new Dictionary<ContractTrigger, int>();
             foreach (var trigger in triggers)
             {
                 entries[trigger] = 0;
@@ -329,7 +396,13 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return GetTriggersForABI(entries);
         }
 
-        public static IEnumerable<ContractMethod> GetTriggersForABI(Dictionary<AccountTrigger, int> triggers)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="triggers"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public static IEnumerable<ContractMethod> GetTriggersForABI(Dictionary<ContractTrigger, int> triggers)
         {
             var result = new List<ContractMethod>();
 
@@ -340,15 +413,15 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
                 switch (trigger)
                 {
-                    case AccountTrigger.OnWitness:
-                    case AccountTrigger.OnUpgrade:
+                    case ContractTrigger.OnWitness:
+                    case ContractTrigger.OnUpgrade:
                         result.Add(new ContractMethod(trigger.ToString(), VMType.None, offset, new[] { new ContractParameter("from", VMType.Object) }));
                         break;
 
-                    case AccountTrigger.OnBurn:
-                    case AccountTrigger.OnMint:
-                    case AccountTrigger.OnReceive:
-                    case AccountTrigger.OnSend:
+                    case ContractTrigger.OnBurn:
+                    case ContractTrigger.OnMint:
+                    case ContractTrigger.OnReceive:
+                    case ContractTrigger.OnSend:
                         result.Add(new ContractMethod(trigger.ToString(), VMType.None, offset, new[] {
                             new ContractParameter("from", VMType.Object),
                             new ContractParameter("to", VMType.Object),

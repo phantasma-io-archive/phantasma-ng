@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Numerics;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Numerics;
 
 namespace Phantasma.Business.CodeGen.Assembler

@@ -1,57 +1,24 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Sale;
+using Phantasma.Core.Domain.Contract.Sale.Enums;
+using Phantasma.Core.Domain.Contract.Sale.Structs;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Storage.Context.Structs;
 using Phantasma.Core.Types;
+using Phantasma.Core.Types.Structs;
 
 namespace Phantasma.Business.Blockchain.Contracts.Native
 {
-    [Flags]
-    public enum SaleFlags
-    {
-        None = 0,
-        Whitelist = 1,
-    }
-
-    public enum SaleEventKind
-    {
-        Creation,
-        SoftCap,
-        HardCap,
-        AddedToWhitelist,
-        RemovedFromWhitelist,
-        Distribution,
-        Refund,
-        PriceChange,
-        Participation,
-    }
-
-    public struct SaleEventData
-    {
-        public Hash saleHash;
-        public SaleEventKind kind;
-    }
-
-    public struct SaleInfo
-    {
-        public Address Creator;
-        public string Name;
-        public SaleFlags Flags;
-        public Timestamp StartDate;
-        public Timestamp EndDate;
-
-        public string SellSymbol;
-        public string ReceiveSymbol;
-        public BigInteger Price;
-        public BigInteger GlobalSoftCap;
-        public BigInteger GlobalHardCap;
-        public BigInteger UserSoftCap;
-        public BigInteger UserHardCap;
-    }
-
     public sealed class SaleContract : NativeContract
     {
         public override NativeContractKind Kind => NativeContractKind.Sale;
@@ -69,13 +36,22 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
         }
 
+        /// <summary>
+        /// Returns all the sales
+        /// </summary>
+        /// <returns></returns>
         public SaleInfo[] GetSales()
         {
             var hashes = _saleList.All<Hash>();
             var sales = hashes.Select(x => GetSale(x)).ToArray();
             return sales;
         }
-
+        
+        /// <summary>
+        /// Returns if the given address is a seller
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
         public bool IsSeller(Address target)
         {
             var hashes = _saleList.All<Hash>();
@@ -92,6 +68,22 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return false;
         }
 
+        /// <summary>
+        /// Method used to create a Sale
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="name"></param>
+        /// <param name="flags"></param>
+        /// <param name="startDate"></param>
+        /// <param name="endDate"></param>
+        /// <param name="sellSymbol"></param>
+        /// <param name="receiveSymbol"></param>
+        /// <param name="price"></param>
+        /// <param name="globalSoftCap"></param>
+        /// <param name="globalHardCap"></param>
+        /// <param name="userSoftCap"></param>
+        /// <param name="userHardCap"></param>
+        /// <returns></returns>
         public Hash CreateSale(Address from, string name, SaleFlags flags, Timestamp startDate, Timestamp endDate,
                 string sellSymbol, string receiveSymbol, BigInteger price, BigInteger globalSoftCap,
                 BigInteger globalHardCap, BigInteger userSoftCap, BigInteger userHardCap)
@@ -147,6 +139,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return hash;
         }
 
+        /// <summary>
+        /// Returns if the given sale is active
+        /// </summary>
+        /// <param name="saleHash"></param>
+        /// <returns></returns>
         public bool IsSaleActive(Hash saleHash)
         {
             if (_saleMap.ContainsKey(saleHash))
@@ -169,23 +166,44 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return false;
         }
 
+        /// <summary>
+        /// Returns the sale info for the given hash
+        /// </summary>
+        /// <param name="saleHash"></param>
+        /// <returns></returns>
         public SaleInfo GetSale(Hash saleHash)
         {
             return _saleMap.Get<Hash, SaleInfo>(saleHash);
         }
 
+        /// <summary>
+        /// Returns the sale participants for the given hash
+        /// </summary>
+        /// <param name="saleHash"></param>
+        /// <returns></returns>
         public Address[] GetSaleParticipants(Hash saleHash)
         {
             var addressMap = _buyerAddresses.Get<Hash, StorageList>(saleHash);
             return addressMap.All<Address>();
         }
 
+        /// <summary>
+        /// Returns all the whitelisted addresses for the given sale
+        /// </summary>
+        /// <param name="saleHash"></param>
+        /// <returns></returns>
         public Address[] GetSaleWhitelists(Hash saleHash)
         {
             var addressMap = _whitelistedAddresses.Get<Hash, StorageList>(saleHash);
             return addressMap.All<Address>();
         }
 
+        /// <summary>
+        /// Returns if a given address is whitelisted for the given sale
+        /// </summary>
+        /// <param name="saleHash"></param>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public bool IsWhitelisted(Hash saleHash, Address address)
         {
             var addressMap = _whitelistedAddresses.Get<Hash, StorageList>(saleHash);
@@ -193,6 +211,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return addressMap.Contains(address);
         }
 
+        /// <summary>
+        /// Method used to add an address to the whitelist for the given sale
+        /// </summary>
+        /// <param name="saleHash"></param>
+        /// <param name="target"></param>
         public void AddToWhitelist(Hash saleHash, Address target)
         {
             Runtime.Expect(_saleMap.ContainsKey(saleHash), "sale does not exist");
@@ -214,6 +237,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
         }
 
+        /// <summary>
+        /// Method used to remove an address from the whitelist for the given sale
+        /// </summary>
+        /// <param name="saleHash"></param>
+        /// <param name="target"></param>
         public void RemoveFromWhitelist(Hash saleHash, Address target)
         {
             Runtime.Expect(_saleMap.ContainsKey(saleHash), "sale does not exist");
@@ -234,6 +262,12 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
         }
 
+        /// <summary>
+        /// Returns the total amount of tokens purchased by the given address for the given sale
+        /// </summary>
+        /// <param name="saleHash"></param>
+        /// <param name="address"></param>
+        /// <returns></returns>
         public BigInteger GetPurchasedAmount(Hash saleHash, Address address)
         {
             var amountMap = _buyerAmounts.Get<Hash, StorageMap>(saleHash);
@@ -241,12 +275,24 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return totalAmount;
         }
 
+        /// <summary>
+        /// Returns the total amount of tokens sold for the given sale
+        /// </summary>
+        /// <param name="saleHash"></param>
+        /// <returns></returns>
         public BigInteger GetSoldAmount(Hash saleHash)
         {
             var total = _saleSupply.Get<Hash, BigInteger>(saleHash);
             return total;
         }
 
+        /// <summary>
+        /// Method used to purchase tokens from a given sale
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="saleHash"></param>
+        /// <param name="quoteSymbol"></param>
+        /// <param name="quoteAmount"></param>
         public void Purchase(Address from, Hash saleHash, string quoteSymbol, BigInteger quoteAmount)
         {
             //For now, prevent purchases with other tokens 
@@ -331,7 +377,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             amountMap.Set(from, newAmount);
         }
 
-        // anyone can call this, not only manager, in order to be able to trigger refunds
+        /// <summary>
+        /// anyone can call this, not only manager, in order to be able to trigger refunds
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="saleHash"></param>
         public void CloseSale(Address from, Hash saleHash)
         {
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
@@ -387,6 +437,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
         }
 
+        /// <summary>
+        /// Returns latest sale hash
+        /// </summary>
+        /// <returns></returns>
         public Hash GetLatestSaleHash()
         {
             var count = (int)_saleList.Count();
@@ -401,6 +455,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             return firstHash;
         }
 
+        /// <summary>
+        /// Method used to edit sale price
+        /// </summary>
+        /// <param name="saleHash"></param>
+        /// <param name="price"></param>
         public void EditSalePrice(Hash saleHash, BigInteger price)
         {
             Runtime.Expect(_saleMap.ContainsKey(saleHash), $"sale does not exist or already closed {saleHash}");

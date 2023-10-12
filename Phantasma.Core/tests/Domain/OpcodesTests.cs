@@ -1,4 +1,6 @@
 using Phantasma.Core.Domain;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Enums;
 using Shouldly;
 using Xunit;
 

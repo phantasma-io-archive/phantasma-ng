@@ -15,12 +15,30 @@ using Phantasma.Business.VM;
 using Phantasma.Business.CodeGen.Assembler;
 using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.Blockchain.Contracts.Native;
-
+using Phantasma.Core.Cryptography.Enums;
+using Phantasma.Core.Cryptography.Structs;
+using Phantasma.Core.Domain.Contract;
+using Phantasma.Core.Domain.Contract.Enums;
+using Phantasma.Core.Domain.Contract.Structs;
+using Phantasma.Core.Domain.Events;
+using Phantasma.Core.Domain.Events.Structs;
+using Phantasma.Core.Domain.Exceptions;
+using Phantasma.Core.Domain.Execution;
+using Phantasma.Core.Domain.Execution.Enums;
+using Phantasma.Core.Domain.Interfaces;
+using Phantasma.Core.Domain.Token;
+using Phantasma.Core.Domain.Token.Enums;
+using Phantasma.Core.Domain.TransactionData;
+using Phantasma.Core.Domain.Triggers;
+using Phantasma.Core.Domain.Triggers.Enums;
+using Phantasma.Core.Domain.Validation;
+using Phantasma.Core.Domain.VM;
+using Phantasma.Core.Domain.VM.Structs;
+using Phantasma.Core.Types.Structs;
 using Phantasma.Node.Chains.Ethereum;
-using Phantasma.Node.Chains.Neo2;
 using Phantasma.Infrastructure.Pay.Chains;
 
-using VMType = Phantasma.Core.Domain.VMType;
+using VMType = Phantasma.Core.Domain.VM.Enums.VMType;
 
 namespace Phantasma.Business.Tests.Simulator;
 
@@ -95,7 +113,7 @@ public class NexusSimulator
 
         if (nexus == null)
         {
-            nexus = new Nexus("simnet");
+            nexus = Nexus.Initialize<Chain>("simnet");
             nexus.SetOracleReader(new OracleSimulator(nexus));
         }
 
@@ -338,8 +356,8 @@ public class NexusSimulator
     {
         var neoPlatform = NeoWallet.NeoPlatform;
         var neoKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.RootStorage), neoPlatform);
-        var neoText = NeoKeys.FromWIF(neoKeys.ToWIF()).Address;
-        var neoAddress = NeoWallet.EncodeAddress(neoText);
+        //var neoText = NeoKeys.FromWIF(neoKeys.ToWIF()).Address;
+        //var neoAddress = NeoWallet.EncodeAddress(neoText);
 
         var ethPlatform = EthereumWallet.EthereumPlatform;
         var ethKeys = InteropUtils.GenerateInteropKeys(_currentValidator, Nexus.GetGenesisHash(Nexus.RootStorage), ethPlatform);
@@ -351,7 +369,7 @@ public class NexusSimulator
         var bscText = EthereumKey.FromWIF(bscKeys.ToWIF()).Address;
         var bscAddress = BSCWallet.EncodeAddress(bscText);
 
-        Nexus.CreatePlatform(Nexus.RootStorage, neoText, neoAddress, neoPlatform, "GAS");
+        //Nexus.CreatePlatform(Nexus.RootStorage, neoText, neoAddress, neoPlatform, "GAS");
         Nexus.CreatePlatform(Nexus.RootStorage, ethText, ethAddress, ethPlatform, "ETH");
         Nexus.CreatePlatform(Nexus.RootStorage, bscText, bscAddress, bscPlatform, "BNB");
 
@@ -771,7 +789,7 @@ public class NexusSimulator
                 scriptString = new string[] {
                 $"alias r3, $result",
                 $"alias r4, $owner",
-                $"@{AccountTrigger.OnMint}: nop",
+                $"@{ContractTrigger.OnMint}: nop",
                 $"load $owner 0x{addressStr}",
                 "push $owner",
                 "extcall \"Address()\"",
@@ -821,7 +839,7 @@ public class NexusSimulator
                 $"alias r3, $result",
                 $"alias r4, $owner",
 
-                $@"load $triggerMint, ""{AccountTrigger.OnMint}""",
+                $@"load $triggerMint, ""{ContractTrigger.OnMint}""",
                 $"pop $currentTrigger",
 
                 $"equal $triggerMint, $currentTrigger, $result",
@@ -851,12 +869,12 @@ public class NexusSimulator
 
         if (version >= 4)
         {
-            var triggerMap = new Dictionary<AccountTrigger, int>();
+            var triggerMap = new Dictionary<ContractTrigger, int>();
 
-            var onMintLabel = AccountTrigger.OnMint.ToString();
+            var onMintLabel = ContractTrigger.OnMint.ToString();
             if (labels.ContainsKey(onMintLabel))
             {
-                triggerMap[AccountTrigger.OnMint] = labels[onMintLabel];
+                triggerMap[ContractTrigger.OnMint] = labels[onMintLabel];
             }
 
             var methods = AccountContract.GetTriggersForABI(triggerMap);

@@ -7,21 +7,17 @@ namespace Phantasma.Core.Utils
         [StructLayout(LayoutKind.Explicit)]
         private struct ConverterHelperDouble
         {
-            [FieldOffset(0)]
-            public ulong Along;
+            [FieldOffset(0)] public ulong Along;
 
-            [FieldOffset(0)]
-            public double Adouble;
+            [FieldOffset(0)] public double Adouble;
         }
 
         [StructLayout(LayoutKind.Explicit)]
         private struct ConverterHelperFloat
         {
-            [FieldOffset(0)]
-            public int Aint;
+            [FieldOffset(0)] public int Aint;
 
-            [FieldOffset(0)]
-            public float Afloat;
+            [FieldOffset(0)] public float Afloat;
         }
 
         private static void WriteLittleEndian(byte[] buffer, int offset, ulong data)
