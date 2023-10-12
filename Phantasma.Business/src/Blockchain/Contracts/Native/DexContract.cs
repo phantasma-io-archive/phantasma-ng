@@ -76,7 +76,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="amount"></param>
         public void DepositTokens(Address from, string symbol, BigInteger amount)
         {
-            if (Runtime.ProtocolVersion >= 16)
+            if (Runtime.ProtocolVersion >= 17)
             {
                 Runtime.Expect(false, "This method is not available in this version of the DEX");
             }
@@ -101,7 +101,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="amount"></param>
         public void SwapTokens(Address from, string fromSymbol, string toSymbol, BigInteger amount)
         {
-            if (Runtime.ProtocolVersion >= 16)
+            if (Runtime.ProtocolVersion >= 17)
             {
                 Runtime.Expect(false, "This method is not available in this version of the DEX");
             }
@@ -418,11 +418,10 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// </summary>
         public void MigrateToV3()
         {
-            if (Runtime.ProtocolVersion >= 16)
+            if (Runtime.ProtocolVersion >= 17)
             {
                 Runtime.Expect(false, "This method is not available in this version of the DEX");
             }
-            
             Runtime.Expect(_DEXversion == 0, "Migration failed, wrong version");
 
             var existsLP = Runtime.TokenExists(DomainSettings.LiquidityTokenSymbol);
@@ -1325,7 +1324,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="amount1">Amount for Symbol1</param>
         public void CreatePool(Address from, string symbol0, BigInteger amount0, string symbol1, BigInteger amount1)
         {
-            if (Runtime.ProtocolVersion >= 16)
+            if (Runtime.ProtocolVersion >= 17)
             {
                 Runtime.Expect(false, "This method is not available in this version of the DEX");
             }
@@ -1469,7 +1468,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="amount1">Amount for Symbol1</param>
         public void AddLiquidity(Address from, string symbol0, BigInteger amount0, string symbol1, BigInteger amount1)
         {
-            if (Runtime.ProtocolVersion >= 16)
+            if (Runtime.ProtocolVersion >= 17)
             {
                 Runtime.Expect(false, "This method is not available in this version of the DEX");
             }
@@ -1661,7 +1660,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="amount1">Amount for Symbol1</param>
         public void AddLiquidityV1(Address from, string symbol0, BigInteger amount0, string symbol1, BigInteger amount1)
         {
-            if (Runtime.ProtocolVersion >= 16)
+            if (Runtime.ProtocolVersion >= 17)
             {
                 Runtime.Expect(false, "This method is not available in this version of the DEX");
             }
@@ -1815,7 +1814,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="amount1">Amount for Symbol1</param>
         public void RemoveLiquidity(Address from, string symbol0, BigInteger amount0, string symbol1, BigInteger amount1)
         {
-            if (Runtime.ProtocolVersion >= 16)
+            if (Runtime.ProtocolVersion >= 17)
             {
                 Runtime.Expect(false, "This method is not available in this version of the DEX");
             }
@@ -2241,7 +2240,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="symbol1"></param>
         public void ClaimFees(Address from, string symbol0, string symbol1)
         {
-            if (Runtime.ProtocolVersion >= 16)
+            if (Runtime.ProtocolVersion >= 17)
             {
                 Runtime.Expect(false, "This method is not available in this version of the DEX");
             }
@@ -2467,7 +2466,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
         public void BurnNFT(Address from, BigInteger nftID)
         {
-            if (Runtime.ProtocolVersion >= 16)
+            if (Runtime.ProtocolVersion >= 17)
             {
                 Runtime.Expect(false, "This method is not available in this version of the DEX");
             }

@@ -139,7 +139,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             Runtime.Expect(inflationAmount > 0, "invalid inflation amount");
             
-            if (Runtime.ProtocolVersion < 16)
+            if (Runtime.ProtocolVersion < 17)
             {
                 ApplyInflationV1(from, ref inflationAmount, ref mintedAmount);
             }

@@ -77,7 +77,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         private ConsensusPoll FetchPoll(string subject)
         {
-            if (Runtime.ProtocolVersion < 16)
+            if (Runtime.ProtocolVersion < 17)
                 return FetchPollV1(subject);
             else
                 return FetchPollV2(subject);
@@ -319,7 +319,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(Runtime.IsRootChain(), "not root chain");
 
             // You should be a member of DAO to create a poll
-            if (Runtime.ProtocolVersion >= 16)
+            if (Runtime.ProtocolVersion >= 17)
             {
                 var org = Runtime.GetOrganization(organization);
                 Runtime.Expect(org.IsMember(from), "must be member of organization: " + organization);
@@ -452,7 +452,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <param name="choices"></param>
         public void MultiVote(Address from, string subject, PollVote[] choices)
         {
-            if (Runtime.ProtocolVersion < 16)
+            if (Runtime.ProtocolVersion < 17)
                 MultiVoteV1(from, subject, choices);
             else
                 MultiVoteV2(from, subject, choices);

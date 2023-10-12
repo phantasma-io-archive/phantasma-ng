@@ -1678,7 +1678,7 @@ namespace Phantasma.Business.Blockchain.VM
             vm.ExpectStackSize(4);
 
             var from = vm.PopAddress();
-            if (vm.ProtocolVersion < 16)
+            if (vm.ProtocolVersion < 17)
             {
                 vm.Expect(from.IsUser, "address must be user");
                 if (vm.HasGenesis)
@@ -1782,7 +1782,7 @@ namespace Phantasma.Business.Blockchain.VM
 
             var from = vm.PopAddress();
 
-            if (vm.ProtocolVersion < 16)
+            if (vm.ProtocolVersion < 17)
             {
                 vm.Expect(from.IsUser, "address must be user");
                 vm.Expect(vm.IsStakeMaster(from), "needs to be master");
