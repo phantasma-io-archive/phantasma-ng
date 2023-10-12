@@ -5,7 +5,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 ### Changed
-
+- Bumped version to 17.
+- All of the changes of version 16 moved to version 17.
 ### Fixed
 
 ## Version 16 - 12 October, 2023
