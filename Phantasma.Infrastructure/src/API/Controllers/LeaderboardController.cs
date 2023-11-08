@@ -1,9 +1,5 @@
-using System;
-using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Business.Blockchain.Contracts.Native;
-using Phantasma.Core.Domain;
-using Phantasma.Core.Types;
+using Phantasma.Infrastructure.Utilities;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -13,25 +9,8 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("GetLeaderboard")]
         public LeaderboardResult GetLeaderboard(string name)
         {
-            var nexus = NexusAPI.GetNexus();
-
-            var temp = nexus.RootChain.InvokeContractAtTimestamp(nexus.RootChain.Storage, Timestamp.Now, "ranking", nameof(RankingContract.GetRows), name).ToObject();
-
-            try
-            {
-                var board = ((LeaderboardRow[])temp).ToArray();
-
-                return new LeaderboardResult()
-                {
-                    name = name,
-                    rows = board.Select(x => new LeaderboardRowResult() { address = x.address.Text, value = x.score.ToString() }).ToArray(),
-                };
-            }
-            catch (Exception e)
-            {
-                throw new APIException($"error fetching leaderboard: {e.Message}");
-            }
-
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            return service.GetLeaderboard(name);
         }
     }
 }

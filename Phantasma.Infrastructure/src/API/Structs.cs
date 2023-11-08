@@ -1,5 +1,6 @@
 // notes: Keep the structs here simple only using primitive C# types or arrays
 
+using System;
 using Phantasma.Core.Domain;
 
 namespace Phantasma.Infrastructure.API
@@ -132,6 +133,7 @@ namespace Phantasma.Infrastructure.API
 
         public BalanceResult[] balances { get; set; }
 
+        [Obsolete("The txs property is deprecated and will be removed in future versions.")]
         public string[] txs { get; set; }
     }
 

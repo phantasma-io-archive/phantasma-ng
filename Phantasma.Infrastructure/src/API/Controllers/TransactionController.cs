@@ -9,6 +9,7 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
 using Phantasma.Core.Types;
+using Phantasma.Infrastructure.API.Interfaces;
 using Serilog;
 
 namespace Phantasma.Infrastructure.API.Controllers

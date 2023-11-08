@@ -1,35 +1,48 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Types;
+using Phantasma.Infrastructure.API.Interfaces;
+using Phantasma.Infrastructure.Utilities;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
     public class AccountController : BaseControllerV1
     {
-        private Dictionary<string, List<AccountResult>> _cacheAddresses = new Dictionary<string, List<AccountResult>>();
-        private Dictionary<string, uint> _cacheTimers = new Dictionary<string, uint>();
-        private const uint _cachedTime = 86000; // 1 day
+        private readonly Dictionary<string, List<AccountResult>> _cacheAddresses =
+            new Dictionary<string, List<AccountResult>>();
 
+        private readonly Dictionary<string, uint> _cacheTimers = new Dictionary<string, uint>();
+        private static readonly uint CachedTime = (uint)TimeSpan.FromDays(1).TotalSeconds;
+
+        // extended parameter added during the transition towards removing transaction details from GetAccount
         [APIInfo(typeof(AccountResult), "Returns the account name and balance of given address.", false, 10)]
         [APIFailCase("address is invalid", "ABCD123")]
         [HttpGet("GetAccount")]
-        public AccountResult GetAccount([APIParameter("Address of account", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string account)
+        public AccountResult GetAccount(
+            [APIParameter("Address of account", "P2KJC8TB6XyY9sr1s4GprPD2XjnnUggRq86pwsFZjUEqCXt")]
+            string account,
+            [APIParameter(
+                description:
+                "Extended data. Returns all transactions. (deprecated, will be removed in future versions)",
+                value: "true")]
+            bool extended = true)
         {
+            var service = ServiceUtility.GetAPIService(HttpContext);
             if (!Address.IsValidAddress(account))
             {
                 throw new APIException("invalid address");
             }
 
             var address = Address.FromText(account);
-
             AccountResult result;
 
             try
             {
-                result = NexusAPI.FillAccount(address);
+                result = service.FillAccount(address, extended);
             }
             catch (Exception e)
             {
@@ -40,52 +53,37 @@ namespace Phantasma.Infrastructure.API.Controllers
             return result;
         }
 
+        // extended parameter added during the transition towards removing transaction details from GetAccounts
         [APIInfo(typeof(AccountResult[]), "Returns data about several accounts.", false, 10)]
         [HttpGet("GetAccounts")]
-        public AccountResult[] GetAccounts([APIParameter("Multiple addresses separated by comma", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV,PDHcFHq2femFnj2ZaFc7iu3qD4XjZG9eVZXuwDrtJGDhj")] string accountText)
+        public AccountResult[] GetAccounts(
+            [APIParameter("Comma-delimited list of accounts",
+                "P2KJC8TB6XyY9sr1s4GprPD2XjnnUggRq86pwsFZjUEqCXt, P2KBh1rkUZXNj7i1SfegUEg26YfrcYDRBt69fj6izVAPbtc")]
+            string accounts,
+            [APIParameter(
+                description:
+                "Extended data. Returns all transactions. (deprecated, will be removed in future versions)",
+                value: "true")]
+            bool extended = true)
         {
-            var accounts = accountText.Split(',');
-
-            var list = new List<AccountResult>();
-
-            foreach (var account in accounts)
-            {
-                if (!Address.IsValidAddress(account))
-                {
-                    throw new APIException("invalid address");
-                }
-
-                var address = Address.FromText(account);
-
-                AccountResult result;
-
-                try
-                {
-                    result = NexusAPI.FillAccount(address);
-                    list.Add(result);
-                }
-                catch (Exception e)
-                {
-                    throw new APIException(e.Message);
-                }
-            }
-
-            return list.ToArray();
+            var serviceToUse = HttpContext.Items["APIService"] as IAPIService;
+            var accountsArray = accounts.Split(',');
+            
+            return accountsArray.Select(account => GetAccountInternal(account, extended, serviceToUse)).ToArray();
         }
 
         [APIInfo(typeof(string), "Returns the address that owns a given name.", false, 60)]
         [APIFailCase("address is invalid", "ABCD123")]
         [HttpGet("LookUpName")]
-        public string LookUpName([APIParameter("Name of account", "blabla")] string name)
+        public string LookUpName([APIParameter("Name of account", "beyondtheneon")] string name)
         {
+            var service = ServiceUtility.GetAPIService(HttpContext);
             if (!ValidationUtils.IsValidIdentifier(name))
             {
                 throw new APIException("invalid name");
             }
-
-            var nexus = NexusAPI.GetNexus();
-
-            var address = nexus.LookUpName(nexus.RootStorage, name, Timestamp.Now);
+            
+            var address = service.LookUpName(name);
             if (address.IsNull)
             {
                 throw new APIException("name not owned");
@@ -94,76 +92,68 @@ namespace Phantasma.Infrastructure.API.Controllers
             return address.Text;
         }
 
+        // extended parameter added during the transition towards removing transaction details from GetAddressesBySymbol
         [APIInfo(typeof(AccountResult[]), "Returns data about several accounts.", false, 8600)]
-        [APIFailCase("address is invalid", "ABCD123")]
         [HttpGet("GetAddressesBySymbol")]
-        public AccountResult[] GetAddressesBySymbol(string symbol, bool extended = false)
+        public AccountResult[] GetAddressesBySymbol(
+            [APIParameter("Token symbol", "SOUL")] string symbol,
+            [APIParameter(
+                description:
+                "Extended data. Returns all transactions. (deprecated, will be removed in future versions)",
+                value: "true")]
+            bool extended = true)
         {
+            var service = ServiceUtility.GetAPIService(HttpContext);
             if (string.IsNullOrEmpty(symbol))
-            {
                 throw new APIException("invalid symbol");
-            }
-            
-            var list = new List<AccountResult>();
 
-            if (_cacheAddresses.ContainsKey(symbol))
+            if (IsCached(symbol, out var cachedResults))
+                return cachedResults.ToArray();
+
+            var accounts = service.GetAddressesBySymbol(symbol);
+
+            var results = accounts.Select(account =>
             {
-                list = _cacheAddresses[symbol];
-                if (_cacheTimers[symbol] + _cachedTime > Timestamp.Now.Value)
-                {
-                    return list.ToArray();
-                }
-            }
+                var address = ValidateAndGetAddress(account);
+                var result = extended
+                    ? service.FillAccount(address, true)
+                    : new AccountResult { address = address.Text };
 
-            var nexus = NexusAPI.GetNexus();
-            
-            var accounts = nexus.GetAddressesBySymbol(symbol);
+                return result;
+            }).ToList();
 
+            UpdateCache(symbol, results);
+            return results.ToArray();
+        }
 
-            foreach (var account in accounts)
-            {
-                if (!Address.IsValidAddress(account))
-                {
-                    throw new APIException("invalid address");
-                }
+        private AccountResult GetAccountInternal(string account, bool extended, IAPIService serviceToUse)
+        {
+            var address = ValidateAndGetAddress(account);
+            return serviceToUse.FillAccount(address, extended);
+        }
 
-                var address = Address.FromText(account);
+        private Address ValidateAndGetAddress(string account)
+        {
+            if (!Address.IsValidAddress(account))
+                throw new APIException("invalid address");
 
-                AccountResult result;
-                if (extended)
-                {
-                    try
-                    {
-                        result = NexusAPI.FillAccount(address);
-                        list.Add(result);
-                    }
-                    catch (Exception e)
-                    {
-                        throw new APIException(e.Message);
-                    }
-                }
-                else
-                {
-                    result = new AccountResult();
-                    result.address = address.Text;
-                    list.Add(result);
-                }
-                
-            }
+            return Address.FromText(account);
+        }
 
-            if (_cacheAddresses.TryAdd(symbol, list))
-            {
-                Console.WriteLine("Added to cache");
-                _cacheTimers.TryAdd(symbol, Timestamp.Now.Value);
-                //_cacheTimers[symbol] = Timestamp.Now.Value;
-            }
-            else
-            {
-                _cacheAddresses[symbol] = list;
-                _cacheTimers[symbol] = Timestamp.Now.Value;
-            }
-            
-            return list.ToArray();
+        private bool IsCached(string symbol, out List<AccountResult> cachedResults)
+        {
+            cachedResults = null;
+
+            if (!_cacheAddresses.ContainsKey(symbol)) return false;
+            cachedResults = _cacheAddresses[symbol];
+            return _cacheTimers[symbol] + CachedTime > Timestamp.Now.Value;
+        }
+
+        private void UpdateCache(string symbol, List<AccountResult> results)
+        {
+            _cacheAddresses[symbol] = results;
+            _cacheTimers[symbol] = Timestamp.Now.Value;
+            Console.WriteLine("Added to cache"); // Consider using a structured logger instead
         }
     }
 }

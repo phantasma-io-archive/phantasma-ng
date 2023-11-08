@@ -1,5 +1,9 @@
+using System;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Phantasma.Core.Domain;
+using Phantasma.Infrastructure.API.Interfaces;
+using Phantasma.Infrastructure.Utilities;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -7,73 +11,76 @@ namespace Phantasma.Infrastructure.API.Controllers
     {
         [APIInfo(typeof(OrganizationResult), "Returns info about an organization.", false, 60)]
         [HttpGet("GetOrganization")]
-        public OrganizationResult GetOrganization(string ID)
+        public OrganizationResult GetOrganization(
+            [APIParameter(description: "ID of the organization to look up", value: "validators")]
+            string id,
+            [APIParameter(
+                description: "Extended data includes members. True by default. (will be set to false in the future)",
+                value: "true")]
+            bool extended = true)
         {
-            if ( string.IsNullOrEmpty(ID))
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            if (string.IsNullOrEmpty(id))
             {
                 throw new APIException("invalid organization ID");
             }
-            
-            var nexus = NexusAPI.GetNexus();
 
-            if (!nexus.OrganizationExists(nexus.RootStorage, ID))
+            if (!service.OrganizationExists(id))
             {
                 throw new APIException("invalid organization");
             }
 
-            var org = nexus.GetOrganizationByName(nexus.RootStorage, ID);
-            var members = org.GetMembers();
-
-            return new OrganizationResult()
-            {
-                id = ID,
-                name = org.Name,
-                members = members.Select(x => x.Text).ToArray(),
-            };
+            return CreateOrganizationResult(id, service, extended);
         }
-        
+
         [APIInfo(typeof(OrganizationResult), "Returns info about an organization.", false, 60)]
         [HttpGet("GetOrganizationByName")]
-        public OrganizationResult GetOrganizationByName(string name)
+        public OrganizationResult GetOrganizationByName(
+            [APIParameter(description: "Name of the organization to look up", value: "Block Producers")]
+            string name,
+            [APIParameter(
+                description: "Extended data includes members. True by default. (will be set to false in the future)",
+                value: "true")]
+            bool extended = true)
         {
+            var service = ServiceUtility.GetAPIService(HttpContext);
             if (string.IsNullOrEmpty(name))
             {
                 throw new APIException("invalid organization name");
             }
-            
-            var nexus = NexusAPI.GetNexus();
 
-            var org = nexus.GetOrganizationByName(nexus.RootStorage, name);
-            var members = org.GetMembers();
-            
-            return new OrganizationResult()
-            {
-                id = org.ID,
-                name = org.Name,
-                members = members.Select(x => x.Text).ToArray(),
-            };
-        } 
-        
+            return CreateOrganizationResult(name, service, extended);
+        }
+
         [APIInfo(typeof(OrganizationResult), "Returns info about all of organizations on chain.", false, 60)]
         [HttpGet("GetOrganizations")]
-        public OrganizationResult[] GetOrganizations(bool extended = false)
+        public OrganizationResult[] GetOrganizations(
+            [APIParameter(description: "Extended data includes members. True by default. (will be set to false in the future)",
+                value: "false")]
+            bool extended = false)
         {
-            var nexus = NexusAPI.GetNexus();
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            return service.GetOrganizations()
+                .Select(name => CreateOrganizationResult(name, service, extended))
+                .ToArray();
+        }
 
-            var orgs = nexus.GetOrganizations(nexus.RootStorage);
-
-            return orgs.Select(x =>
+        private OrganizationResult CreateOrganizationResult(string name, IAPIService service, bool extended)
+        {
+            var org = service.GetOrganizationByName(name);
+            return new OrganizationResult
             {
-                var org = nexus.GetOrganizationByName(nexus.RootStorage, x);
-                var members = org.GetMembers();
+                id = org.ID,
+                name = name,
+                members = GetMembers(extended, org),
+            };
+        }
 
-                return new OrganizationResult()
-                {
-                    id = org.ID,
-                    name = x,
-                    members = extended ? members.Select(y => y.Text).ToArray() : new string[0],
-                };
-            }).ToArray();
+        private static string[] GetMembers(bool extended, IOrganization org)
+        {
+            return extended
+                ? org.GetMembers().Select(member => member.Text).ToArray()
+                : Array.Empty<string>();
         }
     }
 }

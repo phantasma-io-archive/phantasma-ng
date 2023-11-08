@@ -95,7 +95,6 @@ public static class NexusAPI
 
         return TokenSwapper;
     }
-    
 
     public static TokenResult FillToken(string tokenSymbol, bool fillSeries, bool extended)
     {
@@ -113,27 +112,24 @@ public static class NexusAPI
             foreach (var ID in seriesIDs)
             {
                 var series = Nexus.GetTokenSeries(Nexus.RootStorage, tokenSymbol, ID);
-                if (series != null)
+                if (series == null) continue;
+                try
                 {
-                    try
+                    seriesList.Add(new TokenSeriesResult()
                     {
-                        seriesList.Add(new TokenSeriesResult()
-                        {
-                            seriesID = uint.TryParse(ID.ToString(), out var id) ? id : 0,
-                            currentSupply = series.MintCount.ToString(),
-                            maxSupply = series.MaxSupply.ToString(),
-                            burnedSupply = Nexus.GetBurnedTokenSupplyForSeries(Nexus.RootStorage, tokenSymbol, ID)
-                                .ToString(),
-                            mode = series.Mode.ToString(),
-                            script = Base16.Encode(series.Script),
-                            methods = extended ? FillMethods(series.ABI.Methods) : new ABIMethodResult[0]
-                        });
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Error("Error while filling token series: " + e.Message);
-                    }
-                   
+                        seriesID = uint.TryParse(ID.ToString(), out var id) ? id : 0,
+                        currentSupply = series.MintCount.ToString(),
+                        maxSupply = series.MaxSupply.ToString(),
+                        burnedSupply = Nexus.GetBurnedTokenSupplyForSeries(Nexus.RootStorage, tokenSymbol, ID)
+                            .ToString(),
+                        mode = series.Mode.ToString(),
+                        script = extended ? Base16.Encode(series.Script): string.Empty,
+                        methods = extended ? FillMethods(series.ABI.Methods) : Array.Empty<ABIMethodResult>()
+                    });
+                }
+                catch (Exception e)
+                {
+                    Log.Error("Error while filling token series: " + e.Message);
                 }
             }
         }
@@ -190,6 +186,25 @@ public static class NexusAPI
             price = prices.ToArray(),
         };
     }
+    
+    public static TokenPriceResult[] FillTokenPrice(string tokenSymbol)
+    {
+        //TODO: when DEX is live, retrieve prices from DEX 
+        var prices = new List<TokenPriceResult>();
+
+        for (int i=0; i<30; i++)
+        {
+            prices.Add(new TokenPriceResult()
+            {
+                Open = "0",
+                Close = "0",
+                High = "0",
+                Low = "0",
+            });
+        }
+
+        return prices.ToArray();
+    }    
 
     public static TokenDataResult FillNFT(string symbol, BigInteger ID, bool extended)
     {
@@ -208,11 +223,11 @@ public static class NexusAPI
                 {
                     if (method.IsProperty())
                     {
-                        if (symbol == DomainSettings.RewardTokenSymbol && method.name == TokenUtils.ImageURLMethodName)
+                        if (symbol == DomainSettings.RewardTokenSymbol && method.name == "getImageURL")
                         {
                             properties.Add(new TokenPropertyResult() { Key = "ImageURL", Value = "https://phantasma.io/img/crown.png" });
                         }
-                        else if (symbol == DomainSettings.RewardTokenSymbol && method.name == TokenUtils.InfoURLMethodName)
+                        else if (symbol == DomainSettings.RewardTokenSymbol && method.name == "getInfoURL")
                         {
                             properties.Add(new TokenPropertyResult() { Key = "InfoURL", Value = "https://phantasma.io/crown/" + ID });
                         }
@@ -442,7 +457,7 @@ public static class NexusAPI
         return result;
     }
 
-    public static ChainResult FillChain(IChain chain)
+    public static ChainResult FillChain(IChain chain, bool extended = true)
     {
         RequireNexus();
 
@@ -451,8 +466,10 @@ public static class NexusAPI
         var parentName = Nexus.GetParentChainByName(chain.Name);
         var orgName = Nexus.GetChainOrganization(chain.Name);
 
-        var contracts = chain.GetContracts(chain.Storage).ToArray();
-
+        var contracts = extended
+                ? (chain.GetContracts(chain.Storage).ToArray()).Select(x => x.Name).ToArray()
+                : Array.Empty<string>(); 
+        
         var result = new ChainResult
         {
             name = chain.Name,
@@ -460,10 +477,10 @@ public static class NexusAPI
             height = (uint)chain.Height,
             parent = parentName,
             organization = orgName,
-            contracts = contracts.Select(x => x.Name).ToArray(),
-            dapps = new string[0],
+            contracts = contracts,
+            dapps = Array.Empty<string>(),
         };
-
+        
         return result;
     }
 
@@ -500,24 +517,27 @@ public static class NexusAPI
         }).ToArray();
     }
 
-    public static ContractResult FillContract(string name, SmartContract contract)
+    public static ContractResult FillContract(string name, SmartContract contract, bool extended = true)
     {
-        var customContract = contract as CustomContract;
-        var scriptBytes = customContract != null ? customContract.Script : new byte[0];
+        var scriptBytes = extended && contract is CustomContract customContract
+            ? customContract.Script
+            : Array.Empty<byte>();
 
         return new ContractResult
         {
             name = name,
-            script = Base16.Encode(scriptBytes),
+            script = extended ? Base16.Encode(scriptBytes) : string.Empty,
             address = contract.Address.Text,
-            methods = FillMethods(contract.ABI.Methods),
-            events = contract.ABI.Events.Select(x => new ABIEventResult()
-            {
-                name = x.name,
-                returnType = x.returnType.ToString(),
-                value = x.value,
-                description = Base16.Encode(x.description),
-            }).ToArray()
+            methods = extended ? FillMethods(contract.ABI.Methods) : Array.Empty<ABIMethodResult>(),
+            events = extended
+                ? contract.ABI.Events.Select(x => new ABIEventResult()
+                {
+                    name = x.name,
+                    returnType = x.returnType.ToString(),
+                    value = x.value,
+                    description = Base16.Encode(x.description),
+                }).ToArray()
+                : Array.Empty<ABIEventResult>()
         };
     }
 
@@ -613,7 +633,7 @@ public static class NexusAPI
         return storage;
     }
 
-    public static AccountResult FillAccount(Address address)
+    public static AccountResult FillAccount(Address address, bool extended = true)
     {
         RequireNexus();
 
@@ -681,7 +701,9 @@ public static class NexusAPI
         result.balances = balanceList.ToArray();
         result.validator = validator.ToString();
 
-        result.txs = Nexus.RootChain.GetTransactionHashesForAddress(address).Select(x => x.ToString()).ToArray();
+        result.txs = extended
+            ? Nexus.RootChain.GetTransactionHashesForAddress(address).Select(x => x.ToString()).ToArray()
+            : Array.Empty<string>();
 
         return result;
     }

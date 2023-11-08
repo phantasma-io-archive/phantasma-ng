@@ -2721,7 +2721,7 @@ public class Nexus : INexus
         if (hash == Hash.Null)
             return null;
         
-        var tokens = GetTokens(storage);
+        var tokens = GetAvailableTokenSymbols(storage);
         if (platform == DomainSettings.PlatformName)
         {
             foreach (var token in tokens)
