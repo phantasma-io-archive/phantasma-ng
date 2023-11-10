@@ -37,8 +37,8 @@ namespace Phantasma.Core.Domain.Structs
             writer.WriteAddress(this.Address);
             writer.WriteVarString(this.Contract);
             writer.WriteByteArray(this.Data);
-            if (this.Kind == EventKind.Custom_V2 && this.Name != null)
-                writer.WriteVarString(this.Name);
+            if (this.Kind == EventKind.Custom_V2)
+                writer.WriteVarString(this.Name ?? "");
         }
 
         public static Event Unserialize(BinaryReader reader)
