@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using Phantasma.Core.Cryptography;
@@ -46,13 +47,21 @@ namespace Phantasma.Core.Domain.Structs
             var address = reader.ReadAddress();
             var contract = reader.ReadVarString();
             var data = reader.ReadByteArray();
+            var readerPosition = reader.BaseStream.Position;
+            
+            if ( kind < EventKind.Custom_V2)
+            {
+                return new Event(kind, address, contract, data);
+            }
+            
             try
             {
                 var name = reader.ReadVarString();
                 return new Event(kind, address, contract, data, name);
             }
-            catch
+            catch (Exception e)
             {
+                reader.BaseStream.Position = readerPosition;
                 return new Event(kind, address, contract, data);
             }
         }
