@@ -5,6 +5,8 @@ public class EventResult
     public string address { get; set; }
     public string contract { get; set; }
     public string kind { get; set; }
+    
+    public string name { get; set; }
 
     [APIDescription("Data in hexadecimal format, content depends on the event kind")]
     public string data { get; set; }

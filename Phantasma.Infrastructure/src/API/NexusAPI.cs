@@ -432,7 +432,8 @@ public static class NexusAPI
             address = evt.Address.Text,
             contract = evt.Contract,
             data = evt.Data.Encode(),
-            kind = evt.Kind >= EventKind.Custom ? ((byte)evt.Kind).ToString() : evt.Kind.ToString()
+            kind = evt.Kind >= EventKind.Custom ? ((byte)evt.Kind).ToString() : evt.Kind.ToString(),
+            name = evt.Name != null ? evt.Name : evt.Kind.ToString()
         };
     }
 
