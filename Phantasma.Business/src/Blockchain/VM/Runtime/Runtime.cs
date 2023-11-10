@@ -218,6 +218,11 @@ namespace Phantasma.Business.Blockchain.VM
 
         public void Notify(EventKind kind, Address address, byte[] bytes, string contract, string name)
         {
+            if (ProtocolVersion <= 18 && kind > EventKind.Custom)
+            {
+                Expect(Enum.IsDefined(kind), $"{""}{nameof(kind)} is not defined");
+            }
+            
             ExpectEnumIsDefined(kind, nameof(kind));
             ExpectAddressSize(address, nameof(address));
             ExpectScriptLength(bytes, nameof(bytes));
