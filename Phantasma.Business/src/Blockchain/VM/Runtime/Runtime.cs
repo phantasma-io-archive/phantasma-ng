@@ -209,11 +209,14 @@ namespace Phantasma.Business.Blockchain.VM
 
             return null;
         }
-
+        
         public void Notify(EventKind kind, Address address, byte[] bytes) =>
-            Notify(kind, address, bytes, CurrentContext.Name);
+            Notify(kind, address, bytes, CurrentContext.Name, kind.ToString());
 
-        public void Notify(EventKind kind, Address address, byte[] bytes, string contract)
+        public void Notify(EventKind kind, Address address, byte[] bytes, string name = "") =>
+            Notify(kind, address, bytes, CurrentContext.Name, name);
+
+        public void Notify(EventKind kind, Address address, byte[] bytes, string contract, string name)
         {
             ExpectEnumIsDefined(kind, nameof(kind));
             ExpectAddressSize(address, nameof(address));
@@ -309,7 +312,16 @@ namespace Phantasma.Business.Blockchain.VM
                     break;
             }
 
-            var evt = new Event(kind, address, contract, bytes);
+            Event evt;
+            if ((int)kind <= (int)EventKind.Custom)
+            {
+                evt = new Event(kind, address, contract, bytes, kind.ToString());
+            }
+            else
+            {
+                evt = new Event(kind, address, contract, bytes, name);
+            }
+            
             _events.Add(evt);
         }
 

@@ -126,7 +126,8 @@ namespace Phantasma.Core.Domain.Interfaces
         public void Throw(string description);
         void Expect(bool condition, string description);
         public void Notify(EventKind kind, Address address, byte[] data);
-        public void Notify(EventKind kind, Address address, byte[] bytes, string contract);
+        public void Notify(EventKind kind, Address address, byte[] data, string name);
+        public void Notify(EventKind kind, Address address, byte[] bytes, string contract, string name);
         public VMObject CallContext(string contextName, uint jumpOffset, string methodName, params object[] args);
         public VMObject CallInterop(string methodName, params object[] args);
 

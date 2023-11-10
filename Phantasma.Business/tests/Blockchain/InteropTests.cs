@@ -744,7 +744,7 @@ public class InteropTests : IDisposable
     {
         var runtime = CreateRuntime_Default();
         var gasInfo = new GasEventData(User1.Address, 10000, 10000);
-        runtime.Notify(EventKind.GasEscrow, User1.Address, Serialization.Serialize(gasInfo), NativeContractKind.Gas.GetContractName());
+        runtime.Notify(EventKind.GasEscrow, User1.Address, Serialization.Serialize(gasInfo), NativeContractKind.Gas.GetContractName(), EventKind.GasEscrow.ToString());
         var result = runtime.CallInterop("Runtime.GasTarget");
         var address = (Address)result.Data;
         address.ShouldBe(User1.Address);
