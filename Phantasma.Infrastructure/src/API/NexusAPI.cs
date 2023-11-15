@@ -18,29 +18,20 @@ using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
 using Phantasma.Core.Domain.Contract.Enums;
-using Phantasma.Core.Domain.Contract.Market;
 using Phantasma.Core.Domain.Contract.Market.Structs;
-using Phantasma.Core.Domain.Contract.Relay;
 using Phantasma.Core.Domain.Contract.Relay.Structs;
-using Phantasma.Core.Domain.Contract.Validator;
 using Phantasma.Core.Domain.Contract.Validator.Structs;
-using Phantasma.Core.Domain.Events;
 using Phantasma.Core.Domain.Events.Structs;
-using Phantasma.Core.Domain.Execution;
 using Phantasma.Core.Domain.Execution.Enums;
 using Phantasma.Core.Domain.Interfaces;
-using Phantasma.Core.Domain.Oracle;
 using Phantasma.Core.Domain.Oracle.Structs;
 using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Domain.Structs;
-using Phantasma.Core.Domain.Token;
 using Phantasma.Core.Domain.Token.Enums;
 using Phantasma.Core.Domain.Token.Structs;
 using Phantasma.Core.Domain.TransactionData;
-using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Domain.VM.Enums;
 using Phantasma.Core.Numerics;
-using Phantasma.Core.Types;
 using Phantasma.Core.Types.Structs;
 using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.API.Structs;
@@ -484,7 +475,7 @@ public static class NexusAPI
         return result;
     }
 
-    public static ChainResult FillChain(IChain chain)
+    public static ChainResult FillChain(IChain chain, bool extended = true)
     {
         RequireNexus();
 
@@ -493,8 +484,10 @@ public static class NexusAPI
         var parentName = Nexus.GetParentChainByName(chain.Name);
         var orgName = Nexus.GetChainOrganization(chain.Name);
 
-        var contracts = chain.GetContracts(chain.Storage).ToArray();
-
+        var contracts = extended
+            ? (chain.GetContracts(chain.Storage).ToArray()).Select(x => x.Name).ToArray()
+            : Array.Empty<string>(); 
+        
         var result = new ChainResult
         {
             name = chain.Name,
@@ -502,10 +495,10 @@ public static class NexusAPI
             height = (uint)chain.Height,
             parent = parentName,
             organization = orgName,
-            contracts = contracts.Select(x => x.Name).ToArray(),
-            dapps = new string[0],
+            contracts = contracts,
+            dapps = Array.Empty<string>(),
         };
-
+        
         return result;
     }
 
@@ -541,25 +534,28 @@ public static class NexusAPI
             }).ToArray()
         }).ToArray();
     }
-
-    public static ContractResult FillContract(string name, SmartContract contract)
+    
+    public static ContractResult FillContract(string name, SmartContract contract, bool extended = true)
     {
-        var customContract = contract as CustomContract;
-        var scriptBytes = customContract != null ? customContract.Script : new byte[0];
+        var scriptBytes = extended && contract is CustomContract customContract
+            ? customContract.Script
+            : Array.Empty<byte>();
 
         return new ContractResult
         {
             name = name,
-            script = Base16.Encode(scriptBytes),
+            script = extended ? Base16.Encode(scriptBytes) : string.Empty,
             address = contract.Address.Text,
-            methods = FillMethods(contract.ABI.Methods),
-            events = contract.ABI.Events.Select(x => new ABIEventResult()
-            {
-                name = x.name,
-                returnType = x.returnType.ToString(),
-                value = x.value,
-                description = Base16.Encode(x.description),
-            }).ToArray()
+            methods = extended ? FillMethods(contract.ABI.Methods) : Array.Empty<ABIMethodResult>(),
+            events = extended
+                ? contract.ABI.Events.Select(x => new ABIEventResult()
+                {
+                    name = x.name,
+                    returnType = x.returnType.ToString(),
+                    value = x.value,
+                    description = Base16.Encode(x.description),
+                }).ToArray()
+                : Array.Empty<ABIEventResult>()
         };
     }
 
@@ -658,7 +654,7 @@ public static class NexusAPI
         return storage;
     }
 
-    public static AccountResult FillAccount(Address address)
+    public static AccountResult FillAccount(Address address, bool extended = true)
     {
         RequireNexus();
 
@@ -672,8 +668,7 @@ public static class NexusAPI
         if (stake > 0)
         {
             var time = Nexus.GetStakeTimestampOfAddress(Nexus.RootStorage, address, Timestamp.Now);
-            result.stakes = new StakeResult()
-                { amount = stake.ToString(), time = time.Value, unclaimed = unclaimed.ToString() };
+            result.stakes = new StakeResult() { amount = stake.ToString(), time = time.Value, unclaimed = unclaimed.ToString() };
         }
         else
         {
@@ -718,7 +713,6 @@ public static class NexusAPI
                             balanceEntry.ids = idList.Select(x => x.ToString()).ToArray();
                         }
                     }
-
                     balanceList.Add(balanceEntry);
                 }
             }
@@ -728,7 +722,9 @@ public static class NexusAPI
         result.balances = balanceList.ToArray();
         result.validator = validator.ToString();
 
-        result.txs = Nexus.RootChain.GetTransactionHashesForAddress(address).Select(x => x.ToString()).ToArray();
+        result.txs = extended
+            ? Nexus.RootChain.GetTransactionHashesForAddress(address).Select(x => x.ToString()).ToArray()
+            : Array.Empty<string>();
 
         return result;
     }

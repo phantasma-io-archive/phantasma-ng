@@ -1,10 +1,10 @@
 using System.Linq;
 using System.Numerics;
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Numerics;
 using Phantasma.Infrastructure.API.Structs;
+using Phantasma.Infrastructure.Utilities;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -15,86 +15,84 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("GetBlockHeight")]
         public string GetBlockHeight([APIParameter("Address or name of chain", "root")] string chainInput)
         {
-            var chain = NexusAPI.FindChainByInput(chainInput);
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            var chain = service.FindChainByInput(chainInput);
 
-            if (chain == null)
-            {
+            return chain == null
+                ?
                 //throw new APIException("invalid chain");
-                return "invalid chain";
-            }
-
-            return chain.Height.ToString();
+                "invalid chain"
+                : chain.Height.ToString();
         }
 
-        [APIInfo(typeof(int), "Returns the number of transactions of given block hash or error if given hash is invalid or is not found.", false, -1)]
+        [APIInfo(typeof(int),
+            "Returns the number of transactions of given block hash or error if given hash is invalid or is not found.",
+            false, -1)]
         [APIFailCase("block hash is invalid", "asdfsa")]
         [HttpGet("GetBlockTransactionCountByHash")]
-        public int GetBlockTransactionCountByHash([APIParameter("Chain address or name where the market is located", "main")] string chainAddressOrName, [APIParameter("Hash of block", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string blockHash)
+        public int GetBlockTransactionCountByHash(
+            [APIParameter("Chain address or name where the market is located", "main")] string chainAddressOrName,
+            [APIParameter("Hash of block", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")]
+            string blockHash)
         {
-            var chain = NexusAPI.FindChainByInput(chainAddressOrName);
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            var chain = service.FindChainByInput(chainAddressOrName);
             if (chain == null)
             {
                 throw new APIException("Chain not found");
             }
 
+            if (!Hash.TryParse(blockHash, out var hash)) throw new APIException("invalid block hash");
+            var block = chain.GetBlockByHash(hash);
 
-            if (Hash.TryParse(blockHash, out var hash))
-            {
-                var block = chain.GetBlockByHash(hash);
+            if (block == null) throw new APIException("invalid block hash");
+            int count = block.TransactionHashes.Count();
 
-                if (block != null)
-                {
-                    int count = block.TransactionHashes.Count();
-
-                    return count;
-                }
-            }
-
-            throw new APIException("invalid block hash");
+            return count;
         }
 
         [APIInfo(typeof(BlockResult), "Returns information about a block by hash.", false, -1)]
         [APIFailCase("block hash is invalid", "asdfsa")]
         [HttpGet("GetBlockByHash")]
-        public BlockResult GetBlockByHash([APIParameter("Hash of block", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string blockHash)
+        public BlockResult GetBlockByHash(
+            [APIParameter("Hash of block", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")]
+            string blockHash)
         {
-            if (Hash.TryParse(blockHash, out var hash))
-            {
-                var nexus = NexusAPI.GetNexus();
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            if (!Hash.TryParse(blockHash, out var hash)) throw new APIException("invalid block hash");
 
-                var chains = nexus.GetChains(nexus.RootStorage);
-                foreach (var chainName in chains)
+            var chains = service.GetChains();
+            foreach (var chainName in chains)
+            {
+                var chain = service.GetChainByName(chainName);
+                var block = chain.GetBlockByHash(hash);
+                if (block != null)
                 {
-                    var chain = nexus.GetChainByName(chainName);
-                    var block = chain.GetBlockByHash(hash);
-                    if (block != null)
-                    {
-                        return NexusAPI.FillBlock(block, chain);
-                    }
+                    return service.FillBlock(block, chain);
                 }
             }
 
             throw new APIException("invalid block hash");
         }
 
-        [APIInfo(typeof(string), "Returns a serialized string, containing information about a block by hash.", false, -1)]
+        [APIInfo(typeof(string), "Returns a serialized string, containing information about a block by hash.", false,
+            -1)]
         [APIFailCase("block hash is invalid", "asdfsa")]
         [HttpGet("GetRawBlockByHash")]
-        public string GetRawBlockByHash([APIParameter("Hash of block", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string blockHash)
+        public string GetRawBlockByHash(
+            [APIParameter("Hash of block", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")]
+            string blockHash)
         {
-            if (Hash.TryParse(blockHash, out var hash))
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            if (!Hash.TryParse(blockHash, out var hash)) throw new APIException("invalid block hash");
+            var chains = service.GetChains();
+            foreach (var chainName in chains)
             {
-                var nexus = NexusAPI.GetNexus();
-
-                var chains = nexus.GetChains(nexus.RootStorage);
-                foreach (var chainName in chains)
+                var chain = service.GetChainByName(chainName);
+                var block = chain.GetBlockByHash(hash);
+                if (block != null)
                 {
-                    var chain = nexus.GetChainByName(chainName);
-                    var block = chain.GetBlockByHash(hash);
-                    if (block != null)
-                    {
-                        return block.ToByteArray(true).Encode();
-                    }
+                    return block.ToByteArray(true).Encode();
                 }
             }
 
@@ -105,45 +103,46 @@ namespace Phantasma.Infrastructure.API.Controllers
         [APIFailCase("block hash is invalid", "asdfsa")]
         [APIFailCase("chain is invalid", "453dsa")]
         [HttpGet("GetBlockByHeight")]
-        public BlockResult GetBlockByHeight([APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string chainInput, [APIParameter("Height of block", "1")] string height)
+        public BlockResult GetBlockByHeight(
+            [APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")]
+            string chainInput, [APIParameter("Height of block", "1")] string height)
         {
-            var chain = NexusAPI.FindChainByInput(chainInput);
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            var chain = service.FindChainByInput(chainInput);
 
             if (chain == null)
             {
                 throw new APIException("chain not found");
             }
-            
+
             if (!BigInteger.TryParse(height, out var parsedHeight))
             {
                 throw new APIException("invalid number");
             }
-            
-            if (parsedHeight <= 0)
-            {
-                throw new APIException("invalid number");
-            }
-            
+
             var blockHash = chain.GetBlockHashAtHeight(parsedHeight);
             var block = chain.GetBlockByHash(blockHash);
 
             if (block != null)
             {
-                return NexusAPI.FillBlock(block, chain);
+                return service.FillBlock(block, chain);
             }
 
             throw new APIException("block not found");
         }
 
-        [APIInfo(typeof(string), "Returns a serialized string, in hex format, containing information about a block by height and chain.", false, -1)]
+        [APIInfo(typeof(string),
+            "Returns a serialized string, in hex format, containing information about a block by height and chain.",
+            false, -1)]
         [APIFailCase("block hash is invalid", "asdfsa")]
         [APIFailCase("chain is invalid", "453dsa")]
         [HttpGet("GetRawBlockByHeight")]
-        public string GetRawBlockByHeight([APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string chainInput, [APIParameter("Height of block", "1")] string height)
+        public string GetRawBlockByHeight(
+            [APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")]
+            string chainInput, [APIParameter("Height of block", "1")] string height)
         {
-            var nexus = NexusAPI.GetNexus();
-
-            var chain = nexus.GetChainByName(chainInput);
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            var chain = service.GetChainByName(chainInput);
 
             if (chain == null)
             {
@@ -151,7 +150,8 @@ namespace Phantasma.Infrastructure.API.Controllers
                 {
                     throw new APIException("chain not found");
                 }
-                chain = nexus.GetChainByAddress(Address.FromText(chainInput));
+
+                chain = service.GetChainByAddress(chainInput);
             }
 
             if (chain == null)
@@ -163,12 +163,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             {
                 throw new APIException("invalid number");
             }
-            
-            if (parsedHeight <= 0)
-            {
-                throw new APIException("invalid number");
-            }
-            
+
             var blockHash = chain.GetBlockHashAtHeight(parsedHeight);
             var block = chain.GetBlockByHash(blockHash);
 
@@ -179,14 +174,17 @@ namespace Phantasma.Infrastructure.API.Controllers
 
             throw new APIException("block not found");
         }
-        
+
         [APIInfo(typeof(BlockResult), "Returns information about the latest block.", false, -1)]
         [APIFailCase("block hash is invalid", "asdfsa")]
         [APIFailCase("chain is invalid", "453dsa")]
         [HttpGet("GetLatestBlock")]
-        public BlockResult GetLatestBlock([APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string chainInput)
+        public BlockResult GetLatestBlock(
+            [APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")]
+            string chainInput)
         {
-            var chain = NexusAPI.FindChainByInput(chainInput);
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            var chain = service.FindChainByInput(chainInput);
 
             if (chain == null)
             {
@@ -198,19 +196,23 @@ namespace Phantasma.Infrastructure.API.Controllers
 
             if (block != null)
             {
-                return NexusAPI.FillBlock(block, chain);
+                return service.FillBlock(block, chain);
             }
 
             throw new APIException("block not found");
         }
-        
-        [APIInfo(typeof(string), "Returns a serialized string, in hex format, containing information about the latest block.", false, -1)]
+
+        [APIInfo(typeof(string),
+            "Returns a serialized string, in hex format, containing information about the latest block.", false, -1)]
         [APIFailCase("block hash is invalid", "asdfsa")]
         [APIFailCase("chain is invalid", "453dsa")]
         [HttpGet("GetRawLatestBlock")]
-        public string GetRawLatestBlock([APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string chainInput)
+        public string GetRawLatestBlock(
+            [APIParameter("Address or name of chain", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")]
+            string chainInput)
         {
-            var chain = NexusAPI.FindChainByInput(chainInput);
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            var chain = service.FindChainByInput(chainInput);
 
             if (chain == null)
             {

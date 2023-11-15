@@ -1,8 +1,7 @@
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Core.Types;
-using Phantasma.Core.Types.Structs;
 using Phantasma.Infrastructure.API.Structs;
+using Phantasma.Infrastructure.Utilities;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -12,38 +11,21 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("GetValidators")]
         public ValidatorResult[] GetValidators()
         {
-            var nexus = NexusAPI.GetNexus();
-            
-            if (nexus == null)
-            {
-                throw new APIException("Nexus not ready");
-            }
-
-            var validators = nexus.GetValidators(Timestamp.Now).
-                Where(x => !x.address.IsNull).
-                Select(x => new ValidatorResult() { address = x.address.ToString(), type = x.type.ToString() });
-
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            var validators = service.GetValidators().Where(x => !x.address.IsNull).Select(x =>
+                new ValidatorResult() { address = x.address.ToString(), type = x.type.ToString() });
             return validators.ToArray();
         }
-        
+
         [APIInfo(typeof(ValidatorResult[]), "Returns an array of available validators.", false, 300)]
         [HttpGet("GetValidators/{type}")]
         public ValidatorResult[] GetValidators(string type)
         {
-            var nexus = NexusAPI.GetNexus();
-
-            if (nexus == null)
-            {
-                throw new APIException("Nexus not ready");
-            }
-            
-            var validators = nexus.GetValidators(Timestamp.Now).
-                Where(x => !x.address.IsNull && x.type.ToString() == type).
-                Select(x => new ValidatorResult() { address = x.address.ToString(), type = x.type.ToString() });
-
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            var validators = service.GetValidators()
+                .Where(x => !x.address.IsNull && x.type.ToString() == type).Select(x => new ValidatorResult()
+                    { address = x.address.ToString(), type = x.type.ToString() });
             return validators.ToArray();
         }
-        
-        
     }
 }
