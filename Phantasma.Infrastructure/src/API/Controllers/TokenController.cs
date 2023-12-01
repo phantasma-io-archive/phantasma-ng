@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Business.Blockchain.Tokens;
 using Phantasma.Business.Blockchain.Tokens.Structs;
-using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
 using Phantasma.Infrastructure.API.Structs;
+using Phantasma.Infrastructure.Utilities;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -16,43 +15,45 @@ namespace Phantasma.Infrastructure.API.Controllers
     {
         [APIInfo(typeof(TokenResult[]), "Returns an array of tokens deployed in Phantasma.", false, 300)]
         [HttpGet("GetTokens")]
-        public TokenResult[] GetTokens(bool extended = false)
+        public TokenResult[] GetTokens(
+            [APIParameter(
+                description:
+                "Extended data. Returns scripts, methods, and prices. (deprecated, will be removed in future API versions)",
+                value: "false")]
+            bool extended = false)
         {
-            var nexus = NexusAPI.GetNexus();
+            var service = ServiceUtility.GetAPIService(HttpContext);
 
-            var tokenList = new List<TokenResult>();
+            var symbols = service.GetAvailableTokenSymbols();
 
-            var symbols = nexus.GetAvailableTokenSymbols(nexus.RootStorage);
-            foreach (var token in symbols)
-            {
-                var entry = NexusAPI.FillToken(token, false, extended);
-                tokenList.Add(entry);
-            }
-
-            return tokenList.ToArray();
+            return symbols.Select(token => service.FillToken(token, false, extended)).ToArray();
         }
 
         [APIInfo(typeof(TokenResult), "Returns info about a specific token deployed in Phantasma.", false, 120)]
         [HttpGet("GetToken")]
-        public TokenResult GetToken([APIParameter("Token symbol to obtain info", "SOUL")] string symbol, bool extended = false)
+        public TokenResult GetToken([APIParameter("Token symbol to obtain info", "SOUL")] string symbol,
+            [APIParameter(
+                description:
+                "Extended data. Returns script, methods, and prices. (prices will be removed in future API versions)",
+                value: "false")]
+            bool extended)
         {
-            var nexus = NexusAPI.GetNexus();
-
-            if (!nexus.TokenExists(nexus.RootStorage, symbol))
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            if (!service.TokenExists(symbol))
             {
                 throw new APIException("invalid token");
             }
 
-            var result = NexusAPI.FillToken(symbol, true, extended);
+            var result = service.FillToken(symbol, true, extended);
 
             return result;
         }
 
-
         // deprecated
         [APIInfo(typeof(TokenDataResult), "Returns data of a non-fungible token, in hexadecimal format.", false, 15)]
         [HttpGet("GetTokenData")]
-        public TokenDataResult GetTokenData([APIParameter("Symbol of token", "NACHO")] string symbol, [APIParameter("ID of token", "1")] string IDtext)
+        public TokenDataResult GetTokenData([APIParameter("Symbol of token", "NACHO")] string symbol,
+            [APIParameter("ID of token", "1")] string IDtext)
         {
             return GetNFT(symbol, IDtext, false);
         }
@@ -60,17 +61,18 @@ namespace Phantasma.Infrastructure.API.Controllers
 
         [APIInfo(typeof(TokenDataResult), "Returns data of a non-fungible token, in hexadecimal format.", false, 15)]
         [HttpGet("GetNFT")]
-        public TokenDataResult GetNFT([APIParameter("Symbol of token", "NACHO")] string symbol, [APIParameter("ID of token", "1")] string IDtext, bool extended = false)
+        public TokenDataResult GetNFT([APIParameter("Symbol of token", "NACHO")] string symbol,
+            [APIParameter("ID of token", "1")] string IDtext,
+            [APIParameter(description: "Extended data. Returns properties.", value: "false")]
+            bool extended = false)
         {
-            var nexus = NexusAPI.GetNexus();
-
-            if (!nexus.TokenExists(nexus.RootStorage, symbol))
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            if (!service.TokenExists(symbol))
             {
                 throw new APIException("invalid token");
             }
 
-            BigInteger ID;
-            if (!BigInteger.TryParse(IDtext, out ID))
+            if (!BigInteger.TryParse(IDtext, out var ID))
             {
                 throw new APIException("invalid ID");
             }
@@ -78,7 +80,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             TokenDataResult result;
             try
             {
-                result = NexusAPI.FillNFT(symbol, ID, extended);
+                result = service.FillNFT(symbol, ID, extended);
             }
             catch (Exception e)
             {
@@ -91,22 +93,25 @@ namespace Phantasma.Infrastructure.API.Controllers
 
         [APIInfo(typeof(TokenDataResult[]), "Returns an array of NFTs.", false, 300)]
         [HttpGet("GetNFTs")]
-        public TokenDataResult[] GetNFTs([APIParameter("Symbol of token", "NACHO")] string symbol, [APIParameter("Multiple IDs of token, separated by comman", "1")] string IDText, bool extended = false)
+        public TokenDataResult[] GetNFTs([APIParameter("Symbol of token", "NACHO")] string symbol,
+            [APIParameter("Multiple IDs of token, separated by comma", "1")]
+            string IDText,
+            [APIParameter(description: "Extended data. Returns properties.", value: "false")]
+            bool extended = false)
         {
-            var nexus = NexusAPI.GetNexus();
-
-            if (!nexus.TokenExists(nexus.RootStorage, symbol))
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            if (!service.TokenExists(symbol))
             {
                 throw new APIException("invalid token");
             }
 
-            var IDs = IDText.Split(',');
+            var ds = IDText.Split(',');
 
             var list = new List<TokenDataResult>();
 
             try
             {
-                foreach (var str in IDs)
+                foreach (var str in ds)
                 {
                     BigInteger ID;
                     if (!BigInteger.TryParse(str, out ID))
@@ -114,7 +119,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                         throw new APIException("invalid ID");
                     }
 
-                    var result = NexusAPI.FillNFT(symbol, ID, extended);
+                    var result = service.FillNFT(symbol, ID, extended);
 
                     list.Add(result);
                 }
@@ -128,28 +133,33 @@ namespace Phantasma.Infrastructure.API.Controllers
         }
 
 
-        [APIInfo(typeof(BalanceResult), "Returns the balance for a specific token and chain, given an address.", false, 5)]
+        [APIInfo(typeof(BalanceResult), "Returns the balance for a specific token and chain, given an address.", false,
+            5)]
         [APIFailCase("address is invalid", "43242342")]
         [APIFailCase("token is invalid", "-1")]
         [APIFailCase("chain is invalid", "-1re")]
         [HttpGet("GetTokenBalance")]
-        public BalanceResult GetTokenBalance([APIParameter("Address of account", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")] string account, [APIParameter("Token symbol", "SOUL")] string tokenSymbol, [APIParameter("Address or name of chain", "root")] string chainInput)
+        public BalanceResult GetTokenBalance(
+            [APIParameter("Address of account", "PDHcAHq1fZXuwDrtJGDhjemFnj2ZaFc7iu3qD4XjZG9eV")]
+            string account,
+            [APIParameter("Token symbol", "SOUL")] string tokenSymbol,
+            [APIParameter("Address or name of chain", "root")]
+            string chainInput)
         {
+            var service = ServiceUtility.GetAPIService(HttpContext);
             if (!Address.IsValidAddress(account))
             {
                 throw new APIException("invalid address");
             }
 
-            var nexus = NexusAPI.GetNexus();
-
-            if (!nexus.TokenExists(nexus.RootStorage, tokenSymbol))
+            if (!service.TokenExists(tokenSymbol))
             {
                 throw new APIException("invalid token");
             }
 
-            var tokenInfo = nexus.GetTokenInfo(nexus.RootStorage, tokenSymbol);
+            var tokenInfo = service.GetTokenInfo(tokenSymbol);
 
-            var chain = NexusAPI.FindChainByInput(chainInput);
+            var chain = service.FindChainByInput(chainInput);
 
             if (chain == null)
             {
@@ -157,7 +167,7 @@ namespace Phantasma.Infrastructure.API.Controllers
             }
 
             var address = Address.FromText(account);
-            var token = nexus.GetTokenInfo(nexus.RootStorage, tokenSymbol);
+            var token = service.GetTokenInfo(tokenSymbol);
             var balance = chain.GetTokenBalance(chain.Storage, token, address);
 
             var result = new BalanceResult()

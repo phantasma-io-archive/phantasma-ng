@@ -1,3 +1,5 @@
+using System;
+
 namespace Phantasma.Infrastructure.API.Structs;
 
 public class AccountResult
@@ -22,5 +24,6 @@ public class AccountResult
 
     public BalanceResult[] balances { get; set; }
 
+	[Obsolete("The txs property is deprecated and will be removed in future versions.")]
     public string[] txs { get; set; }
 }
