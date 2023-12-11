@@ -19,7 +19,7 @@ namespace Phantasma.Infrastructure.API.Controllers
 
         [APIInfo(typeof(ValidatorResult[]), "Returns an array of available validators.", false, 300)]
         [HttpGet("GetValidators/{type}")]
-        public ValidatorResult[] GetValidators(string type)
+        public ValidatorResult[] GetValidators([APIParameter("Validator Type.", "Primary")] string type)
         {
             var service = ServiceUtility.GetAPIService(HttpContext);
             var validators = service.GetValidators()

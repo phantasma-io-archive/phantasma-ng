@@ -8,7 +8,7 @@ namespace Phantasma.Infrastructure.API.Controllers
     {
         [APIInfo(typeof(LeaderboardResult), "Returns content of a Phantasma leaderboard.", false, 30)]
         [HttpGet("GetLeaderboard")]
-        public LeaderboardResult GetLeaderboard(string name)
+        public LeaderboardResult GetLeaderboard([APIParameter( "Name of the leaderboard.", "katacomb")]string name)
         {
             var service = ServiceUtility.GetAPIService(HttpContext);
             return service.GetLeaderboard(name);

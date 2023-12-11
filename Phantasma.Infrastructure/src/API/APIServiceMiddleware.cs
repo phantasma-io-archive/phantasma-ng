@@ -13,15 +13,32 @@ public class APIServiceMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, IAPIService explorerService, IAPIService chainService)
+    public async Task InvokeAsync(HttpContext context, APIExplorerService explorerService, APIChainService chainService)
     {
         if (context.Request.Path.StartsWithSegments("/Explorer"))
         {
-            context.Items["APIService"] = explorerService;
+            if (context.Items.ContainsKey("APIService"))
+            {
+                context.Items["APIService"] = explorerService;
+            }
+            else
+            {
+                context.Items.Add("APIService", explorerService);
+            }
+            
+            context.Request.Path = context.Request.Path.Value.Replace("/Explorer", "");
+            
         }
         else
         {
-            context.Items["APIService"] = chainService;
+            if (context.Items.ContainsKey("APIService"))
+            {
+                context.Items["APIService"] = chainService;
+            }
+            else
+            {
+                context.Items.Add("APIService", chainService);
+            }
         }
 
         await _next(context);
