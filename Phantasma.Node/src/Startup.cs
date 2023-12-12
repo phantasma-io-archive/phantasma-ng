@@ -138,12 +138,14 @@ public class Startup
         var controllers = assembly.GetTypes()
                 .Where(type => typeof(BaseControllerV1).IsAssignableFrom(type));
         Log.Information($"Found {controllers.Count()} controllers");
-
+        
         services.AddMvc().AddApplicationPart(assembly).AddControllersAsServices();
-
-        services.AddScoped<IAPIService, APIChainService>();
-        services.AddScoped<IAPIService, APIExplorerService>();
-
+        
+        services.AddSingleton<APIFactory>();
+        
+        services.AddScoped<APIChainService>();
+        services.AddScoped<APIExplorerService>();
+        
         Log.Information("Finished services configuration");
     }
 
@@ -166,6 +168,7 @@ public class Startup
         app.UseMiddleware<ErrorLoggingMiddleware>();
         app.UseMiddleware<PerformanceMiddleware>();
         app.UseMiddleware<CacheMiddleware>();
+        app.UseMiddleware<APIServiceMiddleware>();
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
@@ -188,7 +191,6 @@ public class Startup
             endpoints.MapControllers();
         });
 
-        app.UseMiddleware<APIServiceMiddleware>();
         
         Log.Information("Finished app configuration");
     }

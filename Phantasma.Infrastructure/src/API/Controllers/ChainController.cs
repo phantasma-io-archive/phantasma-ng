@@ -24,6 +24,8 @@ namespace Phantasma.Infrastructure.API.Controllers
                 .Select(chain => service.FillChain(chain, extended)).ToArray();
         }
 
+        [APIInfo(typeof(ChainResult), "Returns the main chain in Phantasma.", false, 300)]
+        [HttpGet("GetChain")]
         public ChainResult GetChain(
             [APIParameter(description: "Name of chain", value: "main")]
             string name = "main",

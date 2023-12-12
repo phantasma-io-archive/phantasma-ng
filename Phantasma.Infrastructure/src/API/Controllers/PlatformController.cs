@@ -40,7 +40,7 @@ namespace Phantasma.Infrastructure.API.Controllers
         
         [APIInfo(typeof(PlatformResult), "Returns the platform info for the given platform.", false, 300)]
         [HttpGet("GetPlatform")]
-        public PlatformResult GetPlatform(string platform)
+        public PlatformResult GetPlatform([APIParameter( "Platform name", "ethereum")]string platform)
         {
             var service = ServiceUtility.GetAPIService(HttpContext);
             var info = service.GetPlatformInfo(platform);
@@ -61,7 +61,7 @@ namespace Phantasma.Infrastructure.API.Controllers
         
         [APIInfo(typeof(InteropResult), "Returns the interop info for the given platform.", false, 300)]
         [HttpGet("GetInterop")]
-        public InteropResult GetInterop(string platform)
+        public InteropResult GetInterop([APIParameter( "Platform name.", "ethereum")]string platform)
         {
             var service = ServiceUtility.GetAPIService(HttpContext);
             var info = service.GetPlatformInfo(platform);
