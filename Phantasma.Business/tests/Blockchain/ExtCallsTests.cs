@@ -1,10 +1,16 @@
 using System;
+using System.IO;
 using System.Numerics;
+using System.Text;
 using Phantasma.Business.Blockchain;
 using Phantasma.Business.Blockchain.Contracts.Native;
+using Phantasma.Business.Blockchain.VM;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Cryptography.ECDsa.Enums;
+using Phantasma.Core.Cryptography.EdDSA;
 using Phantasma.Core.Cryptography.Enums;
 using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Core.Domain;
@@ -13,6 +19,8 @@ using Phantasma.Core.Domain.Contract.Gas.Structs;
 using Phantasma.Core.Domain.Token.Enums;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Types.Structs;
+using Phantasma.Core.Utils;
+using Phantasma.Node.Chains.Ethereum;
 using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
@@ -57,7 +65,7 @@ public class ExtCallsTests
         
     protected void InitializeSimulator()
     {
-        simulator = new NexusSimulator(new []{owner}, 17);
+        simulator = new NexusSimulator(new []{owner}, 18);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
         SetInitialBalance(user.Address);
@@ -164,7 +172,155 @@ public class ExtCallsTests
     // List_Replace
     // List_RemoveAt
     // List_Count
+
+    [Fact]
+    public void TestRuntimeGetNexus()
+    {
+        var script = new ScriptBuilder()
+            .CallInterop("Runtime.Nexus")
+            .EndScript();
+        
+        var nexusFromInvoke = simulator.InvokeScript( script );
+        
+        Assert.Equal(simulator.Nexus.Name, nexusFromInvoke.AsString());
+    }
     
+    
+    [Fact]
+    public void TestValidateSignatureEd25519()
+    {
+        var address = user.Address;
+        var dataToSign = Encoding.UTF8.GetBytes("Test");// Base16.Encode();
+        byte[] signedDataOut = new byte[0];
+        
+        var randomValue = Random.Shared.Next(0, int.MaxValue);
+        var randomBytes = BitConverter.GetBytes(randomValue);
+
+        var msg = ByteArrayUtils.ConcatBytes(randomBytes, dataToSign);
+
+        Signature signature = null;
+        var wif = user.ToWIF();
+        var kind = SignatureKind.Ed25519;
+        switch (kind)
+        {
+            case SignatureKind.Ed25519:
+                var phantasmaKeys = PhantasmaKeys.FromWIF(wif);
+                signature = phantasmaKeys.Sign(msg);
+                break;
+
+            case SignatureKind.ECDSA:
+                var ethKeys = EthereumKey.FromWIF(wif);
+                
+                /*var signatureBytes = ethKeys.Sign(msg, (priv, smth, other) =>
+                {
+                    //ethKeys.PrivateKey, ethKeys.PublicKey, ECDsaCurve.Secp256k1
+                });*/
+                signature = ECDsaSignature.Generate(ethKeys, msg, ECDsaCurve.Secp256k1);
+                break;
+        }
+
+        byte[] sigBytes = null;
+
+        using (var stream = new MemoryStream())
+        {
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.WriteSignature(signature);
+            }
+
+            sigBytes = stream.ToArray();
+        }
+
+        var hexSig = Base16.Encode(sigBytes);
+        var hexRand = Base16.Encode(randomBytes);
+        var hexMsg = Base16.Encode(dataToSign);
+        
+        Assert.Equal(signedDataOut, new byte[0]);
+        var script = new ScriptBuilder()
+            .CallInterop("Runtime.ValidateAddress", address, hexSig, hexRand, hexMsg)
+            .EndScript();
+        
+        var validateAddressInvoke = simulator.InvokeScript( script );
+        
+        Assert.True(validateAddressInvoke.AsBool());
+        
+        var script2 = new ScriptBuilder()
+            .CallInterop("Runtime.ValidateAddress", owner.Address, hexSig, hexRand, hexMsg)
+            .EndScript();
+        
+        var validateAddressInvoke2 = simulator.InvokeScript( script2 );
+        
+        Assert.False(validateAddressInvoke2.AsBool());
+    }
+    
+    [Fact(Skip = "TODO, not working, this is a test for ECDSA")]
+    // TODO: What is missing is the ability to sign with ECDSA properly and validate
+    // This was only done using Phantasma Ed25519
+    public void TestValidateSignatureECDSA()
+    {
+        var address = user.Address;
+        var dataToSign = Encoding.UTF8.GetBytes("Test");
+        byte[] signedDataOut = new byte[0];
+        
+        var randomValue = Random.Shared.Next(0, int.MaxValue);
+        var randomBytes = BitConverter.GetBytes(randomValue);
+
+        var msg = ByteArrayUtils.ConcatBytes(randomBytes, dataToSign);
+
+        Signature signature = null;
+        var wif = user.ToWIF();
+        var kind = SignatureKind.ECDSA;
+        switch (kind)
+        {
+            case SignatureKind.ECDSA:
+                var ethKeys = EthereumKey.FromWIF(wif);
+                var sign = ethKeys.Sign(msg);
+                var signatureBytes = ethKeys.Sign(msg, (priv, smth, other) =>
+                {
+                    
+                    //ethKeys.PrivateKey, ethKeys.PublicKey, ECDsaCurve.Secp256k1
+                    return new byte[0];
+                });
+                
+                //address = Address.FromInterop(0x4, ethKeys.PublicKey);
+                address = Address.FromInterop(0x4, ethKeys.PublicKey);
+                signature = new ECDsaSignature(signatureBytes.ToByteArray(), ECDsaCurve.Secp256k1);
+                break;
+        }
+
+        byte[] sigBytes = null;
+
+        using (var stream = new MemoryStream())
+        {
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.WriteSignature(signature);
+            }
+
+            sigBytes = stream.ToArray();
+        }
+
+        var hexSig = Base16.Encode(sigBytes);
+        var hexRand = Base16.Encode(randomBytes);
+        var hexMsg = Base16.Encode(dataToSign);
+        
+        Assert.Equal(signedDataOut, new byte[0]);
+        var script = new ScriptBuilder()
+            .CallInterop("Runtime.ValidateAddress", address, hexSig, hexRand, hexMsg)
+            .EndScript();
+        
+        var validateAddressInvoke = simulator.InvokeScript( script );
+        
+        Assert.True(validateAddressInvoke.AsBool());
+        
+        var script2 = new ScriptBuilder()
+            .CallInterop("Runtime.ValidateAddress", owner.Address, hexSig, hexRand, hexMsg)
+            .EndScript();
+        
+        var validateAddressInvoke2 = simulator.InvokeScript( script2 );
+        
+        Assert.False(validateAddressInvoke2.AsBool());
+    }
     
     private BigInteger CreateToken(PhantasmaKeys _user, Address gasAddress, Address userAddress, string contractName,
         byte[] contractPVM, byte[] contractABI, bool shouldFail = false)
