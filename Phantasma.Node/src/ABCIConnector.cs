@@ -125,25 +125,38 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, time, this._initialValidators); 
             
             // broadcast system transactions
-            if ( systemTransactions != null && systemTransactions.Count() > 0 )
+            uint version = DomainSettings.Phantasma30Protocol;
+            try
             {
-                foreach (var tx in systemTransactions)
+                version = _nexus.GetProtocolVersion(_nexus.RootStorage);
+            }
+            catch (Exception e)
+            {
+                
+            }
+
+            if (version >= 19)
+            {
+                if ( systemTransactions != null && systemTransactions.Count() > 0 )
                 {
-                    var txString = Base16.Encode(tx.ToByteArray(true));
-                    Log.Information("Broadcast tx {Transaction}", tx);
-                    while (true)
+                    foreach (var tx in systemTransactions)
                     {
-                        try
+                        var txString = Base16.Encode(tx.ToByteArray(true));
+                        Log.Information("Broadcast tx {Transaction}", tx);
+                        while (true)
                         {
-                            _rpc.BroadcastTxSync(txString);
-                            break;
+                            try
+                            {
+                                _rpc.BroadcastTxSync(txString);
+                                break;
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine(e.Message);
+                            }
                         }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e.Message);
-                        }
+                        Log.Information("Broadcast tx {Transaction} done", tx);
                     }
-                    Log.Information("Broadcast tx {Transaction} done", tx);
                 }
             }
         }
