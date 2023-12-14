@@ -28,6 +28,9 @@ namespace Phantasma.Core.Domain.Structs
         
         public override string ToString()
         {
+            if (Name == null)
+                return $"{Kind}/{Contract} @ {Address}: {Base16.Encode(Data)}";
+            
             return $"{Kind}/{Contract} - {Name} @ {Address}: {Base16.Encode(Data)}";
         }
 
