@@ -52,6 +52,8 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.Version", 0, Runtime_Version);
             callback("Runtime.GasTarget", 0, Runtime_GasTarget);
             callback("Runtime.Validator", 0, Runtime_Validator);
+            callback("Runtime.ValidateAddress", 4, Runtime_ValidateAddress);
+            callback("Runtime.Nexus", 0, Runtime_GetNexus);
             callback("Runtime.Context", 0, Runtime_Context);
             callback("Runtime.PreviousContext", 0, Runtime_PreviousContext);
             callback("Runtime.GenerateUID", 0, Runtime_GenerateUID);
@@ -235,6 +237,11 @@ namespace Phantasma.Business.Blockchain.VM
             });
         }
 
+        /// <summary>
+        /// Logs a message to the chain.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Runtime_Log(RuntimeVM vm)
         {
             var text = vm.Stack.Pop().AsString();
@@ -242,6 +249,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Notifies an event to the chain.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Runtime_Notify(RuntimeVM vm)
         {
             vm.Expect(vm.CurrentContext.Name != VirtualMachine.EntryContextName, "cannot notify in current context");
@@ -339,6 +351,11 @@ namespace Phantasma.Business.Blockchain.VM
 
         #endregion
 
+        /// <summary>
+        /// Returns the time of the chain.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Runtime_Time(RuntimeVM vm)
         {
             var result = new VMObject();
@@ -347,6 +364,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Returns the version of the chain.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Runtime_Version(RuntimeVM vm)
         {
             var result = new VMObject();
@@ -354,7 +376,53 @@ namespace Phantasma.Business.Blockchain.VM
             vm.Stack.Push(result);
             return ExecutionState.Running;
         }
+        
+        /// <summary>
+        /// Returns the Nexus Name
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
+        private static ExecutionState Runtime_GetNexus(RuntimeVM vm)
+        {
+            var vm_obj = new VMObject();
+            vm_obj.SetValue(vm.NexusName);
+            vm.Stack.Push(vm_obj);
+            
+            return ExecutionState.Running;
+        }
+        
+        /// <summary>
+        /// This method validate's a signed data using the address, signedData, random and data
+        /// It returns a boolean value
+        /// It will validate if the address is the owner of the signed data.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
+        private static ExecutionState Runtime_ValidateAddress(RuntimeVM vm)
+        {
+            vm.ExpectStackSize(4);
 
+            var address = vm.PopAddress();
+            var signedData = vm.PopString("signedData");
+            var random = vm.PopString("random");
+            var data = vm.PopString("data");
+            
+            vm.Expect(address != Address.Null, "invalid address");
+            
+            var resultSignature = address.ValidateSignedData(signedData, random, data); 
+
+            var result = new VMObject();
+            result.SetValue(resultSignature);
+            vm.Stack.Push(result);
+
+            return ExecutionState.Running;
+        }
+
+        /// <summary>
+        /// Returns the hash of the current transaction.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Runtime_TransactionHash(RuntimeVM vm)
         {
             vm.Expect(vm.Transaction != null, "transaction hash not available here");
@@ -367,6 +435,12 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Returns if the given address is a minter for the given token symbol.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
+        /// <exception cref="VMException"></exception>
         private static ExecutionState Runtime_IsMinter(RuntimeVM vm)
         {
             try
@@ -392,7 +466,13 @@ namespace Phantasma.Business.Blockchain.VM
 
             return ExecutionState.Running;
         }
-
+        
+        /// <summary>
+        /// Returns the GasTarget of the current transaction.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
+        /// <exception cref="VMException"></exception>
         private static ExecutionState Runtime_GasTarget(RuntimeVM vm)
         {
             if (vm.GasTarget.IsNull)
@@ -407,6 +487,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Returns the validator of the current transaction.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Runtime_Validator(RuntimeVM vm)
         {
             var result = new VMObject();
@@ -416,6 +501,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Returns the context of the current transaction.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Runtime_Context(RuntimeVM vm)
         {
             var result = new VMObject();
@@ -425,6 +515,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Returns the previous context of the current transaction.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Runtime_PreviousContext(RuntimeVM vm)
         {
             var result = new VMObject();
@@ -443,6 +538,12 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Returns a random UID (stands for Unique Identifier).
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
+        /// <exception cref="VMException"></exception>
         private static ExecutionState Runtime_GenerateUID(RuntimeVM vm)
         {
             try
@@ -461,6 +562,12 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Returns if the given address is a witness for the current transaction.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
+        /// <exception cref="VMException"></exception>
         private static ExecutionState Runtime_IsWitness(RuntimeVM vm)
         {
             try
@@ -486,6 +593,12 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Returns if the current call is a trigger call.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
+        /// <exception cref="VMException"></exception>
         private static ExecutionState Runtime_IsTrigger(RuntimeVM vm)
         {
             try
@@ -508,6 +621,11 @@ namespace Phantasma.Business.Blockchain.VM
         }
 
         #region DATA
+        /// <summary>
+        /// Get the value of a field in the current contract
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Data_Get(RuntimeVM vm)
         {
             // NOTE: having this check here prevents NFT properties from working
@@ -626,6 +744,11 @@ namespace Phantasma.Business.Blockchain.VM
         #endregion
 
         #region MAP
+        /// <summary>
+        /// Returns if the given key exists in the given map.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Map_Has(RuntimeVM vm)
         {
             //vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
@@ -658,7 +781,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
-
+        /// <summary>
+        /// Returns the value of the given key in the given map.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Map_Get(RuntimeVM vm)
         {
             //vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
@@ -698,7 +825,12 @@ namespace Phantasma.Business.Blockchain.VM
 
             return ExecutionState.Running;
         }
-
+        
+        /// <summary>
+        /// Sets the value of the given key in the given map.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Map_Set(RuntimeVM vm)
         {
             vm.Expect(!vm.IsEntryContext(vm.CurrentContext), "Not allowed from this context");
@@ -733,6 +865,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Removes the given key from the given map.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Map_Remove(RuntimeVM vm)
         {
             var contextName = vm.CurrentContext.Name;
@@ -764,6 +901,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Clears the given map.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Map_Clear(RuntimeVM vm)
         {
             vm.Expect(!vm.IsEntryContext(vm.CurrentContext), "Not allowed from this context");
@@ -789,6 +931,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Returns the keys of the given map.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Map_Keys(RuntimeVM vm)
         {
             var contextName = vm.CurrentContext.Name;
@@ -817,6 +964,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
         
+        /// <summary>
+        /// Returns the values of the given map.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Map_Values(RuntimeVM vm)
         {
             var contextName = vm.CurrentContext.Name;
@@ -845,6 +997,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Returns the number of entries in the given map.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState Map_Count(RuntimeVM vm)
         {
             //vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
@@ -871,6 +1028,11 @@ namespace Phantasma.Business.Blockchain.VM
         #endregion
 
         #region LIST
+        /// <summary>
+        /// Returns the value of the given index in the given list.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState List_Get(RuntimeVM vm)
         {
             //vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
@@ -911,6 +1073,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Adds a value to the given list.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState List_Add(RuntimeVM vm)
         {
             vm.Expect(!vm.IsEntryContext(vm.CurrentContext), "Not allowed from this context");
@@ -941,6 +1108,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Replace a value in the given list.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState List_Replace(RuntimeVM vm)
         {
             vm.Expect(!vm.IsEntryContext(vm.CurrentContext), "Not allowed from this context");
@@ -974,6 +1146,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Removes a value from the given list at the given index.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState List_RemoveAt(RuntimeVM vm)
         {
             vm.Expect(!vm.IsEntryContext(vm.CurrentContext), "Not allowed from this context");
@@ -1004,6 +1181,11 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        /// <summary>
+        /// Clears the given list.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState List_Clear(RuntimeVM vm)
         {
             var contextName = vm.CurrentContext.Name;
@@ -1029,7 +1211,12 @@ namespace Phantasma.Business.Blockchain.VM
 
             return ExecutionState.Running;
         }
-
+        
+        /// <summary>
+        /// Returns the amount of entries in the given list.
+        /// </summary>
+        /// <param name="vm"></param>
+        /// <returns></returns>
         private static ExecutionState List_Count(RuntimeVM vm)
         {
             //vm.Expect(!vm.IsEntryContext(vm.CurrentContext), $"Not allowed from this context");
@@ -2083,6 +2270,8 @@ namespace Phantasma.Business.Blockchain.VM
             return ExecutionState.Running;
         }
 
+        
+
         //private static ExecutionState Nexus_CreateChain(RuntimeVM vm)
         //{
         //    vm.ExpectStackSize(4);
@@ -2325,6 +2514,8 @@ namespace Phantasma.Business.Blockchain.VM
         }
 
         #endregion
+        
+        
 
     }
 }
