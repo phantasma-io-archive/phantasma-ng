@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Phantasma.Core.Cryptography.Structs;
 using Phantasma.Infrastructure.API.Controllers.Structs;
 using Serilog;

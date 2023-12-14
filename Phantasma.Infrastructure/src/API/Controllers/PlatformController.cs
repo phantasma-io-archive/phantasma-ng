@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Phantasma.Core.Domain;
 using Phantasma.Infrastructure.API.Structs;
+using Phantasma.Infrastructure.Utilities;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -12,16 +13,14 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("GetPlatforms")]
         public PlatformResult[] GetPlatforms()
         {
+            var service = ServiceUtility.GetAPIService(HttpContext);
             var platformList = new List<PlatformResult>();
-
-            var nexus = NexusAPI.GetNexus();
-
-            var platforms = nexus.GetPlatforms(nexus.RootStorage);
-            var symbols = nexus.GetAvailableTokenSymbols(nexus.RootStorage);
+            var platforms = service.GetPlatforms();
+            var symbols = service.GetAvailableTokenSymbols();
 
             foreach (var platform in platforms)
             {
-                var info = nexus.GetPlatformInfo(nexus.RootStorage, platform);
+                var info = service.GetPlatformInfo(platform);
                 var entry = new PlatformResult();
                 entry.platform = platform;
                 entry.interop = info.InteropAddresses.Select(x => new InteropResult()
@@ -32,7 +31,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                 //TODO reverse array for now, only the last item is valid for now.
                 entry.chain = DomainExtensions.GetChainAddress(info).Text;
                 entry.fuel = info.Symbol;
-                entry.tokens = symbols.Where(x => nexus.HasTokenPlatformHash(x, platform, nexus.RootStorage)).ToArray();
+                entry.tokens = symbols.Where(x => service.HasTokenPlatformHash(x, platform)).ToArray();
                 platformList.Add(entry);
             }
 
@@ -41,11 +40,10 @@ namespace Phantasma.Infrastructure.API.Controllers
         
         [APIInfo(typeof(PlatformResult), "Returns the platform info for the given platform.", false, 300)]
         [HttpGet("GetPlatform")]
-        public PlatformResult GetPlatform(string platform)
+        public PlatformResult GetPlatform([APIParameter( "Platform name", "ethereum")]string platform)
         {
-            var nexus = NexusAPI.GetNexus();
-
-            var info = nexus.GetPlatformInfo(nexus.RootStorage, platform);
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            var info = service.GetPlatformInfo(platform);
             var entry = new PlatformResult();
             entry.platform = platform;
             entry.interop = info.InteropAddresses.Select(x => new InteropResult()
@@ -56,27 +54,17 @@ namespace Phantasma.Infrastructure.API.Controllers
             //TODO reverse array for now, only the last item is valid for now.
             entry.chain = DomainExtensions.GetChainAddress(info).Text;
             entry.fuel = info.Symbol;
-            entry.tokens = nexus.GetAvailableTokenSymbols(nexus.RootStorage).Where(x => nexus.HasTokenPlatformHash(x, platform, nexus.RootStorage)).ToArray();
+            entry.tokens = service.GetAvailableTokenSymbols().Where(x => 
+                service.HasTokenPlatformHash(x, platform)).ToArray();
             return entry;
         }
         
         [APIInfo(typeof(InteropResult), "Returns the interop info for the given platform.", false, 300)]
         [HttpGet("GetInterop")]
-        public InteropResult GetInterop(string platform)
+        public InteropResult GetInterop([APIParameter( "Platform name.", "ethereum")]string platform)
         {
-            var nexus = NexusAPI.GetNexus();
-            
-            if ( nexus == null )
-            {
-                throw new APIException("nexus not found");;
-            }
-            
-            /*if( nexus.GetPlatformInfo(nexus.RootStorage, platform) == null )
-            {
-                throw new APIException("platform not found");
-            }*/
-            
-            var info = nexus.GetPlatformInfo(nexus.RootStorage, platform);
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            var info = service.GetPlatformInfo(platform);
             var entry = new InteropResult();
             entry.local = DomainExtensions.GetChainAddress(info).Text;
             entry.external = info.InteropAddresses.Last().ExternalAddress;

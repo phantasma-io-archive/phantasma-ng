@@ -1,12 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Business.Blockchain.Contracts.Native;
-using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.Structs;
-using Phantasma.Core.Domain.Contract.Sale;
-using Phantasma.Core.Domain.Contract.Sale.Structs;
-using Phantasma.Core.Types;
-using Phantasma.Core.Types.Structs;
 using Phantasma.Infrastructure.API.Structs;
+using Phantasma.Infrastructure.Utilities;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -16,27 +11,24 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("GetLatestSaleHash")]
         public string GetLatestSaleHash()
         {
-            var nexus = NexusAPI.GetNexus();
-
-            var hash = (Hash)nexus.RootChain.InvokeContractAtTimestamp(nexus.RootChain.Storage, Timestamp.Now, "sale", nameof(SaleContract.GetLatestSaleHash)).ToObject();
-
-            return hash.ToString();
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            return service.GetLatestSaleHash();
         }
 
         [APIInfo(typeof(CrowdsaleResult), "Returns data about a crowdsale.", false, -1)]
         [APIFailCase("hash is invalid", "43242342")]
         [HttpGet("GetSale")]
-        public CrowdsaleResult GetSale([APIParameter("Hash of sale", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText)
+        public CrowdsaleResult GetSale(
+            [APIParameter("Hash of sale", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")]
+            string hashText)
         {
-            Hash hash;
-            if (!Hash.TryParse(hashText, out hash) || hash == Hash.Null)
+            var service = ServiceUtility.GetAPIService(HttpContext);
+            if (!Hash.TryParse(hashText, out var hash) || hash == Hash.Null)
             {
                 throw new APIException("Invalid hash");
             }
 
-            var nexus = NexusAPI.GetNexus();
-
-            var sale = (SaleInfo)nexus.RootChain.InvokeContractAtTimestamp(nexus.RootChain.Storage, Timestamp.Now, "sale", nameof(SaleContract.GetSale), hash).ToObject();
+            var sale = service.GetSale(hash);
 
             return new CrowdsaleResult()
             {

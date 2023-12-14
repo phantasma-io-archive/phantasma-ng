@@ -1,12 +1,9 @@
 using System;
-using System.Drawing;
-using System.IO;
 using Microsoft.AspNetCore.Mvc;
-using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.Structs;
-using Phantasma.Core.Domain;
 using Phantasma.Core.Utils;
 using Phantasma.Infrastructure.API.Structs;
+using Phantasma.Infrastructure.Utilities;
 
 namespace Phantasma.Infrastructure.API.Controllers
 {
@@ -16,6 +13,7 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("GetArchive")]
         public ArchiveResult GetArchive([APIParameter("Archive hash", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText)
         {
+            var service = ServiceUtility.GetAPIService(HttpContext);
             Hash hash;
 
             if (!Hash.TryParse(hashText, out hash))
@@ -23,21 +21,20 @@ namespace Phantasma.Infrastructure.API.Controllers
                 throw new APIException("invalid hash");
             }
 
-            var nexus = NexusAPI.GetNexus();
-
-            var archive = nexus.GetArchive(nexus.RootStorage, hash);
+            var archive = service.GetArchive(hash);
             if (archive == null)
             {
                 throw new APIException("archive not found");
             }
 
-            return NexusAPI.FillArchive(archive);
+            return service.FillArchive(archive);
         }
 
         [APIInfo(typeof(bool), "Writes the contents of an incomplete archive.", false, 0, true)]
         [HttpGet("WriteArchive")]
         public bool WriteArchive([APIParameter("Archive hash", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText, [APIParameter("Block index, starting from 0", "0")] int blockIndex, [APIParameter("Block content bytes, in Base64", "QmFzZTY0IGVuY29kZWQgdGV4dA==")] string blockContent)
         {
+            var service = ServiceUtility.GetAPIService(HttpContext);
             Hash hash;
 
             if (!Hash.TryParse(hashText, out hash))
@@ -45,9 +42,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                 throw new APIException("invalid hash");
             }
 
-            var nexus = NexusAPI.GetNexus();
-
-            var archive = nexus.GetArchive(nexus.RootStorage, hash);
+            var archive = service.GetArchive(hash);
             if (archive == null)
             {
                 throw new APIException("archive not found");
@@ -62,7 +57,7 @@ namespace Phantasma.Infrastructure.API.Controllers
 
             try
             {
-                nexus.WriteArchiveBlock(archive, blockIndex, bytes);
+                service.WriteArchiveBlock(archive, blockIndex, bytes);
                 return true;
             }
             catch (Exception e)
@@ -75,6 +70,7 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("ReadArchive")]
         public string ReadArchive([APIParameter("Archive hash", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText, [APIParameter("Block index, starting from 0", "0")] int blockIndex)
         {
+            var service = ServiceUtility.GetAPIService(HttpContext);
             Hash hash;
 
             if (!Hash.TryParse(hashText, out hash))
@@ -82,9 +78,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                 throw new APIException("invalid hash");
             }
 
-            var nexus = NexusAPI.GetNexus();
-
-            var archive = nexus.GetArchive(nexus.RootStorage, hash);
+            var archive = service.GetArchive(hash);
             if (archive == null)
             {
                 throw new APIException("archive not found");
@@ -97,7 +91,7 @@ namespace Phantasma.Infrastructure.API.Controllers
 
             try
             {
-                var bytes = nexus.ReadArchiveBlock(archive, blockIndex);
+                var bytes = service.ReadArchiveBlock(archive, blockIndex);
                 return Convert.ToBase64String(bytes);
             }
             catch (Exception e)
@@ -110,6 +104,7 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("ReadImage")]
         public IActionResult ReadImage([APIParameter("Archive hash", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText, string format = "png")
         {
+            var service = ServiceUtility.GetAPIService(HttpContext);
             Hash hash;
 
             if (!Hash.TryParse(hashText, out hash))
@@ -117,9 +112,7 @@ namespace Phantasma.Infrastructure.API.Controllers
                 throw new APIException("invalid hash");
             }
 
-            var nexus = NexusAPI.GetNexus();
-
-            var archive = nexus.GetArchive(nexus.RootStorage, hash);
+            var archive = service.GetArchive(hash);
             if (archive == null)
             {
                 throw new APIException("archive not found");
@@ -133,42 +126,32 @@ namespace Phantasma.Infrastructure.API.Controllers
             
             try
             {
-                var bytes = nexus.ReadArchiveBlock(archive, 0);
+                var bytes = service.ReadArchiveBlock(archive, 0);
                 for (int i = 1; i < archive.BlockCount; i++)
                 {
-                    bytes = ByteArrayUtils.ConcatBytes(bytes, nexus.ReadArchiveBlock(archive, i));
+                    bytes = ByteArrayUtils.ConcatBytes(bytes, service.ReadArchiveBlock(archive, i));
                 }
                 
-                if ( format == "jpg" || format == "jpeg" )
-                    return File(bytes, "image/jpeg");
-                else if ( format == "gif" )
-                    return File(bytes, "image/gif");
-                else if ( format == "bmp" )
-                    return File(bytes, "image/bmp");
-                else if ( format == "tiff" )
-                    return File(bytes, "image/tiff");
-                else if ( format == "ico" )
-                    return File(bytes, "image/x-icon");
-                /*else if ( format == "mp4")
-                    return File(bytes, "video/mp4");
-                else if ( format == "mp3")
-                    return File(bytes, "audio/mpeg");*/
-                
-                return File(bytes, "image/png");
-
+                switch (format)
+                {
+                    case "jpg":
+                    case "jpeg":
+                        return File(bytes, "image/jpeg");
+                    case "gif":
+                        return File(bytes, "image/gif");
+                    case "bmp":
+                        return File(bytes, "image/bmp");
+                    case "tiff":
+                        return File(bytes, "image/tiff");
+                    case "ico":
+                        return File(bytes, "image/x-icon");
+                    default:
+                        return File(bytes, "image/png");
+                }
             }
             catch (Exception e)
             {
                 throw new APIException(e.Message);
-            }
-        }
-
-        private Image BytesToImage(byte[] imageData)
-        {
-            using (MemoryStream ms = new MemoryStream(imageData))
-            {
-                Image image = Image.FromStream(ms);
-                return image;
             }
         }
     }

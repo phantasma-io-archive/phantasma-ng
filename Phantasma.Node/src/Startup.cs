@@ -16,7 +16,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using Phantasma.Infrastructure.API;
 using Phantasma.Infrastructure.API.Controllers;
+using Phantasma.Infrastructure.API.Interfaces;
 using Phantasma.Node.Authentication;
 using Phantasma.Node.Caching;
 using Phantasma.Node.Converters;
@@ -136,9 +138,14 @@ public class Startup
         var controllers = assembly.GetTypes()
                 .Where(type => typeof(BaseControllerV1).IsAssignableFrom(type));
         Log.Information($"Found {controllers.Count()} controllers");
-
+        
         services.AddMvc().AddApplicationPart(assembly).AddControllersAsServices();
-
+        
+        services.AddSingleton<APIFactory>();
+        
+        services.AddScoped<APIChainService>();
+        services.AddScoped<APIExplorerService>();
+        
         Log.Information("Finished services configuration");
     }
 
@@ -161,6 +168,7 @@ public class Startup
         app.UseMiddleware<ErrorLoggingMiddleware>();
         app.UseMiddleware<PerformanceMiddleware>();
         app.UseMiddleware<CacheMiddleware>();
+        app.UseMiddleware<APIServiceMiddleware>();
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
@@ -183,6 +191,7 @@ public class Startup
             endpoints.MapControllers();
         });
 
+        
         Log.Information("Finished app configuration");
     }
 

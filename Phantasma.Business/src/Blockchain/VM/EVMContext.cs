@@ -80,6 +80,20 @@ namespace Phantasma.Business.Blockchain.VM
             pubKey[0] = (byte)kind;
             return Address.FromBytes(pubKey);
         }
+        
+        public static Address AddressConvertEthereumToPhantasmaNoNexus(string addressText)
+        {
+            Throw.If(!IsValidAddress(addressText), "invalid ethereum address");
+            var input = addressText.Substring(2);
+            var decodedInput = input.Decode();
+
+            AddressKind kind = AddressKind.User;
+
+            var pubKey = new byte[Address.LengthInBytes];
+            ByteArrayUtils.CopyBytes(decodedInput, 0, pubKey, 1, decodedInput.Length);
+            pubKey[0] = (byte)kind;
+            return Address.FromBytes(pubKey);
+        }
 
         public static string AddressConvertPhantasmaToEthereum(Address addr)
         {
