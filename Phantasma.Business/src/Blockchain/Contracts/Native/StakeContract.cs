@@ -498,12 +498,6 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         {
             Runtime.Expect(Runtime.IsWitness(from), "witness failed");
 
-            if (Runtime.ProtocolVersion >= 19)
-            {
-                // Force the Claim 
-                InternalClaim(from, from);
-            }
-            
             Runtime.Expect(unstakeAmount >= MinimumValidStake, "invalid amount");
 
             Runtime.Expect(!Nexus.IsDangerousAddress(from), "this address can't be used as source");
@@ -521,7 +515,13 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var stakedDays = stakedDiff / SecondsInDay; // convert seconds to days
 
             Runtime.Expect(stakedDays >= 1, "waiting period required");
-
+            
+            if (Runtime.ProtocolVersion >= 19)
+            {
+                // Force the Claim 
+                InternalClaim(from, from);
+            }
+            
             var token = Runtime.GetToken(DomainSettings.StakingTokenSymbol);
             var balance = Runtime.GetBalance(token.Symbol, Address);
             Runtime.Expect(balance >= unstakeAmount, "not enough balance to unstake");
@@ -819,7 +819,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         /// <returns></returns>
         private StakeExceptions InternalClaim(Address from, Address stakeAddress)
         {
-            if (_stakeMap.ContainsKey(stakeAddress))
+            if (!_stakeMap.ContainsKey(stakeAddress))
             {
                 return StakeExceptions.NotStaking; 
             }

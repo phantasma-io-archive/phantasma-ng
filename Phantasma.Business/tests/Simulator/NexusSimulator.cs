@@ -37,7 +37,7 @@ using Phantasma.Core.Domain.VM.Structs;
 using Phantasma.Core.Types.Structs;
 using Phantasma.Node.Chains.Ethereum;
 using Phantasma.Infrastructure.Pay.Chains;
-
+using Xunit;
 using VMType = Phantasma.Core.Domain.VM.Enums.VMType;
 
 namespace Phantasma.Business.Tests.Simulator;
@@ -211,6 +211,8 @@ public class NexusSimulator
     {
         for(int i = 0; i < times; i++)
             TimeSkipDays(90);
+        Assert.True(this.LastBlockWasSuccessful(), this.FailedTxReason);
+
 
         foreach (var validator in _validators)
         {
@@ -222,6 +224,7 @@ public class NexusSimulator
                         .SpendGas(validator.Address)
                         .EndScript());
             var block = EndBlock();
+            Assert.True(this.LastBlockWasSuccessful(), this.FailedTxReason);
         }
         
         TransferOwnerAssetsToAddress(target.Address);
