@@ -211,17 +211,35 @@ namespace Phantasma.Business.Blockchain
                         .CallContract(NativeContractKind.Gas, nameof(GasContract.ApplyInflation), this.CurrentBlock.Validator)
                         .SpendGas(senderAddress)
                         .EndScript();
-
+                    
                     Transaction transaction;
+
+                    if (protocol < 19)
+                    {
                         transaction = new Transaction(
                             this.Nexus.Name,
                             this.Name,
                             script,
                             this.CurrentBlock.Timestamp.Value + 1,
                             "SYSTEM");
+                        transaction.Sign(this.ValidatorKeys);
+                        systemTransactions.Add(transaction);
+                    }
+
+                    if (protocol >= 19 && this.CurrentBlock.Validator.Text == this.ValidatorKeys.Address.Text )
+                    {
+
+                        transaction = new Transaction(
+                            this.Nexus.Name,
+                            this.Name,
+                            script,
+                            this.CurrentBlock.Timestamp + TimeSpan.FromMinutes(5),
+                            "SYSTEM");
                         
-                    transaction.Sign(this.ValidatorKeys);
-                    systemTransactions.Add(transaction);
+                        transaction.Sign(this.ValidatorKeys);
+                        systemTransactions.Add(transaction);
+                    }
+
                 }
             }
 

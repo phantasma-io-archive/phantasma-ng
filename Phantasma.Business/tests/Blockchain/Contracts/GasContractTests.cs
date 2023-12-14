@@ -55,7 +55,7 @@ public class GasContractTests
         
     protected void InitializeSimulator()
     {
-        simulator = new NexusSimulator(new []{owner}, 17);
+        simulator = new NexusSimulator(new []{owner}, 19);
         nexus = simulator.Nexus;
         nexus.SetOracleReader(new OracleSimulator(nexus));
         SetInitialBalance(user.Address);

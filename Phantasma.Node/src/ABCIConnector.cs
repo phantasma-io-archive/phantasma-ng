@@ -123,6 +123,29 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
             }
             
             systemTransactions = chain.BeginBlock(proposerAddress, request.Header.Height, _minimumFee, time, this._initialValidators); 
+            
+            // broadcast system transactions
+            if ( systemTransactions != null && systemTransactions.Count() > 0 )
+            {
+                foreach (var tx in systemTransactions)
+                {
+                    var txString = Base16.Encode(tx.ToByteArray(true));
+                    Log.Information("Broadcast tx {Transaction}", tx);
+                    while (true)
+                    {
+                        try
+                        {
+                            _rpc.BroadcastTxSync(txString);
+                            break;
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.Message);
+                        }
+                    }
+                    Log.Information("Broadcast tx {Transaction} done", tx);
+                }
+            }
         }
         catch (Exception e)
         {
