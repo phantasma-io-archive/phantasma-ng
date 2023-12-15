@@ -77,7 +77,12 @@ namespace Phantasma.Infrastructure.API.Controllers
             
             var processedParams = ProcessParameters(req.@params, targetMethod.GetParameters());
             
-            var controllerInstance = Activator.CreateInstance(targetMethod.DeclaringType);
+            var controllerInstance = (BaseControllerV1) Activator.CreateInstance(targetMethod.DeclaringType);
+
+            controllerInstance.ControllerContext = new ControllerContext()
+            {
+                HttpContext = HttpContext
+            };
             
             var result = targetMethod.Invoke(controllerInstance, processedParams.ToArray());
             
@@ -129,12 +134,19 @@ namespace Phantasma.Infrastructure.API.Controllers
                     processedParams.Add(param);
                 }
             }
-
-            for(int j = processedParams.Count; j < methodParameters.Length; j++)
+            
+            for (int j = processedParams.Count; j < methodParameters.Length; j++)
             {
-                processedParams.Add(Type.Missing);
+                // Check if the parameter type is bool
+                if (methodParameters[j].ParameterType == typeof(bool))
+                {
+                    processedParams.Add(true); // Add true for bool type
+                }
+                else
+                {
+                    processedParams.Add(Type.Missing); // Add Type.Missing for other types
+                }
             }
-
             return processedParams;
         }
 
