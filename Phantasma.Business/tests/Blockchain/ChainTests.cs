@@ -266,9 +266,11 @@ public class ChainTests
 
             var crownBalanceFirstOwner = nexus.RootChain.GetTokenBalance(nexus.RootStorage, DomainSettings.RewardTokenSymbol, firstOwner.Address);
             Assert.Equal(0, crownBalanceFirstOwner);
-
+            
+            var staking = simulator.InvokeContract(NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), firstOwner.Address).AsNumber();
+            Assert.True(staking > 0);
             simulator.GetFundsInTheFuture(firstOwner, 20);
-            Assert.True(simulator.LastBlockWasSuccessful());
+            Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
             var crownBalanceFirstOwnerAfter = nexus.RootChain.GetTokenBalance(nexus.RootStorage, DomainSettings.RewardTokenSymbol, firstOwner.Address);
             Assert.NotEqual(crownBalanceFirstOwner, crownBalanceFirstOwnerAfter);
