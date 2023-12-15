@@ -581,7 +581,7 @@ public class NexusTestsSimulator
     public void TestGetBlockRewards()
     {
         simulator.GetFundsInTheFuture(owner, 20);
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
         
         simulator.BeginBlock();
         simulator.GenerateTransfer(owner, user.Address, simulator.Nexus.RootChain, DomainSettings.StakingTokenSymbol,  UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals));

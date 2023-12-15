@@ -725,6 +725,8 @@ public class StakeContractTestLegacy
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+
 
         finalFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
         txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
@@ -754,6 +756,8 @@ public class StakeContractTestLegacy
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+
 
         finalFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
         txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
@@ -776,6 +780,8 @@ public class StakeContractTestLegacy
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+
 
         stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetStake), testUser.Address).AsNumber();
         Assert.True(stakedAmount == previousStake + addedStake);
@@ -804,6 +810,8 @@ public class StakeContractTestLegacy
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+
 
         finalFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
         txCost = simulator.Nexus.RootChain.GetTransactionFee(tx);
@@ -826,17 +834,21 @@ public class StakeContractTestLegacy
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetStake), testUser.Address).AsNumber();
-        Assert.True(stakedAmount == previousStake + addedStake);
+        Assert.Equal(stakedAmount, previousStake + addedStake);
 
         unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUser.Address).AsNumber();
-        Assert.True(unclaimedAmount == StakeToFuel(addedStake, DefaultEnergyRatioDivisor));
+        Assert.Equal(unclaimedAmount, StakeToFuel(addedStake, DefaultEnergyRatioDivisor));
 
+        var unclaimedBefore = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUser.Address).AsNumber();
+        
         //Time skip 1 day
         days = 1;
         simulator.TimeSkipDays(days);
-
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
+        
         //Total unstake
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
@@ -846,15 +858,16 @@ public class StakeContractTestLegacy
                 .SpendGas(testUser.Address)
                 .EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var finalStake = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetStake), testUser.Address).AsNumber();
-        Assert.True(finalStake == 0);
+        Assert.True(finalStake == 0, simulator.FailedTxReason);
 
         //Claim -> should get StakeToFuel(X) for same day reward and StakeToFuel(X + previous stake) due to full 1 day staking reward before unstake
         unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUser.Address).AsNumber();
         expectedUnclaimed = StakeToFuel(addedStake, DefaultEnergyRatioDivisor);
         Console.WriteLine($"unclaimed: {unclaimedAmount} - expected {expectedUnclaimed}");
-        Assert.True(unclaimedAmount == expectedUnclaimed);
+        Assert.Equal(unclaimedBefore + unclaimedAmount, expectedUnclaimed );
 
         startingFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, fuelToken, testUser.Address);
 
@@ -921,6 +934,8 @@ public class StakeContractTestLegacy
         var expectedUnclaimed = rewardPerStakeUnit * (days + 1);
         Assert.True(unclaimedAmount == expectedUnclaimed);
 
+        var unclaimedBefore = unclaimedAmount;
+
         //Perform another stake call
         simulator.BeginBlock();
         tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
@@ -928,11 +943,12 @@ public class StakeContractTestLegacy
                 .CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), testUser.Address, stakeUnit).
                 SpendGas(testUser.Address).EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUser.Address).AsNumber();
         stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetStake), testUser.Address).AsNumber();
         expectedUnclaimed = rewardPerStakeUnit * (days + 2);
-        Assert.True(unclaimedAmount == expectedUnclaimed);
+        Assert.Equal(unclaimedBefore + unclaimedAmount, expectedUnclaimed);
     }
         
     [Fact]
@@ -1245,6 +1261,8 @@ public class StakeContractTestLegacy
         //Perform another valid Stake call
         var addedStake = MinimumValidStake * 10;
         var totalExpectedStake = initialStake + addedStake;
+        
+        var unclaimedBefore = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUser.Address).AsNumber();
 
         simulator.BeginBlock();
         tx = simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
@@ -1252,15 +1270,17 @@ public class StakeContractTestLegacy
                 .CallContract(NativeContractKind.Stake, nameof(StakeContract.Stake), testUser.Address, addedStake).
                 SpendGas(testUser.Address).EndScript());
         simulator.EndBlock();
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         stakedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetStake), testUser.Address).AsNumber();
-        Assert.True(stakedAmount == totalExpectedStake);
+        Assert.Equal(stakedAmount, totalExpectedStake);
 
         unclaimedAmount = simulator.Nexus.RootChain.InvokeContractAtTimestamp(simulator.Nexus.RootStorage, simulator.CurrentTime, NativeContractKind.Stake, nameof(StakeContract.GetUnclaimed), testUser.Address).AsNumber();
-        Assert.True(unclaimedAmount == StakeToFuel(totalExpectedStake, DefaultEnergyRatioDivisor));
+        Assert.NotEqual(unclaimedBefore, unclaimedAmount);
+        Assert.Equal(unclaimedBefore + unclaimedAmount, StakeToFuel(totalExpectedStake, DefaultEnergyRatioDivisor));
 
         finalSoulBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUser.Address);
-        Assert.True(totalExpectedStake == startingSoulBalance - finalSoulBalance);
+        Assert.Equal(totalExpectedStake, startingSoulBalance - finalSoulBalance);
     }
 
     [Fact]
