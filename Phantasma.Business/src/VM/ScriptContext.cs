@@ -215,7 +215,7 @@ namespace Phantasma.Business.VM
                         {
                             Call(ref frame);
                             break;
-                        }
+                        } 
 
                         // args: byte srcReg
                     case Opcode.EXTCALL:
@@ -226,7 +226,7 @@ namespace Phantasma.Business.VM
 
                         // args: ushort offset, byte src_reg
                         // NOTE: JMP only has offset arg, not the rest
-                    case Opcode.JMP:
+                    case Opcode.JMP:// Method has a line of code that just does a jump to another function block that's the inhereted class
                     case Opcode.JMPIF:
                     case Opcode.JMPNOT:
                         {
