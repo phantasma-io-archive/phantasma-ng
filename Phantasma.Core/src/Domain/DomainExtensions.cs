@@ -136,12 +136,6 @@ namespace Phantasma.Core.Domain
         private static Dictionary<NativeContractKind, string> _nativeContractNames = null;
         private static Dictionary<string, NativeContractKind> _nativeContractNamesInverseMap = null;
 
-        public static void Notify<T>(this IRuntime runtime, Enum kind, Address address, T content)
-        {
-            var intVal = (int)(object)kind;
-            runtime.Notify<T>((EventKind)(EventKind.Custom + intVal), address, content);
-        }
-
         public static void Notify<T>(this IRuntime runtime, EventKind kind, Address address, T content)
         {
             var bytes = content == null ? new byte[0] : Serialization.Serialize(content);

@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using Phantasma.Core.Cryptography;
@@ -13,19 +14,24 @@ namespace Phantasma.Core.Domain.Structs
         public EventKind Kind { get; private set; }
         public Address Address { get; private set; }
         public string Contract { get; private set; }
+        public string Name { get; private set; }
         public byte[] Data { get; private set; }
 
-        public Event(EventKind kind, Address address, string contract, byte[] data = null)
+        public Event(EventKind kind, Address address, string contract, byte[] data = null, string name = null)
         {
             this.Kind = kind;
             this.Address = address;
             this.Contract = contract;
             this.Data = data;
+            this.Name = name;
         }
-
+        
         public override string ToString()
         {
-            return $"{Kind}/{Contract} @ {Address}: {Base16.Encode(Data)}";
+            if (Name == null)
+                return $"{Kind}/{Contract} @ {Address}: {Base16.Encode(Data)}";
+            
+            return $"{Kind}/{Contract} - {Name} @ {Address}: {Base16.Encode(Data)}";
         }
 
         public void Serialize(BinaryWriter writer)
@@ -34,6 +40,8 @@ namespace Phantasma.Core.Domain.Structs
             writer.WriteAddress(this.Address);
             writer.WriteVarString(this.Contract);
             writer.WriteByteArray(this.Data);
+            if (this.Kind == EventKind.Custom_V2)
+                writer.WriteVarString(this.Name ?? "");
         }
 
         public static Event Unserialize(BinaryReader reader)
@@ -42,7 +50,23 @@ namespace Phantasma.Core.Domain.Structs
             var address = reader.ReadAddress();
             var contract = reader.ReadVarString();
             var data = reader.ReadByteArray();
-            return new Event(kind, address, contract, data);
+            var readerPosition = reader.BaseStream.Position;
+            
+            if ( kind < EventKind.Custom_V2)
+            {
+                return new Event(kind, address, contract, data);
+            }
+            
+            try
+            {
+                var name = reader.ReadVarString();
+                return new Event(kind, address, contract, data, name);
+            }
+            catch (Exception e)
+            {
+                reader.BaseStream.Position = readerPosition;
+                return new Event(kind, address, contract, data);
+            }
         }
 
         public override bool Equals(object obj)
@@ -55,10 +79,20 @@ namespace Phantasma.Core.Domain.Structs
             {
                 if ( this.Data == null && other.Data == null)
                 {
-                    return this.Kind == other.Kind && this.Address.Text == other.Address.Text && this.Contract == other.Contract;
+                    if (this.Name == null && other.Name == null)
+                    {
+                        return this.Kind == other.Kind && this.Address.Text == other.Address.Text && this.Contract == other.Contract;
+                    }
+                    
+                    return this.Kind == other.Kind && this.Address.Text == other.Address.Text && this.Contract == other.Contract && this.Name.Equals(other.Name);
                 }
                 
-                return this.Kind == other.Kind && this.Address.Text == other.Address.Text && this.Contract == other.Contract && this.Data.SequenceEqual(other.Data);
+                if (this.Name == null && other.Name == null)
+                {
+                    return this.Kind == other.Kind && this.Address.Text == other.Address.Text && this.Contract == other.Contract && this.Data.SequenceEqual(other.Data);
+                }
+                
+                return this.Kind == other.Kind && this.Address.Text == other.Address.Text && this.Contract == other.Contract && this.Data.SequenceEqual(other.Data) && this.Name.Equals(other.Name);
             }
             return base.Equals(obj);
         }

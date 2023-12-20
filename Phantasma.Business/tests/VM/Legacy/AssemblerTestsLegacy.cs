@@ -34,7 +34,7 @@ namespace Phantasma.Business.Tests.VM.Legacy;
 public class AssemblerTestsLegacy
 {
     public const int TestGasLimit = 9999;
-    
+
     [Fact]
     public void Alias()
     {
@@ -60,9 +60,9 @@ public class AssemblerTestsLegacy
 
     private bool IsInvalidCast(Exception e)
     {
-        return e.Message.StartsWith("Cannot convert") 
-            || e.Message.StartsWith("Invalid cast")
-            || e.Message.StartsWith("logical op unsupported");
+        return e.Message.StartsWith("Cannot convert")
+               || e.Message.StartsWith("Invalid cast")
+               || e.Message.StartsWith("logical op unsupported");
     }
 
     [Fact]
@@ -90,6 +90,9 @@ public class AssemblerTestsLegacy
             $"load r10, {(int)EventKind.Custom}",
             $@"load r12, ""{message}""",
 
+            simulator.Nexus.GetProtocolVersion() >= 19 ? $@"load r13 ""{methodName}""" : "",
+            simulator.Nexus.GetProtocolVersion() >= 19 ? $"push r13" : "",
+
             $"push r12",
             $"push r11",
             $"push r10",
@@ -97,13 +100,14 @@ public class AssemblerTestsLegacy
             @"ret",
         };
 
+
         DebugInfo debugInfo;
         Dictionary<string, int> labels;
         var script = AssemblerUtils.BuildScript(scriptString, "test", out debugInfo, out labels);
 
         var methods = new[]
         {
-            new ContractMethod(methodName , VMType.None, labels[methodName], new ContractParameter[0])
+            new ContractMethod(methodName, VMType.None, labels[methodName], new ContractParameter[0])
         };
         var abi = new ContractInterface(methods, Enumerable.Empty<ContractEvent>());
         var abiBytes = abi.ToByteArray();
@@ -111,7 +115,8 @@ public class AssemblerTestsLegacy
         var contractName = "test";
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(owner, ProofOfWork.Minimal,
-            () => ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, simulator.MinimumFee, NexusSimulator.DefaultGasLimit)
+            () => ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, simulator.MinimumFee,
+                    NexusSimulator.DefaultGasLimit)
                 .CallInterop("Runtime.DeployContract", owner.Address, contractName, script, abiBytes)
                 .SpendGas(owner.Address)
                 .EndScript());
@@ -155,21 +160,21 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<int>>()
         {
-            new List<int>() {1, 1},
+            new List<int>() { 1, 1 },
         };
 
         for (int i = 0; i < args.Count; i++)
         {
             var argsLine = args[i];
             object r1 = argsLine[0];
-            object target = argsLine[0];    //index 0 is not a typo, we want to copy the reference, not the contents
+            object target = argsLine[0]; //index 0 is not a typo, we want to copy the reference, not the contents
 
             scriptString = new string[]
             {
                 //put a DebugClass with x = {r1} on register 1
                 $@"load r1, {r1}",
                 $"push r1",
-                $"extcall \\\"PushDebugClass\\\"", 
+                $"extcall \\\"PushDebugClass\\\"",
                 $"pop r1",
 
                 //move it to r2, change its value on the stack and see if it changes on both registers
@@ -222,7 +227,6 @@ public class AssemblerTestsLegacy
         var r2struct = vm.Stack.Pop().AsInterop<TestVM.DebugStruct>();
 
         Assert.True(r1struct.x != r2struct.x);
-
     }
 
     [Fact]
@@ -380,7 +384,7 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"abc", "ABC"},
+            new List<string>() { "abc", "ABC" },
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -414,7 +418,7 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<int>>()
         {
-            new List<int>() {1, 1},
+            new List<int>() { 1, 1 },
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -449,7 +453,7 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<int>>()
         {
-            new List<int>() {1, 1},
+            new List<int>() { 1, 1 },
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -493,7 +497,7 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<bool>>()
         {
-            new List<bool>() {true, true},
+            new List<bool>() { true, true },
         };
 
         var msg = "exception";
@@ -524,16 +528,13 @@ public class AssemblerTestsLegacy
                 result = vm.Stack.Pop().AsBool();
                 Assert.True(result == target, "Opcode JmpNot isn't working correctly");
             });
-
-
-
         }
     }
-
 
     #endregion
 
     #region LogicalOps
+
     [Fact]
     public void Not()
     {
@@ -581,10 +582,10 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"true", "true", "true"},
-            new List<string>() {"true", "false", "false"},
-            new List<string>() {"false", "true", "false"},
-            new List<string>() {"false", "false", "false"}
+            new List<string>() { "true", "true", "true" },
+            new List<string>() { "true", "false", "false" },
+            new List<string>() { "false", "true", "false" },
+            new List<string>() { "false", "false", "false" }
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -641,10 +642,10 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"true", "true", "true"},
-            new List<string>() {"true", "false", "true"},
-            new List<string>() {"false", "true", "true"},
-            new List<string>() {"false", "false", "false"}
+            new List<string>() { "true", "true", "true" },
+            new List<string>() { "true", "false", "true" },
+            new List<string>() { "false", "true", "true" },
+            new List<string>() { "false", "false", "false" }
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -701,10 +702,10 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"true", "true", "false"},
-            new List<string>() {"true", "false", "true"},
-            new List<string>() {"false", "true", "true"},
-            new List<string>() {"false", "false", "false"}
+            new List<string>() { "true", "true", "false" },
+            new List<string>() { "true", "false", "true" },
+            new List<string>() { "false", "true", "true" },
+            new List<string>() { "false", "false", "false" }
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -762,13 +763,13 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"true", "true", "true"},
-            new List<string>() {"true", "false", "false"},
-            new List<string>() {"1", "1", "true"},
-            new List<string>() {"1", "2", "false"},
-            new List<string>() { "\\\"hello\\\"", "\\\"hello\\\"", "true"},
-            new List<string>() { "\\\"hello\\\"", "\\\"world\\\"", "false"},
-            
+            new List<string>() { "true", "true", "true" },
+            new List<string>() { "true", "false", "false" },
+            new List<string>() { "1", "1", "true" },
+            new List<string>() { "1", "2", "false" },
+            new List<string>() { "\\\"hello\\\"", "\\\"hello\\\"", "true" },
+            new List<string>() { "\\\"hello\\\"", "\\\"world\\\"", "false" },
+
             //TODO: add lines for bytes, structs, enums and structs
         };
 
@@ -806,9 +807,9 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"1", "0", "false"},
-            new List<string>() {"1", "1", "false"},
-            new List<string>() {"1", "2", "true"},
+            new List<string>() { "1", "0", "false" },
+            new List<string>() { "1", "1", "false" },
+            new List<string>() { "1", "2", "true" },
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -865,9 +866,9 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"1", "0", "true"},
-            new List<string>() {"1", "1", "false"},
-            new List<string>() {"1", "2", "false"},
+            new List<string>() { "1", "0", "true" },
+            new List<string>() { "1", "1", "false" },
+            new List<string>() { "1", "2", "false" },
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -924,9 +925,9 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"1", "0", "false"},
-            new List<string>() {"1", "1", "true"},
-            new List<string>() {"1", "2", "true"},
+            new List<string>() { "1", "0", "false" },
+            new List<string>() { "1", "1", "true" },
+            new List<string>() { "1", "2", "true" },
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -983,9 +984,9 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"1", "0", "true"},
-            new List<string>() {"1", "1", "true"},
-            new List<string>() {"1", "2", "false"},
+            new List<string>() { "1", "0", "true" },
+            new List<string>() { "1", "1", "true" },
+            new List<string>() { "1", "2", "false" },
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1033,9 +1034,11 @@ public class AssemblerTestsLegacy
 
         throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
     }
+
     #endregion
 
     #region NumericOps
+
     [Fact]
     public void Increment()
     {
@@ -1044,7 +1047,7 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"1", "2"},
+            new List<string>() { "1", "2" },
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1098,7 +1101,7 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"2", "1"},
+            new List<string>() { "2", "1" },
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1152,9 +1155,9 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"-1123124", "-1"},
-            new List<string>() {"0", "0"},
-            new List<string>() {"14564535", "1"}
+            new List<string>() { "-1123124", "-1" },
+            new List<string>() { "0", "0" },
+            new List<string>() { "14564535", "1" }
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1208,9 +1211,9 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"-1123124", "1123124"},
-            new List<string>() {"0", "0"},
-            new List<string>() {"14564535", "-14564535" }
+            new List<string>() { "-1123124", "1123124" },
+            new List<string>() { "0", "0" },
+            new List<string>() { "14564535", "-14564535" }
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1264,9 +1267,9 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"-1123124", "1123124"},
-            new List<string>() {"0", "0"},
-            new List<string>() {"14564535", "14564535" }
+            new List<string>() { "-1123124", "1123124" },
+            new List<string>() { "0", "0" },
+            new List<string>() { "14564535", "14564535" }
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1320,7 +1323,12 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"123098123049830982903580234959875213840923849203758942357834091", "123098123049830982903580234959875213840923849203758942357834091", "246196246099661965807160469919750427681847698407517884715668182"}
+            new List<string>()
+            {
+                "123098123049830982903580234959875213840923849203758942357834091",
+                "123098123049830982903580234959875213840923849203758942357834091",
+                "246196246099661965807160469919750427681847698407517884715668182"
+            }
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1378,7 +1386,11 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"123098123049830982903580234959875213840923849203758942357834091", "123098123049830982903580234959875213840923849203758942357834091", "0"}
+            new List<string>()
+            {
+                "123098123049830982903580234959875213840923849203758942357834091",
+                "123098123049830982903580234959875213840923849203758942357834091", "0"
+            }
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1436,7 +1448,12 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"123098123049830982903580234959875213840923849203758942357834091", "123098123049830982903580234959875213840923849203758942357834091", "15153147898391329927834760664056143940222558862285292671240041298552647375412113910342337827528430805055673715428680681796281"}
+            new List<string>()
+            {
+                "123098123049830982903580234959875213840923849203758942357834091",
+                "123098123049830982903580234959875213840923849203758942357834091",
+                "15153147898391329927834760664056143940222558862285292671240041298552647375412113910342337827528430805055673715428680681796281"
+            }
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1494,7 +1511,11 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"123098123049830982903580234959875213840923849203758942357834091", "123098123049830982903580234959875213840923849203758942357834091", "1"}
+            new List<string>()
+            {
+                "123098123049830982903580234959875213840923849203758942357834091",
+                "123098123049830982903580234959875213840923849203758942357834091", "1"
+            }
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1552,7 +1573,11 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"123098123049830982903580234959875213840923849203758942357834091", "123098123049830982903580234959875213840923849203758942357834091", "0"}
+            new List<string>()
+            {
+                "123098123049830982903580234959875213840923849203758942357834091",
+                "123098123049830982903580234959875213840923849203758942357834091", "0"
+            }
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1610,7 +1635,11 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"123098123049830982903580234959875213840923849203758942357834091", "100", "156045409571086686325343677668972466714151959338084738385422346983957734263469303184507273216"}
+            new List<string>()
+            {
+                "123098123049830982903580234959875213840923849203758942357834091", "100",
+                "156045409571086686325343677668972466714151959338084738385422346983957734263469303184507273216"
+            }
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1668,7 +1697,11 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"123098123049830982903580234959875213840923849203758942357834091", "100", "97107296780097167688396095959314" }
+            new List<string>()
+            {
+                "123098123049830982903580234959875213840923849203758942357834091", "100",
+                "97107296780097167688396095959314"
+            }
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1727,9 +1760,9 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"1", "0", "0"},
-            new List<string>() {"1", "1", "1"},
-            new List<string>() {"1", "2", "1"},
+            new List<string>() { "1", "0", "0" },
+            new List<string>() { "1", "1", "1" },
+            new List<string>() { "1", "2", "1" },
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1786,9 +1819,9 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<string>>()
         {
-            new List<string>() {"1", "0", "1"},
-            new List<string>() {"1", "1", "1"},
-            new List<string>() {"1", "2", "2"},
+            new List<string>() { "1", "0", "1" },
+            new List<string>() { "1", "1", "1" },
+            new List<string>() { "1", "2", "2" },
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1836,6 +1869,7 @@ public class AssemblerTestsLegacy
 
         throw new Exception("Didn't throw an exception after trying to compare non-integer variables.");
     }
+
     #endregion
 
     #region ContextOps
@@ -1848,7 +1882,7 @@ public class AssemblerTestsLegacy
 
         var args = new List<int[]>()
         {
-            new int[] {1, 2},
+            new int[] { 1, 2 },
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -1893,7 +1927,7 @@ public class AssemblerTestsLegacy
 
         var args = new List<List<int>>()
         {
-            new List<int>() {1, 1},
+            new List<int>() { 1, 1 },
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -2016,12 +2050,13 @@ public class AssemblerTestsLegacy
 
         var script = new List<string>();
 
-        for (int i=0; i<demoArray.Length; i++)
+        for (int i = 0; i < demoArray.Length; i++)
         {
             script.Add($"load r1 {i}");
             script.Add($"load r2 {demoArray[i]}");
             script.Add($"put r2 r3 r1");
         }
+
         script.Add("push r3");
         script.Add("ret");
 
@@ -2039,15 +2074,16 @@ public class AssemblerTestsLegacy
     #endregion
 
     #region Data
+
     [Fact]
     public void Cat()
     {
         var args = new List<List<string>>()
         {
-            new List<string>() {"Hello", null},
-            new List<string>() {null, " world"},
-            new List<string>() {"", ""},
-            new List<string>() {"Hello ", "world"}
+            new List<string>() { "Hello", null },
+            new List<string>() { null, " world" },
+            new List<string>() { "", "" },
+            new List<string>() { "Hello ", "world" }
         };
 
         for (int i = 0; i < args.Count; i++)
@@ -2128,13 +2164,14 @@ public class AssemblerTestsLegacy
             return;
         }
 
-        throw new Exception("VM did not throw exception when trying to cat a string and a non-string object, and it should");
+        throw new Exception(
+            "VM did not throw exception when trying to cat a string and a non-string object, and it should");
     }
 
     [Fact]
     public void Range()
     {
-            //TODO: missing tests with byte data
+        //TODO: missing tests with byte data
 
         string r1 = "Hello funny world";
         int index = 6;
@@ -2167,7 +2204,7 @@ public class AssemblerTestsLegacy
     {
         var args = new List<List<string>>()
         {
-            new List<string>() {"Hello world", "5", "Hello"},
+            new List<string>() { "Hello world", "5", "Hello" },
             //TODO: missing tests with byte data
         };
 
@@ -2187,7 +2224,7 @@ public class AssemblerTestsLegacy
                 @"push r2",
                 @"ret"
             };
-    
+
 
             var vm = ExecuteScriptIsolated(scriptString);
 
@@ -2195,7 +2232,7 @@ public class AssemblerTestsLegacy
 
             var resultBytes = vm.Stack.Pop().AsByteArray();
             var result = Encoding.UTF8.GetString(resultBytes);
-            
+
             Assert.True(result == target);
         }
 
@@ -2223,7 +2260,7 @@ public class AssemblerTestsLegacy
     {
         var args = new List<List<string>>()
         {
-            new List<string>() {"Hello world", "5", "world"},
+            new List<string>() { "Hello world", "5", "world" },
             //TODO: missing tests with byte data
         };
 
@@ -2279,7 +2316,7 @@ public class AssemblerTestsLegacy
     {
         var args = new List<List<string>>()
         {
-            new List<string>() {"Hello world"},
+            new List<string>() { "Hello world" },
             //TODO: missing tests with byte data
         };
 
@@ -2327,9 +2364,11 @@ public class AssemblerTestsLegacy
             return;
         }
     }
+
     #endregion
 
     #region Disassembler
+
     [Fact]
     public void MethodExtract()
     {
@@ -2351,9 +2390,11 @@ public class AssemblerTestsLegacy
         Assert.True(calls.Count() == 1);
         Assert.True(calls.First().MethodName == methodName);
     }
+
     #endregion
 
     #region AuxFunctions
+
     private TestVM ExecuteScriptWithNexus(IEnumerable<string> scriptString, Action<TestVM> beforeExecute = null)
     {
         var owner = PhantasmaKeys.Generate();
@@ -2385,7 +2426,8 @@ public class AssemblerTestsLegacy
         return vm;
     }
 
-    private TestVM ExecuteScriptIsolated(IEnumerable<string> scriptString, out Transaction tx, Action<TestVM> beforeExecute = null)
+    private TestVM ExecuteScriptIsolated(IEnumerable<string> scriptString, out Transaction tx,
+        Action<TestVM> beforeExecute = null)
     {
         var owner = PhantasmaKeys.Generate();
         var script = AssemblerUtils.BuildScript(scriptString);
@@ -2405,5 +2447,4 @@ public class AssemblerTestsLegacy
     }
 
     #endregion
-
 }

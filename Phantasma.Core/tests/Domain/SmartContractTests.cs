@@ -1,4 +1,5 @@
 using System.Text;
+using Phantasma.Business.Tests;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Domain.Contract;
 using Phantasma.Core.Domain.Contract.Enums;
@@ -6,6 +7,7 @@ using Xunit;
 
 namespace Phantasma.Core.Tests.Domain;
 
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class SmartContractTests
 {
     [Fact]

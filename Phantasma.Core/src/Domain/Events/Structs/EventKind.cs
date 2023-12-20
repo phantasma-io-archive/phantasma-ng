@@ -66,5 +66,6 @@ public enum EventKind
     OrganizationKill = 61,        
     MasterClaim = 62,
     ExecutionFailure = 63,
-    Custom = 64
+    Custom = 64,
+    Custom_V2 = 65,
 }

@@ -170,4 +170,40 @@ public class EventTests
         Assert.True(events.Except(events_list2).Count() == 0 && events_list2.Except(events).Count() == 0);
     }
     
+    [Fact]
+    public void CompareMultipleEventsTestsWithDifferentNames()
+    {
+        var events = new List<Event>();
+        var events_list2 = new List<Event>();
+        var eventName = "testEvent";
+        var _event = new Event(EventKind.Custom, Address.Null, "test", new byte[0]{}, eventName);
+        var _event2 = new Event(EventKind.Custom, Address.Null, "test", new byte[0]{}, eventName + 1);
+        events.Add(_event);
+        events.Add(_event2);
+        events_list2.Add(_event);
+        events_list2.Add(_event2);
+        Assert.NotEqual(events[0], events[1]);
+        Assert.NotEqual(events_list2[0], events_list2[1]);
+        Assert.Equal(events, events_list2);
+        Assert.True(events.Except(events_list2).Count() == 0 && events_list2.Except(events).Count() == 0);
+    }
+    
+    
+    [Fact]
+    public void CompareMultipleEventsTestsWithSameName()
+    {
+        var events = new List<Event>();
+        var events_list2 = new List<Event>();
+        var eventName = "testEvent";
+        var _event = new Event(EventKind.Custom, Address.Null, "test", new byte[0]{}, eventName);
+        var _event2 = new Event(EventKind.Custom, Address.Null, "test", new byte[0]{}, eventName);
+        events.Add(_event);
+        events.Add(_event2);
+        events_list2.Add(_event);
+        events_list2.Add(_event2);
+        Assert.Equal(events[0], events[1]);
+        Assert.Equal(events_list2[0], events_list2[1]);
+        Assert.Equal(events, events_list2);
+        Assert.True(events.Except(events_list2).Count() == 0 && events_list2.Except(events).Count() == 0);
+    }
 }

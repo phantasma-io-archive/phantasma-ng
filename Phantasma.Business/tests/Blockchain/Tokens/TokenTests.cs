@@ -21,7 +21,6 @@ using Phantasma.Core.Domain.Triggers;
 using Phantasma.Core.Domain.Triggers.Enums;
 using Phantasma.Core.Domain.VM;
 using Phantasma.Core.Numerics;
-
 using Xunit;
 
 namespace Phantasma.Business.Tests.Blockchain;
@@ -44,14 +43,17 @@ public class TokenTests
         var transferAmount = UnitConversion.ToBigInteger(10, DomainSettings.StakingTokenDecimals);
 
         simulator.BeginBlock();
-        var txA = simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol, fuelAmount);
-        var txB = simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
+        var txA = simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain, DomainSettings.FuelTokenSymbol,
+            fuelAmount);
+        var txB = simulator.GenerateTransfer(owner, testUserA.Address, nexus.RootChain,
+            DomainSettings.StakingTokenSymbol, transferAmount);
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
 
         // Send from user A to user B
         simulator.BeginBlock();
-        var txC = simulator.GenerateTransfer(testUserA, testUserB.Address, nexus.RootChain, DomainSettings.StakingTokenSymbol, transferAmount);
+        var txC = simulator.GenerateTransfer(testUserA, testUserB.Address, nexus.RootChain,
+            DomainSettings.StakingTokenSymbol, transferAmount);
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
 
@@ -62,7 +64,8 @@ public class TokenTests
         Assert.True(hashes.Any(x => x == txC.Hash));
 
         var stakeToken = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, DomainSettings.StakingTokenSymbol);
-        var finalBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserB.Address);
+        var finalBalance =
+            simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, stakeToken, testUserB.Address);
         Assert.True(finalBalance == transferAmount);
     }
 
@@ -128,7 +131,7 @@ public class TokenTests
 
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
-        
+
         simulator.GetFundsInTheFuture(owner);
 
         /*string message = "customEvent";
@@ -177,7 +180,7 @@ public class TokenTests
         */
 
         simulator.BeginBlock();
-        simulator.GenerateToken(owner, symbol, $"{symbol}Token", 1000000000, 3, flags/*, script, labels*/);
+        simulator.GenerateToken(owner, symbol, $"{symbol}Token", 1000000000, 3, flags /*, script, labels*/);
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
 
@@ -201,7 +204,7 @@ public class TokenTests
         Assert.False(simulator.LastBlockWasSuccessful());
 
         balance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, owner.Address);
-        Assert.True(balance+10 == 1000, $"{balance} == 1000");
+        Assert.True(balance + 10 == 1000, $"{balance} == 1000");
     }
 
     [Fact]
@@ -221,46 +224,47 @@ public class TokenTests
 
         var simulator = new NexusSimulator(owner);
         var nexus = simulator.Nexus;
-        
+
         simulator.GetFundsInTheFuture(owner);
 
         string message = "customEvent";
+        string eventName = "mintEvent";
         var addressStr = Base16.Encode(owner.Address.ToByteArray());
 
         scriptString = new string[]
         {
-                    $"alias r3, $result",
-                    $"alias r4, $owner",
+            $"alias r3, $result",
+            $"alias r4, $owner",
 
-                    $"@getOwner: nop",
-                    $"load $owner 0x{addressStr}",
-                    "push $owner",
-                    $"jmp @end",
+            $"@getOwner: nop",
+            $"load $owner 0x{addressStr}",
+            "push $owner",
+            $"jmp @end",
 
-                    $"@getSymbol: nop",
-                    $"load r0 \""+symbol+"\"",
-                    "push r0",
-                    $"jmp @end",
-           
-                    $"@getName: nop",
-                    $"load r0 \""+name+"\"",
-                    "push r0",
-                    $"jmp @end",
+            $"@getSymbol: nop",
+            $"load r0 \"" + symbol + "\"",
+            "push r0",
+            $"jmp @end",
 
-                    $"@getMaxSupply: nop",
-                    $"load r0 "+totalSupply+"",
-                    "push r0",
-                    $"jmp @end",
+            $"@getName: nop",
+            $"load r0 \"" + name + "\"",
+            "push r0",
+            $"jmp @end",
 
-                    $"@getDecimals: nop",
-                    $"load r0 "+decimals+"",
-                    "push r0",
-                    $"jmp @end",
+            $"@getMaxSupply: nop",
+            $"load r0 " + totalSupply + "",
+            "push r0",
+            $"jmp @end",
 
-                    $"@getTokenFlags: nop",
-                    $"load r0 "+(int)flags+"",
-                    "push r0",
-                    $"jmp @end",
+            $"@getDecimals: nop",
+            $"load r0 " + decimals + "",
+            "push r0",
+            $"jmp @end",
+
+            $"@getTokenFlags: nop",
+            $"load r0 " + (int)flags + "",
+            "push r0",
+            $"jmp @end",
 
             $"@{TokenTrigger.OnMint}: load r11 0x{addressStr}",
             $"push r11",
@@ -269,6 +273,8 @@ public class TokenTests
 
             $"load r10, {(int)EventKind.Custom}",
             $@"load r12, ""{message}""",
+            simulator.Nexus.GetProtocolVersion() >= 19 ? $@"load r13 ""{eventName}""" : "",
+            simulator.Nexus.GetProtocolVersion() >= 19 ? $"push r13" : "",
 
             $"push r12",
             $"push r11",
@@ -277,8 +283,9 @@ public class TokenTests
             "ret",
 
             $"@return: ret",
-                    $"@end: ret"
+            $"@end: ret"
         };
+
 
         var script = AssemblerUtils.BuildScript(scriptString, null, out var debugInfo, out var labels);
 
@@ -290,10 +297,11 @@ public class TokenTests
         simulator.BeginBlock();
         var tx = simulator.MintTokens(owner, owner.Address, symbol, 1000);
         simulator.EndBlock();
-        Assert.True(simulator.LastBlockWasSuccessful());
+        Assert.True(simulator.LastBlockWasSuccessful(), simulator.FailedTxReason);
 
         var events = simulator.Nexus.FindBlockByTransaction(tx).GetEventsForTransaction(tx.Hash);
-        Assert.True(events.Count(x => x.Kind == EventKind.Custom) == 1, $"{events.Count(x => x.Kind == EventKind.Custom)} == 1");
+        Assert.True(events.Count(x => x.Kind == EventKind.Custom) == 1,
+            $"{events.Count(x => x.Kind == EventKind.Custom)} == 1");
 
         var token = simulator.Nexus.GetTokenInfo(simulator.Nexus.RootStorage, symbol);
         var balance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, owner.Address);
@@ -363,9 +371,10 @@ public class TokenTests
         // NOTE we split this into blocks, however if you put all txs in a single block it fails
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(testUser, ProofOfWork.None, () =>
-            ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
-                .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, amount).
-                SpendGas(testUser.Address).EndScript());
+            ScriptUtils.BeginScript().AllowGas(testUser.Address, Address.Null, simulator.MinimumFee,
+                    Transaction.DefaultGasLimit)
+                .CallContract(NativeContractKind.Stake, "Stake", testUser.Address, amount).SpendGas(testUser.Address)
+                .EndScript());
         simulator.EndBlock();
 
         Assert.True(registerName(testUser, targetName));
@@ -373,19 +382,21 @@ public class TokenTests
         // Send from Genesis address to test user
         var transferAmount = 1;
 
-        var initialFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
+        var initialFuelBalance =
+            simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
 
         simulator.BeginBlock();
         simulator.GenerateCustomTransaction(owner, ProofOfWork.None, () =>
-            ScriptUtils.BeginScript().AllowGas(owner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
+            ScriptUtils.BeginScript()
+                .AllowGas(owner.Address, Address.Null, simulator.MinimumFee, Transaction.DefaultGasLimit)
                 .TransferTokens(token.Symbol, owner.Address, targetName, transferAmount)
                 .SpendGas(owner.Address).EndScript());
         simulator.EndBlock();
         Assert.True(simulator.LastBlockWasSuccessful());
 
-        var finalFuelBalance = simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
+        var finalFuelBalance =
+            simulator.Nexus.RootChain.GetTokenBalance(simulator.Nexus.RootStorage, token, testUser.Address);
 
         Assert.True(finalFuelBalance - initialFuelBalance == transferAmount);
     }
-
 }

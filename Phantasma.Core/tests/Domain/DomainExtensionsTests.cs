@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Text;
 using NSubstitute;
 using Phantasma.Business.Blockchain;
+using Phantasma.Business.Tests;
 using Phantasma.Business.Tests.Simulator;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.Structs;
@@ -25,6 +26,7 @@ using Xunit;
 
 namespace Phantasma.Core.Tests.Domain;
 
+[Collection(nameof(SystemTestCollectionDefinition))]
 public class DomainExtensionsTests
 {
     [Fact]

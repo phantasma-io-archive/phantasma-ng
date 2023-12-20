@@ -61,7 +61,7 @@ namespace Phantasma.Business.Blockchain.VM
             callback("Runtime.IsTrigger", 0, Runtime_IsTrigger);
             callback("Runtime.IsMinter", 2, Runtime_IsMinter);
             callback("Runtime.Log", 1, Runtime_Log);
-            callback("Runtime.Notify", 3, Runtime_Notify);
+            callback("Runtime.Notify", ProtocolVersion >= 19 ? 4 : 3,  Runtime_Notify);
             callback("Runtime.DeployContract", 4, Runtime_DeployContract);
 
             // PATCH To a issue that happens when you try to upgrade a contract was discoved and path 18 april 2023
@@ -261,10 +261,18 @@ namespace Phantasma.Business.Blockchain.VM
             var kind = vm.Stack.Pop().AsEnum<EventKind>();
             var address = vm.PopAddress();
             var obj = vm.Stack.Pop();
-
             var bytes = obj.Serialize();
 
-            vm.Notify(kind, address, bytes);
+            if ( vm.ProtocolVersion >= 19 )
+            {
+                var name = vm.PopString("name");
+                vm.Notify(kind, address, obj.Serialize(), name);
+            }
+            else
+            {
+                vm.Notify(kind, address, obj.Serialize());
+            }
+            
             return ExecutionState.Running;
         }
 
