@@ -997,6 +997,32 @@ namespace Phantasma.Core.Domain.VM
                 Array.Copy(temp, _data, _data.Length);*/
             }
         }
+        
+        public void RemoveField(VMObject key)
+        {
+            if (key == null)
+            {
+                throw new Exception($"Invalid Key: null");
+            }
+            
+            if (this.Type != VMType.Struct) 
+            {
+                throw new Exception($"Invalid cast: expected struct, got {this.Type}");
+            }
+
+            if ( this.Data.GetType() != typeof(Dictionary<VMObject, VMObject>) )
+            {
+                throw new Exception($"Invalid cast: expected Dictionary<VMObject, VMObject>, got {this.Data.GetType()}");
+            }
+            
+            var children = GetChildren();
+
+            if (children.ContainsKey(key))
+            {
+                children.Remove(key);
+            }
+            this.Data = children;
+        }
 
         public override string ToString()
         {

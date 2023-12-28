@@ -38,6 +38,7 @@ namespace Phantasma.Business.VM.Structs
                 case Opcode.CTX:
                 case Opcode.PACK:
                 case Opcode.UNPACK:
+                case Opcode.REMOVE:
                     {
                         AppendRegister(sb, Args[0]);
                         sb.Append(',');

@@ -1105,6 +1105,23 @@ internal class ScriptContextConstants
             "push r3",
             "ret"
         }.ToArray());
+    
+    public static byte[] ArrayRemoveScript =>
+        AssemblerUtils.BuildScript(new List<string>
+        {
+            "load r1 0",
+            "load r2 1",
+            "put r2 r3 r1",
+            "load r1 1",
+            "load r2 42",
+            "put r2 r3 r1",
+            "load r1 2",
+            "load r2 1024",
+            "put r2 r3 r1",
+            "remove r3 r1",
+            "push r3",
+            "ret"
+        }.ToArray());
 
     public static byte[] Cat1Script =>
         AssemblerUtils.BuildScript(new List<string>
