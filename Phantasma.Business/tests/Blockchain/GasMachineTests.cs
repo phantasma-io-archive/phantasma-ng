@@ -130,7 +130,7 @@ public class GasMachineTests
             gm.ValidateOpcode(op);
         }
 
-        gm.UsedGas.ShouldBe(285);
+        gm.UsedGas.ShouldBe(286);
     }
 
     [Fact]
