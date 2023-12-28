@@ -54,6 +54,7 @@ namespace Phantasma.Business.VM
                     case Opcode.NEGATE:
                     case Opcode.ABS:
                     case Opcode.UNPACK:
+                    case Opcode.REMOVE:
                         {
                             var src = Read8();
                             var dst = Read8();
@@ -201,7 +202,6 @@ namespace Phantasma.Business.VM
                             temp.Args = new object[] { srcA, srcB, dst };
                             break;
                         }
-
                     default:
                         {
                             temp.Args = Array.Empty<object>();

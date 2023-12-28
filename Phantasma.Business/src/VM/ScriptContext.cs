@@ -427,6 +427,12 @@ namespace Phantasma.Business.VM
                             Call_EVM(ref frame);
                             break;
                         }
+                    
+                    case Opcode.REMOVE:
+                        {
+                            Remove(ref frame);
+                            break;
+                        }
 
                     default:
                         {
@@ -1417,6 +1423,25 @@ namespace Phantasma.Business.VM
             var val = VMObject.FromBytes(bytes);
             frame.Registers[dst] = val;
             
+        }
+        
+        /// <summary>
+        /// Opcode - REMOVE -> Operation Remove
+        /// args -> byte src_reg, byte key
+        /// </summary>
+        /// <param name="frame"></param>
+        private void Remove(ref ExecutionFrame frame)
+        {
+            var src = Read8();
+            var keyReg = Read8();
+
+            Expect(src < frame.Registers.Length, "invalid src register");
+            Expect(keyReg < frame.Registers.Length, "invalid key register");
+
+            var key = frame.Registers[keyReg];
+            Throw.If(key.Type == VMType.None, "invalid key type");
+
+            frame.Registers[src].RemoveField(key);
         }
 
 #endregion

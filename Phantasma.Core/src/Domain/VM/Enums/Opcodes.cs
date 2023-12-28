@@ -74,7 +74,12 @@ namespace Phantasma.Core.Domain.VM.Enums
 
         // add
         SUBSTR,
+        
+        // REMOVE
+        REMOVE = 54,
 
-        EVM = 255,
+        EVM = 255, // LIMIT is 255
+        
+       
     }
 }

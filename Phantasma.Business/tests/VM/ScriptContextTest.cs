@@ -1385,6 +1385,20 @@ public class ScriptContextTest
         // Assert
         result.ShouldBe(ExecutionState.Halt);
     }
+    
+    [Theory]
+    [ScriptContextAutoData]
+    public void Execute_should_not_throw_for_array_remove([Frozen] Mock<TestGasMachine> vmMock)
+    {
+        // Arrange
+        var (sut, frame) = ArrangeScriptContextTest(vmMock.Object, ArrayRemoveScript);
+
+        // Act
+        var result = Should.NotThrow(() => sut.Execute(frame, new Stack<VMObject>()));
+
+        // Assert
+        result.ShouldBe(ExecutionState.Halt);
+    }
 
     [Theory]
     [ScriptContextAutoData]

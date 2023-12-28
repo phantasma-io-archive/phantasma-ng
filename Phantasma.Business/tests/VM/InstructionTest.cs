@@ -37,6 +37,7 @@ public class InstructionTest
     [InlineData(Opcode.NEGATE)]
     [InlineData(Opcode.ABS)]
     [InlineData(Opcode.CTX)]
+    [InlineData(Opcode.REMOVE)]
     public void Context_should_throw_when_no_args_are_provided(Opcode opcode)
     {
         // Arrange
@@ -59,6 +60,7 @@ public class InstructionTest
     [InlineData(Opcode.NEGATE)]
     [InlineData(Opcode.ABS)]
     [InlineData(Opcode.CTX)]
+    [InlineData(Opcode.REMOVE)]
     public void Context_should_throw_with_invalid_arg_type(Opcode opcode)
     {
         // Arrange
