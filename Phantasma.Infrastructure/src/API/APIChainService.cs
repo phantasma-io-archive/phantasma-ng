@@ -189,11 +189,11 @@ public class APIChainService : IAPIService
         var nexus = NexusAPI.GetNexus();
 
         var temp = nexus.RootChain.InvokeContractAtTimestamp(nexus.RootChain.Storage, Timestamp.Now, "ranking",
-            nameof(RankingContract.GetRows), name).ToObject();
+            nameof(RankingContract.GetRows), name);
 
         try
         {
-            var board = ((LeaderboardRow[])temp).ToArray();
+            LeaderboardRow[] board = temp.ToArray<LeaderboardRow>();
 
             return new LeaderboardResult()
             {
