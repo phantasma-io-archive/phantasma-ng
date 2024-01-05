@@ -66,7 +66,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
 
             Runtime.Notify(EventKind.LeaderboardCreate, from, name);
         }
-
+        
         /// <summary>
         /// Method used to reset a leaderboard
         /// </summary>
@@ -85,6 +85,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             var rows = _rows.Get<string, StorageList>(name);
             rows.Clear();
 
+            if (Runtime.ProtocolVersion >= 19)
+            {
+                _leaderboards.Set(name, leaderboard);
+            }
+            
             Runtime.Notify(EventKind.LeaderboardReset, from, name);
         }
 
