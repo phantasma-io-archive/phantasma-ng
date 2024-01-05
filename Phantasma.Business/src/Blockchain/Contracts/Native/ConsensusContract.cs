@@ -34,6 +34,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         internal StorageList _pollList; // (Deprecated - Can't remove)
         internal StorageMap _presences; // address, List<PollPresence> (Deprecated)
         internal StorageMap _pollVotesPerAddress; // address, map<string, List<PollPresenceVotes>>
+        internal StorageMap _pollVotersRound; // string, map<int, List<Address>>
         internal StorageMap _transactionMap; // string, Transaction
         internal StorageMap _transactionMapRules; // string, List<Address>
         internal StorageMap _transactionMapSigned; // string, Transaction
@@ -67,6 +68,8 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
 
             _presences.Migrate<Address, StorageList>(from, target);
+            // this cannot be here because we need to keep the old list
+            //_pollVotesPerAddress.Migrate<Address, StorageMap>(from, target);
         }
 
 
@@ -322,6 +325,11 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             if (Runtime.ProtocolVersion >= 17)
             {
                 var org = Runtime.GetOrganization(organization);
+                if (Runtime.ProtocolVersion >= 19)
+                {
+                    Runtime.Expect(org != null, "invalid organization");
+                }
+                
                 Runtime.Expect(org.IsMember(from), "must be member of organization: " + organization);
             }
 
@@ -411,6 +419,13 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
 
             _pollMap.Set(subject, poll);
+
+            if (Runtime.ProtocolVersion >= 19)
+            {
+                var votersRoundMap = _pollVotersRound.Get<string, StorageMap>(subject);
+                if (!votersRoundMap.ContainsKey<BigInteger>(poll.round))
+                    votersRoundMap.Set<BigInteger, StorageList>(poll.round, new StorageList());
+            }
 
             Runtime.Notify(EventKind.PollCreated, Address, subject);
         }
@@ -635,6 +650,80 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             presences.Add(presenceVotes);
             presencesMap.Set(subject, presences);
             _pollVotesPerAddress.Set<Address, StorageMap>(from, presencesMap);
+            
+            if (Runtime.ProtocolVersion >= 19)
+            {
+                var votersRoundMap = _pollVotersRound.Get<string, StorageMap>(subject);
+                if (votersRoundMap.ContainsKey<BigInteger>(poll.round))
+                {
+                    var votersRound = votersRoundMap.Get<BigInteger, StorageList>(poll.round);
+                    votersRound.Add(from);
+                    votersRoundMap.Set<BigInteger, StorageList>(poll.round, votersRound);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Update Votes Internally 
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="poll"></param>
+        /// <param name="subject"></param>
+        /// <param name="presences"></param>
+        /// <param name="presencesMap"></param>
+        /// <param name="choices"></param>
+        /// <param name="votingPower"></param>
+        private void UpdateVotesInternal(Address from, ConsensusPoll poll, string subject, ref StorageList presences,
+            ref StorageMap presencesMap, PollVote[] choices, BigInteger votingPower)
+        {
+            BigInteger lastPosition = presences.Count() - 1;
+            PollPresenceVotes presenceVotes = presences.Get<PollPresenceVotes>(lastPosition);
+            
+            // Remove the user votes from the poll
+            for (int i = 0; i < presenceVotes.votes.Length; i++)
+            {
+                var targetIndex = (int)presenceVotes.votes[i].Choice.index;
+                poll.entries[targetIndex].votes -= presenceVotes.votes[i].NumberOfVotes;
+            }
+
+            // Add new ones
+            BigInteger choicePercentageAccumulation = 0;
+            Dictionary<BigInteger, bool> choiceIndexMap = new Dictionary<BigInteger, bool>();
+
+            for (int i = 0; i < choices.Length; i++)
+            {
+                Runtime.Expect(choices[i].percentage > 0 && choices[i].percentage < 101,
+                    "choice percentage needs to be between 1 and 100");
+                
+                Runtime.Expect(choices[i].index >= 0 && choices[i].index < poll.entries.Length,
+                    "choice index is invalid");
+                
+                Runtime.Expect(!choiceIndexMap.ContainsKey(choices[i].index), "Can't have the same choice index");
+                choiceIndexMap.Add(choices[i].index, true);
+                
+                var votes = votingPower * choices[i].percentage / 100;
+                choicePercentageAccumulation += choices[i].percentage;
+                Runtime.Expect(votes > 0, "choice percentage is too low");
+                presenceVotes.votes[i] = new PollVotesValue()
+                {
+                    Choice = choices[i],
+                    NumberOfVotes = votes
+                };
+
+                var targetIndex = (int)choices[i].index;
+                poll.entries[targetIndex].votes += votes;
+            }
+            
+            Runtime.Expect(choicePercentageAccumulation == 100,
+                $"choice percentage is too low or too high, it needs add up to 100, your value {choicePercentageAccumulation}");
+
+            // Update Poll Entries
+            _pollMap.Set(subject, poll);
+
+            // Update Address presences
+            presences.Replace(lastPosition, presenceVotes);
+            presencesMap.Set(subject, presences);
+            _pollVotesPerAddress.Set<Address, StorageMap>(from, presencesMap);
         }
 
         /// <summary>
@@ -703,27 +792,19 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
         }
 
         /// <summary>
-        /// Remove votes from the address in a poll
+        /// Remove votes from the address in a poll internally
         /// </summary>
         /// <param name="from"></param>
         /// <param name="subject"></param>
-        public void RemoveVotes(Address from, string subject)
+        /// <param name="poll"></param>
+        private void RemoveVotesInternal(Address from, string subject, ConsensusPoll poll)
         {
-            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
-            Runtime.Expect(_pollMap.ContainsKey(subject), "invalid poll subject");
-
-            var poll = FetchPoll(subject);
-            Runtime.Expect(poll.state == PollState.Active, "poll not active");
-
-            var organization = Runtime.GetOrganization(poll.organization);
-            Runtime.Expect(organization.IsMember(from), "must be member of organization: " + poll.organization);
-
             Runtime.Expect(_pollVotesPerAddress.ContainsKey<Address>(from), "the address is not in the poll");
             var presencesMap = _pollVotesPerAddress.Get<Address, StorageMap>(from);
 
             Runtime.Expect(presencesMap.ContainsKey<string>(subject), "the address is not in the poll");
             var presences = presencesMap.Get<string, StorageList>(subject);
-
+            
             BigInteger lastPosition = presences.Count() - 1;
             PollPresenceVotes presenceVotes = presences.Get<PollPresenceVotes>(lastPosition);
 
@@ -743,6 +824,36 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             // Update Address presences
             presences.RemoveAt(lastPosition);
             presencesMap.Set(subject, presences);
+            
+            if (Runtime.ProtocolVersion >= 19)
+            {
+                var votersRoundMap = _pollVotersRound.Get<string, StorageMap>(subject);
+                if (votersRoundMap.ContainsKey<BigInteger>(poll.round))
+                {
+                    var votersRound = votersRoundMap.Get<BigInteger, StorageList>(poll.round);
+                    votersRound.Remove(from);
+                    votersRoundMap.Set<BigInteger, StorageList>(poll.round, votersRound);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Remove votes from the address in a poll
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="subject"></param>
+        public void RemoveVotes(Address from, string subject)
+        {
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            Runtime.Expect(_pollMap.ContainsKey(subject), "invalid poll subject");
+
+            var poll = FetchPoll(subject);
+            Runtime.Expect(poll.state == PollState.Active, "poll not active");
+
+            var organization = Runtime.GetOrganization(poll.organization);
+            Runtime.Expect(organization.IsMember(from), "must be member of organization: " + poll.organization);
+
+            RemoveVotesInternal(from, subject, poll);
         }
 
         /// <summary>
@@ -790,6 +901,86 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
             }
 
             return presences.Get<PollPresenceVotes>(count - 1).round == poll.round;
+        }
+        
+        /// <summary>
+        /// Calculate Power
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="poll"></param>
+        /// <returns></returns>
+        private BigInteger CalculateVotingPower(Address from, ConsensusPoll poll)
+        {
+            BigInteger votingPower = 0;
+            
+            if (poll.organization == DomainSettings.StakersOrganizationName ||
+                poll.organization == DomainSettings.MastersOrganizationName)
+            {
+                votingPower = Runtime
+                    .CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetAddressVotingPower), from)
+                    .AsNumber();
+            }
+            else
+            {
+                votingPower = 100;
+            }
+            
+            return votingPower;
+        }
+        
+        /// <summary>
+        /// This method is used to update members of a poll
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="subject"></param>
+        public void UpdatePollStatus(Address from, string subject)
+        {
+            Runtime.Expect(_pollMap.ContainsKey(subject), "invalid poll subject");
+            Runtime.Expect(Runtime.IsWitness(from), "invalid witness");
+            //Runtime.Expect(Runtime.IsKnownValidator(from), "invalid validator"); No need to be called by a validator
+            
+            var poll = FetchPoll(subject);
+            Runtime.Expect(poll.state == PollState.Active, "poll not active");
+            var pollVotersMap = _pollVotersRound.Get<string, StorageMap>(subject);
+            Runtime.Expect(pollVotersMap.ContainsKey<BigInteger>(poll.round), "invalid round");
+            var pollVoters = pollVotersMap.Get<BigInteger, StorageList>(poll.round);
+            foreach (var voter in pollVoters.All<Address>())
+            {
+                // Check Staking - No Staking Remove Vote
+                var stake = Runtime.CallNativeContext(NativeContractKind.Stake, nameof(StakeContract.GetStake), voter).AsNumber();
+                if (stake <= 0)
+                {
+                    RemoveVotesInternal(voter, subject, poll);
+                    continue;
+                }
+                
+                // Calculate Voting Power
+                BigInteger previousVotingPower = 0;
+                var presencesMap = _pollVotesPerAddress.Get<Address, StorageMap>(from);
+                var presences = presencesMap.Get<string, StorageList>(subject);
+                var presenceVotes = presences.Get<PollPresenceVotes>(presences.Count() - 1);
+                for (int i = 0; i < presenceVotes.votes.Length; i++)
+                {
+                    var targetIndex = (int)presenceVotes.votes[i].Choice.index;
+                    previousVotingPower += presenceVotes.votes[i].NumberOfVotes * 100 / presenceVotes.votes[i].Choice.percentage;
+                }
+                
+                var atualVotingPower = CalculateVotingPower(voter, poll);
+                
+                if (atualVotingPower == previousVotingPower)
+                {
+                    continue;
+                }
+                
+                // Update Poll Entries
+                var choices = new PollVote[presenceVotes.votes.Length];
+                for (int i = 0; i < presenceVotes.votes.Length; i++)
+                {
+                    choices[i] = presenceVotes.votes[i].Choice;
+                }
+                
+                UpdateVotesInternal(voter, poll, subject, ref presences, ref presencesMap, choices, atualVotingPower);
+            }
         }
 
         /// <summary>
