@@ -965,9 +965,9 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                     previousVotingPower += presenceVotes.votes[i].NumberOfVotes * 100 / presenceVotes.votes[i].Choice.percentage;
                 }
                 
-                var atualVotingPower = CalculateVotingPower(voter, poll);
+                var currentVotingPower = CalculateVotingPower(voter, poll);
                 
-                if (atualVotingPower == previousVotingPower)
+                if (currentVotingPower == previousVotingPower)
                 {
                     continue;
                 }
@@ -979,7 +979,7 @@ namespace Phantasma.Business.Blockchain.Contracts.Native
                     choices[i] = presenceVotes.votes[i].Choice;
                 }
                 
-                UpdateVotesInternal(voter, poll, subject, ref presences, ref presencesMap, choices, atualVotingPower);
+                UpdateVotesInternal(voter, poll, subject, ref presences, ref presencesMap, choices, currentVotingPower);
             }
         }
 
