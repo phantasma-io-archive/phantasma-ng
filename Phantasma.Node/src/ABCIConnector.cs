@@ -20,6 +20,7 @@ using Phantasma.Core.Domain.Serializer;
 using Phantasma.Core.Domain.TransactionData;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Infrastructure.API;
 using Serilog;
 using Tendermint;
 using Tendermint.Abci;
@@ -76,9 +77,12 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     /// <returns></returns>
     public override Task<ResponseBeginBlock> BeginBlock(RequestBeginBlock request, ServerCallContext context)
     {
-        return Task.FromResult(new ResponseBeginBlock());
-        
-        
+        if (NexusAPI.ReadOnlyMode)
+        {
+            return Task.FromResult(new ResponseBeginBlock());
+        }
+
+
         Timestamp time = new Timestamp((uint) request.Header.Time.Seconds);
         currentBlockTime = time;
         Log.Information("Begin block {Height} at {time}", request.Header.Height, time);
@@ -179,7 +183,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     /// <returns></returns>
     public override Task<ResponseCheckTx> CheckTx(RequestCheckTx request, ServerCallContext context)
     {
-        return Task.FromResult(ResponseHelper.Check.Create(CodeType.Error, "Generic Error"));
+        if (NexusAPI.ReadOnlyMode)
+        {
+            return Task.FromResult(new ResponseCheckTx());
+        }
+
         Log.Information($"ABCI Connector - Check TX");
 
         try
@@ -219,7 +227,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     /// <returns></returns>
     public override Task<ResponseDeliverTx> DeliverTx(RequestDeliverTx request, ServerCallContext context)
     {
-        return Task.FromResult(new ResponseDeliverTx());
+        if (NexusAPI.ReadOnlyMode)
+        {
+            return Task.FromResult(new ResponseDeliverTx());
+        }
+
         Log.Information($"ABCI Connector - Deliver Tx");
 
         var chain = _nexus.RootChain as Chain;
@@ -286,8 +298,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     /// <returns></returns>
     public override Task<ResponseEndBlock> EndBlock(RequestEndBlock request, ServerCallContext context)
     {
-        return Task.FromResult(new ResponseEndBlock());
-        
+        if (NexusAPI.ReadOnlyMode)
+        {
+            return Task.FromResult(new ResponseEndBlock());
+        }
+
         Log.Information("End block {Height}", request.Height);
         var response = new ResponseEndBlock();
         try
@@ -333,7 +348,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
     /// <returns></returns>
     public override Task<ResponseCommit> Commit(RequestCommit request, ServerCallContext context)
     {
-        return Task.FromResult(new ResponseCommit());
+        if (NexusAPI.ReadOnlyMode)
+        {
+            return Task.FromResult(new ResponseCommit());
+        }
+
         Log.Information($"ABCI Connector - Commit");
 
         var chain = _nexus.RootChain as Chain;
@@ -463,7 +482,10 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     public override Task<ResponseInfo> Info(RequestInfo request, ServerCallContext context)
     {
-        return Task.FromResult(new ResponseInfo());
+        if (NexusAPI.ReadOnlyMode)
+        {
+            return Task.FromResult(new ResponseInfo());
+        }
         
         Hash lastBlockHash;
         Block lastBlock = null;
@@ -500,7 +522,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     public override Task<ResponseInitChain> InitChain(RequestInitChain request, ServerCallContext context)
     {
-        return Task.FromResult(new ResponseInitChain());
+        if (NexusAPI.ReadOnlyMode)
+        {
+            return Task.FromResult(new ResponseInitChain());
+        }
+
         Log.Information($"ABCI Connector - Init Chain");
 
         var response = new ResponseInitChain();
@@ -534,7 +560,11 @@ public class ABCIConnector : ABCIApplication.ABCIApplicationBase
 
     public override Task<ResponseQuery> Query(RequestQuery request, ServerCallContext context)
     {
-        return Task.FromResult(new ResponseQuery());
+        if (NexusAPI.ReadOnlyMode)
+        {
+            return Task.FromResult(new ResponseQuery());
+        }
+
         Log.Information($"ABCI Connector - Query");
         var query = new ResponseQuery();
         //query.Codespace = "query";
