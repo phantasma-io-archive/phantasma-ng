@@ -260,6 +260,7 @@ public partial class Nexus : INexus
 
                     Runtime.ExpectWarning(isValidContext, $"minting of {token.Symbol} can only happen via master claim",
                         source);
+                    Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
                     Runtime.ExpectWarning(isValidOrigin,
                         $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
                     Runtime.ExpectWarning(token.Symbol == DomainSettings.FuelTokenSymbol, "only fuel can be minted", source);
@@ -289,6 +290,7 @@ public partial class Nexus : INexus
 
                 Runtime.ExpectWarning(isValidContext, $"minting of {token.Symbol} can only happen via master claim",
                     source);
+                Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
                 Runtime.ExpectWarning(isValidOrigin,
                     $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
                 Runtime.ExpectWarning(token.Symbol == DomainSettings.FuelTokenSymbol, "only fuel can be minted", source);
