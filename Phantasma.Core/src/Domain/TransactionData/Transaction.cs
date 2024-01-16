@@ -39,8 +39,6 @@ namespace Phantasma.Core.Domain.TransactionData
 
         //public TransactionGas TransactionGas { get; private set; }
 
-        public bool IsEVMTransaction => Script != null && Script.Length > 16 && (Opcode)Script[0] == Opcode.EVM;
-
         public static Transaction? Unserialize(byte[] bytes)
         {
             using (var stream = new MemoryStream(bytes))

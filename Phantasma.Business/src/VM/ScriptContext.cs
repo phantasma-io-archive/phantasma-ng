@@ -421,12 +421,6 @@ namespace Phantasma.Business.VM
                         {
                             break; // put here a breakpoint for debugging
                         }
-
-                    case Opcode.EVM:
-                        {
-                            Call_EVM(ref frame);
-                            break;
-                        }
                     
                     case Opcode.REMOVE:
                         {
@@ -1381,29 +1375,6 @@ namespace Phantasma.Business.VM
                 throw new VMException(frame.VM, $"VM switch instruction failed: execution state did not halt");
             }
             
-        }
-
-        private void Call_EVM(ref ExecutionFrame frame)
-        {
-            Expect(InstructionPointer == 1, "EVM opcode must appear in beginning of a script");
-
-            var evm_script = this.Script.Skip((int)InstructionPointer).ToArray();
-
-            var contextName = $"{EVMContext.ContextName}:{Base16.Encode(evm_script)}";
-
-            ExecutionContext context = frame.VM.FindContext(contextName);
-
-            if (context == null)
-            {
-                throw new VMException(frame.VM, $"EVM instruction failed: could not create EVM context");
-            }
-
-            _state = frame.VM.SwitchContext(context, InstructionPointer);
-
-            if (_state == ExecutionState.Running)
-            {
-                throw new VMException(frame.VM, $"EVM context should have terminated, possible bug?");
-            }
         }
 
         /// <summary>
