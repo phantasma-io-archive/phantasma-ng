@@ -512,11 +512,6 @@ namespace Phantasma.Business.Blockchain.VM
                 return false;
             }
 
-            if (CurrentContext.Name.Equals(EVMContext.ContextName) && _evmWitnesses.Contains(address))
-            {
-                return true;
-            }
-
             bool accountResult;
 
             if (address == Validator && TransactionIndex < 0)
@@ -857,20 +852,7 @@ namespace Phantasma.Business.Blockchain.VM
 
         public bool HasGenesis =>
             Nexus.HasGenesis(); // TODO cache this, as it does not change during a Runtime execution
-
-        private HashSet<Address> _evmWitnesses = new HashSet<Address>();
-
-        public void EVM_Block(Address source, Action callback)
-        {
-            Expect(source.IsUser, "only user address can be EVM witness");
-            Expect(CurrentContext.Name == EVMContext.ContextName, "must be running in EVM context");
-            _evmWitnesses.Add(source);
-
-            callback();
-
-            _evmWitnesses.Remove(source);
-        }
-
+        
         public string NexusName => Nexus.Name;
         public uint ProtocolVersion { get; private set; }
         public Hash GenesisHash => Nexus.GetGenesisHash(RootStorage);

@@ -21,12 +21,6 @@ public partial class RuntimeVM: GasMachine, IRuntime
     /// <returns></returns>
     public override ExecutionContext FindContext(string contextName)
     {
-        if (contextName.StartsWith(EVMContext.ContextName))
-        {
-            var rawTx = contextName.Substring(EVMContext.ContextName.Length + 1);
-            return new EVMContext(rawTx, this);
-        }
-
         return base.FindContext(contextName);
     }
 
