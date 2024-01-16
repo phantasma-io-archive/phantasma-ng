@@ -146,6 +146,11 @@ namespace Phantasma.Core.Domain
         {
             return runtime.Transaction == Transaction.Null;
         }
+        
+        public static bool IsReadOnlyModeReal(this IRuntime runtime)
+        {
+            return runtime.Chain.IsReadOnly();
+        }
 
         public static InteropBlock ReadBlockFromOracle(this IRuntime runtime, string platform, string chain, Hash hash)
         {

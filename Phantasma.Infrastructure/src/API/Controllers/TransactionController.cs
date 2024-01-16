@@ -181,6 +181,11 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("SendRawTransaction")]
         public string SendRawTransaction([APIParameter("Serialized transaction bytes, in hexadecimal format", "0000000000")] string txData)
         {
+            if (NexusAPI.ReadOnlyMode)
+            {
+                return "Chain is in Read only mode";
+            }
+            
             // TODO return error or tx result not just a string
             byte[] bytes;
             try
@@ -219,6 +224,14 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("InvokeRawScript")]
         public ScriptResult InvokeRawScript([APIParameter("Address or name of chain", "root")] string chainInput, [APIParameter("Serialized script bytes, in hexadecimal format", "0000000000")] string scriptData)
         {
+            if (NexusAPI.ReadOnlyMode)
+            {
+                return new ScriptResult
+                {
+                    error = "Chain is in Read only mode"
+                };
+            }
+            
             var chain = NexusAPI.FindChainByInput(chainInput);
             try
             {

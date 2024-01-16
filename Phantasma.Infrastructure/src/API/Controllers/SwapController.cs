@@ -13,6 +13,11 @@ namespace Phantasma.Infrastructure.API.Controllers
             , [APIParameter("Name of platform to settle", "phantasma")] string destPlatform
             , [APIParameter("Hash of transaction to settle", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText)
         {
+            if (NexusAPI.ReadOnlyMode)
+            {
+                return "Chain is in Read only mode";
+            }
+            
             var service = ServiceUtility.GetAPIService(HttpContext);
             return service.SettleCrossChainSwap(address, sourcePlatform, destPlatform, hashText);
         }
@@ -22,6 +27,11 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("GetSwappersForPlatform")]
         public TokenSwapToSwap[] GetSwappersForPlatform(string platform)
         {
+            if (NexusAPI.ReadOnlyMode)
+            {
+                return null;
+            }
+            
             var service = ServiceUtility.GetAPIService(HttpContext);
             return service.GetSwappersForPlatform(platform);
         }

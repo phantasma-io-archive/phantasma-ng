@@ -13,6 +13,10 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("GetArchive")]
         public ArchiveResult GetArchive([APIParameter("Archive hash", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText)
         {
+            if (NexusAPI.ReadOnlyMode)
+            {
+                return default;
+            }
             var service = ServiceUtility.GetAPIService(HttpContext);
             Hash hash;
 
@@ -34,6 +38,10 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("WriteArchive")]
         public bool WriteArchive([APIParameter("Archive hash", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText, [APIParameter("Block index, starting from 0", "0")] int blockIndex, [APIParameter("Block content bytes, in Base64", "QmFzZTY0IGVuY29kZWQgdGV4dA==")] string blockContent)
         {
+            if (NexusAPI.ReadOnlyMode)
+            {
+                return default;
+            }
             var service = ServiceUtility.GetAPIService(HttpContext);
             Hash hash;
 
@@ -70,6 +78,11 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("ReadArchive")]
         public string ReadArchive([APIParameter("Archive hash", "EE2CC7BA3FFC4EE7B4030DDFE9CB7B643A0199A1873956759533BB3D25D95322")] string hashText, [APIParameter("Block index, starting from 0", "0")] int blockIndex)
         {
+            if (NexusAPI.ReadOnlyMode)
+            {
+                return "Chain is in Read only mode";
+            }
+            
             var service = ServiceUtility.GetAPIService(HttpContext);
             Hash hash;
 

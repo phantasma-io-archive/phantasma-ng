@@ -43,6 +43,7 @@ namespace Phantasma.Infrastructure.API;
 
 public static class NexusAPI
 {
+    public static bool ReadOnlyMode { get; private set; } = true;
     public static Nexus Nexus { get; set; }
     public static ITokenSwapper TokenSwapper { get; set; }
     public static NodeRpcClient TRPC { get; set; }

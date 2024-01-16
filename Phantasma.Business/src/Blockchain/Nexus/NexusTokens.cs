@@ -22,6 +22,7 @@ using Phantasma.Core.Domain.Triggers.Enums;
 using Phantasma.Core.Domain.Validation;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Storage.Context;
+using Phantasma.Core.Types.Structs;
 using DomainSettings = Phantasma.Core.Domain.DomainSettings;
 
 //#define ALLOWANCE_OPERATIONS = true
@@ -246,17 +247,54 @@ public partial class Nexus : INexus
         }
         else
         {
-            bool isValidEVM = source.IsEVMContext() && amount <= StakeContract.DefaultMasterThreshold;
-            bool isValidContext = Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
-                                  Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName() || isValidEVM;
-            bool isValidOrigin = source == SmartContract.GetAddressForNative(NativeContractKind.Stake) ||
-                                 source == SmartContract.GetAddressForNative(NativeContractKind.Gas) || isValidEVM;
+            if (Runtime.ProtocolVersion <= 18 )
+            {
+                // This timestamp was 2024-01-16 15:28:25 UTC (1705418905 unix timestamp)
+                // This is to patch a bug that allowed to mint tokens.
+                if (Runtime.Time >= 1705418905)
+                {
+                    bool isValidContext = Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
+                                          Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName();
+                    bool isValidOrigin = source == SmartContract.GetAddressForNative(NativeContractKind.Stake) ||
+                                         source == SmartContract.GetAddressForNative(NativeContractKind.Gas);
 
-            Runtime.ExpectWarning(isValidContext, $"minting of {token.Symbol} can only happen via master claim",
-                source);
-            //Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
-            Runtime.ExpectWarning(isValidOrigin,
-                $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
+                    Runtime.ExpectWarning(isValidContext, $"minting of {token.Symbol} can only happen via master claim",
+                        source);
+                    Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
+                    Runtime.ExpectWarning(isValidOrigin,
+                        $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
+                    Runtime.ExpectWarning(token.Symbol == DomainSettings.FuelTokenSymbol, "only fuel can be minted", source);
+
+                }
+                else
+                {
+                    bool isValidEVM = source.IsEVMContext() && amount <= StakeContract.DefaultMasterThreshold;
+                    bool isValidContext = Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
+                                          Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName() || isValidEVM;
+                    bool isValidOrigin = source == SmartContract.GetAddressForNative(NativeContractKind.Stake) ||
+                                         source == SmartContract.GetAddressForNative(NativeContractKind.Gas) || isValidEVM;
+
+                    Runtime.ExpectWarning(isValidContext, $"minting of {token.Symbol} can only happen via master claim",
+                        source);
+                    //Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
+                    Runtime.ExpectWarning(isValidOrigin,
+                        $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
+                }
+            }
+            else
+            {
+                bool isValidContext = Runtime.CurrentContext.Name == NativeContractKind.Stake.GetContractName() ||
+                                      Runtime.CurrentContext.Name == NativeContractKind.Gas.GetContractName();
+                bool isValidOrigin = source == SmartContract.GetAddressForNative(NativeContractKind.Stake) ||
+                                     source == SmartContract.GetAddressForNative(NativeContractKind.Gas);
+
+                Runtime.ExpectWarning(isValidContext, $"minting of {token.Symbol} can only happen via master claim",
+                    source);
+                Runtime.ExpectFiltered(source == destination, $"minting of {token.Symbol} can only happen if the owner of the contract.", source);
+                Runtime.ExpectWarning(isValidOrigin,
+                    $"minting of {token.Symbol} can only happen if it's the stake or gas address.", source);
+                Runtime.ExpectWarning(token.Symbol == DomainSettings.FuelTokenSymbol, "only fuel can be minted", source);
+            }
         }
     }
 
@@ -359,6 +397,13 @@ public partial class Nexus : INexus
     public void MintTokens(IRuntime Runtime, IToken token, Address source, Address destination, string sourceChain,
         BigInteger amount)
     {
+        // This timestamp was 2024-01-16 15:28:25 UTC (1705418905 unix timestamp)
+        // This is to patch a bug that allowed to mint tokens.
+        if (Runtime.Time >= 1705418905)
+        {
+            Runtime.ExpectWarning(source != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL") && destination != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL"), "invalid source or destination", source);
+        }
+
         Runtime.Expect(token.IsFungible(), "must be fungible");
         Runtime.Expect(amount > 0, "invalid amount");
 
@@ -435,6 +480,13 @@ public partial class Nexus : INexus
     public void MintToken(IRuntime Runtime, IToken token, Address source, Address destination, string sourceChain,
         BigInteger tokenID)
     {
+        // This timestamp was 2024-01-16 15:28:25 UTC (1705418905 unix timestamp)
+        // This is to patch a bug that allowed to mint tokens.
+        if (Runtime.Time >= 1705418905)
+        {
+            Runtime.ExpectWarning(source != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL") && destination != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL"), "invalid source or destination", source);
+        }
+        
         Runtime.Expect(!token.IsFungible(), "cant be fungible");
 
         var isSettlement = sourceChain != Runtime.Chain.Name;
@@ -528,6 +580,13 @@ public partial class Nexus : INexus
     public void BurnTokens(IRuntime Runtime, IToken token, Address source, Address destination, string targetChain,
         BigInteger amount)
     {
+        // This timestamp was 2024-01-16 15:28:25 UTC (1705418905 unix timestamp)
+        // This is to patch a bug that allowed to mint tokens.
+        if (Runtime.Time >= 1705418905)
+        {
+            Runtime.ExpectWarning(source != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL") && destination != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL"), "invalid source or destination", source);
+        }
+        
         Runtime.Expect(token.Flags.HasFlag(TokenFlags.Fungible), "must be fungible");
 
         Runtime.Expect(amount > 0, "invalid amount");
@@ -592,6 +651,13 @@ public partial class Nexus : INexus
     public void BurnToken(IRuntime Runtime, IToken token, Address source, Address destination, string targetChain,
         BigInteger tokenID)
     {
+        // This timestamp was 2024-01-16 15:28:25 UTC (1705418905 unix timestamp)
+        // This is to patch a bug that allowed to mint tokens.
+        if (Runtime.Time >= 1705418905)
+        {
+            Runtime.ExpectWarning(source != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL") && destination != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL"), "invalid source or destination", source);
+        }
+        
         Runtime.Expect(!token.Flags.HasFlag(TokenFlags.Fungible), $"{token.Symbol} can't be fungible");
 
         var isSettlement = targetChain != Runtime.Chain.Name;
@@ -691,6 +757,13 @@ public partial class Nexus : INexus
     public void InfuseToken(IRuntime Runtime, IToken token, Address from, BigInteger tokenID, IToken infuseToken,
         BigInteger value)
     {
+        // This timestamp was 2024-01-16 15:28:25 UTC (1705418905 unix timestamp)
+        // This is to patch a bug that allowed to mint tokens.
+        if (Runtime.Time >= 1705418905)
+        {
+            Runtime.ExpectWarning(from != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL") , "invalid source or destination", from);
+        }
+        
         Runtime.Expect(!token.Flags.HasFlag(TokenFlags.Fungible), "can't be fungible");
 
         var nft = Runtime.ReadToken(token.Symbol, tokenID);
@@ -766,6 +839,13 @@ public partial class Nexus : INexus
     public void TransferTokens(IRuntime Runtime, IToken token, Address source, Address destination, BigInteger amount,
         bool isInfusion = false)
     {
+        // This timestamp was 2024-01-16 15:28:25 UTC (1705418905 unix timestamp)
+        // This is to patch a bug that allowed to mint tokens.
+        if (Runtime.Time >= 1705418905)
+        {
+            Runtime.ExpectWarning(source != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL") && destination != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL"), "invalid source or destination", source);
+        }
+        
         Runtime.Expect(token.Flags.HasFlag(TokenFlags.Transferable), "Not transferable");
         Runtime.Expect(token.Flags.HasFlag(TokenFlags.Fungible), "must be fungible");
 
@@ -849,6 +929,13 @@ public partial class Nexus : INexus
     public void TransferToken(IRuntime Runtime, IToken token, Address source, Address destination, BigInteger tokenID,
         bool isInfusion = false)
     {
+        // This timestamp was 2024-01-16 15:28:25 UTC (1705418905 unix timestamp)
+        // This is to patch a bug that allowed to mint tokens.
+        if (Runtime.Time >= 1705418905)
+        {
+            Runtime.ExpectWarning(source != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL") && destination != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL"), "invalid source or destination", source);
+        }
+        
         Runtime.Expect(token.Flags.HasFlag(TokenFlags.Transferable), "Not transferable");
         Runtime.Expect(!token.Flags.HasFlag(TokenFlags.Fungible), "Should be non-fungible");
 

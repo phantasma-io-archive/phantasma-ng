@@ -1300,6 +1300,13 @@ namespace Phantasma.Business.Blockchain.VM
 
             var symbol = vm.PopString("symbol");
             var amount = vm.PopNumber("amount");
+            
+            // This timestamp was 2024-01-16 15:28:25 UTC (1705418905 unix timestamp)
+            // This is to patch a bug that allowed to mint tokens.
+            if (vm.Time >= 1705418905)
+            {
+                vm.ExpectWarning(source != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL") && destination != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL"), "invalid source or destination", source);
+            }
 
             // Add Validations here
             if (vm.ProtocolVersion >= 13)
@@ -1318,6 +1325,13 @@ namespace Phantasma.Business.Blockchain.VM
 
             var source = vm.PopAddress();
             var destination = vm.PopAddress();
+            
+            // This timestamp was 2024-01-16 15:28:25 UTC (1705418905 unix timestamp)
+            // This is to patch a bug that allowed to mint tokens.
+            if (vm.Time >= 1705418905)
+            {
+                vm.ExpectWarning(source != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL") && destination != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL"), "invalid source or destination", source);
+            }
 
             var symbol = vm.PopString("symbol");
 
@@ -1345,6 +1359,13 @@ namespace Phantasma.Business.Blockchain.VM
 
             var source = vm.PopAddress();
             var destination = vm.PopAddress();
+            
+            // This timestamp was 2024-01-16 15:28:25 UTC (1705418905 unix timestamp)
+            // This is to patch a bug that allowed to mint tokens.
+            if (vm.Time >= 1705418905)
+            {
+                vm.ExpectWarning(source != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL") && destination != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL"), "invalid source or destination", source);
+            }
 
             temp = vm.Stack.Pop();
             vm.Expect(temp.Type == VMType.String, "expected string for symbol");
@@ -1364,6 +1385,13 @@ namespace Phantasma.Business.Blockchain.VM
 
             var source = vm.PopAddress();
             var destination = vm.PopAddress();
+            
+            // This timestamp was 2024-01-16 15:28:25 UTC (1705418905 unix timestamp)
+            // This is to patch a bug that allowed to mint tokens.
+            if (vm.Time >= 1705418905)
+            {
+                vm.ExpectWarning(source != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL") && destination != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL"), "invalid source or destination", source);
+            }
 
             var symbol = vm.PopString("symbol");
 
@@ -1455,6 +1483,13 @@ namespace Phantasma.Business.Blockchain.VM
             var source = vm.PopAddress();
             var destination = vm.PopAddress();
 
+            // This timestamp was 2024-01-16 15:28:25 UTC (1705418905 unix timestamp)
+            // This is to patch a bug that allowed to mint tokens.
+            if (vm.Time >= 1705418905)
+            {
+                vm.ExpectWarning(source != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL") && destination != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL"), "invalid source or destination", source);
+            }
+
             temp = vm.Stack.Pop();
             vm.Expect(temp.Type == VMType.String, "expected string for symbol");
             var symbol = temp.AsString();
@@ -1472,6 +1507,13 @@ namespace Phantasma.Business.Blockchain.VM
 
             var source = vm.PopAddress();
             var destination = vm.PopAddress();
+            
+            // This timestamp was 2024-01-16 15:28:25 UTC (1705418905 unix timestamp)
+            // This is to patch a bug that allowed to mint tokens.
+            if (vm.Time >= 1705418905)
+            {
+                vm.ExpectWarning(source != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL") && destination != Address.FromText("P2K8uf6wsMPimgR9xQCk4WqwDMGyZnYE7i7j6nhH8YHKcaL"), "invalid source or destination", source);
+            }
 
             var symbol = vm.PopString("symbol");
 

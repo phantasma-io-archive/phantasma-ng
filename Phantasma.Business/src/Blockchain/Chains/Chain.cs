@@ -48,6 +48,7 @@ namespace Phantasma.Business.Blockchain
         private const string TxBlockHashMapTag = ".txblmp";
         private const string AddressTxHashMapTag = ".adblmp";
         private const string TaskListTag = ".tasks";
+        private const bool IsReadOnlyModeActive = true;
 
         private List<Transaction> CurrentTransactions = new();
 
@@ -104,6 +105,11 @@ namespace Phantasma.Business.Blockchain
             this.Storage = (StorageContext)new KeyStoreStorage(Nexus.GetChainStorage(this.Name));
         }
 
+        public bool IsReadOnly()
+        {
+            return IsReadOnlyModeActive;
+        }
+        
         /// <summary>
         /// Get Current Protocol Version
         /// </summary>
