@@ -30,6 +30,7 @@ public interface IChain
     BigInteger Height { get; }
     StorageContext Storage { get; }
     bool IsRoot { get; }
+    bool IsReadOnly();
     IContract[] GetContracts(StorageContext storage);
     void AddBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet);
     byte[]  SetBlock(Block block, IEnumerable<Transaction> transactions, StorageChangeSetContext changeSet);

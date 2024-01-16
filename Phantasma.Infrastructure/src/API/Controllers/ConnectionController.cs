@@ -12,6 +12,11 @@ namespace Phantasma.Infrastructure.API.Controllers
         [HttpGet("abci_query")]
         public ResultAbciQuery AbciQuery(string path, string data = null, int height = 0, bool prove = false)
         {
+            if (NexusAPI.ReadOnlyMode)
+            {
+                return default;
+            }
+            
             var service = ServiceUtility.GetAPIService(HttpContext);
             return service.AbciQuery(path, data, height, prove);
         }

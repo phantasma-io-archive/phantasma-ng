@@ -235,12 +235,23 @@ public partial class RuntimeVM : GasMachine, IRuntime
             if (IsSystemToken(symbol))
             {
                 var ctxName = CurrentContext.Name;
-                Expect(
-                    ctxName == StakeContextName ||
-                    ctxName == GasContextName ||
-                    ctxName == ExchangeContextName ||
-                    ctxName == EntryContextName,
-                    $"Minting system tokens only allowed in a specific context, current {ctxName}");
+
+                if (ProtocolVersion >= 19)
+                {
+                    Expect(ctxName == StakeContextName || ctxName == GasContextName, "Minting system tokens not allowed in genesis");
+                    Expect(symbol != DomainSettings.FuelTokenSymbol, "Minting system tokens not allowed in genesis");
+                }
+                else
+                {
+                    Expect(
+                        ctxName == StakeContextName ||
+                        ctxName == GasContextName ||
+                        ctxName == ExchangeContextName ||
+                        ctxName == EntryContextName,
+                        $"Minting system tokens only allowed in a specific context, current {ctxName}");
+                }
+                
+               
             }
         }
 
