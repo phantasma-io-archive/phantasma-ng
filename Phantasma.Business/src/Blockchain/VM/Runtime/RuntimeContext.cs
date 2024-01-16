@@ -71,10 +71,7 @@ public partial class RuntimeVM: GasMachine, IRuntime
         ExecutionState result = ExecutionState.Fault;
         try
         {
-            if (!this.IsReadOnlyModeReal())
-            {
-                result = base.Execute();
-            }
+            result = base.Execute();
         }
         catch (Exception ex)
         {
